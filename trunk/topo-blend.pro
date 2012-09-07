@@ -3,4 +3,5 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 SUBDIRS += segment
+SUBDIRS += surfacemesh_mode_info
 

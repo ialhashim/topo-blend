@@ -8,7 +8,7 @@ class segment : public SurfaceMeshFilterPlugin{
 
 public:
     QString name() { return "Segment"; }
-    QString description() { return "Segment"; }
+    QString description() { return "Segment into curves and sheets."; }
 
     void initParameters(RichParameterSet* pars);
     void applyFilter(RichParameterSet* pars);
