@@ -10,6 +10,8 @@ using namespace qglviewer;
 void surfacemesh_mode_info::createEdit()
 {
 	update();
+
+    fontImage = QImage(":/images/font.png");
 }
 
 void surfacemesh_mode_info::update()
@@ -203,7 +205,7 @@ void surfacemesh_mode_info::beginDrawIndex()
 
 	drawArea()->startScreenCoordinatesSystem();
 
-	initFont();
+    initFont(fontImage);
 
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_LIGHTING);
