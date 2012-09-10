@@ -256,6 +256,8 @@ QImage fontImage(":/images/font.png");
 GLuint fontTexture;
 bool fontReady = false;
 static stb_fontchar fontdata[STB_SOMEFONT_NUM_CHARS];
+char gl_text_buf[64];
+double font_color[4];
 
 static void initFont()
 {
@@ -285,15 +287,43 @@ static int stringWidth(const char *str)
 	return len;
 }
 
-static void drawStringQuad(int x, int y, const char *str)
+static void drawStringQuad(int x, int y, const char *str, bool isShadow = false)
 {
+	int startX = x;
+
 	while (*str) {
 		int char_codepoint = *str++;
+
+		// Line break
+		if(char_codepoint == '\n'){
+			x = startX;
+			y += STB_SOMEFONT_LINE_SPACING * 1.75;
+			continue;
+		}
+
+		// Tab
+		if(char_codepoint == '\t'){
+			x += STB_SOMEFONT_LINE_SPACING * 4;
+			continue;
+		}
+
 		stb_fontchar *cd = &fontdata[char_codepoint - STB_SOMEFONT_FIRST_CHAR];
+
+		if(isShadow){
+			float shadowDist = 1;
+			glColor4d(0,0,0,1);
+			glTexCoord2f(cd->s0, cd->t0); glVertex2i(x + cd->x0+shadowDist, y + cd->y0+shadowDist);
+			glTexCoord2f(cd->s1, cd->t0); glVertex2i(x + cd->x1+shadowDist, y + cd->y0+shadowDist);
+			glTexCoord2f(cd->s1, cd->t1); glVertex2i(x + cd->x1+shadowDist, y + cd->y1+shadowDist);
+			glTexCoord2f(cd->s0, cd->t1); glVertex2i(x + cd->x0+shadowDist, y + cd->y1+shadowDist);
+		}
+		if(isShadow) glColor4dv(font_color);
+
 		glTexCoord2f(cd->s0, cd->t0); glVertex2i(x + cd->x0, y + cd->y0);
 		glTexCoord2f(cd->s1, cd->t0); glVertex2i(x + cd->x1, y + cd->y0);
 		glTexCoord2f(cd->s1, cd->t1); glVertex2i(x + cd->x1, y + cd->y1);
 		glTexCoord2f(cd->s0, cd->t1); glVertex2i(x + cd->x0, y + cd->y1);
+
 		x += cd->advance_int;
 	}
 }
