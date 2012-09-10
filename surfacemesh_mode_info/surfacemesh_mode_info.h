@@ -1,8 +1,7 @@
 #pragma once
+#include "qglviewer.h"
 #include "SurfaceMeshPlugins.h"
 #include "SurfaceMeshHelper.h"
-
-#include "qglviewer.h"
 
 enum DrawElementType{VERT_IDX, FACE_IDX, EDGE_IDX, HDGE_IDX};
 
@@ -11,6 +10,7 @@ class surfacemesh_mode_info : public SurfaceMeshModePlugin{
     Q_INTERFACES(ModePlugin)
 
     QIcon icon(){ return QIcon(":/images/cursor-question.png"); }
+    QImage fontImage;
 
     /// Functions part of the EditPlugin system
     void createEdit();

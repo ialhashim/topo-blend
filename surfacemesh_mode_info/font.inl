@@ -252,14 +252,13 @@ static void stb_font_consolas_10_usascii(stb_fontchar font[STB_FONT_consolas_10_
 #define STB_SOMEFONT_LINE_SPACING        STB_FONT_consolas_10_usascii_LINE_SPACING
 #endif
 
-QImage fontImage(":/images/font.png");
 GLuint fontTexture;
 bool fontReady = false;
 static stb_fontchar fontdata[STB_SOMEFONT_NUM_CHARS];
 char gl_text_buf[64];
 double font_color[4];
 
-static void initFont()
+static void initFont(QImage & fontImage)
 {
 	if(!fontReady){
 		static unsigned char fontpixels[STB_SOMEFONT_BITMAP_HEIGHT][STB_SOMEFONT_BITMAP_WIDTH];
@@ -268,10 +267,10 @@ static void initFont()
 		glBindTexture(GL_TEXTURE_2D, fontTexture);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glPixelTransferf(GL_RED_BIAS, 1);glPixelTransferf(GL_GREEN_BIAS, 1);glPixelTransferf(GL_BLUE_BIAS, 1);
-		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glPixelTransferf(GL_RED_BIAS, 1);glPixelTransferf(GL_GREEN_BIAS, 1);glPixelTransferf(GL_BLUE_BIAS, 1);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fontImage.width(), fontImage.height(), 
-			0, GL_ALPHA, GL_UNSIGNED_BYTE, fontImage.bits());
+            0, GL_ALPHA, GL_UNSIGNED_BYTE, fontImage.bits());
 		fontReady = true;
 	}
 }
