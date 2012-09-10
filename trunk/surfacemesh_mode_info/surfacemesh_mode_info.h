@@ -2,6 +2,8 @@
 #include "SurfaceMeshPlugins.h"
 #include "SurfaceMeshHelper.h"
 
+#include "qglviewer.h"
+
 enum DrawElementType{VERT_IDX, FACE_IDX, EDGE_IDX, HDGE_IDX};
 
 class surfacemesh_mode_info : public SurfaceMeshModePlugin{
@@ -20,12 +22,25 @@ class surfacemesh_mode_info : public SurfaceMeshModePlugin{
 	void endSelection(const QPoint& p);
 
 	void drawIndex(DrawElementType, QColor, double vt = -0.4);
-	void drawSelectedItem(DrawElementType, QColor);
 
+	void beginDrawIndex();
+	void drawIndexVertex(Vertex,bool shadow=false);
+	void drawIndexFace(Face,bool shadow=false);
+	void drawIndexEdge(int,QVector3D,bool shadow=false);
+	void endDrawIndex();
+
+	void drawSelectedItem();
+	void drawItemInfo();
+
+	qglviewer::Vec cameraProjection(QVector3D);
+
+	Vector3VertexProperty points;
 	Vector3FaceProperty faceCenters;
 	Vector3FaceProperty faceNormals;
+	ScalarFaceProperty faceAreas;
+	ScalarEdgeProperty elengs;
 
-	int selectedType;
+	DrawElementType selectedType;
 	int selectedIdx;
 
 	QVector<bool> visualize;
@@ -33,4 +48,10 @@ class surfacemesh_mode_info : public SurfaceMeshModePlugin{
 public:
 	virtual bool keyReleaseEvent(QKeyEvent* event);
 	virtual bool keyPressEvent (QKeyEvent* event);
+	void update();
 };
+
+// Utility
+#define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )
+#define RADIANS(deg)    ((deg)/180.0 * M_PI)
+#define DEGREES(rad)    ((rad)/M_PI * 180.0)
