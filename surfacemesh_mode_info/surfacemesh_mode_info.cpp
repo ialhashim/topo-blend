@@ -453,6 +453,22 @@ void surfacemesh_mode_info::drawItemInfo()
 			log += QString("\tBoundry    %1\n").arg(mesh()->is_boundary(v));
 			log += QString("\tPosition   %1\n").arg(pos);
 			log += QString("\tNormal     %1\n").arg(normal);
+			
+			// Properties
+			foreach(std::string pname, mesh()->vertex_properties()){
+				QString property_name = pname.c_str();
+				// Bool properties
+				Surface_mesh::Vertex_property<bool> boolprop = mesh()->get_vertex_property<bool>(pname);
+				if(boolprop.is_valid()) log += QString("\n(%1)\t%2").arg(property_name).arg(boolprop[v]);
+
+				// Integer properties
+				Surface_mesh::Vertex_property<int> integer = mesh()->get_vertex_property<int>(pname);
+				if(integer.is_valid()) log += QString("\n(%1)\t%2").arg(property_name).arg(integer[v]);
+
+				// Double properties
+				Surface_mesh::Vertex_property<double> dbl = mesh()->get_vertex_property<double>(pname);
+				if(dbl.is_valid()) log += QString("\n(%1)\t%2").arg(property_name).arg(dbl[v]);
+			}
 		}
 		break;
 	case FACE_IDX:
@@ -489,6 +505,22 @@ void surfacemesh_mode_info::drawItemInfo()
 			log += QString("\tCenter     %1\n").arg(center);
 			log += QString("\tNormal     %1\n").arg(normal);
 			log += QString("\tAngle      %1\n").arg(QString("min  %1\tmax  %2").arg(DEGREES(minAngle),3).arg(DEGREES(maxAngle),3));
+
+			// Properties
+			foreach(std::string pname, mesh()->face_properties()){
+				QString property_name = pname.c_str();
+				// Bool properties
+				Surface_mesh::Face_property<bool> boolprop = mesh()->get_face_property<bool>(pname);
+				if(boolprop.is_valid()) log += QString("\n(%1)\t%2").arg(property_name).arg(boolprop[f]);
+
+				// Integer properties
+				Surface_mesh::Face_property<int> integer = mesh()->get_face_property<int>(pname);
+				if(integer.is_valid()) log += QString("\n(%1)\t%2").arg(property_name).arg(integer[f]);
+
+				// Double properties
+				Surface_mesh::Face_property<double> dbl = mesh()->get_face_property<double>(pname);
+				if(dbl.is_valid()) log += QString("\n(%1)\t%2").arg(property_name).arg(dbl[f]);
+			}
 		}
 		break;
 	case EDGE_IDX:
@@ -513,6 +545,22 @@ void surfacemesh_mode_info::drawItemInfo()
 			log += QString("\tLength          %1\n").arg(elengs[e]);
 			log += QString("\tBoundry         %1\n").arg(mesh()->is_boundary(e));
 			log += QString("\tDihedral angle  %1\n").arg(sign*DEGREES(diangle));
+
+			// Properties
+			foreach(std::string pname, mesh()->edge_properties()){
+				QString property_name = pname.c_str();
+				// Bool properties
+				Surface_mesh::Edge_property<bool> boolprop = mesh()->get_edge_property<bool>(pname);
+				if(boolprop.is_valid()) log += QString("\n(%1)\t%2").arg(property_name).arg(boolprop[e]);
+
+				// Integer properties
+				Surface_mesh::Edge_property<int> integer = mesh()->get_edge_property<int>(pname);
+				if(integer.is_valid()) log += QString("\n(%1)\t%2").arg(property_name).arg(integer[e]);
+
+				// Double properties
+				Surface_mesh::Edge_property<double> dbl = mesh()->get_edge_property<double>(pname);
+				if(dbl.is_valid()) log += QString("\n(%1)\t%2").arg(property_name).arg(dbl[e]);
+			}
 		}
 		break;
 	}

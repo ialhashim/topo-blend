@@ -114,3 +114,42 @@ public:
 		lines_colors.push_back(c);
 	}
 };
+
+class PointSoup : public RenderObject::Base{
+	QVector< QVector3D > points;
+	QVector< QColor > points_colors;
+public:
+	PointSoup():RenderObject::Base(1, Qt::black){}
+
+	virtual void draw(){
+		glDisable(GL_LIGHTING);
+
+		glPointSize(6);
+		glBegin(GL_POINTS);
+		for(int i = 0; i < (int) points.size(); i++){
+			glColorQt(points_colors[i]);
+			glVertQt(points[i]);
+		}
+		glEnd();
+
+		glEnable(GL_LIGHTING);
+	}
+
+	void addPoint(const QVector3D& p, const QColor& c = Qt::blue){
+		points.push_back(p);
+		points_colors.push_back(c);
+	}
+};
+
+QColor qtColdColor(double value, double min = 0.0, double max = 1.0){
+	unsigned char rgb[3];
+	value-=min;
+	if(value==HUGE_VAL)
+	{rgb[0]=rgb[1]=rgb[2]=255;}
+	else if(value<0)
+	{rgb[0]=rgb[1]=rgb[2]=0;}
+	else if(value<max)
+	{rgb[0]=0;rgb[1]=0;rgb[2]=(unsigned char)(255*value/max);}
+	else {rgb[0]=rgb[1]=0;rgb[2]=255;}
+	return QColor(rgb[0],rgb[1],rgb[2]);
+}

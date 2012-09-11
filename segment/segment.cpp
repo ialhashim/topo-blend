@@ -10,13 +10,16 @@
 typedef Surface_mesh::Halfedge_around_face_circulator HalfedgeFaceIter;
 typedef Surface_mesh::Vertex_around_face_circulator VertFaceIter;
 typedef Surface_mesh::Face_around_vertex_circulator FaceVertIter;
+typedef Surface_mesh::Vertex_around_vertex_circulator VertIter;
 
 uint qHash( const Face &key ){return qHash(key.idx()); }
+uint qHash( const Vertex &key ){return qHash(key.idx()); }
 
 void segment::initParameters(RichParameterSet* pars){
-	pars->addParam( new RichFloat("angle_threshold", 0.05f, "Angle threshold"));
-	pars->addParam( new RichInt("grow_itr", 0, "Grow iterations"));
-	pars->addParam( new RichFloat("curve_region_factor", 1.0, "Curve region threshold"));
+	pars->addParam( new RichFloat("angle_threshold", 10.0f, "Angle threshold"));
+	pars->addParam( new RichInt("k_nighbours", 3, "K-levels"));
+	pars->addParam( new RichBool("visualize", false, "Visualize regions"));
+	pars->addParam( new RichBool("extract", true, "Extract regions"));
 
 	// Create helper object to access points and edge lengths
 	SurfaceMeshHelper h(mesh());
@@ -29,18 +32,25 @@ void segment::initMesh()
 {
 	resetClassfication();
 	resetVisitFlag();
+	resetVertexClass();
 }
 
 void segment::resetClassfication()
 {
-	mesh()->remove_face_property<FaceClass>(fclass);
-	fclass = mesh()->add_face_property<FaceClass>("f:class", SHEET);
+	mesh()->remove_face_property<int>(fclass);
+	fclass = mesh()->add_face_property<int>("f:class", SHEET);
 }
 
 void segment::resetVisitFlag()
 {
 	mesh()->remove_face_property<bool>(fvisited);
 	fvisited = mesh()->add_face_property("f:visited", false);
+}
+
+void segment::resetVertexClass()
+{
+	mesh()->remove_vertex_property<Scalar>(vclass);
+	vclass = mesh()->add_vertex_property<Scalar>("v:class", 0);
 }
 
 double segment::minAngle(Face f)
@@ -64,118 +74,117 @@ double segment::minAngle(Face f)
 
 void segment::applyFilter(RichParameterSet* pars)
 {
+	// Get user specified parameters
+	double theta = pars->getFloat("angle_threshold");
+	int k = pars->getInt("k_nighbours");
+	bool visualize = pars->getBool("visualize");
+	bool extract = pars->getBool("extract");
+
+	// Perform segmentation
+	performCurveSheetSegmentation(theta, k, extract, visualize);
+}
+
+void segment::performCurveSheetSegmentation(double theta, int k, bool isExtract, bool isVisualize)
+{
 	// Clear debug artifacts
 	drawArea()->deleteAllRenderObjects();
-
-	// Retrieve parameters
-	double theta = pars->getFloat("angle_threshold");
+	PolygonSoup * poly_soup = new PolygonSoup;
+	LineSegments * lines = new LineSegments;
+	PointSoup * point_soup = new PointSoup;
 
 	initMesh();
-	
+
 	// 1) Check valid faces by minimum angle
 	foreach(Face f, mesh()->faces())
 		if( minAngle(f) < RADIANS(theta) )
 			fclass[f] = CURVE;
 
-	// 2) Filter bad faces marked as curves
-	/*for(int i = 0; i < pars->getInt("grow_itr"); i++)
-	{
-		QVector<Vertex> toSheet;
+	// 2) Assign vertex classification from faces
+	classifyVertsFromFaces();
 
-		// Find vertices to convert
-		foreach(Vertex v, mesh()->vertices()){
-			int sheet_count = 0;
-			
-			Surface_mesh::Face_around_vertex_circulator adjF(mesh(), v), fend = adjF;
-			do { if( fclass[adjF] == SHEET) sheet_count++ ; } while(++adjF != fend);
+	// 3) Blur classification
+	foreach(Vertex v, mesh()->vertices()){
+		QSet<Vertex> k_rings;
+		collectRing(v, k_rings, k);
 
-			if(sheet_count < mesh()->valence(v) && sheet_count > mesh()->valence(v) * 0.5)
-				toSheet.push_back(v);
-		}
-		
-		// Convert all adjacent faces of 'v' to sheet
-		foreach(Vertex v, toSheet){
+		// Get median
+		QVector<double> nighbours;
+		foreach(Vertex v, k_rings) nighbours.push_back(vclass[v]);
+		vclass[v] = median(nighbours);
+
+		if(isVisualize) point_soup->addPoint(points[v], qtColdColor(vclass[v]));
+	}
+
+	// 4) Cutoff 
+	foreach(Vertex v, mesh()->vertices()){
+		if(vclass[v] > 0.5){
 			Surface_mesh::Face_around_vertex_circulator adjF(mesh(), v), fend = adjF;
 			do { fclass[adjF] = SHEET; } while(++adjF != fend);
 		}
-	}*/
+	}
 
-	// 3) Classify by growing regions
+	// 5) Find set of faces in all regions
 	GrowRegions();
-	
-	// 4) Fix curve region misclassification by examining region boundry
-	if( curve_regions.size() )
-	{
-		// Compute perimeter of largest region
-		/*int maxRegionSize = -1;
-		int maxIdx = 0;
 
-		for(int i = 0; i < (int) curve_regions.size(); i++){
-			if(curve_regions[i].size() > maxRegionSize){
-				maxRegionSize = curve_regions[i].size();
-				maxIdx = i;
-			}
+	// 6) Save as separate meshes
+	if(isExtract){
+		document()->pushBusy();
+		// Curves
+		for(int i = 0; i < (int) curve_regions.size(); i++)
+		{
+			SurfaceMeshModel * m = new SurfaceMeshModel("", QString("%1_curve_%2").arg(mesh()->name).arg(i));
+			setMeshFromRegion(curve_regions[i], m);
+			document()->addModel(m);
 		}
 
-		double maxPerimeter = regionPerimeter(curve_regions[maxIdx]);
-		double maxArea = regionArea(curve_regions[maxIdx]);
+		// Sheets
+		for(int i = 0; i < (int) sheet_regions.size(); i++)
+		{
+			SurfaceMeshModel * m = new SurfaceMeshModel("", QString("%1_sheet_%2").arg(mesh()->name).arg(i));
+			setMeshFromRegion(sheet_regions[i], m);
+			document()->addModel(m);
+		}
 
-		// Reclassify based on threshold
-		double factor = pars->getFloat("curve_region_factor");
+		document()->popBusy();
+	}
 
-		foreach(Region r, curve_regions){
-			if(regionPerimeter(r) > maxPerimeter * factor){
-				QSetIterator<Face> i(r);
-				while (i.hasNext()){
-					fclass[i.next()] = SHEET;
+	// Debug
+	if(isVisualize){
+		double e = mesh()->bbox().size().length() * 0.05 * 1;
+		QVector3D shift(e,e,e);
+		// Draw curves
+		foreach(Region region, curve_regions){
+			foreach(Face f, region){
+				QVector<QVector3D> p;
+				VertFaceIter vit = mesh()->vertices(f), vend = vit;
+				do{ p.push_back(shift + points[vit]); } while(++vit != vend);
+				for(int i = 0; i < p.size(); i++){
+					lines->addLine(p[i],p[(i+1) % p.size()]);
 				}
 			}
 		}
-
-		// Final pass
-		if(factor > 0){
-			resetVisitFlag();
-			GrowRegions();
-		}*/
-
-		foreach(Region r, curve_regions){
-
-		}
-	}
-	else
-	{
-		// If we only single classification, assign as single region (of face[0] class)
-		Face f(0); FaceClass currClass = fclass[f];
-		resetVisitFlag();
-		if(currClass == CURVE) curve_regions.push_back( growRegion(f) );
-		if(currClass == SHEET) sheet_regions.push_back( growRegion(f) );
-	}
-
-	// 3) Debug regions
-	PolygonSoup * poly_soup = new PolygonSoup;
-	LineSegments * lines = new LineSegments;
-	double e = mesh()->bbox().size().length() * 0.05 * 1;
-	QVector3D shift(e,e,e);
-	foreach(Region region, curve_regions){
-		foreach(Face f, region){
-			QVector<QVector3D> p;
-			VertFaceIter vit = mesh()->vertices(f), vend = vit;
-			do{ p.push_back(shift + points[vit]); } while(++vit != vend);
-			for(int i = 0; i < p.size(); i++){
-				lines->addLine(p[i],p[(i+1) % p.size()]);
+		// Draw sheets
+		foreach(Region region, sheet_regions){
+			foreach(Face f, region){
+				QVector<QVector3D> p;
+				VertFaceIter vit = mesh()->vertices(f), vend = vit;
+				do{ p.push_back(-shift + points[vit]); } while(++vit != vend);
+				poly_soup->addPoly(p);
 			}
 		}
+
+		drawArea()->addRenderObject(poly_soup);
+		drawArea()->addRenderObject(lines);
+		drawArea()->addRenderObject(point_soup);
 	}
-	foreach(Region region, sheet_regions){
-		foreach(Face f, region){
-			QVector<QVector3D> p;
-			VertFaceIter vit = mesh()->vertices(f), vend = vit;
-			do{ p.push_back(-shift + points[vit]); } while(++vit != vend);
-			poly_soup->addPoly(p);
-		}
+}
+
+void segment::classifyVertsFromFaces()
+{
+	foreach(Vertex v, mesh()->vertices()){
+		Surface_mesh::Face_around_vertex_circulator adjF(mesh(), v), fend = adjF;
+		do { if(fclass[adjF] == SHEET) { vclass[v] = 1.0; break; } } while(++adjF != fend);
 	}
-	drawArea()->addRenderObject(poly_soup);
-	drawArea()->addRenderObject(lines);
 }
 
 void segment::GrowRegions()
@@ -190,7 +199,7 @@ void segment::GrowRegions()
 		if(fvisited[f]) 
 			continue;
 
-		FaceClass currClass = fclass[f];
+		int currClass = fclass[f];
 
 		HalfedgeFaceIter h(mesh(), f), eend = h;
 		do{ 
@@ -203,6 +212,14 @@ void segment::GrowRegions()
 			}
 		} while(++h != eend);
 	}
+
+	// For single class classification of entire mesh
+	if( !curve_regions.size() ){
+		Face f(0); int currClass = fclass[f];
+		resetVisitFlag();
+		if(currClass == CURVE) curve_regions.push_back( growRegion(f) );
+		if(currClass == SHEET) sheet_regions.push_back( growRegion(f) );
+	}
 }
 
 Region segment::growRegion( Face seedFace )
@@ -212,7 +229,7 @@ Region segment::growRegion( Face seedFace )
 	QStack<Face> toVisit;
 	toVisit.push(seedFace);
 
-	FaceClass currClass = fclass[seedFace];
+	int currClass = fclass[seedFace];
 
 	// Recursive grow:
 	while( !toVisit.isEmpty() )
@@ -238,47 +255,49 @@ Region segment::growRegion( Face seedFace )
 	return region;
 }
 
-double segment::regionPerimeter(Region & region)
+void segment::setMeshFromRegion( Region & r, SurfaceMeshModel * m)
 {
-	double length = 0;
-
-	// Find class of region
-	QSetIterator<Face> i(region);
-	FaceClass currClass = fclass[i.peekNext()];
-
-	while (i.hasNext()){
-		Face f = i.next();
-
-		HalfedgeFaceIter h(mesh(), f), eend = h;
-		do{ 
-			Face adj = mesh()->face(mesh()->opposite_halfedge(h));
-
-			// If adjacent is not same class, add edge length to sum
-			if( fclass[adj] != currClass )
-				length += elen[mesh()->edge(h)];
-		} while(++h != eend);
+	// Get set of vertices
+	QSet<Vertex> verts; QMap< Face, QVector<Vertex> > adjV;
+	foreach(Face f, r){
+		VertFaceIter v(mesh(), f), vend = v;
+		do{ verts.insert(v); adjV[f].push_back(v); } while (++v != vend);
 	}
 
-	return length;
+	// VERTICES: Map them to ordered numbers, and add to new mesh
+	QMap<Vertex,Vertex> vmap;
+	QSetIterator<Vertex> vi(verts);
+	while(vi.hasNext()){
+		Vertex v = vi.next();
+		vmap[v] = Vertex(vmap.size());
+		m->add_vertex(points[v]);
+	}
+
+	// FACES
+	foreach(Face f, r){
+		if(mesh()->valence(f) == 3) 
+			m->add_triangle(vmap[adjV[f][0]], vmap[adjV[f][1]], vmap[adjV[f][2]]);
+	}
 }
 
-double segment::regionArea(Region & region)
+void segment::collectRing( Vertex v, QSet<Vertex> & set, int level )
 {
-	double area = 0;
-
-	foreach(Face f, region)
-		area += farea[f];
-
-	return area;
+	if(level > 0){
+		VertIter vi(mesh(), v), vend = vi;
+		do{	collectRing(vi, set, level - 1); set.insert(vi); } while(++vi != vend);
+	}
+	else
+		set.insert(v);
 }
 
-int segment::regionBoundries(Region & region)
+double segment::median( QVector<double> vec )
 {
-	int numBoundries = 0;
-
-
-
-	return numBoundries;
+	typedef vector<int>::size_type vec_sz;
+	vec_sz size = vec.size();
+	if (size == 0) return DBL_MAX;
+	qSort(vec.begin(), vec.end());
+	vec_sz mid = size / 2;
+	return size % 2 == 0 ? (vec[mid] + vec[mid-1]) / 2 : vec[mid];
 }
 
 Q_EXPORT_PLUGIN(segment)
