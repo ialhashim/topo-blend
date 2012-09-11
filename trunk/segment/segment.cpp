@@ -134,6 +134,7 @@ void segment::performCurveSheetSegmentation(double theta, int k, bool isExtract,
 		{
 			SurfaceMeshModel * m = new SurfaceMeshModel("", QString("%1_curve_%2").arg(mesh()->name).arg(i));
 			setMeshFromRegion(curve_regions[i], m);
+            m->updateBoundingBox();
 			document()->addModel(m);
 		}
 
@@ -142,6 +143,7 @@ void segment::performCurveSheetSegmentation(double theta, int k, bool isExtract,
 		{
 			SurfaceMeshModel * m = new SurfaceMeshModel("", QString("%1_sheet_%2").arg(mesh()->name).arg(i));
 			setMeshFromRegion(sheet_regions[i], m);
+            m->updateBoundingBox();
 			document()->addModel(m);
 		}
 
