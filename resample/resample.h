@@ -11,8 +11,8 @@ class myresample : public SurfaceMeshModePlugin{
     QIcon icon(){ return QIcon(":/images/topo.png"); }
 
     /// Functions part of the EditPlugin system
-	void createEdit();
-    void destroyEdit(){}
+    void create();
+    void destroy(){}
 
     ResampleWidget * rw;
 
