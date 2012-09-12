@@ -1,14 +1,16 @@
 #pragma once
-#include "KDTree.h"
 #include "Sampler.h"
-
-std::vector<double> toKDPoint(const SurfaceMeshTypes::Point & from){
-    std::vector<double> p(3, 0.0);
-    p[0] = from.x(); p[1] = from.y(); p[2] = from.z();
-    return p;
-}
+#include "KDTree.h"
+using namespace kdtree;
 
 class SpherePackSampling{
+
+private:
+    static std::vector<double> toKDPoint(const SurfaceMeshTypes::Point & from){
+        std::vector<double> p(3, 0.0);
+        p[0] = from.x(); p[1] = from.y(); p[2] = from.z();
+        return p;
+    }
 
 public:
     static std::vector<Vec3d> sample(SurfaceMeshModel * m, int randomSampleCount, double r, int density = 1)
