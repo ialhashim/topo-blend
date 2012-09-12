@@ -4,7 +4,7 @@
 #include "SpherePackSampling.h"
 #include "../segment/CustomDrawObjects.h"
 
-void myresample::createEdit()
+void myresample::create()
 {
     rw = new ResampleWidget(this);
     rw->show();

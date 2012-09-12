@@ -7,7 +7,7 @@ using namespace qglviewer;
 // Fast OpenGL text
 #include "font.inl"
 
-void surfacemesh_mode_info::createEdit()
+void surfacemesh_mode_info::create()
 {
 	update();
 

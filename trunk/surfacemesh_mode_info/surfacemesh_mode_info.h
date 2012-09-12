@@ -13,8 +13,8 @@ class surfacemesh_mode_info : public SurfaceMeshModePlugin{
     QImage fontImage;
 
     /// Functions part of the EditPlugin system
-    void createEdit();
-    void destroyEdit(){}
+    void create();
+    void destroy(){}
 
     void decorate();
     void drawWithNames();
