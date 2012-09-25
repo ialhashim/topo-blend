@@ -187,6 +187,107 @@ public:
     }
 };
 
+
+class PlaneSoup : public RenderObject::Base{
+	QVector< QPair<QVector3D,QVector3D> > planes;
+	double scale;
+public:
+	PlaneSoup(double s = 1.0, const QColor& c = Qt::green):RenderObject::Base(1, c)
+	{ scale = s; }
+
+	void addPlane(const QVector3D& center, const QVector3D& normal){
+		planes.push_back( qMakePair(center, normal) );
+	}
+
+	virtual void draw(){
+		glDisable(GL_LIGHTING);
+
+		// Rendering options
+		glEnable (GL_POINT_SMOOTH);
+		glEnable (GL_LINE_SMOOTH);
+		glEnable (GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glHint (GL_LINE_SMOOTH_HINT, GL_NICEST);
+
+		float color[4];
+		glGetFloatv(GL_CURRENT_COLOR, color);
+
+		// Bake geometry
+		int c = planes.size();
+		std::vector<Vec3d> n(c),u(c),v(c),p1(c),p2(c),p3(c),p4(c);
+		for(int i = 0; i < c; i++){
+			n[i] = planes[i].second;
+			u[i] = scale * orthogonalVector(n[i]).normalized();
+			v[i] = scale * cross(n[i], u[i]).normalized();
+
+			p1[i] = planes[i].first + (u[i] + v[i]);
+			p2[i] = planes[i].first + (-u[i] + v[i]);
+			p3[i] = planes[i].first + (-v[i] + u[i]);
+			p4[i] = planes[i].first + (-v[i] + -u[i]);
+		}
+
+		// Draw Borders
+		glColor4f(color[0]*0.8, color[1]*0.8, color[2]*0.8, 0.5);
+		glLineWidth(2.0);
+		glPolygonMode(GL_FRONT,GL_LINE);
+		glBegin(GL_QUADS);
+		for(int i = 0; i < c; i++)
+		{
+			glVertex3dv(p1[i]);
+			glVertex3dv(p2[i]);
+			glVertex3dv(p4[i]);
+			glVertex3dv(p3[i]);
+		}
+		glEnd();
+
+		// Draw Center
+		glColor3f(color[0], color[1], color[2]);
+		glPointSize(4.0);
+		glBegin(GL_POINTS);
+		for(int i = 0; i < c; i++) glVertex3dv(Vec3d(planes[i].first));
+		glEnd();
+		glPointSize(8.0);
+		glColor4f(1, 1, 1, 0.5);
+		glBegin(GL_POINTS);
+		for(int i = 0; i < c; i++) glVertex3dv(Vec3d(planes[i].first));
+		glEnd();
+
+		// Draw Normal
+		glBegin(GL_LINES);
+		for(int i = 0; i < c; i++)
+		{
+			Vec3d center = Vec3d(planes[i].first);
+			glVertex3dv(center);
+			glVertex3dv(center + (n[i] * 0.2 * scale));
+		}
+		glEnd();
+
+		// Draw Transparent Fills
+		glColor4f(color[0], color[1], color[2], 0.05f);
+		glPolygonMode(GL_FRONT,GL_FILL);
+		glBegin(GL_QUADS);
+		for(int i = 0; i < c; i++)
+		{
+			glVertex3dv(p1[i]);
+			glVertex3dv(p2[i]);
+			glVertex3dv(p4[i]);
+			glVertex3dv(p3[i]);
+		}
+		glEnd();
+
+		glDisable(GL_BLEND);
+		glEnable(GL_LIGHTING);
+	}
+
+	static Vec3d orthogonalVector(const Vec3d& n) {
+		if ((abs(n.y()) >= 0.9 * abs(n.x())) &&
+			abs(n.z()) >= 0.9 * abs(n.x())) return Vec3d(0.0, -n.z(), n.y());
+		else if ( abs(n.x()) >= 0.9 * abs(n.y()) &&
+			abs(n.z()) >= 0.9 * abs(n.y()) ) return Vec3d(-n.z(), 0.0, n.x());
+		else return Vec3d(-n.y(), n.x(), 0.0);
+	}
+};
+
 static QColor qtColdColor(double value, double min = 0.0, double max = 1.0){
 	unsigned char rgb[3];
 	value-=min;

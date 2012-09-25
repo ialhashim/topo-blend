@@ -11,6 +11,7 @@ ResampleWidget::ResampleWidget(myresample *resampler, QWidget *parent): QDialog(
     this->r = resampler;
 
     connect(ui->resampleButton, SIGNAL(clicked()), (const QObject*) resampler, SLOT(doResample()));
+	connect(ui->ballPivotButton, SIGNAL(clicked()), (const QObject*) resampler, SLOT(doBallPivoting()));
 }
 
 ResampleWidget::~ResampleWidget()

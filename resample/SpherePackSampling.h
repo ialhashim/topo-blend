@@ -5,15 +5,9 @@ using namespace kdtree;
 
 class SpherePackSampling{
 
-private:
-    static std::vector<double> toKDPoint(const SurfaceMeshTypes::Point & from){
-        std::vector<double> p(3, 0.0);
-        p[0] = from.x(); p[1] = from.y(); p[2] = from.z();
-        return p;
-    }
-
 public:
-    static std::vector<Vec3d> sample(SurfaceMeshModel * m, int randomSampleCount, double r, int density = 1)
+    static std::vector<Vec3d> sample(SurfaceMeshModel * m, int randomSampleCount, double r, 
+		std::vector<Vec3d> & gridPoints = std::vector<Vec3d>(), int density = 1)
 	{
         std::vector<Vec3d> samples, centers, rndSamples;
 
@@ -32,7 +26,7 @@ public:
         KDTree tree(points);
 
         foreach(Vec3d center, centers)
-		{
+        {
 			// Collect neighbors
             std::vector<int> idxs;
             std::vector<double> dists;
@@ -45,18 +39,20 @@ public:
 			Vec3d centerGroup (0,0,0);
             foreach(int i, idxs) centerGroup += Vec3d(points[i][0],points[i][1],points[i][2]);
             centerGroup /= idxs.size();
-			samples.push_back(centerGroup);
+            samples.push_back(centerGroup);
+
+			gridPoints.push_back(center);
 		}
 
 		return samples;
 	}
 
 	/* Hexagonal close packing of spheres (HCP lattice) */
-	static std::vector<Vec3d> spheres(double r, Vec3d bbmin, Vec3d bbmax, int density = 1)
+    static std::vector<Vec3d> spheres(double r, Vec3d bbmin, Vec3d bbmax, int density = 1)
 	{
-		std::vector<Vec3d> samples;
+        std::vector<Vec3d> samples;
 
-		std::vector< std::vector<Vec3d> > grid;
+        std::vector< std::vector<Vec3d> > grid;
 
 		double d = r * 2;
 
@@ -72,7 +68,6 @@ public:
 
 		Vec3d delta(r, sqrt(3.0) * r , 0);
 		Vec3d center(0,0,0);
-		int sign = 1;
 
 		grid.push_back(std::vector<Vec3d>());
 
@@ -82,7 +77,7 @@ public:
 		for(int y = 0; y < dy; y++){
 			std::vector<Vec3d> row = grid.back();
 			
-			for(int x = 0; x < row.size(); x++)	row[x] += delta;
+			for(int x = 0; x < (int)row.size(); x++)	row[x] += delta;
 
 			delta.x() = -delta.x();
 
@@ -94,7 +89,7 @@ public:
 		for(int z = 0; z < dz; z += density){
 			for(int y = 0; y < dy; y += density)
 				for(int x = 0; x < dx; x += density)
-					samples.push_back(grid[y][x] + center);
+                    samples.push_back(grid[y][x] + center);
 				
 			omega.x() *= -1;
 			omega.y() *= -1;
@@ -105,4 +100,9 @@ public:
 		return samples;
 	}
 
+	static std::vector<double> toKDPoint(const SurfaceMeshTypes::Point & from){
+		std::vector<double> p(3, 0.0);
+		p[0] = from.x(); p[1] = from.y(); p[2] = from.z();
+		return p;
+	}
 };
