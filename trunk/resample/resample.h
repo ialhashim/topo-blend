@@ -18,6 +18,7 @@ class myresample : public SurfaceMeshModePlugin{
 
 public slots:
     void doResample();
+	void doBallPivoting();
 
 signals:
 
