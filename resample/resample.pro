@@ -1,7 +1,7 @@
 CONFIG += starlab
 STARLAB_TEMPLATE += plugin
 STARLAB_DEPENDS += ../../starlab/plugins-surfacemesh/surfacemesh
-STARLAB_EXTERNAL += kdtree-matlab eigen
+STARLAB_EXTERNAL += nanoflann eigen
 
 QT += opengl
 
