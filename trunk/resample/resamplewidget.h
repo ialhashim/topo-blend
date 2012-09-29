@@ -16,10 +16,11 @@ class ResampleWidget : public QDialog
 public:
     explicit ResampleWidget(myresample *, QWidget *parent = 0);
     ~ResampleWidget();
-    
+
 private:
     Ui::ResampleWidget *ui;
     myresample * r;
+
 };
 
 #endif // RESAMPLEWIDGET_H

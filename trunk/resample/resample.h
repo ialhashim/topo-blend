@@ -14,11 +14,10 @@ class myresample : public SurfaceMeshModePlugin{
     void create();
     void destroy(){}
 
-    ResampleWidget * rw;
+	int faceLimit;
 
 public slots:
     void doResample();
-	void doBallPivoting();
 
 signals:
 

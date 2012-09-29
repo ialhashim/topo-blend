@@ -4,22 +4,25 @@
 #include "SpherePackSampling.h"
 #include "../segment/CustomDrawObjects.h"
 #include "PCA3.h"
-#include "ball_pivoting.h"
+
+#include "rimls.h"
 
 #include <iostream>
 #include <fstream>
 
+ResampleWidget * rw = NULL;
+
 void myresample::create()
 {
-    rw = new ResampleWidget(this);
-    rw->show();
+	if(!rw) rw = new ResampleWidget(this);
+	rw->show();
 }
 
 void myresample::doResample()
 {
     drawArea()->deleteAllRenderObjects();
 
-    int millions = 1e4;
+    /*int millions = 1e4;
     double s = 0.01;
 	double r = mesh()->bbox().size().length() * s;
 
@@ -29,21 +32,20 @@ void myresample::doResample()
     std::vector<Vec3d> samples = SpherePackSampling::sample(mesh(), millions, r);
 
 	// Add into a KD-tree
-	std::vector< vector<double> > tpoints;
-	foreach(Vec3d p, samples) tpoints.push_back( SpherePackSampling::toKDPoint(p) );
-	KDTree tree(tpoints);
+	NanoKdTree tree;
+	foreach(Vec3d p, samples) tree.addPoint(p);
+	tree.build();
 
     foreach(Vec3d p, samples)
 	{
         ps->addPoint(p);
 		
         // Collect neighbors
-        std::vector<int> idxs;
-        std::vector<double> d;
-        tree.k_closest_points( SpherePackSampling::toKDPoint(p), 16, idxs, d );
+		KDResults matches;
+		tree.k_closest(p, 16, matches);
 
         std::vector<Vec3d> k_neighbors;
-        foreach(int i, idxs) k_neighbors.push_back(samples[i]);
+        foreach(KDResultPair i, matches) k_neighbors.push_back(samples[i.first]);
 
         // Plane
         Vec3d c,n;
@@ -53,7 +55,6 @@ void myresample::doResample()
 
     drawArea()->addRenderObject(ls);
     drawArea()->addRenderObject(ps);
-    drawArea()->setRenderer(mesh(), "Bounding Box");
     drawArea()->updateGL();
 
     // DEBUG ====
@@ -62,31 +63,36 @@ void myresample::doResample()
     foreach(Vec3d p, samples)
         myfile << "v " << p << "\n";
     myfile.close();*/
-}
 
-void myresample::doBallPivoting()
-{
-	SurfaceMeshModel * m = new SurfaceMeshModel("", "ball_pivot");
+	Surface_mesh::Vertex_property<Vector3> points = mesh()->vertex_property<Vector3>(VPOINT);
+	Surface_mesh::Vertex_property<Vector3> normals = mesh()->vertex_property<Vector3>(VNORMAL, Vector3(0));
 
-	// Position
-	Surface_mesh::Vertex_property<Vector3> points = mesh()->get_vertex_property<Vector3>(VPOINT);
+	Surface_mesh::Vertex_property<Vector3> new_points = mesh()->vertex_property<Vector3>("v:projected", Vector3(0));
+	Surface_mesh::Vertex_property<Vector3> new_normals = mesh()->vertex_property<Vector3>("v:projected", Vector3(0));
+
+	RmlsSurface mls( mesh() );
+
+	double FilterScale = 2.0;
+	int MaxProjectionIters = 15;
+	double ProjectionAccuracy = 0.0001;
+	int MaxRefittingIters = 3;
+	double SigmaN = 0.75;
+
+	mls.setFilterScale( FilterScale );
+	mls.setMaxProjectionIters( MaxProjectionIters );
+	mls.setProjectionAccuracy( ProjectionAccuracy );
+	mls.setMaxRefittingIters( MaxRefittingIters );
+	mls.setSigmaN( SigmaN );
+
 	foreach(Vertex v, mesh()->vertices())
-		m->add_vertex(points[v]);
+	{
+		new_points[v] = mls.project(points[v], new_normals[v]);
+	}
 
-	// Normal
-	//Surface_mesh::Vertex_property<Vector3> normals = mesh()->vertex_property<Vector3>(VNORMAL);
-	//Surface_mesh::Vertex_property<Vector3> n = m->vertex_property<Vector3>(VNORMAL);
-	//foreach(Vertex v, mesh()->vertices())
-	//	n[v] = normals[v];
-
-	// Ball Pivoting
-	BallPivoting ball(m);
-	ball.BuildMesh();
-
-	document()->pushBusy();
-	m->updateBoundingBox();
-	document()->addModel(m);
-	document()->popBusy();
+	foreach(Vertex v, mesh()->vertices())
+	{
+		points[v] = new_points[v];
+	}
 }
 
 Q_EXPORT_PLUGIN(myresample)

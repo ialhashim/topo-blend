@@ -14,8 +14,9 @@ public:
     PCA3(const std::vector<Vec3d> & points)
 	{
 		int n = points.size();
+
         double	x, y, z, xx, yy, zz, xy, xz, yz,
-			sumX(0.0), sumY(0.0), sumZ(0.0),
+			sumX (0.0), sumY (0.0), sumZ (0.0),
 			sumX2(0.0), sumY2(0.0), sumZ2(0.0),
 			sumXY(0.0), sumXZ(0.0), sumYZ(0.0);
 
@@ -24,9 +25,10 @@ public:
         foreach(SurfaceMeshTypes::Point p, points){
             mean += p;
             x = p.x();	y = p.y();	z = p.z();
-            sumX += x / n;	sumY += y / n;	sumZ += z / n;
-            sumX2 += x * x / n;	sumY2 += y * y / n;	sumZ2 += z * z / n;
-            sumXY += x * y / n;	sumXZ += x * z / n;	sumYZ += y * z / n;
+
+            sumX  += x / n		;	sumY  += y / n		;	sumZ  += z / n;
+            sumX2 += x * x / n	;	sumY2 += y * y / n	;	sumZ2 += z * z / n;
+            sumXY += x * y / n	;	sumXZ += x * z / n	;	sumYZ += y * z / n;
 		}
 
         mean /= points.size();

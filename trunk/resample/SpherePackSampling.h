@@ -1,7 +1,6 @@
 #pragma once
 #include "Sampler.h"
-#include "KDTree.h"
-using namespace kdtree;
+#include "NanoKdTree.h"
 
 class SpherePackSampling{
 
@@ -19,11 +18,10 @@ public:
 			rndSamples.push_back(sp.pos);
 		}
 
-		// Add into a KD-tree
-        std::vector< vector<double> > points;
-        foreach(Vec3d p, rndSamples)
-            points.push_back( toKDPoint(p) );
-        KDTree tree(points);
+		// Initialize KD-tree
+		NanoKdTree tree;
+		foreach(Vec3d p, rndSamples) tree.addPoint(p);
+		tree.build();
 
         foreach(Vec3d center, centers)
         {
@@ -31,18 +29,21 @@ public:
             std::vector<int> idxs;
             std::vector<double> dists;
 
-            tree.ball_query(toKDPoint(center), r, idxs, dists);
+			KDResults matches;
+			int n = tree.ball_search( center, r, matches );
 
-            if(!idxs.size()) continue;
+            if(n < 1) continue;
 
 			// Record center
 			Vec3d centerGroup (0,0,0);
-            foreach(int i, idxs) centerGroup += Vec3d(points[i][0],points[i][1],points[i][2]);
-            centerGroup /= idxs.size();
-            samples.push_back(centerGroup);
+			foreach(KDResultPair i, matches) 
+				centerGroup += rndSamples[i.first];
+			centerGroup /= idxs.size();
+			samples.push_back(centerGroup);
 
 			gridPoints.push_back(center);
 		}
+
 
 		return samples;
 	}
