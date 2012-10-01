@@ -322,3 +322,22 @@ static QColor qtJetColorMap(double value, double min = 0.0, double max = 1.0)
     else {rgb[0]=255;rgb[1]=rgb[2]=0;}
     return QColor(rgb[0],rgb[1],rgb[2]);
 }
+
+#include <time.h>
+static std::vector< std::vector<double> > randomColors( int count )
+{
+	srand(time(NULL));
+
+	std::vector< std::vector<double> > colors(count);
+	for (int i = 0; i < count; i++){
+		float r = ((rand() % 225) + 30) / 255.0f;
+		float g = ((rand() % 230) + 25) / 255.0f;
+		float b = ((rand() % 235) + 20) / 255.0f;
+
+		colors[i].push_back(r);
+		colors[i].push_back(g);
+		colors[i].push_back(b);
+		colors[i].push_back(1.0);
+	}
+	return colors;
+}

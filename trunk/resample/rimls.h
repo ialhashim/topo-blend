@@ -392,9 +392,7 @@ public:
 
 		uint nofSamples = mNeighborhood.size();
 
-		const Vector3& sumGradWeight = mCachedSumGradWeight;
-		const Vector3& sumGradWeightPotential = mCachedSumGradPotential ;
-		const Vector3& sumN = mCachedSumN;
+        const Vector3& sumGradWeight = mCachedSumGradWeight;
 		const Scalar& sumW = mCachedSumW;
 		const Scalar invW = 1.f/sumW;
 

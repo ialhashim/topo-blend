@@ -25,6 +25,7 @@ public:
 	ScalarFaceProperty farea;
 	ScalarEdgeProperty elen;
 	ScalarVertexProperty vclass;
+    Surface_mesh::Face_property<QString> faceTarget;
 
 	// Classification & region growing
 	Surface_mesh::Face_property<int> fclass;
@@ -37,12 +38,20 @@ public:
 	RegionVector sheet_regions;
 
 	double minAngle(Face f);
+	Vector3 center(Face f);
 	Region growRegion(Face f);
-	
-	void performCurveSheetSegmentation(double theta, int k, bool isExtract = true, bool isVisualize = false);
+	void invertRegion( Region & r );
+
+	void performCurveSheetSegmentation(double theta, double minRadius, int k, bool isExtract = true, bool isVisualize = false);
+
 	void classifyVertsFromFaces();
 	void collectRing(Vertex v, QSet<Vertex> & set, int level = 0);
 	void setMeshFromRegion(Region & r, SurfaceMeshModel *);
 
 	double median(QVector<double> vec);
+
+    void splitCurveRegion(Region &r);
+
+    void doGraph();
 };
+
