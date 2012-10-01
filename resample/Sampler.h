@@ -3,6 +3,8 @@
 #include "SurfaceMeshModel.h"
 #include "SurfaceMeshHelper.h"
 
+using namespace SurfaceMeshTypes;
+
 // Helper structures
 struct SamplePoint{
 	Vec3d pos, n;
