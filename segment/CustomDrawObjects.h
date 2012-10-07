@@ -14,10 +14,13 @@ public:
 	PolygonSoup():RenderObject::Base(1, Qt::black){}
 
 	virtual void draw(){
-		glDisable(GL_LIGHTING);
 
-		drawTris();
-		drawQuads();
+        glEnable(GL_LIGHTING);
+
+        drawTris();
+        drawQuads();
+
+        glDisable(GL_LIGHTING);
 
 		// Draw borders as lines and points to force drawing something
 		glLineWidth(2.0f);
@@ -139,6 +142,10 @@ public:
 		points.push_back(p);
 		points_colors.push_back(c);
 	}
+
+    size_t count(){
+        return points.size();
+    }
 };
 
 class VectorSoup : public RenderObject::Base{
