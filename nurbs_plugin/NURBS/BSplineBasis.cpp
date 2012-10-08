@@ -183,12 +183,12 @@ void BSplineBasis<Real>::SetKnot (int j, Real value)
         }
         else
         {
-            assert(false, "Knot index out of range.\n");
+            assert(false);
         }
     }
     else
     {
-        assert(false, "Knots cannot be set for uniform splines.\n");
+        assert(false);
     }
 }
 //----------------------------------------------------------------------------
@@ -202,7 +202,7 @@ Real BSplineBasis<Real>::GetKnot (int j) const
         return mKnot[i];
     }
 
-    assert(false, "Knot index out of range.\n");
+    assert(false);
     return MAX_REAL;
 }
 //----------------------------------------------------------------------------
@@ -258,7 +258,7 @@ template <typename Real>
 void BSplineBasis<Real>::Compute (Real t, unsigned int order, int& minIndex,
     int& maxIndex) const
 {
-    assert(order <= 3, "Only derivatives to third order supported\n");
+    assert(order <= 3);
 
     if (order >= 1)
     {
