@@ -2,14 +2,20 @@
 #include "StarlabDrawArea.h"
 
 void dynamic_voxel::decorate(){
-    //vox.draw();
+    vox.draw();
 }
 
 void dynamic_voxel::create(){
 
-    SurfaceMeshModel * m = new SurfaceMeshModel("voxel.obj", "voxel");
-    vox.buildMesh( m );
-    document()->addModel(m);
+    bool showMesh = true;
+
+    if(showMesh)
+    {
+        SurfaceMeshModel * m = new SurfaceMeshModel("voxel.obj", "voxel");
+        vox.buildMesh( m );
+        vox.MeanCurvatureFlow( m );
+        document()->addModel(m);
+    }
 
     drawArea()->updateGL();
 }

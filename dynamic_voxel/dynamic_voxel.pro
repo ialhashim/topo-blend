@@ -1,7 +1,7 @@
 CONFIG += starlab 
 STARLAB_TEMPLATE += plugin 
 STARLAB_DEPENDS += ../../starlab/plugins-surfacemesh/surfacemesh
-STARLAB_EXTERNAL += nanoflann
+STARLAB_EXTERNAL += nanoflann eigen cholmod
 
 HEADERS += dynamic_voxel.h dynamic_voxel.h \
     DynamicVoxel.h \

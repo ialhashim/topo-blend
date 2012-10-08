@@ -3,7 +3,6 @@
 #include "StarlabDrawArea.h"
 #include "SpherePackSampling.h"
 #include "../segment/CustomDrawObjects.h"
-#include "PCA3.h"
 
 #include "rimls.h"
 

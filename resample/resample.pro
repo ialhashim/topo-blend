@@ -8,8 +8,7 @@ QT += opengl
 HEADERS += resample.h \
     resamplewidget.h \
     SpherePackSampling.h \
-    Sampler.h \
-	PCA3.h
+    Sampler.h
 SOURCES += resample.cpp \
     resamplewidget.cpp \
     Sampler.cpp

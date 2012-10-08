@@ -46,7 +46,6 @@ struct Voxel{
     // Useful for bounds
     inline void toMax(const Voxel & v){ x = qMax(x, v.x); y = qMax(y, v.y); z = qMax(z, v.z); }
     inline void toMin(const Voxel & v){ x = qMin(x, v.x); y = qMin(y, v.y); z = qMin(z, v.z); }
-
 };
 
 static inline QDebug operator<< (QDebug d, const Voxel &v) {
