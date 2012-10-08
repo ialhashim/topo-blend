@@ -34,11 +34,9 @@ NURBSRectangle<Real>::NURBSRectangle (int numUCtrlPoints,
     ParametricSurface<Real>((Real)0, (Real)1, (Real)0, (Real)1, true)
 {
     assert(numUCtrlPoints >= 2);
-    assert(1 <= uDegree && uDegree <= numUCtrlPoints - 1,
-        "Invalid input\n");
+    assert(1 <= uDegree && uDegree <= numUCtrlPoints - 1);
     assert(numVCtrlPoints >= 2);
-    assert(1 <= vDegree && vDegree <= numVCtrlPoints - 1,
-        "Invalid input\n");
+    assert(1 <= vDegree && vDegree <= numVCtrlPoints - 1);
 
     mLoop[0] = uLoop;
     mLoop[1] = vLoop;
@@ -61,11 +59,9 @@ NURBSRectangle<Real>::NURBSRectangle (int numUCtrlPoints,
     ParametricSurface<Real>((Real)0, (Real)1, (Real)0, (Real)1, true)
 {
     assert(numUCtrlPoints >= 2);
-    assert(1 <= uDegree && uDegree <= numUCtrlPoints - 1,
-        "Invalid input\n");
+    assert(1 <= uDegree && uDegree <= numUCtrlPoints - 1);
     assert(numVCtrlPoints >= 2);
-    assert(1 <= vDegree && vDegree <= numVCtrlPoints - 1,
-        "Invalid input\n");
+    assert(1 <= vDegree && vDegree <= numVCtrlPoints - 1);
 
     mLoop[0] = uLoop;
     mLoop[1] = vLoop;
@@ -89,11 +85,9 @@ NURBSRectangle<Real>::NURBSRectangle (int numUCtrlPoints,
     ParametricSurface<Real>((Real)0, (Real)1, (Real)0, (Real)1, true)
 {
     assert(numUCtrlPoints >= 2);
-    assert(1 <= uDegree && uDegree <= numUCtrlPoints - 1,
-        "Invalid input\n");
+    assert(1 <= uDegree && uDegree <= numUCtrlPoints - 1);
     assert(numVCtrlPoints >= 2);
-    assert(1 <= vDegree && vDegree <= numVCtrlPoints - 1,
-        "Invalid input\n");
+    assert(1 <= vDegree && vDegree <= numVCtrlPoints - 1);
 
     mLoop[0] = uLoop;
     mLoop[1] = vLoop;
@@ -120,6 +114,9 @@ void NURBSRectangle<Real>::CreateControl (Array2D_Vector3 ctrlPoint, Array2D_Rea
 {
     int newNumUCtrlPoints = mNumUCtrlPoints + mUReplicate;
     int newNumVCtrlPoints = mNumVCtrlPoints + mVReplicate;
+
+    newNumUCtrlPoints = newNumUCtrlPoints;
+    newNumVCtrlPoints = newNumVCtrlPoints;
 
     mCtrlPoint = ctrlPoint;
     mCtrlWeight = ctrlWeight;

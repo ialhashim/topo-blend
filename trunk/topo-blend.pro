@@ -6,4 +6,4 @@ SUBDIRS += segment
 SUBDIRS += resample
 SUBDIRS += dynamic_voxel
 SUBDIRS += nurbs_plugin
-
+SUBDIRS += topo-blend

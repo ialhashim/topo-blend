@@ -3,8 +3,6 @@ STARLAB_TEMPLATE += plugin
 STARLAB_DEPENDS += ../../starlab/plugins-surfacemesh/surfacemesh
 
 HEADERS += nurbs_plugin.h \
-    NURBS/KnotVector.h \
-    NURBS/NurbsCurve.h \
     NURBS/NurbsDraw.h \
     NURBS/SingleCurve3.h \
     NURBS/ParametricSurface.h \

@@ -294,6 +294,11 @@ void DynamicVoxel::addTorus(const Vec3d &center, double pathRadius, double circl
     foreach(Voxel voxel, voxelTorus(pathRadius, circleRadius)){
         Vec3i v(voxel.x, voxel.y, voxel.z);
         v += center / voxel_size;
+
+        // rotate to direction (todo)
+        Vec3d d = direction;
+        d = d;
+
         setVoxel( v.x(), v.y(), v.z() );
     }
 }
