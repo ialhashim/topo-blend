@@ -100,7 +100,7 @@ public:
 		}
 
 		// Draw actual surface
-		if(nc->quads.empty()) nc->generateSurfaceQuads(40);
+		if(nc->quads.empty()) nc->generateSurfaceQuads(60);
 
 		glEnable(GL_LIGHTING);
 		glColor3d(0,1,1);

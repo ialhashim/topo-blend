@@ -144,7 +144,7 @@ Real** BSplineBasis<Real>::Allocate () const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-void BSplineBasis<Real>::Deallocate (Real** data)
+void BSplineBasis<Real>::Deallocate (Real**)
 {
     //delete2(data);
 }
