@@ -5,6 +5,8 @@
 #include "SurfaceMeshHelper.h"
 #include "topo_blend_widget.h"
 
+#include "topo/StructureGraph.h"
+
 class topoblend : public SurfaceMeshModePlugin{
     Q_OBJECT
     Q_INTERFACES(ModePlugin)
@@ -23,7 +25,11 @@ public:
 private:
     topo_blend_widget * widget;
 
+    QVector<Structure::Graph> graphs;
+
 public slots:
+    void test1();
+    void test2();
 
 signals:
 

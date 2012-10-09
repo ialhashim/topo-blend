@@ -1,5 +1,6 @@
 #pragma once
 
+#include <qgl.h>
 #include "RenderObject.h"
 
 #define glVertQt(v) glVertex3d(v.x(), v.y(), v.z())
@@ -331,20 +332,34 @@ static QColor qtJetColorMap(double value, double min = 0.0, double max = 1.0)
 }
 
 #include <time.h>
+static std::vector<double> randomColor()
+{
+    std::vector<double> color;
+
+    float r = ((rand() % 225) + 30) / 255.0f;
+    float g = ((rand() % 230) + 25) / 255.0f;
+    float b = ((rand() % 235) + 20) / 255.0f;
+
+    color.push_back(r);
+    color.push_back(g);
+    color.push_back(b);
+    color.push_back(1.0);
+
+    return color;
+}
+
 static std::vector< std::vector<double> > randomColors( int count )
 {
 	srand(time(NULL));
 
 	std::vector< std::vector<double> > colors(count);
-	for (int i = 0; i < count; i++){
-		float r = ((rand() % 225) + 30) / 255.0f;
-		float g = ((rand() % 230) + 25) / 255.0f;
-		float b = ((rand() % 235) + 20) / 255.0f;
-
-		colors[i].push_back(r);
-		colors[i].push_back(g);
-		colors[i].push_back(b);
-		colors[i].push_back(1.0);
-	}
+    for (int i = 0; i < count; i++)
+        colors[i] = randomColor();
 	return colors;
+}
+
+static QColor qRandomColor()
+{
+    std::vector<double> c = randomColor();
+    return QColor::fromRgbF( c[0], c[1], c[2], c[3] );
 }

@@ -1,6 +1,6 @@
 #include "segment.h"
 #include "StarlabDrawArea.h"
-#include "CustomDrawObjects.h"
+#include "../CustomDrawObjects.h"
 #include <QStack>
 
 #include "Graph.h"
