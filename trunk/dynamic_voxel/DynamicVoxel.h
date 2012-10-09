@@ -4,7 +4,7 @@
 #include "Voxel.h"
 
 #include "SurfaceMeshModel.h"
-#include "../segment/CustomDrawObjects.h"
+#include "../CustomDrawObjects.h"
 
 class DynamicVoxel
 {

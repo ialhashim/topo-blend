@@ -4,9 +4,9 @@
 #include "RichParameterSet.h"
 #include "StarlabDrawArea.h"
 
-#include "NURBS/NURBSCurve3.h"
-#include "NURBS/NURBSRectangle.h"
-#include "NURBS/NurbsDraw.h"
+#include "NURBSCurve3.h"
+#include "NURBSRectangle.h"
+#include "NurbsDraw.h"
 
 class nurbs_plugin : public SurfaceMeshModePlugin{
     Q_OBJECT

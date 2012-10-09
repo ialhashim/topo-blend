@@ -2,7 +2,7 @@
 #include "StarlabMainWindow.h"
 #include "StarlabDrawArea.h"
 #include "SpherePackSampling.h"
-#include "../segment/CustomDrawObjects.h"
+#include "../CustomDrawObjects.h"
 
 #include "rimls.h"
 
