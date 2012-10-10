@@ -1,13 +1,13 @@
 #pragma once
 
-#include "SingleCurve3.h"
+#include "SingleCurve.h"
 #include "BSplineBasis.h"
 
 template <typename Real>
-class NURBSCurve3 : public SingleCurve3<Real>
+class NURBSCurve : public SingleCurve<Real>
 {
 public:
-    // Construction and destruction.  The caller is responsible for deleting
+    // construction and destruction.  The caller is responsible for deleting
     // the input arrays if they were dynamically allocated.  Internal copies
     // of the arrays are made, so to dynamically change control points,
     // control weights, or knots, you must use the 'SetControlPoint',
@@ -34,33 +34,33 @@ public:
     // C[n+1] = C[0].  For a periodic spline, the control point array is
     // reallocated and the first d points are replicated.  In either case the
     // knot array is calculated accordingly.
-    //NURBSCurve3 (int numCtrlPoints, const Vector3* ctrlPoint, const Real* ctrlWeight, int degree, bool loop, bool open);
+    //NURBSCurve (int numCtrlPoints,  Vector3* ctrlPoint,  Real* ctrlWeight, int degree, bool loop, bool open);
 
     // Open, nonuniform spline.  The knot array must have n-d elements.  The
     // elements must be nondecreasing.  Each element must be in [0,1].
-    //NURBSCurve3 (int numCtrlPoints, const Vector3* ctrlPoint, const Real* ctrlWeight, int degree, bool loop, const Real* knot);
+    //NURBSCurve (int numCtrlPoints,  Vector3* ctrlPoint,  Real* ctrlWeight, int degree, bool loop,  Real* knot);
 
     // My simple constructors
-    NURBSCurve3 () {}
-	NURBSCurve3 (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight, int degree, bool loop, bool open);
+    NURBSCurve () {}
+    NURBSCurve (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight, int degree, bool loop, bool open);
 
-    virtual ~NURBSCurve3 ();
+    virtual ~NURBSCurve ();
 
-    int GetNumCtrlPoints () const;
-    int GetDegree () const;
-    bool IsOpen () const;
-    bool IsUniform () const;
-    bool IsLoop () const;
+    int GetNumCtrlPoints () ;
+    int GetDegree () ;
+    bool IsOpen () ;
+    bool IsUniform () ;
+    bool IsLoop () ;
 
     // Control points and weights may be changed at any time.  The input index
     // should be valid (0 <= i <= n).  If it is invalid, the return value of
     // GetControlPoint is a vector whose components are all MAX_REAL, and the
     // return value of GetControlWeight is MAX_REAL.
     // undefined.
-    void SetControlPoint (int i, const Vector3& ctrl);
-    Vector3 GetControlPoint (int i) const;
+    void SetControlPoint (int i,  Vector3& ctrl);
+    Vector3 GetControlPoint (int i) ;
     void SetControlWeight (int i, Real weight);
-    Real GetControlWeight (int i) const;
+    Real GetControlWeight (int i) ;
 
 	std::vector<Vector3> getControlPoints();
 
@@ -68,22 +68,22 @@ public:
     // and the input index is valid (0 <= i <= n-d-1).  If these conditions
     // are not satisfied, GetKnot returns MAX_REAL.
     void SetKnot (int i, Real knot);
-    Real GetKnot (int i) const;
+    Real GetKnot (int i) ;
 
     // The spline is defined for 0 <= t <= 1.  If a t-value is outside [0,1],
     // an open spline clamps t to [0,1].  That is, if t > 1, t is set to 1;
     // if t < 0, t is set to 0.  A periodic spline wraps to to [0,1].  That
     // is, if t is outside [0,1], then t is set to t-floor(t).
-    virtual Vector3 GetPosition (Real t) const;
-    virtual Vector3 GetFirstDerivative (Real t) const;
-    virtual Vector3 GetSecondDerivative (Real t) const;
-    virtual Vector3 GetThirdDerivative (Real t) const;
+    virtual Vector3 GetPosition (Real t) ;
+    virtual Vector3 GetFirstDerivative (Real t) ;
+    virtual Vector3 GetSecondDerivative (Real t) ;
+    virtual Vector3 GetThirdDerivative (Real t) ;
 
     // If you need position and derivatives at the same time, it is more
     // efficient to call these functions.  Pass the addresses of those
     // quantities whose values you want.  You may pass 0 in any argument
     // whose value you do not want.
-    void Get (Real t, Vector3* pos, Vector3* der1, Vector3* der2, Vector3* der3) const;
+    void Get (Real t, Vector3* pos, Vector3* der1, Vector3* der2, Vector3* der3) ;
 
     // Access the basis function to compute it without control points.  This
     // is useful for least squares fitting of curves.
@@ -93,7 +93,7 @@ protected:
     // Replicate the necessary number of control points when the Create
     // function has loop equal to true, in which case the spline curve must
     // be a closed curve.
-    //void CreateControl (const Vector3* ctrlPoint, const Real* ctrlWeight);
+    //void CreateControl ( Vector3* ctrlPoint,  Real* ctrlWeight);
 	void CreateControl (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight);
 
     int mNumCtrlPoints;
@@ -104,5 +104,5 @@ protected:
     int mReplicate;                             // the number of replicated control points
 };
 
-typedef NURBSCurve3<float> NURBSCurve3f;
-typedef NURBSCurve3<double> NURBSCurve3d;
+typedef NURBSCurve<float> NURBSCurvef;
+typedef NURBSCurve<double> NURBSCurved;

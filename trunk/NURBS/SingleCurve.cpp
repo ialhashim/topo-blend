@@ -1,22 +1,20 @@
-#include "SingleCurve3.h"
+#include "SingleCurve.h"
 #include "Integrate1.h"
 
 //----------------------------------------------------------------------------
 template <typename Real>
-SingleCurve3<Real>::SingleCurve3 (Real tmin, Real tmax)
-    :
-    Curve3<Real>(tmin, tmax)
+SingleCurve<Real>::SingleCurve (Real tmin, Real tmax) : Curve<Real>(tmin, tmax)
 {
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Real SingleCurve3<Real>::GetSpeedWithData (Real t, void* data)
+Real SingleCurve<Real>::GetSpeedWithData (Real t, void* data)
 {
-    return ((Curve3<Real>*)data)->GetSpeed(t);
+    return ((Curve<Real>*)data)->GetSpeed(t);
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Real SingleCurve3<Real>::GetLength (Real t0, Real t1) const
+Real SingleCurve<Real>::GetLength (Real t0, Real t1) const
 {
     assert(mTMin <= t0 && t0 <= mTMax);
     assert(mTMin <= t1 && t1 <= mTMax);
@@ -27,7 +25,7 @@ Real SingleCurve3<Real>::GetLength (Real t0, Real t1) const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Real SingleCurve3<Real>::GetTime (Real length, int iterations, Real tolerance) const
+Real SingleCurve<Real>::GetTime (Real length, int iterations, Real tolerance) const
 {
     if (length <= (Real)0)
     {
@@ -121,8 +119,8 @@ Real SingleCurve3<Real>::GetTime (Real length, int iterations, Real tolerance) c
 // Explicit instantiation.
 //----------------------------------------------------------------------------
 template
-class SingleCurve3<float>;
+class SingleCurve<float>;
 
 template
-class SingleCurve3<double>;
+class SingleCurve<double>;
 //----------------------------------------------------------------------------

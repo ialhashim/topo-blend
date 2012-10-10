@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Curve3.h"
+#include "Curve.h"
 
 template <typename Real>
 class BSplineBasis
@@ -34,8 +34,6 @@ public:
     BSplineBasis (int numCtrlPoints, int degree, const Real* interiorKnot);
     void Create (int numCtrlPoints, int degree, const Real* interiorKnot);
 
-    virtual ~BSplineBasis ();
-
     int GetNumCtrlPoints () const;
     int GetDegree () const;
     bool IsOpen () const;
@@ -56,13 +54,11 @@ public:
     Real GetD3 (int i) const;
 
     // Evaluate basis functions and their derivatives.
-    void Compute (Real t, unsigned int order, int& minIndex,
-        int& maxIndex) const;
+    void Compute (Real t, unsigned int order, int& minIndex, int& maxIndex);
 
 protected:
     int Initialize (int numCtrlPoints, int degree, bool open);
-    Real** Allocate () const;
-    void Deallocate (Real** data);
+    Array2D_Real Allocate();
 
     // Determine knot index i for which knot[i] <= rfTime < knot[i+1].
     int GetKey (Real& t) const;
@@ -76,10 +72,10 @@ protected:
     // derivatives.  The basis array is always allocated by the constructor
     // calls.  A derivative basis array is allocated on the first call to a
     // derivative member function.
-    Real** mBD0;          // bd0[d+1][n+d+1]
-    mutable Real** mBD1;  // bd1[d+1][n+d+1]
-    mutable Real** mBD2;  // bd2[d+1][n+d+1]
-    mutable Real** mBD3;  // bd3[d+1][n+d+1]
+    Array2D_Real mBD0;  // bd0[d+1][n+d+1]
+    Array2D_Real mBD1;  // bd1[d+1][n+d+1]
+    Array2D_Real mBD2;  // bd2[d+1][n+d+1]
+    Array2D_Real mBD3;  // bd3[d+1][n+d+1]
 };
 
 typedef BSplineBasis<float> BSplineBasisf;

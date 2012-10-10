@@ -9,7 +9,14 @@ Graph::~Graph()
 
 QBox3D Graph::bbox()
 {
-    return QBox3D();
+    QBox3D box;
+
+    foreach(Node * n, nodes){
+        box.unite( n->bbox().minimum() );
+        box.unite( n->bbox().maximum() );
+    }
+
+    return box;
 }
 
 Node *Graph::addNode(Node * n)

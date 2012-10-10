@@ -66,6 +66,11 @@ void topoblend::test1()
     Structure::Graph graph;
     graph.addEdge( new Structure::Curve(c1, "curve 1"), new Structure::Curve(c2, "curve 2") );
     graphs.push_back( graph );
+
+    // Set scene bounds
+    Vector3 a = graph.bbox().minimum();
+    Vector3 b = graph.bbox().maximum();
+    drawArea()->setSceneBoundingBox(qglviewer::Vec(a.x(), a.y(), a.z()), qglviewer::Vec(b.x(), b.y(), b.z()));
 }
 
 void topoblend::test2()

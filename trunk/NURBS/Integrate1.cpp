@@ -8,7 +8,8 @@ Real Integrate1<Real>::RombergIntegral (int order, Real a, Real b,
     Function function, void* userData)
 {
     assert(order > 0);
-    Real** rom = new2<Real>(order, 2);
+
+    Array2D_Real rom = Array2D_Real( 2, Array1D_Real( order, 0.0 ) );
 
     Real h = b - a;
 
@@ -37,7 +38,7 @@ Real Integrate1<Real>::RombergIntegral (int order, Real a, Real b,
     }
 
     Real result = rom[0][order-1];
-    //delete2(rom);
+
     return result;
 }
 //----------------------------------------------------------------------------
