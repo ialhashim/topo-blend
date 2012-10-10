@@ -1,5 +1,5 @@
 #pragma once
-#include "Curve3.h"
+#include "Curve.h"
 
 template <typename Real>
 class Integrate1

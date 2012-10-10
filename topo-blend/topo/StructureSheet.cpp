@@ -14,6 +14,16 @@ QString Sheet::type()
     return SHEET;
 }
 
+QBox3D Sheet::bbox()
+{
+    QBox3D box;
+
+    foreach(std::vector<Vec3d> cps, surface->mCtrlPoint)
+        foreach(Vec3d cp, cps)
+            box.unite(cp);
+
+    return box;
+}
 
 void Sheet::draw()
 {

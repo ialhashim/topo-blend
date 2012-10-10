@@ -1,7 +1,7 @@
-#include "NURBSCurve3.h"
+#include "NURBSCurve.h"
 
 template <typename Real>
-NURBSCurve3<Real>::NURBSCurve3 (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight, int degree, bool loop, bool open) : SingleCurve3<Real>((Real)0, (Real)1), mLoop(loop)
+NURBSCurve<Real>::NURBSCurve (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight, int degree, bool loop, bool open) : SingleCurve<Real>((Real)0, (Real)1), mLoop(loop)
 {
 	int numCtrlPoints = ctrlPoint.size();
 
@@ -15,14 +15,15 @@ NURBSCurve3<Real>::NURBSCurve3 (std::vector<Vector3> ctrlPoint, std::vector<Real
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-NURBSCurve3<Real>::~NURBSCurve3 ()
+NURBSCurve<Real>::~NURBSCurve ()
 {
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-void NURBSCurve3<Real>::CreateControl (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight)
+void NURBSCurve<Real>::CreateControl (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight)
 {
 	int newNumCtrlPoints = mNumCtrlPoints + mReplicate;
+    newNumCtrlPoints = newNumCtrlPoints;
 
 	mCtrlPoint = ctrlPoint;
 	mCtrlWeight = ctrlWeight;
@@ -30,37 +31,37 @@ void NURBSCurve3<Real>::CreateControl (std::vector<Vector3> ctrlPoint, std::vect
 
 //----------------------------------------------------------------------------
 template <typename Real>
-int NURBSCurve3<Real>::GetNumCtrlPoints () const
+int NURBSCurve<Real>::GetNumCtrlPoints ()
 {
     return mNumCtrlPoints;
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-int NURBSCurve3<Real>::GetDegree () const
+int NURBSCurve<Real>::GetDegree ()
 {
     return mBasis.GetDegree();
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-bool NURBSCurve3<Real>::IsOpen () const
+bool NURBSCurve<Real>::IsOpen ()
 {
     return mBasis.IsOpen();
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-bool NURBSCurve3<Real>::IsUniform () const
+bool NURBSCurve<Real>::IsUniform ()
 {
     return mBasis.IsUniform();
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-bool NURBSCurve3<Real>::IsLoop () const
+bool NURBSCurve<Real>::IsLoop ()
 {
     return mLoop;
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-void NURBSCurve3<Real>::SetControlPoint (int i, const Vector3& ctrl)
+void NURBSCurve<Real>::SetControlPoint (int i,  Vector3& ctrl)
 {
     if (0 <= i && i < mNumCtrlPoints)
     {
@@ -76,7 +77,7 @@ void NURBSCurve3<Real>::SetControlPoint (int i, const Vector3& ctrl)
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Vector3 NURBSCurve3<Real>::GetControlPoint (int i) const
+Vector3 NURBSCurve<Real>::GetControlPoint (int i)
 {
     if (0 <= i && i < mNumCtrlPoints)
     {
@@ -87,13 +88,13 @@ Vector3 NURBSCurve3<Real>::GetControlPoint (int i) const
 }
 
 template <typename Real>
-std::vector<Vector3> NURBSCurve3<Real>::getControlPoints()
+std::vector<Vector3> NURBSCurve<Real>::getControlPoints()
 {
 	return mCtrlPoint;
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-void NURBSCurve3<Real>::SetControlWeight (int i, Real weight)
+void NURBSCurve<Real>::SetControlWeight (int i, Real weight)
 {
     if (0 <= i && i < mNumCtrlPoints)
     {
@@ -109,7 +110,7 @@ void NURBSCurve3<Real>::SetControlWeight (int i, Real weight)
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Real NURBSCurve3<Real>::GetControlWeight (int i) const
+Real NURBSCurve<Real>::GetControlWeight (int i)
 {
     if (0 <= i && i < mNumCtrlPoints)
     {
@@ -120,20 +121,20 @@ Real NURBSCurve3<Real>::GetControlWeight (int i) const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-void NURBSCurve3<Real>::SetKnot (int i, Real knot)
+void NURBSCurve<Real>::SetKnot (int i, Real knot)
 {
     mBasis.SetKnot(i, knot);
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Real NURBSCurve3<Real>::GetKnot (int i) const
+Real NURBSCurve<Real>::GetKnot (int i)
 {
     return mBasis.GetKnot(i);
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-void NURBSCurve3<Real>::Get (Real t, Vector3* pos,
-    Vector3* der1, Vector3* der2, Vector3* der3) const
+void NURBSCurve<Real>::Get (Real t, Vector3* pos,
+    Vector3* der1, Vector3* der2, Vector3* der3)
 {
     int i, imin, imax;
     if (der3)
@@ -239,13 +240,13 @@ void NURBSCurve3<Real>::Get (Real t, Vector3* pos,
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-BSplineBasis<Real>& NURBSCurve3<Real>::GetBasis ()
+BSplineBasis<Real>& NURBSCurve<Real>::GetBasis ()
 {
     return mBasis;
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Vector3 NURBSCurve3<Real>::GetPosition (Real t) const
+Vector3 NURBSCurve<Real>::GetPosition (Real t)
 {
     Vector3 pos;
     Get(t, &pos, 0, 0, 0);
@@ -253,7 +254,7 @@ Vector3 NURBSCurve3<Real>::GetPosition (Real t) const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Vector3 NURBSCurve3<Real>::GetFirstDerivative (Real t) const
+Vector3 NURBSCurve<Real>::GetFirstDerivative (Real t)
 {
     Vector3 der1;
     Get(t, 0, &der1, 0, 0);
@@ -261,7 +262,7 @@ Vector3 NURBSCurve3<Real>::GetFirstDerivative (Real t) const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Vector3 NURBSCurve3<Real>::GetSecondDerivative (Real t) const
+Vector3 NURBSCurve<Real>::GetSecondDerivative (Real t)
 {
     Vector3 der2;
     Get(t, 0, 0, &der2, 0);
@@ -269,7 +270,7 @@ Vector3 NURBSCurve3<Real>::GetSecondDerivative (Real t) const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Vector3 NURBSCurve3<Real>::GetThirdDerivative (Real t) const
+Vector3 NURBSCurve<Real>::GetThirdDerivative (Real t)
 {
     Vector3 der3;
     Get(t, 0, 0, 0, &der3);
@@ -281,8 +282,8 @@ Vector3 NURBSCurve3<Real>::GetThirdDerivative (Real t) const
 // Explicit instantiation.
 //----------------------------------------------------------------------------
 template 
-class NURBSCurve3<float>;
+class NURBSCurve<float>;
 
 template
-class NURBSCurve3<double>;
+class NURBSCurve<double>;
 //----------------------------------------------------------------------------

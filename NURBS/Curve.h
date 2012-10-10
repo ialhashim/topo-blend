@@ -8,15 +8,19 @@ using namespace SurfaceMeshTypes;
 #define MAX_REAL std::numeric_limits<SurfaceMeshTypes::Scalar>::max()
 #define REAL_ZERO_TOLERANCE 1e-08
 
+typedef std::vector< std::vector<Vector3> > Array2D_Vector3;
+typedef std::vector< Scalar > Array1D_Real;
+typedef std::vector< Array1D_Real > Array2D_Real;
+
 template <typename Real>
-class Curve3
+class Curve
 {
 
 public:
     // Abstract base class.
-    Curve3 () {}
-    Curve3 (Real tmin, Real tmax);
-    virtual ~Curve3 ();
+    Curve () {}
+    Curve (Real tmin, Real tmax);
+    virtual ~Curve ();
 
     // Interval on which curve parameter is defined.  If you are interested
     // in only a subinterval of the actual domain of the curve, you may set
@@ -45,8 +49,7 @@ public:
     Real GetTorsion (Real t) const;
 
     // Inverse mapping of s = Length(t) given by t = Length^{-1}(s).
-    virtual Real GetTime (Real length, int iterations = 32,
-        Real tolerance = (Real)1e-06) const = 0;
+    virtual Real GetTime (Real length, int iterations = 32, Real tolerance = (Real)1e-06) const = 0;
 
     // Subdivision.
     void SubdivideByTime (int numPoints, Vector3*& points) const;
@@ -57,25 +60,5 @@ protected:
     Real mTMin, mTMax;
 };
 
-typedef Curve3<float> Curve3f;
-typedef Curve3<double> Curve3d;
-
-// Memory management
-template <typename T>
-T** new2(const size_t bound0, const size_t bound1)
-{
-	const size_t bound01 = bound0*bound1;
-	T** data;
-
-	data = new T*[bound1];
-	data[0] = new T[bound01];
-
-	// Hook up the pointers to form the 2D array.
-	for (size_t i1 = 1; i1 < bound1; ++i1)
-	{
-		size_t j0 = bound0*i1;  // = bound0*(i1 + j1) where j1 = 0
-		data[i1] = &data[0][j0];
-	}
-
-	return data;
-}
+typedef Curve<float> Curve3f;
+typedef Curve<double> Curve3d;

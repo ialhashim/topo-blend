@@ -1,32 +1,32 @@
-#include "Curve3.h"
+#include "Curve.h"
 
 //----------------------------------------------------------------------------
 template <typename Real>
-Curve3<Real>::Curve3 (Real tmin, Real tmax)
+Curve<Real>::Curve (Real tmin, Real tmax)
 {
     mTMin = tmin;
     mTMax = tmax;
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Curve3<Real>::~Curve3 ()
+Curve<Real>::~Curve ()
 {
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Real Curve3<Real>::GetMinTime () const
+Real Curve<Real>::GetMinTime () const
 {
     return mTMin;
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Real Curve3<Real>::GetMaxTime () const
+Real Curve<Real>::GetMaxTime () const
 {
     return mTMax;
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-void Curve3<Real>::SetTimeInterval (Real tmin, Real tmax)
+void Curve<Real>::SetTimeInterval (Real tmin, Real tmax)
 {
     assert(tmin < tmax);
     mTMin = tmin;
@@ -34,7 +34,7 @@ void Curve3<Real>::SetTimeInterval (Real tmin, Real tmax)
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Real Curve3<Real>::GetSpeed (Real t) const
+Real Curve<Real>::GetSpeed (Real t) const
 {
     Vector3 velocity = GetFirstDerivative(t);
     Real speed = velocity.norm();
@@ -42,13 +42,13 @@ Real Curve3<Real>::GetSpeed (Real t) const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Real Curve3<Real>::GetTotalLength () const
+Real Curve<Real>::GetTotalLength () const
 {
     return GetLength(mTMin, mTMax);
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Vector3 Curve3<Real>::GetTangent (Real t) const
+Vector3 Curve<Real>::GetTangent (Real t) const
 {
     Vector3 velocity = GetFirstDerivative(t);
     velocity.normalize();
@@ -56,7 +56,7 @@ Vector3 Curve3<Real>::GetTangent (Real t) const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Vector3 Curve3<Real>::GetNormal (Real t) const
+Vector3 Curve<Real>::GetNormal (Real t) const
 {
     Vector3 velocity = GetFirstDerivative(t);
     Vector3 acceleration = GetSecondDerivative(t);
@@ -68,7 +68,7 @@ Vector3 Curve3<Real>::GetNormal (Real t) const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Vector3 Curve3<Real>::GetBinormal (Real t) const
+Vector3 Curve<Real>::GetBinormal (Real t) const
 {
     Vector3 velocity = GetFirstDerivative(t);
     Vector3 acceleration = GetSecondDerivative(t);
@@ -82,7 +82,7 @@ Vector3 Curve3<Real>::GetBinormal (Real t) const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-void Curve3<Real>::GetFrame (Real t, Vector3& position,
+void Curve<Real>::GetFrame (Real t, Vector3& position,
     Vector3& tangent, Vector3& normal, Vector3& binormal)
     const
 {
@@ -99,7 +99,7 @@ void Curve3<Real>::GetFrame (Real t, Vector3& position,
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Real Curve3<Real>::GetCurvature (Real t) const
+Real Curve<Real>::GetCurvature (Real t) const
 {
     Vector3 velocity = GetFirstDerivative(t);
     Real speedSqr = velocity.sqrnorm();
@@ -120,7 +120,7 @@ Real Curve3<Real>::GetCurvature (Real t) const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Real Curve3<Real>::GetTorsion (Real t) const
+Real Curve<Real>::GetTorsion (Real t) const
 {
     Vector3 velocity = GetFirstDerivative(t);
     Vector3 acceleration = GetSecondDerivative(t);
@@ -141,7 +141,7 @@ Real Curve3<Real>::GetTorsion (Real t) const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-void Curve3<Real>::SubdivideByTime (int numPoints,
+void Curve<Real>::SubdivideByTime (int numPoints,
     Vector3*& points) const
 {
     assert(numPoints >= 2);
@@ -157,7 +157,7 @@ void Curve3<Real>::SubdivideByTime (int numPoints,
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-void Curve3<Real>::SubdivideByLength (int numPoints,
+void Curve<Real>::SubdivideByLength (int numPoints,
     Vector3*& points) const
 {
     assert(numPoints >= 2);
@@ -178,8 +178,8 @@ void Curve3<Real>::SubdivideByLength (int numPoints,
 //// Explicit instantiation.
 ////----------------------------------------------------------------------------
 template
-class Curve3<float>;
+class Curve<float>;
 
 template
-class Curve3<double>;
+class Curve<double>;
 //----------------------------------------------------------------------------

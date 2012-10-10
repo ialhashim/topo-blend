@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Curve3.h"
+#include "Curve.h"
 
 template <typename Real>
 class ParametricSurface
@@ -32,8 +32,7 @@ public:
     // Compute a coordinate frame.  The set {T0,T1,N} is a right-handed
     // orthonormal set.
     void GetFrame (Real u, Real v, Vector3& position,
-        Vector3& tangent0, Vector3& tangent1,
-        Vector3& normal) const;
+        Vector3& tangent0, Vector3& tangent1, Vector3& normal) const;
 
     // Differential geometric quantities.  The returned scalars are the
     // principal curvatures and the returned vectors are the corresponding
@@ -42,8 +41,7 @@ public:
         Real& curv1, Vector3& dir0, Vector3& dir1);
 
 protected:
-    ParametricSurface (Real umin, Real umax, Real vmin, Real vmax,
-        bool rectangular);
+    ParametricSurface (Real umin, Real umax, Real vmin, Real vmax, bool rectangular);
 
     Real mUMin, mUMax, mVMin, mVMax;
     bool mRectangular;

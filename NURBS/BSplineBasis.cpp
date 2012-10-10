@@ -76,16 +76,6 @@ void BSplineBasis<Real>::Create (int numCtrlPoints, int degree,
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-BSplineBasis<Real>::~BSplineBasis ()
-{
-    delete(mKnot);
-    Deallocate(mBD0);
-    Deallocate(mBD1);
-    Deallocate(mBD2);
-    Deallocate(mBD3);
-}
-//----------------------------------------------------------------------------
-template <typename Real>
 int BSplineBasis<Real>::GetNumCtrlPoints () const
 {
     return mNumCtrlPoints;
@@ -134,19 +124,14 @@ Real BSplineBasis<Real>::GetD3 (int i) const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Real** BSplineBasis<Real>::Allocate () const
+Array2D_Real BSplineBasis<Real>::Allocate()
 {
     int numRows = mDegree + 1;
     int numCols = mNumCtrlPoints + mDegree;
-    Real** data = new2<Real>(numCols, numRows);
-    memset(data[0], 0, numRows*numCols*sizeof(Real));
+
+    Array2D_Real data = Array2D_Real( numRows, Array1D_Real( numCols, 0.0 ) );
+
     return data;
-}
-//----------------------------------------------------------------------------
-template <typename Real>
-void BSplineBasis<Real>::Deallocate (Real**)
-{
-    //delete2(data);
 }
 //----------------------------------------------------------------------------
 template <typename Real>
@@ -163,9 +148,9 @@ int BSplineBasis<Real>::Initialize (int numCtrlPoints, int degree, bool open)
     mKnot = new Real[numKnots];
 
     mBD0 = Allocate();
-    mBD1 = 0;
-    mBD2 = 0;
-    mBD3 = 0;
+    mBD1.clear();
+    mBD2.clear();
+    mBD3.clear();
 
     return numKnots;
 }
@@ -255,28 +240,27 @@ int BSplineBasis<Real>::GetKey (Real& t) const
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-void BSplineBasis<Real>::Compute (Real t, unsigned int order, int& minIndex,
-    int& maxIndex) const
+void BSplineBasis<Real>::Compute (Real t, unsigned int order, int& minIndex,int& maxIndex)
 {
     assert(order <= 3);
 
     if (order >= 1)
     {
-        if (!mBD1)
+        if (!mBD1.size())
         {
             mBD1 = Allocate();
         }
 
         if (order >= 2)
         {
-            if (!mBD2)
+            if (!mBD2.size())
             {
                 mBD2 = Allocate();
             }
 
             if (order >= 3)
             {
-                if (!mBD3)
+                if (!mBD3.size())
                 {
                     mBD3 = Allocate();
                 }

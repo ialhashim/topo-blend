@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Curve3.h"
+#include "Curve.h"
 typedef Vector<Scalar,2> Vector2;
 
 // Rotation matrices are of the form
