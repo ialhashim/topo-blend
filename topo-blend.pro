@@ -14,6 +14,6 @@ SUBDIRS += nurbs_plugin
 SUBDIRS += topo-blend
 
 # Dependecy map
-topo-blend.depends = NURBS
+topo-blend.depends = NURBS DynamicVoxel
 nurbs_plugin.depends = NURBS
 dynamic_voxel.depends = DynamicVoxel
