@@ -2,7 +2,6 @@
 
 #include "Curve.h"
 
-template <typename Real>
 class BSplineBasis
 {
 public:
@@ -63,9 +62,9 @@ protected:
     // Determine knot index i for which knot[i] <= rfTime < knot[i+1].
     int GetKey (Real& t) const;
 
-    int mNumCtrlPoints;   // n+1
-    int mDegree;          // d
-    Real* mKnot;          // knot[n+d+2]
+    int mNumCtrlPoints;     // n+1
+    int mDegree;            // d
+    Array1D_Real mKnot;     // knot[n+d+2]
     bool mOpen, mUniform;
 
     // Storage for the basis functions and their derivatives first three
@@ -78,5 +77,3 @@ protected:
     Array2D_Real mBD3;  // bd3[d+1][n+d+1]
 };
 
-typedef BSplineBasis<float> BSplineBasisf;
-typedef BSplineBasis<double> BSplineBasisd;

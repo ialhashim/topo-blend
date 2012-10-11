@@ -3,8 +3,11 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 SUBDIRS += NURBS
-SUBDIRS += segment
 SUBDIRS += resample
+SUBDIRS += segment
 SUBDIRS += dynamic_voxel
 SUBDIRS += nurbs_plugin
 SUBDIRS += topo-blend
+
+topo-blend.depends = NURBS
+nurbs_plugin.depends = NURBS

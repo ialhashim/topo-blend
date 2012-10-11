@@ -6,7 +6,7 @@
 #include "DynamicVoxel.h"
 
 class dynamic_voxel : public SurfaceMeshModePlugin{
-    Q_OBJECT
+	Q_OBJECT
     Q_INTERFACES(ModePlugin)
 
 public:

@@ -2,8 +2,15 @@
 
 void nurbs_plugin::decorate()
 {
-	foreach(NURBSCurve3d * c, nc) NurbsCurveDraw::draw( c );
-	foreach(NURBSRectangled * s, rects)	NurbsSurfaceDraw::draw ( s );
+    for(int i = 0; i < (int) nc.size(); i++)
+    {
+        NURBS::CurveDraw::draw( &nc[i] );
+    }
+
+    for(int i = 0; i < (int) rects.size(); i++)
+    {
+        NURBS::SurfaceDraw::draw ( &rects[i] );
+    }
 }
 
 void nurbs_plugin::create()
@@ -26,7 +33,7 @@ void nurbs_plugin::create()
 
     std::vector<Scalar> weight(cps.size(), 1.0);
 
-	nc.push_back(new NURBSCurve3d(cps, weight, degree, false, true));
+    nc.push_back(NURBSCurve(cps, weight, degree, false, true));
 
 	// Rectangular surface
 	double w = 1;
@@ -53,7 +60,15 @@ void nurbs_plugin::create()
 			cpts[i][j] = Vec3d(surface_pos.x() + x * w, surface_pos.y() + y * l, delta + sin(j * omega) * qMin(width, length) * 0.02);
 		}
 
-	rects.push_back( new NURBSRectangled(width, length, cpts, weights, degree, degree, false, false, true, true) );
+    rects.push_back( NURBSRectangle(cpts, weights, degree, degree, false, false, true, true) );
+
+    // Set scene bounds
+    QBox3D bbox;
+    foreach(Vector3 v, cps) bbox.unite(v);
+    foreach(std::vector<Vec3d> vs, cpts) foreach(Vector3 v, vs) bbox.unite(v);
+    Vector3 a = bbox.minimum();
+    Vector3 b = bbox.maximum();
+    drawArea()->setSceneBoundingBox(qglviewer::Vec(a.x(), a.y(), a.z()), qglviewer::Vec(b.x(), b.y(), b.z()));
 }
 
 Q_EXPORT_PLUGIN (nurbs_plugin)

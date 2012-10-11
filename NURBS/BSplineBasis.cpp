@@ -1,19 +1,16 @@
 #include "BSplineBasis.h"
 
 //----------------------------------------------------------------------------
-template <typename Real>
-BSplineBasis<Real>::BSplineBasis ()
+BSplineBasis::BSplineBasis ()
 {
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-BSplineBasis<Real>::BSplineBasis (int numCtrlPoints, int degree, bool open)
+BSplineBasis::BSplineBasis (int numCtrlPoints, int degree, bool open)
 {
     Create(numCtrlPoints, degree, open);
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void BSplineBasis<Real>::Create (int numCtrlPoints, int degree, bool open)
+void BSplineBasis::Create (int numCtrlPoints, int degree, bool open)
 {
     mUniform = true;
 
@@ -45,15 +42,15 @@ void BSplineBasis<Real>::Create (int numCtrlPoints, int degree, bool open)
     }
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-BSplineBasis<Real>::BSplineBasis (int numCtrlPoints, int degree,
+
+BSplineBasis::BSplineBasis (int numCtrlPoints, int degree,
     const Real* interiorKnot)
 {
     Create(numCtrlPoints, degree, interiorKnot);
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void BSplineBasis<Real>::Create (int numCtrlPoints, int degree,
+
+void BSplineBasis::Create (int numCtrlPoints, int degree,
     const Real* interiorKnot)
 {
     mUniform = false;
@@ -75,56 +72,56 @@ void BSplineBasis<Real>::Create (int numCtrlPoints, int degree,
     }
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-int BSplineBasis<Real>::GetNumCtrlPoints () const
+
+int BSplineBasis::GetNumCtrlPoints () const
 {
     return mNumCtrlPoints;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-int BSplineBasis<Real>::GetDegree () const
+
+int BSplineBasis::GetDegree () const
 {
     return mDegree;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-bool BSplineBasis<Real>::IsOpen () const
+
+bool BSplineBasis::IsOpen () const
 {
     return mOpen;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-bool BSplineBasis<Real>::IsUniform () const
+
+bool BSplineBasis::IsUniform () const
 {
     return mUniform;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real BSplineBasis<Real>::GetD0 (int i) const
+
+Real BSplineBasis::GetD0 (int i) const
 {
     return mBD0[mDegree][i];
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real BSplineBasis<Real>::GetD1 (int i) const
+
+Real BSplineBasis::GetD1 (int i) const
 {
     return mBD1[mDegree][i];
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real BSplineBasis<Real>::GetD2 (int i) const
+
+Real BSplineBasis::GetD2 (int i) const
 {
     return mBD2[mDegree][i];
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real BSplineBasis<Real>::GetD3 (int i) const
+
+Real BSplineBasis::GetD3 (int i) const
 {
     return mBD3[mDegree][i];
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Array2D_Real BSplineBasis<Real>::Allocate()
+
+Array2D_Real BSplineBasis::Allocate()
 {
     int numRows = mDegree + 1;
     int numCols = mNumCtrlPoints + mDegree;
@@ -134,8 +131,8 @@ Array2D_Real BSplineBasis<Real>::Allocate()
     return data;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-int BSplineBasis<Real>::Initialize (int numCtrlPoints, int degree, bool open)
+
+int BSplineBasis::Initialize (int numCtrlPoints, int degree, bool open)
 {
     assert(numCtrlPoints >= 2);
     assert(1 <= degree && degree <= numCtrlPoints-1);
@@ -145,7 +142,7 @@ int BSplineBasis<Real>::Initialize (int numCtrlPoints, int degree, bool open)
     mOpen = open;
 
     int numKnots = mNumCtrlPoints + mDegree + 1;
-    mKnot = new Real[numKnots];
+    mKnot = Array1D_Real(numKnots, 0);
 
     mBD0 = Allocate();
     mBD1.clear();
@@ -155,8 +152,8 @@ int BSplineBasis<Real>::Initialize (int numCtrlPoints, int degree, bool open)
     return numKnots;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void BSplineBasis<Real>::SetKnot (int j, Real value)
+
+void BSplineBasis::SetKnot (int j, Real value)
 {
     if (!mUniform)
     {
@@ -177,8 +174,8 @@ void BSplineBasis<Real>::SetKnot (int j, Real value)
     }
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real BSplineBasis<Real>::GetKnot (int j) const
+
+Real BSplineBasis::GetKnot (int j) const
 {
     // Access only allowed to elements d+1 <= i <= n.
     int i = j + mDegree + 1;
@@ -191,8 +188,8 @@ Real BSplineBasis<Real>::GetKnot (int j) const
     return MAX_REAL;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-int BSplineBasis<Real>::GetKey (Real& t) const
+
+int BSplineBasis::GetKey (Real& t) const
 {
     if (mOpen)
     {
@@ -239,8 +236,8 @@ int BSplineBasis<Real>::GetKey (Real& t) const
     return i;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void BSplineBasis<Real>::Compute (Real t, unsigned int order, int& minIndex,int& maxIndex)
+
+void BSplineBasis::Compute (Real t, unsigned int order, int& minIndex,int& maxIndex)
 {
     assert(order <= 3);
 
@@ -354,15 +351,3 @@ void BSplineBasis<Real>::Compute (Real t, unsigned int order, int& minIndex,int&
     minIndex = i - mDegree;
     maxIndex = i;
 }
-//----------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------
-// Explicit instantiation.
-//----------------------------------------------------------------------------
-template
-class BSplineBasis<float>;
-
-template
-class BSplineBasis<double>;
-//----------------------------------------------------------------------------
-

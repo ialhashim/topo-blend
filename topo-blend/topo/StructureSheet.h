@@ -8,14 +8,22 @@ namespace Structure{
 struct Sheet : public Node
 {
     // Constructors
-    Sheet(NURBSRectangled * sheet, QString sheetID, QColor color = qRandomColor());
+    Sheet(NURBSRectangle sheet, QString sheetID, QColor color = qRandomColor());
 
     // Underlaying structure
-    NURBSRectangled * surface;
+    NURBSRectangle surface;
 
     // Properties
     QString type();
-    QBox3D bbox();
+    QBox3D bbox(double scaling = 1.0);
+
+	std::vector<int> controlCount();
+	std::vector<Vector3> controlPoints();
+	std::vector<Scalar> controlWeights();
+
+	// Coordinates
+	void get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() );
+	Vector3 approxProjection( const Vector3 & pos );
 
     // Connections
 

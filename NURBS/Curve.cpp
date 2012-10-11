@@ -1,62 +1,58 @@
 #include "Curve.h"
+using namespace NURBS;
 
 //----------------------------------------------------------------------------
-template <typename Real>
-Curve<Real>::Curve (Real tmin, Real tmax)
+
+Curve::Curve (Real tmin, Real tmax)
 {
     mTMin = tmin;
     mTMax = tmax;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Curve<Real>::~Curve ()
-{
-}
-//----------------------------------------------------------------------------
-template <typename Real>
-Real Curve<Real>::GetMinTime () const
+
+Real Curve::GetMinTime ()
 {
     return mTMin;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real Curve<Real>::GetMaxTime () const
+
+Real Curve::GetMaxTime ()
 {
     return mTMax;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void Curve<Real>::SetTimeInterval (Real tmin, Real tmax)
+
+void Curve::SetTimeInterval (Real tmin, Real tmax)
 {
     assert(tmin < tmax);
     mTMin = tmin;
     mTMax = tmax;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real Curve<Real>::GetSpeed (Real t) const
+
+Real Curve::GetSpeed (Real t)
 {
     Vector3 velocity = GetFirstDerivative(t);
     Real speed = velocity.norm();
     return speed;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real Curve<Real>::GetTotalLength () const
+
+Real Curve::GetTotalLength ()
 {
     return GetLength(mTMin, mTMax);
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 Curve<Real>::GetTangent (Real t) const
+
+Vector3 Curve::GetTangent (Real t)
 {
     Vector3 velocity = GetFirstDerivative(t);
     velocity.normalize();
     return velocity;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 Curve<Real>::GetNormal (Real t) const
+
+Vector3 Curve::GetNormal (Real t)
 {
     Vector3 velocity = GetFirstDerivative(t);
     Vector3 acceleration = GetSecondDerivative(t);
@@ -67,8 +63,8 @@ Vector3 Curve<Real>::GetNormal (Real t) const
     return normal;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 Curve<Real>::GetBinormal (Real t) const
+
+Vector3 Curve::GetBinormal (Real t)
 {
     Vector3 velocity = GetFirstDerivative(t);
     Vector3 acceleration = GetSecondDerivative(t);
@@ -81,10 +77,10 @@ Vector3 Curve<Real>::GetBinormal (Real t) const
     return binormal;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void Curve<Real>::GetFrame (Real t, Vector3& position,
+
+void Curve::GetFrame (Real t, Vector3& position,
     Vector3& tangent, Vector3& normal, Vector3& binormal)
-    const
+
 {
     position = GetPosition(t);
     Vector3 velocity = GetFirstDerivative(t);
@@ -98,8 +94,8 @@ void Curve<Real>::GetFrame (Real t, Vector3& position,
     binormal = cross(tangent,normal);
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real Curve<Real>::GetCurvature (Real t) const
+
+Real Curve::GetCurvature (Real t)
 {
     Vector3 velocity = GetFirstDerivative(t);
     Real speedSqr = velocity.sqrnorm();
@@ -119,8 +115,8 @@ Real Curve<Real>::GetCurvature (Real t) const
     }
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real Curve<Real>::GetTorsion (Real t) const
+
+Real Curve::GetTorsion (Real t)
 {
     Vector3 velocity = GetFirstDerivative(t);
     Vector3 acceleration = GetSecondDerivative(t);
@@ -140,12 +136,11 @@ Real Curve<Real>::GetTorsion (Real t) const
     }
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void Curve<Real>::SubdivideByTime (int numPoints,
-    Vector3*& points) const
+
+void Curve::SubdivideByTime (int numPoints, std::vector<Vector3> & points)
 {
     assert(numPoints >= 2);
-    points = new Vector3[numPoints];
+    points.resize(numPoints);
 
     Real delta = (mTMax - mTMin)/(numPoints - 1);
 
@@ -156,12 +151,11 @@ void Curve<Real>::SubdivideByTime (int numPoints,
     }
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void Curve<Real>::SubdivideByLength (int numPoints,
-    Vector3*& points) const
+
+void Curve::SubdivideByLength (int numPoints, std::vector<Vector3> & points)
 {
     assert(numPoints >= 2);
-    points = new Vector3[numPoints];
+    points.resize(numPoints);
 
     Real delta = GetTotalLength()/(numPoints - 1);
 
@@ -172,14 +166,3 @@ void Curve<Real>::SubdivideByLength (int numPoints,
         points[i] = GetPosition(t);
     }
 }
-//----------------------------------------------------------------------------
-//
-////----------------------------------------------------------------------------
-//// Explicit instantiation.
-////----------------------------------------------------------------------------
-template
-class Curve<float>;
-
-template
-class Curve<double>;
-//----------------------------------------------------------------------------

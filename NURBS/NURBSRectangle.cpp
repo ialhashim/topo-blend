@@ -1,9 +1,8 @@
 #include "NURBSRectangle.h"
 
 //----------------------------------------------------------------------------
-template <typename Real>
-NURBSRectangle<Real>::NURBSRectangle (Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight,
-    int uDegree, int vDegree, bool uLoop, bool vLoop, bool uOpen, bool vOpen) : ParametricSurface<Real>(0, 1, 0, 1, true)
+NURBSRectangle::NURBSRectangle (Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight,
+    int uDegree, int vDegree, bool uLoop, bool vLoop, bool uOpen, bool vOpen) : ParametricSurface(0, 1, 0, 1, true)
 {
     int numUCtrlPoints = ctrlPoint.size();
     int numVCtrlPoints = ctrlPoint[0].size();
@@ -26,8 +25,36 @@ NURBSRectangle<Real>::NURBSRectangle (Array2D_Vector3 ctrlPoint, Array2D_Real ct
     mBasis[1].Create(mNumVCtrlPoints + mVReplicate, vDegree, vOpen);
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void NURBSRectangle<Real>::CreateControl (Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight)
+NURBSRectangle NURBSRectangle::createSheet(Scalar width, Scalar length, Vector3 center, Vector3 dU, Vector3 dV)
+{
+    int nU = 4, nV = 4;
+    int degree = 3;
+
+    // Rectangular surface
+    std::vector< std::vector<Vec3d> > pts( nV, std::vector<Vec3d>( nU ) );
+    std::vector< std::vector<Scalar> > weights( nV, std::vector<Scalar>( nU, 1.0 ) );
+
+    Vector3 deltaU = (width  / (nU-1)) * dU;
+    Vector3 deltaV = (length / (nV-1)) * dV;
+
+    Vector3 corner = center - (dU * width * 0.5) - (dV * length * 0.5);
+
+	Vector3 n = cross(dU,dV);
+
+	Vector3 cU = (dU * width * 0.5);
+	Vector3 cV = (dV * length * 0.5);
+
+    for(int y = 0; y < nV; y++){
+        for(int x = 0; x < nU; x++){
+            pts[y][x] = corner + (deltaU * x) + (deltaV * y);
+        }
+    }
+
+    return NURBSRectangle(pts, weights, degree, degree, false, false, true, true);
+}
+
+//----------------------------------------------------------------------------
+void NURBSRectangle::CreateControl (Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight)
 {
     int newNumUCtrlPoints = mNumUCtrlPoints + mUReplicate;
     int newNumVCtrlPoints = mNumVCtrlPoints + mVReplicate;
@@ -39,38 +66,38 @@ void NURBSRectangle<Real>::CreateControl (Array2D_Vector3 ctrlPoint, Array2D_Rea
     mCtrlWeight = ctrlWeight;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-int NURBSRectangle<Real>::GetNumCtrlPoints (int dim)
+
+int NURBSRectangle::GetNumCtrlPoints (int dim)
 {
     return mBasis[dim].GetNumCtrlPoints();
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-int NURBSRectangle<Real>::GetDegree (int dim)
+
+int NURBSRectangle::GetDegree (int dim)
 {
     return mBasis[dim].GetDegree();
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-bool NURBSRectangle<Real>::IsOpen (int dim)
+
+bool NURBSRectangle::IsOpen (int dim)
 {
     return mBasis[dim].IsOpen();
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-bool NURBSRectangle<Real>::IsUniform (int dim)
+
+bool NURBSRectangle::IsUniform (int dim)
 {
     return mBasis[dim].IsUniform();
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-bool NURBSRectangle<Real>::IsLoop (int dim)
+
+bool NURBSRectangle::IsLoop (int dim)
 {
     return mLoop[dim];
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void NURBSRectangle<Real>::SetControlPoint (int uIndex, int vIndex,
+
+void NURBSRectangle::SetControlPoint (int uIndex, int vIndex,
      Vector3& ctrl)
 {
     if (0 <= uIndex && uIndex < mNumUCtrlPoints
@@ -101,8 +128,8 @@ void NURBSRectangle<Real>::SetControlPoint (int uIndex, int vIndex,
     }
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 NURBSRectangle<Real>::GetControlPoint (int uIndex,
+
+Vector3 NURBSRectangle::GetControlPoint (int uIndex,
     int vIndex)
 {
     if (0 <= uIndex && uIndex < mNumUCtrlPoints
@@ -114,8 +141,8 @@ Vector3 NURBSRectangle<Real>::GetControlPoint (int uIndex,
     return Vector3(MAX_REAL, MAX_REAL, MAX_REAL);
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void NURBSRectangle<Real>::SetControlWeight (int uIndex, int vIndex,
+
+void NURBSRectangle::SetControlWeight (int uIndex, int vIndex,
     Real weight)
 {
     if (0 <= uIndex && uIndex < mNumUCtrlPoints
@@ -146,8 +173,8 @@ void NURBSRectangle<Real>::SetControlWeight (int uIndex, int vIndex,
     }
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real NURBSRectangle<Real>::GetControlWeight (int uIndex, int vIndex)
+
+Real NURBSRectangle::GetControlWeight (int uIndex, int vIndex)
 {
     if (0 <= uIndex && uIndex < mNumUCtrlPoints
     &&  0 <= vIndex && vIndex < mNumVCtrlPoints)
@@ -158,8 +185,8 @@ Real NURBSRectangle<Real>::GetControlWeight (int uIndex, int vIndex)
     return MAX_REAL;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void NURBSRectangle<Real>::SetKnot (int dim, int i, Real knot)
+
+void NURBSRectangle::SetKnot (int dim, int i, Real knot)
 {
     if (0 <= dim && dim <= 1)
     {
@@ -167,8 +194,8 @@ void NURBSRectangle<Real>::SetKnot (int dim, int i, Real knot)
     }
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real NURBSRectangle<Real>::GetKnot (int dim, int i)
+
+Real NURBSRectangle::GetKnot (int dim, int i)
 {
     if (0 <= dim && dim <= 1)
     {
@@ -178,8 +205,8 @@ Real NURBSRectangle<Real>::GetKnot (int dim, int i)
     return MAX_REAL;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void NURBSRectangle<Real>::Get (Real u, Real v, Vector3& pos,
+
+void NURBSRectangle::Get (Real u, Real v, Vector3& pos,
     Vector3& derU, Vector3& derV, Vector3& derUU,Vector3& derUV, Vector3& derVV)
 {
     int iu, iumin, iumax;
@@ -224,7 +251,7 @@ void NURBSRectangle<Real>::Get (Real u, Real v, Vector3& pos,
     {
         for (iv = ivmin; iv <= ivmax; ++iv)
         {
-            tmp = mBasis[0].GetD0(iu)*mBasis[1].GetD0(iv)*mCtrlWeight[iu][iv];
+            tmp = mBasis[0].GetD0(iu)*mBasis[1].GetD0(iv) * mCtrlWeight[iu][iv];
             X += mCtrlPoint[iu][iv]*tmp;
             w += tmp;
         }
@@ -253,8 +280,7 @@ void NURBSRectangle<Real>::Get (Real u, Real v, Vector3& pos,
         {
             for (iv = ivmin; iv <= ivmax; ++iv)
             {
-                tmp = mBasis[0].GetD1(iu)*mBasis[1].GetD0(iv)*
-                    mCtrlWeight[iu][iv];
+                tmp = mBasis[0].GetD1(iu)*mBasis[1].GetD0(iv) * mCtrlWeight[iu][iv];
                 XDerU += mCtrlPoint[iu][iv]*tmp;
                 wDerU += tmp;
             }
@@ -298,8 +324,7 @@ void NURBSRectangle<Real>::Get (Real u, Real v, Vector3& pos,
         {
             for (iv = ivmin; iv <= ivmax; ++iv)
             {
-                tmp = mBasis[0].GetD2(iu)*mBasis[1].GetD0(iv)*
-                    mCtrlWeight[iu][iv];
+                tmp = mBasis[0].GetD2(iu)*mBasis[1].GetD0(iv) * mCtrlWeight[iu][iv];
                 XDerUU += mCtrlPoint[iu][iv]*tmp;
                 wDerUU += tmp;
             }
@@ -315,8 +340,7 @@ void NURBSRectangle<Real>::Get (Real u, Real v, Vector3& pos,
         {
             for (iv = ivmin; iv <= ivmax; ++iv)
             {
-                tmp = mBasis[0].GetD1(iu)*mBasis[1].GetD1(iv)*
-                    mCtrlWeight[iu][iv];
+                tmp = mBasis[0].GetD1(iu)*mBasis[1].GetD1(iv) * mCtrlWeight[iu][iv];
                 XDerUV += mCtrlPoint[iu][iv]*tmp;
                 wDerUV += tmp;
             }
@@ -341,80 +365,80 @@ void NURBSRectangle<Real>::Get (Real u, Real v, Vector3& pos,
     }
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 NURBSRectangle<Real>::P (Real u, Real v)
+
+Vector3 NURBSRectangle::P (Real u, Real v)
 {
     Vector3 pos;
     Get(u, v, pos);
     return pos;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 NURBSRectangle<Real>::PU (Real u, Real v)
+
+Vector3 NURBSRectangle::PU (Real u, Real v)
 {
     Vector3 derU;
     Get(u, v, Vector3(0), derU);
     return derU;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 NURBSRectangle<Real>::PV (Real u, Real v)
+
+Vector3 NURBSRectangle::PV (Real u, Real v)
 {
     Vector3 derV;
     Get(u, v, Vector3(0), Vector3(0), derV);
     return derV;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 NURBSRectangle<Real>::PUU (Real u, Real v)
+
+Vector3 NURBSRectangle::PUU (Real u, Real v)
 {
     Vector3 derUU;
     Get(u, v, Vector3(0), Vector3(0), Vector3(0), derUU);
     return derUU;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 NURBSRectangle<Real>::PUV (Real u, Real v)
+
+Vector3 NURBSRectangle::PUV (Real u, Real v)
 {
     Vector3 derUV;
     Get(u, v, Vector3(0), Vector3(0), Vector3(0), Vector3(0), derUV);
     return derUV;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 NURBSRectangle<Real>::PVV (Real u, Real v)
+
+Vector3 NURBSRectangle::PVV (Real u, Real v)
 {
     Vector3 derVV;
     Get(u, v, Vector3(0), Vector3(0), Vector3(0), Vector3(0), Vector3(0), derVV);
     return derVV;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void NURBSRectangle<Real>::generateSurfaceQuads( int resolution )
+
+void NURBSRectangle::generateSurfaceQuads( int resolution )
 {
 	double res = resolution;
 	double du = 1.0 / res;
 	double dv = 1.0 / res;
 
-	for(int i = 0; i < res; i++){
-		double u = double(i) / res;
+	for(int y = 0; y < res; y++){
+		double v = double(y) / res;
 
-		for(int j = 0; j < res; j++){
-			double v = double(j) / res;
+		for(int x = 0; x < res; x++){
+			double u = double(x) / res;
 
 			std::vector<Vec3d> pos = std::vector<Vec3d>(4, Vec3d(0));
-			std::vector<Vec3d> dU = pos, dV = pos;
+			std::vector<Vec3d> dU = pos, dV = pos, normal = pos;
 
-			Get(u,v,		pos[0], dU[0], dV[0]);
-			Get(u+du,v,		pos[1], dU[1], dV[1]);
-			Get(u+du,v+dv,	pos[2], dU[2], dV[2]);
-			Get(u,v+dv,		pos[3], dU[3], dV[3]);
+			GetFrame(u		,v		,	pos[0], dU[0], dV[0], normal[0]);
+			GetFrame(u+du	,v		,	pos[1], dU[1], dV[1], normal[1]);
+			GetFrame(u+du	,v+dv	,	pos[2], dU[2], dV[2], normal[2]);
+			GetFrame(u		,v+dv	,	pos[3], dU[3], dV[3], normal[3]);
 
 			SurfaceQuad quad;
 
 			for(int k = 0; k < 4; k++){
 				quad.p[k] = pos[k];
-				quad.n[k] = cross(dU[k], dV[k]).normalized();
+				quad.n[k] = normal[k];
 			}
 
 			quads.push_back(quad);
@@ -422,13 +446,53 @@ void NURBSRectangle<Real>::generateSurfaceQuads( int resolution )
     }
 }
 
-//----------------------------------------------------------------------------
-// Explicit instantiation.
-//----------------------------------------------------------------------------
-template
-class NURBSRectangle<float>;
+void NURBSRectangle::generateSurfacePoints( double stepSize, std::vector< std::vector<Vector3> > & points )
+{
+	int cU = 1 + (1.0 / stepSize);
+	int cV = 1 + (1.0 / stepSize);
 
-template
-class NURBSRectangle<double>;
+	points.resize( cU, std::vector<Vector3>( cV, Vector3(0)) );
+
+	int i = 0, j = 0;
+	for(double v = 0; v <= 1; v += stepSize)
+	{
+		for(double u = 0; u <= 1; u += stepSize)
+			points[j][i++] = P(u,v);
+
+		// Indexing
+		j++; i = 0;
+	}
+}
 //----------------------------------------------------------------------------
 
+Vec2d NURBSRectangle::timeAt( const Vector3 & pos )
+{
+	double stepSize = 0.1;
+
+	std::vector< std::vector<Vector3> > pts;
+
+	generateSurfacePoints(stepSize, pts);
+
+	int cU = 1 + (1.0 / stepSize);
+	int cV = 1 + (1.0 / stepSize);
+
+	int minIdxU = 0, minIdxV = 0;
+	Scalar minDist = std::numeric_limits<Scalar>::max();
+
+	for(int v = 0; v < cV; v++){
+		for(int u = 0; u < cU; u++){
+			Scalar dist = (pts[v][u] - pos).norm();
+
+			if(dist < minDist){
+				minDist = dist;
+				minIdxU = u;
+				minIdxV = v;
+			}
+		}
+	}
+
+	// More accurate search
+	double minU = minIdxU * stepSize, minV = minIdxV * stepSize;
+
+	return Vec2d(minU, minV);
+}

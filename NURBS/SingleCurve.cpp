@@ -1,31 +1,31 @@
-#include "SingleCurve.h"
 #include "Integrate1.h"
+#include "SingleCurve.h"
+using namespace NURBS;
 
 //----------------------------------------------------------------------------
-template <typename Real>
-SingleCurve<Real>::SingleCurve (Real tmin, Real tmax) : Curve<Real>(tmin, tmax)
+
+SingleCurve::SingleCurve (Real tmin, Real tmax) : Curve(tmin, tmax)
 {
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real SingleCurve<Real>::GetSpeedWithData (Real t, void* data)
+
+Real SingleCurve::GetSpeedWithData (Real t, void* data)
 {
-    return ((Curve<Real>*)data)->GetSpeed(t);
+    return ((Curve*)data)->GetSpeed(t);
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real SingleCurve<Real>::GetLength (Real t0, Real t1) const
+
+Real SingleCurve::GetLength (Real t0, Real t1)
 {
     assert(mTMin <= t0 && t0 <= mTMax);
     assert(mTMin <= t1 && t1 <= mTMax);
     assert(t0 <= t1);
 
-    return Integrate1<Real>::RombergIntegral(8, t0, t1, GetSpeedWithData,
-        (void*)this);
+    return Integrate1<Real>::RombergIntegral(8, t0, t1, GetSpeedWithData, (void*)this);
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real SingleCurve<Real>::GetTime (Real length, int iterations, Real tolerance) const
+
+Real SingleCurve::GetTime (Real length, int iterations, Real tolerance)
 {
     if (length <= (Real)0)
     {
@@ -113,14 +113,3 @@ Real SingleCurve<Real>::GetTime (Real length, int iterations, Real tolerance) co
     // precision of 32-bit floats.  It is safe to use the last computed time.
     return t;
 }
-//----------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------
-// Explicit instantiation.
-//----------------------------------------------------------------------------
-template
-class SingleCurve<float>;
-
-template
-class SingleCurve<double>;
-//----------------------------------------------------------------------------

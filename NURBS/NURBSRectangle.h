@@ -6,10 +6,11 @@
 // For visualization
 struct SurfaceQuad{	Vector3 p[4]; Normal n[4]; };
 
-template <typename Real>
-class NURBSRectangle : public ParametricSurface<Real>
+class NURBSRectangle : public ParametricSurface
 {
 public:
+
+    NURBSRectangle(){}
 
     // ruction and destruction.   The caller is responsible for deleting
     // the input arrays if they were dynamically allocated.  Internal copies
@@ -35,8 +36,8 @@ public:
     NURBSRectangle(Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight,
                    int uDegree, int vDegree, bool uLoop, bool vLoop, bool uOpen, bool vOpen);
 
-
-    virtual ~NURBSRectangle ();
+    static NURBSRectangle createSheet(Scalar width = 2.0, Scalar length = 1.0, Vector3 center = Vector3(0),
+                                      Vector3 dU = Vector3(1,0,0), Vector3 dV = Vector3(0,0,1));
 
     int GetNumCtrlPoints (int dim) ;
     int GetDegree (int dim) ;
@@ -73,12 +74,14 @@ public:
     // quantities whose values you want.  You may pass 0 in any argument
     // whose value you do not want.
     void Get (Real u, Real v, Vector3& pos = Vector3(0), Vector3& derU= Vector3(0),
-        Vector3& derV= Vector3(0), Vector3& derUU= Vector3(0), Vector3& derUV= Vector3(0),
-        Vector3& derVV= Vector3(0));
+        Vector3& derV= Vector3(0), Vector3& derUU= Vector3(0), Vector3& derUV= Vector3(0), Vector3& derVV= Vector3(0));
 
 	// Cached visualization
 	std::vector<SurfaceQuad> quads;
-	void generateSurfaceQuads( int resolution );
+    void generateSurfaceQuads( int resolution );
+	void generateSurfacePoints( double stepSize, std::vector< std::vector<Vector3> > & points );
+
+	Vec2d timeAt(const Vector3 & pos);
 
 protected:
     // Replicate the necessary number of control points when the Create
@@ -91,9 +94,7 @@ public:
     Array2D_Vector3 mCtrlPoint;  //   ctrl[unum][vnum]
     Array2D_Real mCtrlWeight;    // weight[unum][vnum]
     bool mLoop[2];
-    BSplineBasis<Real> mBasis[2];
-    int mUReplicate, mVReplicate;};
-
-typedef NURBSRectangle<float> NURBSRectanglef;
-typedef NURBSRectangle<double> NURBSRectangled;
+    BSplineBasis mBasis[2];
+    int mUReplicate, mVReplicate;
+};
 

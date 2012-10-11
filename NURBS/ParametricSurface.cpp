@@ -4,8 +4,8 @@
 #include "Matrix2.h"
 
 //----------------------------------------------------------------------------
-template <typename Real>
-ParametricSurface<Real>::ParametricSurface (Real umin, Real umax, Real vmin, Real vmax, bool rectangular)
+
+ParametricSurface::ParametricSurface (Real umin, Real umax, Real vmin, Real vmax, bool rectangular)
 {
     assert(umin < umax && vmin < vmax);
 
@@ -16,45 +16,42 @@ ParametricSurface<Real>::ParametricSurface (Real umin, Real umax, Real vmin, Rea
     mRectangular = rectangular;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-ParametricSurface<Real>::~ParametricSurface ()
-{
-}
+
 //----------------------------------------------------------------------------
-template <typename Real>
-Real ParametricSurface<Real>::GetUMin () const
+
+Real ParametricSurface::GetUMin ()
 {
     return mUMin;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real ParametricSurface<Real>::GetUMax () const
+
+Real ParametricSurface::GetUMax ()
 {
     return mUMax;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real ParametricSurface<Real>::GetVMin () const
+
+Real ParametricSurface::GetVMin ()
 {
     return mVMin;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real ParametricSurface<Real>::GetVMax () const
+
+Real ParametricSurface::GetVMax ()
 {
     return mVMax;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-bool ParametricSurface<Real>::IsRectangular () const
+
+bool ParametricSurface::IsRectangular ()
 {
     return mRectangular;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void ParametricSurface<Real>::GetFrame (Real u, Real v,
+
+void ParametricSurface::GetFrame (Real u, Real v,
     Vector3& position, Vector3& tangent0,
-    Vector3& tangent1, Vector3& normal) const
+    Vector3& tangent1, Vector3& normal)
 {
     position = P(u, v);
 
@@ -69,8 +66,8 @@ void ParametricSurface<Real>::GetFrame (Real u, Real v,
     tangent1 = cross(normal,tangent0);
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void ParametricSurface<Real>::ComputePrincipalCurvatureInfo (Real u, Real v, Real& curv0, Real& curv1, Vector3& dir0, Vector3& dir1)
+
+void ParametricSurface::ComputePrincipalCurvatureInfo (Real u, Real v, Real& curv0, Real& curv1, Vector3& dir0, Vector3& dir1)
 {
     // Tangents:  T0 = (x_u,y_u,z_u), T1 = (x_v,y_v,z_v)
     // Normal:    N = Cross(T0,T1)/Length(Cross(T0,T1))
@@ -158,14 +155,4 @@ void ParametricSurface<Real>::ComputePrincipalCurvatureInfo (Real u, Real v, Rea
     // Second tangent is cross product of first tangent and normal.
     dir1 = cross(dir0, normal);
 }
-//----------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------
-// Explicit instantiation.
-//----------------------------------------------------------------------------
-template
-class ParametricSurface<float>;
-
-template
-class ParametricSurface<double>;
 //----------------------------------------------------------------------------
