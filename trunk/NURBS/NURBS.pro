@@ -3,6 +3,7 @@ CONFIG += starlab
 STARLAB_DEPENDS *= common
 STARLAB_DEPENDS *= ../../starlab/plugins-surfacemesh/surfacemesh
 
+
 TARGET = NURBS
 TEMPLATE = lib
 CONFIG += staticlib
