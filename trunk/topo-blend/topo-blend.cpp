@@ -1,3 +1,4 @@
+#include <QElapsedTimer>
 #include "topo-blend.h"
 #include "StarlabMainWindow.h"
 #include "StarlabDrawArea.h"
@@ -31,46 +32,74 @@ void topoblend::decorate()
 
 void topoblend::test1()
 {
-    std::vector<Vec3d> ctrlPoint1, ctrlPoint2;
+	QElapsedTimer assembleTimer; assembleTimer.start(); 
 
+    Structure::Graph chair1, chair2;
 
-    // Curve 1
-    std::vector<Vec3d> cps;
-    int steps = 10;
-    double theta = M_PI * 5 / steps;
-    double r = M_PI;
+    NURBSRectangle backSheet = NURBSRectangle::createSheet(2,1, Vector3(0,-0.5,2));
+	NURBSRectangle seatSheet = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
+	
+	NURBSCurve backLeft = NURBSCurve::createCurve(Vector3(-1,0,0), Vector3(-1,-0.5,1.5));
+	NURBSCurve backRight = NURBSCurve::createCurve(Vector3(1,0,0), Vector3(1,-0.5,1.5));
+	NURBSCurve backLeft2 = NURBSCurve::createCurve(Vector3(-0.75,0,0), Vector3(-0.75,-0.5,1.5));
+	NURBSCurve backRight2 = NURBSCurve::createCurve(Vector3(0.75,0,0), Vector3(0.75,-0.5,1.5));
 
-    for(int i = 0; i <= steps; i++){
-        double x = (double(i) / steps) * r;
-        double y = sin(i * theta) * r * 0.25;
+	NURBSCurve frontLegLeft = NURBSCurve::createCurve(Vector3(-1,1.75,0), Vector3(-1,1.9,-2));
+	NURBSCurve frontLegRight = NURBSCurve::createCurve(Vector3(1,1.75,0), Vector3(1,1.9,-2));
+	NURBSCurve backLegLeft = NURBSCurve::createCurve(Vector3(-1,0.25,0), Vector3(-1,0,-2));
+	NURBSCurve backLegRight = NURBSCurve::createCurve(Vector3(1,0.25,0), Vector3(1,0,-2));
 
-        ctrlPoint1.push_back(Vec3d(x - r * 0.5, y, cos(i*theta)));
-    }
+	// Chair 1
+    chair1.addNode( new Structure::Sheet(backSheet, "BackSheet") );
+	chair1.addNode( new Structure::Curve(backLeft, "BackLeft") );
+	chair1.addNode( new Structure::Curve(backRight, "BackRight") );
+	chair1.addNode( new Structure::Sheet(seatSheet, "SeatSheet") );
 
-    // Curve 2
-    ctrlPoint2.push_back(Vec3d(-1,1,0));
-    ctrlPoint2.push_back(Vec3d(0,1,0));
-    ctrlPoint2.push_back(Vec3d(2,1,1));
-    ctrlPoint2.push_back(Vec3d(3,1,2));
-    ctrlPoint2.push_back(Vec3d(4,1,3));
+	chair1.addNode( new Structure::Curve(frontLegLeft, "FrontLegLeft") );
+	chair1.addNode( new Structure::Curve(frontLegRight, "FrontLegRight") );
+	chair1.addNode( new Structure::Curve(backLegLeft, "BackLegLeft") );
+	chair1.addNode( new Structure::Curve(backLegRight, "BackLegRight") );
 
-    std::vector<Scalar> ctrlWeight1(ctrlPoint1.size(), 1.0);
-    std::vector<Scalar> ctrlWeight2(ctrlPoint2.size(), 1.0);
+	// Chair 2
+	chair2.addNode( new Structure::Sheet(backSheet, "BackSheet") );
+	chair2.addNode( new Structure::Curve(backLeft, "BackLeft") );
+	chair2.addNode( new Structure::Curve(backLeft2, "BackLeft2") );
+	chair2.addNode( new Structure::Curve(backRight2, "BackRight2") );
+	chair2.addNode( new Structure::Curve(backRight, "BackRight") );
+	chair2.addNode( new Structure::Sheet(seatSheet, "SeatSheet") );
 
-    int degree = 2;
-    bool loop = false, open = true;
+	chair2.addNode( new Structure::Curve(frontLegLeft, "FrontLegLeft") );
+	chair2.addNode( new Structure::Curve(frontLegRight, "FrontLegRight") );
+	chair2.addNode( new Structure::Curve(backLegLeft, "BackLegLeft") );
+	chair2.addNode( new Structure::Curve(backLegRight, "BackLegRight") );
 
-    NURBSCurve3d * c1 = new NURBSCurve3d(ctrlPoint1, ctrlWeight1, degree, loop, open);
-    NURBSCurve3d * c2 = new NURBSCurve3d(ctrlPoint2, ctrlWeight2, degree, loop, open);
+	// Add edges
+	chair1.addEdge( chair1.getNode("BackSheet"), chair1.getNode("BackLeft") );
+	chair1.addEdge( chair1.getNode("BackSheet"), chair1.getNode("BackRight") );
 
-    Structure::Graph graph;
-    graph.addEdge( new Structure::Curve(c1, "curve 1"), new Structure::Curve(c2, "curve 2") );
-    graphs.push_back( graph );
+	chair1.addEdge( chair1.getNode("SeatSheet"), chair1.getNode("BackLeft") );
+	chair1.addEdge( chair1.getNode("SeatSheet"), chair1.getNode("BackRight") );
+
+	chair1.addEdge( chair1.getNode("SeatSheet"), chair1.getNode("FrontLegLeft") );
+	chair1.addEdge( chair1.getNode("SeatSheet"), chair1.getNode("FrontLegRight") );
+	chair1.addEdge( chair1.getNode("SeatSheet"), chair1.getNode("BackLegLeft") );
+	chair1.addEdge( chair1.getNode("SeatSheet"), chair1.getNode("BackLegRight") );
 
     // Set scene bounds
-    Vector3 a = graph.bbox().minimum();
-    Vector3 b = graph.bbox().maximum();
+    Vector3 a = chair1.bbox().minimum();
+    Vector3 b = chair1.bbox().maximum();
     drawArea()->setSceneBoundingBox(qglviewer::Vec(a.x(), a.y(), a.z()), qglviewer::Vec(b.x(), b.y(), b.z()));
+
+	// Save to file
+	//chair1.saveToFile("chair1.xml");
+	//chair1.loadFromFile("chair1.xml");
+
+	graphs.push_back( chair1 );
+	graphs.push_back( chair2 );
+
+	qDebug() << assembleTimer.elapsed() << " ms";
+
+    drawArea()->updateGL();
 }
 
 void topoblend::test2()

@@ -1,7 +1,9 @@
 #include "NURBSCurve.h"
+#include "LineSegment.h"
+using namespace NURBS;
 
-template <typename Real>
-NURBSCurve<Real>::NURBSCurve (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight, int degree, bool loop, bool open) : SingleCurve<Real>((Real)0, (Real)1), mLoop(loop)
+NURBSCurve::NURBSCurve (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight,
+                        int degree, bool loop, bool open) : SingleCurve((Real)0, (Real)1), mLoop(loop)
 {
 	int numCtrlPoints = ctrlPoint.size();
 
@@ -14,13 +16,26 @@ NURBSCurve<Real>::NURBSCurve (std::vector<Vector3> ctrlPoint, std::vector<Real> 
 	mBasis.Create(mNumCtrlPoints + mReplicate, degree, open);
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-NURBSCurve<Real>::~NURBSCurve ()
+
+NURBSCurve NURBSCurve::createCurve( Vector3 from, Vector3 to )
 {
+	std::vector<Vector3> ctrlPoint;
+
+	int steps = 4;
+	int degree = 3;
+
+	Vector3 delta = (to - from) / steps;
+
+	for(int i = 0; i <= steps; i++)
+		ctrlPoint.push_back(from + (delta * i));
+
+	std::vector<Real> ctrlWeight(ctrlPoint.size(), 1.0);
+	return NURBSCurve(ctrlPoint, ctrlWeight, degree, false, true);
 }
+
 //----------------------------------------------------------------------------
-template <typename Real>
-void NURBSCurve<Real>::CreateControl (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight)
+
+void NURBSCurve::CreateControl (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight)
 {
 	int newNumCtrlPoints = mNumCtrlPoints + mReplicate;
     newNumCtrlPoints = newNumCtrlPoints;
@@ -30,38 +45,38 @@ void NURBSCurve<Real>::CreateControl (std::vector<Vector3> ctrlPoint, std::vecto
 }
 
 //----------------------------------------------------------------------------
-template <typename Real>
-int NURBSCurve<Real>::GetNumCtrlPoints ()
+
+int NURBSCurve::GetNumCtrlPoints ()
 {
     return mNumCtrlPoints;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-int NURBSCurve<Real>::GetDegree ()
+
+int NURBSCurve::GetDegree ()
 {
     return mBasis.GetDegree();
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-bool NURBSCurve<Real>::IsOpen ()
+
+bool NURBSCurve::IsOpen ()
 {
     return mBasis.IsOpen();
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-bool NURBSCurve<Real>::IsUniform ()
+
+bool NURBSCurve::IsUniform ()
 {
     return mBasis.IsUniform();
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-bool NURBSCurve<Real>::IsLoop ()
+
+bool NURBSCurve::IsLoop ()
 {
     return mLoop;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void NURBSCurve<Real>::SetControlPoint (int i,  Vector3& ctrl)
+
+void NURBSCurve::SetControlPoint (int i,  Vector3& ctrl)
 {
     if (0 <= i && i < mNumCtrlPoints)
     {
@@ -76,8 +91,8 @@ void NURBSCurve<Real>::SetControlPoint (int i,  Vector3& ctrl)
     }
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 NURBSCurve<Real>::GetControlPoint (int i)
+
+Vector3 NURBSCurve::GetControlPoint (int i)
 {
     if (0 <= i && i < mNumCtrlPoints)
     {
@@ -86,15 +101,21 @@ Vector3 NURBSCurve<Real>::GetControlPoint (int i)
 
     return Vector3(MAX_REAL, MAX_REAL, MAX_REAL);
 }
+//----------------------------------------------------------------------------
 
-template <typename Real>
-std::vector<Vector3> NURBSCurve<Real>::getControlPoints()
+std::vector<Vector3> NURBSCurve::getControlPoints()
 {
 	return mCtrlPoint;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void NURBSCurve<Real>::SetControlWeight (int i, Real weight)
+
+std::vector<Real> NURBSCurve::getControlWeights()
+{
+	return mCtrlWeight;
+}
+//----------------------------------------------------------------------------
+
+void NURBSCurve::SetControlWeight (int i, Real weight)
 {
     if (0 <= i && i < mNumCtrlPoints)
     {
@@ -109,8 +130,8 @@ void NURBSCurve<Real>::SetControlWeight (int i, Real weight)
     }
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real NURBSCurve<Real>::GetControlWeight (int i)
+
+Real NURBSCurve::GetControlWeight (int i)
 {
     if (0 <= i && i < mNumCtrlPoints)
     {
@@ -120,20 +141,20 @@ Real NURBSCurve<Real>::GetControlWeight (int i)
     return MAX_REAL;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void NURBSCurve<Real>::SetKnot (int i, Real knot)
+
+void NURBSCurve::SetKnot (int i, Real knot)
 {
     mBasis.SetKnot(i, knot);
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Real NURBSCurve<Real>::GetKnot (int i)
+
+Real NURBSCurve::GetKnot (int i)
 {
     return mBasis.GetKnot(i);
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-void NURBSCurve<Real>::Get (Real t, Vector3* pos,
+
+void NURBSCurve::Get (Real t, Vector3* pos,
     Vector3* der1, Vector3* der2, Vector3* der3)
 {
     int i, imin, imax;
@@ -239,38 +260,38 @@ void NURBSCurve<Real>::Get (Real t, Vector3* pos,
     }
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-BSplineBasis<Real>& NURBSCurve<Real>::GetBasis ()
+
+BSplineBasis& NURBSCurve::GetBasis ()
 {
     return mBasis;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 NURBSCurve<Real>::GetPosition (Real t)
+
+Vector3 NURBSCurve::GetPosition (Real t)
 {
     Vector3 pos;
     Get(t, &pos, 0, 0, 0);
     return pos;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 NURBSCurve<Real>::GetFirstDerivative (Real t)
+
+Vector3 NURBSCurve::GetFirstDerivative (Real t)
 {
     Vector3 der1;
     Get(t, 0, &der1, 0, 0);
     return der1;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 NURBSCurve<Real>::GetSecondDerivative (Real t)
+
+Vector3 NURBSCurve::GetSecondDerivative (Real t)
 {
     Vector3 der2;
     Get(t, 0, 0, &der2, 0);
     return der2;
 }
 //----------------------------------------------------------------------------
-template <typename Real>
-Vector3 NURBSCurve<Real>::GetThirdDerivative (Real t)
+
+Vector3 NURBSCurve::GetThirdDerivative (Real t)
 {
     Vector3 der3;
     Get(t, 0, 0, 0, &der3);
@@ -278,12 +299,34 @@ Vector3 NURBSCurve<Real>::GetThirdDerivative (Real t)
 }
 //----------------------------------------------------------------------------
 
-//----------------------------------------------------------------------------
-// Explicit instantiation.
-//----------------------------------------------------------------------------
-template 
-class NURBSCurve<float>;
+Real NURBSCurve::timeAt( const Vector3 & pos )
+{
+	std::vector<Vector3> curvePoints;
 
-template
-class NURBSCurve<double>;
-//----------------------------------------------------------------------------
+	double timeStep = 0.1;
+
+	SubdivideByLength(1 + (1.0 / timeStep), curvePoints);
+
+	int minIdx = 0;
+	double t = 0.0;
+	Vector3 d(0);
+	Scalar minDist = std::numeric_limits<Scalar>::max();
+
+	for(int i = 0; i < (int)curvePoints.size() - 1; i++)
+	{
+		Line segment(curvePoints[i], curvePoints[i + 1]);
+		segment.ClosestPoint(pos, t, d);
+
+		Scalar dist = (pos - d).norm();
+
+		if(dist < minDist){
+			minDist = dist;
+			minIdx = i;
+		}
+	}
+
+	Line closestSegment(curvePoints[minIdx], curvePoints[minIdx + 1]);
+	closestSegment.ClosestPoint(pos, t, d);
+	Scalar found_t = qMax(0.0, qMin( (timeStep * minIdx) + (t * timeStep), 1.0) );
+	return found_t;
+}

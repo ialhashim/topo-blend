@@ -18,7 +18,8 @@ SOURCES += topo-blend.cpp \
     topo_blend_widget.cpp \
     topo/StructureGraph.cpp \
     topo/StructureCurve.cpp \
-    topo/StructureSheet.cpp
+    topo/StructureSheet.cpp \
+    topo/StructureLink.cpp
 RESOURCES += topo-blend.qrc
 FORMS += \ 
     topo_blend_widget.ui

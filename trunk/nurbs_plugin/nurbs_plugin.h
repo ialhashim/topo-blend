@@ -4,7 +4,7 @@
 #include "RichParameterSet.h"
 #include "StarlabDrawArea.h"
 
-#include "NURBSCurve3.h"
+#include "NURBSCurve.h"
 #include "NURBSRectangle.h"
 #include "NurbsDraw.h"
 
@@ -21,6 +21,6 @@ public:
 
     void decorate();
 
-	std::vector<NURBSCurve3d *> nc;
-	std::vector<NURBSRectangled *> rects;
+    std::vector<NURBSCurve> nc;
+    std::vector<NURBSRectangle> rects;
 };

@@ -3,9 +3,7 @@
 #include "SingleCurve.h"
 #include "BSplineBasis.h"
 
-template <typename Real>
-class NURBSCurve : public SingleCurve<Real>
-{
+class NURBSCurve : public NURBS::SingleCurve{
 public:
     // construction and destruction.  The caller is responsible for deleting
     // the input arrays if they were dynamically allocated.  Internal copies
@@ -44,7 +42,7 @@ public:
     NURBSCurve () {}
     NURBSCurve (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight, int degree, bool loop, bool open);
 
-    virtual ~NURBSCurve ();
+	static NURBSCurve createCurve(Vector3 from, Vector3 to);
 
     int GetNumCtrlPoints () ;
     int GetDegree () ;
@@ -63,6 +61,7 @@ public:
     Real GetControlWeight (int i) ;
 
 	std::vector<Vector3> getControlPoints();
+	std::vector<Real> getControlWeights();
 
     // The knot values can be changed only if the basis function is nonuniform
     // and the input index is valid (0 <= i <= n-d-1).  If these conditions
@@ -87,22 +86,21 @@ public:
 
     // Access the basis function to compute it without control points.  This
     // is useful for least squares fitting of curves.
-    BSplineBasis<Real>& GetBasis ();
+    BSplineBasis& GetBasis ();
+
+	Real timeAt(const Vector3 & pos);
 
 protected:
     // Replicate the necessary number of control points when the Create
     // function has loop equal to true, in which case the spline curve must
     // be a closed curve.
     //void CreateControl ( Vector3* ctrlPoint,  Real* ctrlWeight);
-	void CreateControl (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight);
+    void CreateControl (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight);
 
     int mNumCtrlPoints;
     std::vector<Vector3> mCtrlPoint;            // ctrl[n+1]
     std::vector<Real> mCtrlWeight;              // weight[n+1]
     bool mLoop;
-    BSplineBasis<Real> mBasis;
+    BSplineBasis mBasis;
     int mReplicate;                             // the number of replicated control points
 };
-
-typedef NURBSCurve<float> NURBSCurvef;
-typedef NURBSCurve<double> NURBSCurved;

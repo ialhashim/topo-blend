@@ -1,15 +1,23 @@
 #pragma once
 #include <qgl.h>
 
-#include "NURBSCurve3.h"
+#include "NURBSCurve.h"
 #include "NURBSRectangle.h"
 
-class NurbsCurveDraw{
+#define glVector3( v ) glVertex3d( v.x(), v.y(), v.z() )
+#define glNormal3( v ) glNormal3d( v.x(), v.y(), v.z() )
+
+namespace NURBS
+{
+
+class CurveDraw{
 public:
-    static void draw( NURBSCurve3d * nc, QColor curve_color = QColor(0,255,255), bool drawControl = false)
+    static void draw( NURBSCurve * nc, QColor curve_color = QColor(0,255,255), bool drawControl = false)
     {
         if(drawControl)
         {
+			glEnable( GL_POINT_SMOOTH );
+
             // Draw control points
             glDisable(GL_LIGHTING);
             glPointSize(6.0f);
@@ -48,17 +56,22 @@ public:
         }
         glEnd();
 
+		// Draw start indicator
+		glColor3d(1,0,0);
+		glBegin(GL_LINES);
+		glVector3(nc->GetPosition( 0 )); glVector3(nc->GetPosition( 0.1 ));
+		glEnd();
+
         glEnable(GL_LIGHTING);
     }
 };
 
-#define glVector3( v ) glVertex3d( v.x(), v.y(), v.z() )
-#define glNormal3( v ) glNormal3d( v.x(), v.y(), v.z() )
-
-class NurbsSurfaceDraw{
+class SurfaceDraw{
 public:
-    static void draw( NURBSRectangled * nc, QColor sheet_color = QColor(0,255,255), bool drawControl = false )
+    static void draw( NURBSRectangle * nc, QColor sheet_color = QColor(0,255,255), bool drawControl = false )
 	{
+		glEnable( GL_POINT_SMOOTH );
+
 		int width = nc->GetNumCtrlPoints(0);
 		int length = nc->GetNumCtrlPoints(1);
 
@@ -109,7 +122,7 @@ public:
         }
 
 		// Draw actual surface
-		if(nc->quads.empty()) nc->generateSurfaceQuads(60);
+		if(nc->quads.empty()) nc->generateSurfaceQuads(20);
 
 		glEnable(GL_LIGHTING);
         glEnable(GL_BLEND);
@@ -126,6 +139,24 @@ public:
 		}
 		glEnd();
 
+		// Draw UV indicator
+		SurfaceQuad quad = nc->quads.front();
+
+		glDisable(GL_LIGHTING);
+		glLineWidth(8);
+
+		glColor3d(1,0,0);
+		glBegin(GL_LINES);
+		glVector3(quad.p[0]); glVector3(quad.p[1]);
+		glEnd();
+
+		glColor3d(0,1,0);
+		glBegin(GL_LINES);
+		glVector3(quad.p[0]); glVector3(quad.p[3]);
+		glEnd();
+
 		glEnable(GL_LIGHTING);
 	}
 };
+
+}
