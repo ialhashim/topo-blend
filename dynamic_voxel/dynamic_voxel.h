@@ -19,4 +19,9 @@ public:
     void decorate();
 
     DynamicVoxel vox;
+
+    bool showVoxels, showMesh;
+
+public:
+    virtual bool keyPressEvent(QKeyEvent* event);
 };

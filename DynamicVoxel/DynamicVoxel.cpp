@@ -1,8 +1,7 @@
-#include "StarlabDrawArea.h"
-#include "DynamicVoxel.h"
-#include "SurfaceMeshHelper.h"
 #include <QElapsedTimer>
+#include "SurfaceMeshHelper.h"
 #include "DoubleTupleMap.h"
+#include "DynamicVoxel.h"
 
 #include <Eigen/Sparse>
 #include <Eigen/CholmodSupport>

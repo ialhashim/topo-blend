@@ -1,9 +1,9 @@
 #pragma once
 
-#include "NanoKdTree.h"
-#include "Voxel.h"
-
 #include "SurfaceMeshModel.h"
+#include "NanoKdTree.h"
+
+#include "Voxel.h"
 #include "../CustomDrawObjects.h"
 
 class DynamicVoxel
