@@ -9,6 +9,8 @@
 #include "NurbsDraw.h"
 #include "../CustomDrawObjects.h"
 
+#undef max
+
 static inline std::vector<Vector3> noFrame(){
 	return std::vector<Vector3>();
 }
@@ -21,4 +23,4 @@ static inline Vector3 orthogonalVector(const Vector3& n) {
 	else return Vector3(-n.y(), n.x(), 0.0);
 }
 
-#undef max
+#define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )

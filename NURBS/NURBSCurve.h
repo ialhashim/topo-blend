@@ -40,7 +40,7 @@ public:
 
     // My simple constructors
     NURBSCurve () {}
-    NURBSCurve (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight, int degree, bool loop, bool open);
+    NURBSCurve (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight, int degree = 3, bool loop = false, bool open = true);
 
 	static NURBSCurve createCurve(Vector3 from, Vector3 to);
 
@@ -62,6 +62,8 @@ public:
 
 	std::vector<Vector3> getControlPoints();
 	std::vector<Real> getControlWeights();
+
+	std::vector < std::vector<Vector3> > toSegments( Scalar resolution );
 
     // The knot values can be changed only if the basis function is nonuniform
     // and the input index is valid (0 <= i <= n-d-1).  If these conditions

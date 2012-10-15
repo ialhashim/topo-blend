@@ -3,6 +3,8 @@
 #include "DoubleTupleMap.h"
 #include "DynamicVoxel.h"
 
+#include "weld.h"
+
 #include <Eigen/Sparse>
 #include <Eigen/CholmodSupport>
 using namespace Eigen;
@@ -15,30 +17,6 @@ DynamicVoxel::DynamicVoxel(double voxelSize){
 
     this->maxVoxel = Voxel(-INT_MAX);
     this->minVoxel = Voxel(INT_MAX);
-
-    //this->addSphere(Vector3(0,0,0), 1);
-    //this->addCircle(Vector3(0), 1, Vec3d(1,1,1));
-    Vec3d to(2,2,0);
-    double radius = 0.5;
-    //this->addLine(Vector3(0), to);
-    //this->addCircle(Vector3(0), radius, (to - Vector3(0)).normalized());
-    this->begin();
-
-    //this->addCapsule(Vector3(0), to, radius);
-
-    QVector<Vec3d> points;
-    points.push_back(Vec3d(-1,-1,0));
-    points.push_back(Vec3d(0,-1,0));
-    points.push_back(Vec3d(0,0,0));
-    points.push_back(Vec3d(1,0,0));
-    points.push_back(Vec3d(1,1,0));
-    points.push_back(Vec3d(2,1,0));
-    points.push_back(Vec3d(2,2,0));
-    this->addPolyLine(points, radius);
-
-    //this->addTorus(Vector3(0), 1, radius);
-
-    this->end();
 }
 
 void DynamicVoxel::draw(){
@@ -302,15 +280,34 @@ void DynamicVoxel::addTorus(const Vec3d &center, double pathRadius, double circl
     }
 }
 
+void DynamicVoxel::addBox(const Vec3d & minimum, const Vec3d & maximum)
+{
+	Vec3d diag = maximum - minimum;
+
+	int stepsX = qMax(diag.x()+voxel_size*2, voxel_size) / voxel_size;
+	int stepsY = qMax(diag.y()+voxel_size*2, voxel_size) / voxel_size;
+	int stepsZ = qMax(diag.z()+voxel_size*2, voxel_size) / voxel_size;
+
+	Voxel corner ((minimum - Vector3(voxel_size)) / voxel_size);
+
+	for(int x = 0; x <= stepsX; x++){
+		for(int y = 0; y <= stepsY; y++){
+			for(int z = 0; z <= stepsZ; z++){
+				Voxel v = corner + Voxel(x,y,z);
+				setVoxel( v.x, v.y, v.z );
+			}
+		}
+	}
+}
+
 void DynamicVoxel::begin()
 {
-    toProcess.clear();
     voxels.clear();
 }
 
 void DynamicVoxel::setVoxel(int x, int y, int z){
     Voxel v(x,y,z);
-    toProcess.push_back(v);
+    voxels.push_back(v);
 
     minVoxel.toMin(v);
     maxVoxel.toMax(v);
@@ -318,86 +315,124 @@ void DynamicVoxel::setVoxel(int x, int y, int z){
 
 void DynamicVoxel::end()
 {
-    foreach(Voxel v, toProcess)
-        voxels.insert(v);
+	QElapsedTimer timer; timer.start();
 
-    toProcess.clear();
+	// Weld
+	std::vector<size_t> xrefs;
+	weld(voxels, xrefs, std::hash<Voxel>(), std::equal_to<Voxel>());
+
+	qDebug() << "Weld test " << timer.elapsed() << " ms";
 }
 
-void DynamicVoxel::buildMesh(SurfaceMeshModel * m)
+void DynamicVoxel::buildMesh(SurfaceMeshModel * mesh, QuadMesh & m)
 {
-    std::vector<QuadFace> faces;
+	QElapsedTimer timer;
+	timer.start();
 
-    QElapsedTimer timer;
-    timer.start();
+	qDebug() << "Building mesh..";
 
-    DoubleTupleMap face_map, vert_map;
+	m.clear();
 
-    // Add to map
-    int fidx = 0, vidx = 0;
-    foreach(Voxel v, voxels){
-        for(int i = 0; i < 6; i++){
-            Vec3d p = (v.toVec3d() + faceCenters[i]) * voxel_size;
-            face_map.insert( p.x(), p.y(), p.z(), fidx++ );
+	// Add faces
+	std::vector<Vec3d> voxelCorners;
+	std::vector<Vec3d> allFaceCenters;
+	std::vector<QuadFace> allQuads;
 
-            for(int j = 0; j < 4; j++)
-            {
-                Vector3 corner = (v.toVec3d() + faceCorners[i][j]) * voxel_size;
-                vert_map.insert( corner[0], corner[1], corner[2], vidx++ );
-            }
-        }
-    }
+	foreach(Voxel v, voxels)
+	{
+		for(int i = 0; i < 6; i++)
+		{
+			Vec3d p = (v.toVec3d() + faceCenters[i]) * voxel_size - Vec3d(voxel_size * 0.5);
+			allFaceCenters.push_back( p );
 
-    QMap<int, Vec3d> v_pos;
-    foreach(Voxel v, voxels){
-        for(int i = 0; i < 6; i++){
-            Vec3d p = (v.toVec3d() + faceCenters[i]) * voxel_size;
-            if( face_map.count(p.x(), p.y(), p.z()) > 1 ) continue;
+			// Add redundant quad face
+			QuadFace f;
+			for(int j = 0; j < 4; j++)
+			{
+				f[j] = voxelCorners.size();
+				voxelCorners.push_back( (v.toVec3d() + faceCorners[i][j]) * voxel_size - Vec3d(voxel_size * 0.5) );
+			}
+			allQuads.push_back(f);
+		}
+	}
 
-            QuadFace f;
+	std::vector<size_t> corner_xrefs;
+	weld(voxelCorners, corner_xrefs, std::hash<Vec3d>(), std::equal_to<Vec3d>());
 
-            for(int j = 0; j < 4; j++){
-                Vector3 corner = (v.toVec3d() + faceCorners[i][j]) * voxel_size;
-                int vi = vert_map.firstIndex( corner.x(), corner.y(), corner.z() );
-                f[j] = vi;
-                v_pos[vi] = corner;
-            }
+	std::vector<size_t> face_xrefs;
+	weld(allFaceCenters, face_xrefs, std::hash<Vec3d>(), std::equal_to<Vec3d>());
+	
+	// Count face center occurrences
+	std::vector<int> fcount(allFaceCenters.size(), 0);
+	for (int i = 0; i < (int)face_xrefs.size(); i++)
+	{
+		fcount[face_xrefs[i]]++;
+	}
 
-            faces.push_back(f);
-        }
-    }
+	// Find shell faces
+	QSet<int> vidxs;
+	for(int i = 0; i < (int)face_xrefs.size(); i++)
+	{
+		int fi = face_xrefs[i];
 
+		// Shells only exist once
+		if(fcount[fi] > 1) continue; 
+		
+		// Assign vertex to its unique id + add to a SET
+		for(int j = 0; j < 4; j++) 
+		{
+			allQuads[i][j] = corner_xrefs[allQuads[i][j]];
+			vidxs.insert(allQuads[i][j]);
+		}
 
-    qDebug() << "Find shell faces: " << timer.elapsed();
-    timer.restart();
+ 		m.faces.push_back(allQuads[i]);
+	}
 
-    // Collect set of vertices
-    QSet<int> verts;
-    foreach(QuadFace f, faces)
-        for(int i = 0; i < 4; i++)
-            verts.insert(f[i]);
+	// Map to ordered indices
+	std::map<int,int> vmap;
+	foreach(int vi, vidxs){
+		vmap[vi] = vmap.size();
+		m.points.push_back( voxelCorners[vi] );
+	}
 
-    // Map to ordered indices & add vertices to mesh
-    std::map<int,int> vmap;
-    foreach(int vi, verts){
-        vmap[vi] = vmap.size();
-        m->add_vertex(Vector3( v_pos[vi] ));
-    }
+	// Replace vertex index to ordered index
+	for(int i = 0; i < (int)m.faces.size(); i++)
+	{
+		for(int j = 0; j < 4; j++) 
+			m.faces[i][j] = vmap[m.faces[i][j]];
+	}
 
-    qDebug() << "Mapping: " << timer.elapsed();
-    timer.restart();
+	qDebug() << "Found shell faces: " << timer.elapsed();
+	timer.restart();
 
-    // Add faces
-    foreach(QuadFace f, faces)
-        m->add_quad( Vertex(vmap[f[0]]), Vertex(vmap[f[1]]), Vertex(vmap[f[2]]), Vertex(vmap[f[3]]) );
+	// Create a Surface_mesh
+	if(mesh)
+	{
+		// Add vertices
+		foreach(Vector3 p, m.points)
+		{
+			mesh->add_vertex(p);
+		}
 
-    qDebug() << "Mesh creation: " << timer.elapsed();
-    timer.restart();
+		// Add faces
+		foreach(QuadFace f, m.faces)
+		{
+			std::vector<Vertex> faceVerts;
+			for(int i = 0; i < 4; i++) 
+			{
+				faceVerts.push_back( Vertex( f[i] ) );
+			}
+			mesh->add_face( faceVerts );
+		}
 
+		qDebug() << "Final mesh creation: " << timer.elapsed();
+	}
 }
 
-void DynamicVoxel::MeanCurvatureFlow(SurfaceMeshModel * m)
+void DynamicVoxel::MeanCurvatureFlow(SurfaceMeshModel * m, double dt)
 {
+	QElapsedTimer timer; timer.start();
+
     int N = m->n_vertices();
 
     VectorXd bx(N), by(N), bz(N);
@@ -412,11 +447,10 @@ void DynamicVoxel::MeanCurvatureFlow(SurfaceMeshModel * m)
     ScalarFaceProperty farea = helper.computeFaceAreas();
     std::vector<double> area(N, 0.0);
 
-    // Efficent sparse matrix construction
+    // Efficient sparse matrix construction
     typedef Eigen::Triplet<double> T;
     std::vector< T > L;
 
-    double dt = 0.5;
     double cots, cot_alpha, cot_beta;
 
     // For each point
@@ -479,8 +513,11 @@ void DynamicVoxel::MeanCurvatureFlow(SurfaceMeshModel * m)
     Y = solver.solve(by);
     Z = solver.solve(bz);
 
+	// Set to new positions
     for(int i = 0; i < N; i++)
         points[Surface_mesh::Vertex(i)] = Point(X(i), Y(i), Z(i));
+
+	qDebug() << "MCF smoothing " << timer.elapsed() << " ms";
 }
 
 void DynamicVoxel::LaplacianSmoothing(SurfaceMeshModel * m, bool protectBorders)

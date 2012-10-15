@@ -7,7 +7,7 @@ Sheet::Sheet(NURBSRectangle sheet, QString sheetID, QColor color)
     this->id = sheetID;
 
     this->vis_property["color"] = color;
-    this->vis_property["showControl"] = false;
+    this->vis_property["showControl"] = true;
 }
 
 QString Sheet::type()
@@ -81,12 +81,13 @@ SurfaceMeshTypes::Vector3 Structure::Sheet::approxProjection( const Vector3 & po
 	return Vector3(UV[0], UV[1], 0);
 }
 
+std::vector< std::vector<Vector3> > Structure::Sheet::discretized(Scalar resolution)
+{
+	return surface.generateSurfaceTris( resolution );
+}
+
 void Sheet::draw()
 {
     NURBS::SurfaceDraw::draw( &surface, vis_property["color"].value<QColor>(), vis_property["showControl"].toBool() );
 }
 
-void Sheet::draw2D()
-{
-
-}

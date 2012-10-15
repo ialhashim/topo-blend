@@ -27,21 +27,28 @@ public:
     void addCapsule(const Vec3d & from, const Vec3d & to, double radius);
     void addPolyLine(const QVector<Vec3d> &points, double radius);
     void addTorus(const Vec3d & center, double pathRadius, double circleRadius, const Vec3d &direction=Vec3d(0,0,1));
+	void addBox(const Vec3d & minimum, const Vec3d & maximum);
 
     void begin();
     void setVoxel(int x, int y, int z);
     void end();
 
-    QVector<Voxel> toProcess;
-    QSet<Voxel> voxels;
+    std::vector<Voxel> voxels;
 
+	double voxel_size;
     Voxel minVoxel, maxVoxel;
 
-    double voxel_size;
+	struct QuadMesh{
+		std::vector<Vector3> points;
+		std::vector<QuadFace> faces;
+		void clear() { points.clear(); faces.clear(); }
+	};
 
-    void buildMesh(SurfaceMeshModel *m);
-    void MeanCurvatureFlow( SurfaceMeshModel *m );
-    void LaplacianSmoothing( SurfaceMeshModel *m, bool protectBorders = false );
+	QuadMesh toQuadMesh();
 
+	void buildMesh(SurfaceMeshModel * mesh, QuadMesh & m = QuadMesh());
+
+	// Mesh smoothing
+	static void MeanCurvatureFlow( SurfaceMeshModel * m, double dt = 0.5 );
+	static void LaplacianSmoothing( SurfaceMeshModel *m, bool protectBorders = false );
 };
-
