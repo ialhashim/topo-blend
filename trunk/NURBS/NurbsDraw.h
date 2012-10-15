@@ -129,20 +129,35 @@ public:
         glColor4d(sheet_color.redF(),sheet_color.greenF(),sheet_color.blueF(),sheet_color.alphaF());
 
 		glBegin(GL_QUADS);
-		foreach(SurfaceQuad quad, nc->quads)
-		{
-			for(int i = 0; i < 4; i++)
-			{
+		foreach(SurfaceQuad quad, nc->quads){
+			for(int i = 0; i < 4; i++){
 				glNormal3(quad.n[i]);	
 				glVector3(quad.p[i]);
 			}
 		}
 		glEnd();
 
+		glDisable(GL_LIGHTING);
+
+
+		// Wireframe
+		glColor3d(0,0,0);
+		glLineWidth(1.0);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glBegin(GL_QUADS);
+		foreach(SurfaceQuad quad, nc->quads){
+			for(int i = 0; i < 4; i++){
+				glNormal3(quad.n[i]);	
+				glVector3(quad.p[i]);
+			}
+		}
+		glEnd();
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+
 		// Draw UV indicator
 		SurfaceQuad quad = nc->quads.front();
 
-		glDisable(GL_LIGHTING);
 		glLineWidth(8);
 
 		glColor3d(1,0,0);

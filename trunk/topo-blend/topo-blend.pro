@@ -7,13 +7,18 @@ STARLAB_EXTERNAL += nanoflann eigen cholmod
 LIBS += -L$$PWD/../NURBS/lib -lNURBS
 INCLUDEPATH += ../NURBS
 
+# NURBS library
+LIBS += -L$$PWD/../DynamicVoxel/lib -lDynamicVoxel
+INCLUDEPATH += ../DynamicVoxel
+
 HEADERS += topo-blend.h \ 
     topo_blend_widget.h \
     topo/StructureNode.h \
     topo/StructureGraph.h \
     topo/StructureCurve.h \
     topo/StructureSheet.h \
-    topo/StructureLink.h
+    topo/StructureLink.h \
+    topo/GraphEmbed.h
 SOURCES += topo-blend.cpp \ 
     topo_blend_widget.cpp \
     topo/StructureGraph.cpp \

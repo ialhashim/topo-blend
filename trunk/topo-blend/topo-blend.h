@@ -22,6 +22,8 @@ public:
 
     void decorate();
 
+	bool keyPressEvent( QKeyEvent* event );
+
 private:
     topo_blend_widget * widget;
 

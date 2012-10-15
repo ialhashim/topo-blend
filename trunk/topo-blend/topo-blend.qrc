@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>images/topo-blend-icon.png</file>
+		<file>images/font.png</file>
     </qresource>
 </RCC>

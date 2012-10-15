@@ -62,12 +62,13 @@ SurfaceMeshTypes::Vector3 Structure::Curve::approxProjection( const Vector3 & po
 	return Vector3( t, 0, 0 );
 }
 
+std::vector< std::vector<Vector3> > Structure::Curve::discretized(Scalar resolution)
+{
+	return curve.toSegments( resolution );
+}
+
 void Curve::draw()
 {
     NURBS::CurveDraw::draw( &curve, vis_property["color"].value<QColor>(), vis_property["showControl"].toBool() );
 }
 
-void Curve::draw2D()
-{
-
-}

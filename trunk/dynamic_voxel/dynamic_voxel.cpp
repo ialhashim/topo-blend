@@ -9,16 +9,8 @@ void dynamic_voxel::decorate()
 
 void dynamic_voxel::create(){
 
-    showMesh = true;
+    showMesh = false;
     showVoxels = false;
-
-    if(showMesh)
-    {
-        SurfaceMeshModel * m = new SurfaceMeshModel("voxel_example.obj", "voxel");
-        vox.buildMesh( m );
-        vox.MeanCurvatureFlow( m );
-        document()->addModel(m);
-    }
 
     drawArea()->updateGL();
 }
@@ -29,11 +21,35 @@ bool dynamic_voxel::keyPressEvent( QKeyEvent* event )
 
     if(event->key() == Qt::Key_V) {
         showVoxels = !showVoxels;
+
+		Vec3d to(2,2,0);
+		double radius = 0.5;
+
+		vox.begin();
+
+		QVector<Vec3d> points;
+		points.push_back(Vec3d(-1,-1,0));
+		points.push_back(Vec3d(0,-1,0));
+		points.push_back(Vec3d(0,0,0));
+		points.push_back(Vec3d(1,0,0));
+		points.push_back(Vec3d(1,1,0));
+		points.push_back(Vec3d(2,1,0));
+		points.push_back(Vec3d(2,2,0));
+		vox.addPolyLine(points, radius);
+
+		vox.end();
+
         used = true;
     }
 
     if(event->key() == Qt::Key_M) {
         showMesh = !showMesh;
+
+		SurfaceMeshModel * m = new SurfaceMeshModel("voxel_example.obj", "voxel");
+		vox.buildMesh( m );
+		vox.MeanCurvatureFlow( m );
+		document()->addModel(m);
+
         used = true;
     }
 

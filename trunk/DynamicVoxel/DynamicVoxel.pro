@@ -1,6 +1,7 @@
 QT += opengl
 CONFIG += starlab
 
+STARLAB_DEPENDS *= common
 STARLAB_DEPENDS *= ../../starlab/plugins-surfacemesh/surfacemesh
 STARLAB_EXTERNAL += nanoflann eigen cholmod
 

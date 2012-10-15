@@ -12,7 +12,7 @@ public:
 
     NURBSRectangle(){}
 
-    // ruction and destruction.   The caller is responsible for deleting
+    // construction and destruction.   The caller is responsible for deleting
     // the input arrays if they were dynamically allocated.  Internal copies
     // of the arrays are made, so to dynamically change control points,
     // control weights, or knots, you must use the 'SetControlPoint',
@@ -30,9 +30,8 @@ public:
     //   open nonuniform (ON)
     // For tensor product surfaces, you have to choose a type for each of two
     // dimensions, leading to nine possible spline types for surfaces.  The
-    // ructors below represent these choices.
+    // constructors below represent these choices.
 
-    // (ON) (ON)
     NURBSRectangle(Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight,
                    int uDegree, int vDegree, bool uLoop, bool vLoop, bool uOpen, bool vOpen);
 
@@ -52,6 +51,9 @@ public:
     Vector3 GetControlPoint (int uIndex, int vIndex) ;
     void SetControlWeight (int uIndex, int vIndex, Real weight);
     Real GetControlWeight (int uIndex, int vIndex) ;
+
+	std::vector<Vector3> GetControlPointsU (int vIndex = 0);
+	std::vector<Vector3> GetControlPointsV (int uIndex = 0);
 
     // The knot values can be changed only if the surface is nonuniform in the
     // selected dimension and only if the input index is valid.  If these
@@ -76,12 +78,25 @@ public:
     void Get (Real u, Real v, Vector3& pos = Vector3(0), Vector3& derU= Vector3(0),
         Vector3& derV= Vector3(0), Vector3& derUU= Vector3(0), Vector3& derUV= Vector3(0), Vector3& derVV= Vector3(0));
 
+	// General properties
+	Real aspectU();
+	Real aspectV();
+
+	Real avgCtrlEdgeLength();
+
 	// Cached visualization
 	std::vector<SurfaceQuad> quads;
     void generateSurfaceQuads( int resolution );
-	void generateSurfacePoints( double stepSize, std::vector< std::vector<Vector3> > & points );
 
+	// Discretization
+	void uniformCoordinates(std::vector<Real> & valU, std::vector<Real> & valV, int resolution = 10, int u = 0, int v = 0);
+	std::vector< std::vector<Vector3> > generateSurfaceTris( Real resolution );
+	void generateSurfacePoints( Scalar stepSize, std::vector< std::vector<Vector3> > & points, 
+		std::vector<Real> & valU = std::vector<Real>(), std::vector<Real> & valV = std::vector<Real>());
+
+	// Projection
 	Vec2d timeAt(const Vector3 & pos);
+	Vec2d timeAt( const Vector3 & pos, Vec2d & rangeU, Vec2d & rangeV, Real currentDist, Real threshold = 1e-6 );
 
 protected:
     // Replicate the necessary number of control points when the Create
@@ -96,5 +111,8 @@ public:
     bool mLoop[2];
     BSplineBasis mBasis[2];
     int mUReplicate, mVReplicate;
+
+	// DEBUG:
+	std::vector<Vector3> debugPoints;
 };
 

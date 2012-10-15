@@ -154,6 +154,30 @@ Real NURBSCurve::GetKnot (int i)
 }
 //----------------------------------------------------------------------------
 
+std::vector < std::vector<Vector3> > NURBSCurve::toSegments( Scalar resolution )
+{
+	std::vector< std::vector<Vector3> > segments;
+
+	// Get a curve polyline for given resolution
+	int np = 1 + (this->GetLength(0,1) / resolution);
+
+	std::vector<Vector3> pts;
+	this->SubdivideByLength(np, pts);
+
+	for(int i = 0; i < np - 1; i++)
+	{
+		std::vector<Vector3> segment;
+
+		segment.push_back(pts[i]);
+		segment.push_back(pts[i+1]);
+
+		segments.push_back(segment);
+	}
+
+	return segments;
+}
+//----------------------------------------------------------------------------
+
 void NURBSCurve::Get (Real t, Vector3* pos,
     Vector3* der1, Vector3* der2, Vector3* der3)
 {

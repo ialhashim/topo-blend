@@ -1,51 +1,56 @@
 #include "NURBSRectangle.h"
+#include "NURBSCurve.h"
 
 //----------------------------------------------------------------------------
 NURBSRectangle::NURBSRectangle (Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight,
     int uDegree, int vDegree, bool uLoop, bool vLoop, bool uOpen, bool vOpen) : ParametricSurface(0, 1, 0, 1, true)
 {
-    int numUCtrlPoints = ctrlPoint.size();
-    int numVCtrlPoints = ctrlPoint[0].size();
+	int numUCtrlPoints = ctrlPoint.size();
+	int numVCtrlPoints = ctrlPoint[0].size();
 
-    assert(numUCtrlPoints >= 2);
-    assert(1 <= uDegree && uDegree <= numUCtrlPoints - 1);
-    assert(numVCtrlPoints >= 2);
-    assert(1 <= vDegree && vDegree <= numVCtrlPoints - 1);
+	assert(numUCtrlPoints >= 2);
+	assert(1 <= uDegree && uDegree <= numUCtrlPoints - 1);
+	assert(numVCtrlPoints >= 2);
+	assert(1 <= vDegree && vDegree <= numVCtrlPoints - 1);
 
-    mLoop[0] = uLoop;
-    mLoop[1] = vLoop;
+	mLoop[0] = uLoop;
+	mLoop[1] = vLoop;
 
-    mNumUCtrlPoints = numUCtrlPoints;
-    mNumVCtrlPoints = numVCtrlPoints;
-    mUReplicate = (uLoop ? (uOpen ? 1 : uDegree) : 0);
-    mVReplicate = (vLoop ? (vOpen ? 1 : vDegree) : 0);
-    CreateControl(ctrlPoint, ctrlWeight);
+	mNumUCtrlPoints = numUCtrlPoints;
+	mNumVCtrlPoints = numVCtrlPoints;
+	mUReplicate = (uLoop ? (uOpen ? 1 : uDegree) : 0);
+	mVReplicate = (vLoop ? (vOpen ? 1 : vDegree) : 0);
+	CreateControl(ctrlPoint, ctrlWeight);
 
-    mBasis[0].Create(mNumUCtrlPoints + mUReplicate, uDegree, uOpen);
-    mBasis[1].Create(mNumVCtrlPoints + mVReplicate, vDegree, vOpen);
+	mBasis[0].Create(mNumUCtrlPoints + mUReplicate, uDegree, uOpen);
+	mBasis[1].Create(mNumVCtrlPoints + mVReplicate, vDegree, vOpen);
 }
+
 //----------------------------------------------------------------------------
 NURBSRectangle NURBSRectangle::createSheet(Scalar width, Scalar length, Vector3 center, Vector3 dU, Vector3 dV)
 {
     int nU = 4, nV = 4;
     int degree = 3;
 
+	Vector3 corner = center - (dU * width * 0.5) - (dV * length * 0.5);
+
+	Scalar aspect_U = 1.0, aspect_V = 1.0;
+	if(width > length) aspect_U = length / width;
+	if(length > width) aspect_V = width / length;
+
+	nU *= 1.0 / aspect_U;
+	nV *= 1.0 / aspect_V;
+
     // Rectangular surface
-    std::vector< std::vector<Vec3d> > pts( nV, std::vector<Vec3d>( nU ) );
+    std::vector< std::vector<Vec3d> > pts( nV, std::vector<Vec3d>( nU, Vector3(0) ) );
     std::vector< std::vector<Scalar> > weights( nV, std::vector<Scalar>( nU, 1.0 ) );
 
     Vector3 deltaU = (width  / (nU-1)) * dU;
     Vector3 deltaV = (length / (nV-1)) * dV;
 
-    Vector3 corner = center - (dU * width * 0.5) - (dV * length * 0.5);
-
-	Vector3 n = cross(dU,dV);
-
-	Vector3 cU = (dU * width * 0.5);
-	Vector3 cV = (dV * length * 0.5);
-
     for(int y = 0; y < nV; y++){
-        for(int x = 0; x < nU; x++){
+        for(int x = 0; x < nU; x++)
+		{
             pts[y][x] = corner + (deltaU * x) + (deltaV * y);
         }
     }
@@ -140,6 +145,24 @@ Vector3 NURBSRectangle::GetControlPoint (int uIndex,
 
     return Vector3(MAX_REAL, MAX_REAL, MAX_REAL);
 }
+
+//----------------------------------------------------------------------------
+
+std::vector<Vector3> NURBSRectangle::GetControlPointsU( int vIndex )
+{
+	return mCtrlPoint[vIndex];
+}
+
+std::vector<Vector3> NURBSRectangle::GetControlPointsV( int uIndex )
+{
+	std::vector<Vector3> pts;
+
+	for(int i = 0; i < (int)mCtrlPoint.size(); i++)
+		pts.push_back(mCtrlPoint[i][uIndex]);
+
+	return pts;
+}
+
 //----------------------------------------------------------------------------
 
 void NURBSRectangle::SetControlWeight (int uIndex, int vIndex,
@@ -416,23 +439,20 @@ Vector3 NURBSRectangle::PVV (Real u, Real v)
 
 void NURBSRectangle::generateSurfaceQuads( int resolution )
 {
-	double res = resolution;
-	double du = 1.0 / res;
-	double dv = 1.0 / res;
+	std::vector<Real> valU,valV;
+	uniformCoordinates(valU, valV, resolution);
 
-	for(int y = 0; y < res; y++){
-		double v = double(y) / res;
+	for(int y = 0; y < (int)valV.size() - 1; y++)
+	{
+		for(int x = 0; x < (int)valU.size() - 1; x++)
+		{
+			std::vector<Vector3> pos = std::vector<Vec3d>(4, Vector3(0));
+			std::vector<Vector3> dU = pos, dV = pos, normal = pos;
 
-		for(int x = 0; x < res; x++){
-			double u = double(x) / res;
-
-			std::vector<Vec3d> pos = std::vector<Vec3d>(4, Vec3d(0));
-			std::vector<Vec3d> dU = pos, dV = pos, normal = pos;
-
-			GetFrame(u		,v		,	pos[0], dU[0], dV[0], normal[0]);
-			GetFrame(u+du	,v		,	pos[1], dU[1], dV[1], normal[1]);
-			GetFrame(u+du	,v+dv	,	pos[2], dU[2], dV[2], normal[2]);
-			GetFrame(u		,v+dv	,	pos[3], dU[3], dV[3], normal[3]);
+			GetFrame(valU[x]	, valV[y]	,	pos[0], dU[0], dV[0], normal[0]);
+			GetFrame(valU[x+1]	, valV[y]	,	pos[1], dU[1], dV[1], normal[1]);
+			GetFrame(valU[x+1]	, valV[y+1]	,	pos[2], dU[2], dV[2], normal[2]);
+			GetFrame(valU[x]	, valV[y+1]	,	pos[3], dU[3], dV[3], normal[3]);
 
 			SurfaceQuad quad;
 
@@ -444,55 +464,195 @@ void NURBSRectangle::generateSurfaceQuads( int resolution )
 			quads.push_back(quad);
 		}
     }
+
 }
 
-void NURBSRectangle::generateSurfacePoints( double stepSize, std::vector< std::vector<Vector3> > & points )
+std::vector< std::vector<Vector3> > NURBSRectangle::generateSurfaceTris( Scalar resolution )
 {
-	int cU = 1 + (1.0 / stepSize);
-	int cV = 1 + (1.0 / stepSize);
+	std::vector< std::vector<Vector3> > tris;
 
-	points.resize( cU, std::vector<Vector3>( cV, Vector3(0)) );
+	std::vector< std::vector<Vector3> > curveU = NURBSCurve(GetControlPointsU(0), std::vector<Scalar>(mCtrlPoint[0].size(),1.0)).toSegments(resolution);
+	std::vector< std::vector<Vector3> > curveV = NURBSCurve(GetControlPointsV(0), std::vector<Scalar>(mCtrlPoint.size(),1.0)).toSegments(resolution);
 
-	int i = 0, j = 0;
-	for(double v = 0; v <= 1; v += stepSize)
+	std::vector<Real> valU,valV;
+	uniformCoordinates(valU, valV, qMin(curveU.size(), curveV.size()));
+
+	for(int y = 0; y < (int)valV.size() - 1; y++)
 	{
-		for(double u = 0; u <= 1; u += stepSize)
-			points[j][i++] = P(u,v);
+		for(int x = 0; x < (int)valU.size() - 1; x++)
+		{
+			std::vector<Vector3> pos(4);
 
-		// Indexing
-		j++; i = 0;
+			pos[0] = P(valU[x]	, valV[y]	);
+			pos[1] = P(valU[x+1], valV[y]	);
+			pos[2] = P(valU[x+1], valV[y+1]	);
+			pos[3] = P(valU[x]	, valV[y+1]	);
+
+			std::vector<Vector3> f1,f2;
+
+			f1.push_back(pos[0]); f1.push_back(pos[2]); f1.push_back(pos[1]);
+			f2.push_back(pos[0]); f2.push_back(pos[3]); f2.push_back(pos[2]);
+
+			tris.push_back(f1);
+			tris.push_back(f2);
+		}
+	}
+
+	return tris;
+}
+
+void NURBSRectangle::generateSurfacePoints( Scalar stepSize, std::vector< std::vector<Vector3> > & points, std::vector<Real> & valU, std::vector<Real> & valV )
+{
+	std::vector< std::vector<Vector3> > curveU = NURBSCurve(GetControlPointsU(0), std::vector<Scalar>(mCtrlPoint[0].size(),1.0)).toSegments(stepSize);
+	std::vector< std::vector<Vector3> > curveV = NURBSCurve(GetControlPointsV(0), std::vector<Scalar>(mCtrlPoint.size(),1.0)).toSegments(stepSize);
+
+	uniformCoordinates(valU, valV, qMin(curveU.size(), curveV.size()));
+
+	points.resize(valV.size(), std::vector<Vector3>(valU.size()));
+
+	for(int y = 0; y < (int)valV.size(); y++)
+	{
+		for(int x = 0; x < (int)valU.size(); x++)
+		{
+			points[y][x] = P(valU[x], valV[y]);
+		}
 	}
 }
 //----------------------------------------------------------------------------
 
 Vec2d NURBSRectangle::timeAt( const Vector3 & pos )
 {
-	double stepSize = 0.1;
+	Scalar stepSize = 0.1;
 
 	std::vector< std::vector<Vector3> > pts;
 
-	generateSurfacePoints(stepSize, pts);
-
-	int cU = 1 + (1.0 / stepSize);
-	int cV = 1 + (1.0 / stepSize);
+	std::vector<Real> valU, valV;
+	generateSurfacePoints(stepSize, pts, valU, valV);
 
 	int minIdxU = 0, minIdxV = 0;
 	Scalar minDist = std::numeric_limits<Scalar>::max();
 
-	for(int v = 0; v < cV; v++){
-		for(int u = 0; u < cU; u++){
-			Scalar dist = (pts[v][u] - pos).norm();
-
+	// Approximate area search
+	for(int y = 0; y < (int)valV.size(); y++){
+		for(int x = 0; x < (int)valU.size(); x++){
+			Scalar dist = (pts[y][x] - pos).norm();
+			
 			if(dist < minDist){
 				minDist = dist;
-				minIdxU = u;
-				minIdxV = v;
+				minIdxU = x;
+				minIdxV = y;
 			}
 		}
 	}
 
-	// More accurate search
-	double minU = minIdxU * stepSize, minV = minIdxV * stepSize;
+	// More precise search
+	Vec2d rangeU( valU[qMax(0, minIdxU - 1)], valU[qMin(((int)valU.size()) - 1, minIdxU + 1)] );
+	Vec2d rangeV( valV[qMax(0, minIdxV - 1)], valV[qMin(((int)valV.size()) - 1, minIdxV + 1)] );
 
-	return Vec2d(minU, minV);
+	return timeAt(pos, rangeU, rangeV, minDist);
+}
+
+Vec2d NURBSRectangle::timeAt( const Vector3 & pos, Vec2d & rangeU, Vec2d & rangeV, Real currentDist, Real threshold )
+{
+	// 1) Subdivide
+	int searchSteps = 10;
+	Scalar du = (rangeU[1] - rangeU[0]) / searchSteps;
+	Scalar dv = (rangeV[1] - rangeV[0]) / searchSteps;
+
+	//qDebug() << "Range Umin " << rangeU[0] << " | Umax" << rangeU[1] << 
+	//	" | Vmin" << rangeV[0] << " | Vmax " << rangeV[1] << "| u = " << du << ", v =" << dv;
+
+	// 2) Compare all distances
+	int minIdxU = 0, minIdxV = 0;
+	Scalar minDist = std::numeric_limits<Scalar>::max();
+
+	for(int y = 0; y < searchSteps; y++)
+	{
+		for(int x = 0; x < searchSteps; x++)
+		{
+			Scalar u = rangeU[0] + (x * du);
+			Scalar v = rangeV[0] + (y * dv);
+
+			Scalar dist = (P(u,v) - pos).sqrnorm();
+
+			debugPoints.push_back(P(u,v));
+
+			if(dist < minDist){
+				minDist = dist;
+				minIdxU = x;
+				minIdxV = y;
+			}
+		}
+	}
+
+	// 3) If minimum distance == current or less than threshold return it
+	return Vec2d( rangeU[0] + (minIdxU * du), rangeV[0] + (minIdxV * dv) );
+
+	// BROKEN!
+	/*if(minDist <= currentDist || minDist < threshold )
+	{
+		return Vec2d( rangeU[0] + (minIdxU * du), rangeV[0] + (minIdxV * dv) );
+	}
+	else
+	{
+		// 4) Otherwise recursive search in smaller range
+		Scalar midU = minIdxU * du;
+		Scalar midV = minIdxV * dv;
+
+		Vec2d newRangeU( qMax(0.0, midU - du), qMin(1.0, midU + du) );
+		Vec2d newRangeV( qMax(0.0, midV - dv), qMin(1.0, midV + dv) );
+
+		return timeAt(pos, newRangeU, newRangeV, minDist, threshold);
+	}*/
+}
+
+Real NURBSRectangle::aspectU()
+{
+	Real width = this->GetNumCtrlPoints(0);
+	Real length = this->GetNumCtrlPoints(1);
+
+	Scalar aspect = 1.0;
+	if(length > width) aspect = width / length;
+	return 1.0 / aspect;
+}
+
+Real NURBSRectangle::aspectV()
+{
+	Real width = this->GetNumCtrlPoints(0);
+	Real length = this->GetNumCtrlPoints(1);
+
+	Scalar aspect = 1.0;
+	if(width > length) aspect = length / width;
+	return 1.0 / aspect;
+}
+
+void NURBSRectangle::uniformCoordinates( std::vector<Real> & valU, std::vector<Real> & valV, int resolution, int u, int v )
+{
+	Scalar resU = resolution * aspectV();
+	Scalar resV = resolution * aspectU();
+
+	// Uniform across given U, V
+	std::vector<Vector3> cptsU = GetControlPointsV(v);
+	std::vector<Vector3> cptsV = GetControlPointsU(u);
+	NURBSCurve curveU( cptsU, std::vector<Scalar>(cptsU.size(),1) );
+	NURBSCurve curveV( cptsV, std::vector<Scalar>(cptsV.size(),1) );
+	Scalar deltaU = curveU.GetLength(0,1) / resU;
+	Scalar deltaV = curveV.GetLength(0,1) / resV;
+	for(int i = 0; i <= resU; i++)	valU.push_back(curveU.GetTime(i * deltaU));
+	for(int i = 0; i <= resV; i++)	valV.push_back(curveV.GetTime(i * deltaV));
+}
+
+Real NURBSRectangle::avgCtrlEdgeLength()
+{
+	Real sum = 0;
+	int c = 0;
+
+	for(int y = 0; y < (int)mCtrlPoint.size() - 1; y++){
+		for(int x = 0; x < (int)mCtrlPoint[0].size() - 1; x++){
+			sum += (mCtrlPoint[y][x] - mCtrlPoint[y+1][x+1] ).norm();
+			c++;
+		}
+	}
+
+	return sum / c;
 }
