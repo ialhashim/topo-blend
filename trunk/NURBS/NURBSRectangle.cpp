@@ -42,8 +42,8 @@ NURBSRectangle NURBSRectangle::createSheet(Scalar width, Scalar length, Vector3 
 	nV *= 1.0 / aspect_V;
 
     // Rectangular surface
-    std::vector< std::vector<Vec3d> > pts( nV, std::vector<Vec3d>( nU, Vector3(0) ) );
-    std::vector< std::vector<Scalar> > weights( nV, std::vector<Scalar>( nU, 1.0 ) );
+    std::vector< std::vector<Vec3d> > pts( nU, std::vector<Vec3d>( nV, Vector3(0) ) );
+    std::vector< std::vector<Scalar> > weights( nU, std::vector<Scalar>( nV, 1.0 ) );
 
     Vector3 deltaU = (width  / (nU-1)) * dU;
     Vector3 deltaV = (length / (nV-1)) * dV;
@@ -51,7 +51,7 @@ NURBSRectangle NURBSRectangle::createSheet(Scalar width, Scalar length, Vector3 
     for(int y = 0; y < nV; y++){
         for(int x = 0; x < nU; x++)
 		{
-            pts[y][x] = corner + (deltaU * x) + (deltaV * y);
+            pts[x][y] = corner + (deltaU * x) + (deltaV * y);
         }
     }
 
@@ -102,8 +102,7 @@ bool NURBSRectangle::IsLoop (int dim)
 }
 //----------------------------------------------------------------------------
 
-void NURBSRectangle::SetControlPoint (int uIndex, int vIndex,
-     Vector3& ctrl)
+void NURBSRectangle::SetControlPoint (int uIndex, int vIndex, Vector3& ctrl)
 {
     if (0 <= uIndex && uIndex < mNumUCtrlPoints
     &&  0 <= vIndex && vIndex < mNumVCtrlPoints)
@@ -134,8 +133,7 @@ void NURBSRectangle::SetControlPoint (int uIndex, int vIndex,
 }
 //----------------------------------------------------------------------------
 
-Vector3 NURBSRectangle::GetControlPoint (int uIndex,
-    int vIndex)
+Vector3 NURBSRectangle::GetControlPoint (int uIndex, int vIndex)
 {
     if (0 <= uIndex && uIndex < mNumUCtrlPoints
     &&  0 <= vIndex && vIndex < mNumVCtrlPoints)
@@ -148,12 +146,12 @@ Vector3 NURBSRectangle::GetControlPoint (int uIndex,
 
 //----------------------------------------------------------------------------
 
-std::vector<Vector3> NURBSRectangle::GetControlPointsU( int vIndex )
+std::vector<Vector3> NURBSRectangle::GetControlPointsV( int vIndex )
 {
 	return mCtrlPoint[vIndex];
 }
 
-std::vector<Vector3> NURBSRectangle::GetControlPointsV( int uIndex )
+std::vector<Vector3> NURBSRectangle::GetControlPointsU( int uIndex )
 {
 	std::vector<Vector3> pts;
 
@@ -471,8 +469,11 @@ std::vector< std::vector<Vector3> > NURBSRectangle::generateSurfaceTris( Scalar 
 {
 	std::vector< std::vector<Vector3> > tris;
 
-	std::vector< std::vector<Vector3> > curveU = NURBSCurve(GetControlPointsU(0), std::vector<Scalar>(mCtrlPoint[0].size(),1.0)).toSegments(resolution);
-	std::vector< std::vector<Vector3> > curveV = NURBSCurve(GetControlPointsV(0), std::vector<Scalar>(mCtrlPoint.size(),1.0)).toSegments(resolution);
+	std::vector<Vector3> ctrlU = GetControlPointsU(0);
+	std::vector<Vector3> ctrlV = GetControlPointsV(0);
+
+	std::vector< std::vector<Vector3> > curveU = NURBSCurve(ctrlU, std::vector<Scalar>(ctrlU.size(), 1.0)).toSegments(resolution);
+	std::vector< std::vector<Vector3> > curveV = NURBSCurve(ctrlV, std::vector<Scalar>(ctrlV.size(), 1.0)).toSegments(resolution);
 
 	std::vector<Real> valU,valV;
 	uniformCoordinates(valU, valV, qMin(curveU.size(), curveV.size()));
@@ -503,18 +504,21 @@ std::vector< std::vector<Vector3> > NURBSRectangle::generateSurfaceTris( Scalar 
 
 void NURBSRectangle::generateSurfacePoints( Scalar stepSize, std::vector< std::vector<Vector3> > & points, std::vector<Real> & valU, std::vector<Real> & valV )
 {
-	std::vector< std::vector<Vector3> > curveU = NURBSCurve(GetControlPointsU(0), std::vector<Scalar>(mCtrlPoint[0].size(),1.0)).toSegments(stepSize);
-	std::vector< std::vector<Vector3> > curveV = NURBSCurve(GetControlPointsV(0), std::vector<Scalar>(mCtrlPoint.size(),1.0)).toSegments(stepSize);
+	std::vector<Vector3> ctrlU = GetControlPointsU(0);
+	std::vector<Vector3> ctrlV = GetControlPointsV(0);
+
+	std::vector< std::vector<Vector3> > curveU = NURBSCurve(ctrlU, std::vector<Scalar>(ctrlU.size(), 1.0)).toSegments(stepSize);
+	std::vector< std::vector<Vector3> > curveV = NURBSCurve(ctrlV, std::vector<Scalar>(ctrlV.size(), 1.0)).toSegments(stepSize);
 
 	uniformCoordinates(valU, valV, qMin(curveU.size(), curveV.size()));
 
-	points.resize(valV.size(), std::vector<Vector3>(valU.size()));
+	points.resize(valU.size(), std::vector<Vector3>(valV.size()));
 
 	for(int y = 0; y < (int)valV.size(); y++)
 	{
 		for(int x = 0; x < (int)valU.size(); x++)
 		{
-			points[y][x] = P(valU[x], valV[y]);
+			points[x][y] = P(valU[x], valV[y]);
 		}
 	}
 }
@@ -522,20 +526,21 @@ void NURBSRectangle::generateSurfacePoints( Scalar stepSize, std::vector< std::v
 
 Vec2d NURBSRectangle::timeAt( const Vector3 & pos )
 {
-	Scalar stepSize = 0.1;
-
 	std::vector< std::vector<Vector3> > pts;
 
 	std::vector<Real> valU, valV;
+
+	Scalar stepSize = 0.1;
+
 	generateSurfacePoints(stepSize, pts, valU, valV);
 
 	int minIdxU = 0, minIdxV = 0;
 	Scalar minDist = std::numeric_limits<Scalar>::max();
 
 	// Approximate area search
-	for(int y = 0; y < (int)valV.size(); y++){
-		for(int x = 0; x < (int)valU.size(); x++){
-			Scalar dist = (pts[y][x] - pos).norm();
+	for(int x = 0; x < (int)valU.size(); x++){
+		for(int y = 0; y < (int)valV.size(); y++){
+			Scalar dist = (pts[x][y] - pos).norm();
 			
 			if(dist < minDist){
 				minDist = dist;
@@ -546,64 +551,57 @@ Vec2d NURBSRectangle::timeAt( const Vector3 & pos )
 	}
 
 	// More precise search
-	Vec2d rangeU( valU[qMax(0, minIdxU - 1)], valU[qMin(((int)valU.size()) - 1, minIdxU + 1)] );
-	Vec2d rangeV( valV[qMax(0, minIdxV - 1)], valV[qMin(((int)valV.size()) - 1, minIdxV + 1)] );
+	Vec2d minRange( valU[qMax(0, minIdxU - 1)], valV[qMax(0, minIdxV - 1)]);
+	Vec2d maxRange( valU[qMin((int)valU.size() - 1, minIdxU + 1)], valV[qMin((int)valV.size() - 1, minIdxV + 1)] );
 
-	return timeAt(pos, rangeU, rangeV, minDist);
+	Vec2d bestUV( valU[minIdxU], valV[minIdxV] );
+
+	return timeAt(pos, bestUV, minRange, maxRange, minDist);
 }
 
-Vec2d NURBSRectangle::timeAt( const Vector3 & pos, Vec2d & rangeU, Vec2d & rangeV, Real currentDist, Real threshold )
+Vec2d NURBSRectangle::timeAt( const Vector3 & pos, Vec2d & bestUV, Vec2d & minRange, Vec2d & maxRange, Real currentDist, Real threshold )
 {
 	// 1) Subdivide
 	int searchSteps = 10;
-	Scalar du = (rangeU[1] - rangeU[0]) / searchSteps;
-	Scalar dv = (rangeV[1] - rangeV[0]) / searchSteps;
-
-	//qDebug() << "Range Umin " << rangeU[0] << " | Umax" << rangeU[1] << 
-	//	" | Vmin" << rangeV[0] << " | Vmax " << rangeV[1] << "| u = " << du << ", v =" << dv;
+	Scalar du = (maxRange[0] - minRange[0]) / searchSteps;
+	Scalar dv = (maxRange[1] - minRange[1]) / searchSteps;
 
 	// 2) Compare all distances
-	int minIdxU = 0, minIdxV = 0;
-	Scalar minDist = std::numeric_limits<Scalar>::max();
+	Scalar curU = bestUV[0], curV = bestUV[1];
+	Scalar minDist = currentDist;
 
-	for(int y = 0; y < searchSteps; y++)
+	for(int y = 0; y <= searchSteps; y++)
 	{
-		for(int x = 0; x < searchSteps; x++)
+		for(int x = 0; x <= searchSteps; x++)
 		{
-			Scalar u = rangeU[0] + (x * du);
-			Scalar v = rangeV[0] + (y * dv);
+			Scalar u = minRange[0] + (x * du);
+			Scalar v = minRange[1] + (y * dv);
 
-			Scalar dist = (P(u,v) - pos).sqrnorm();
+			Vector3 curPos = P(u,v);
 
-			debugPoints.push_back(P(u,v));
+			Scalar dist = (curPos - pos).norm();
 
 			if(dist < minDist){
 				minDist = dist;
-				minIdxU = x;
-				minIdxV = y;
+				curU = u;
+				curV = v;
 			}
 		}
 	}
 
-	// 3) If minimum distance == current or less than threshold return it
-	return Vec2d( rangeU[0] + (minIdxU * du), rangeV[0] + (minIdxV * dv) );
-
-	// BROKEN!
-	/*if(minDist <= currentDist || minDist < threshold )
-	{
-		return Vec2d( rangeU[0] + (minIdxU * du), rangeV[0] + (minIdxV * dv) );
-	}
+	// 3) If minimum distance == current or less than threshold return best match
+	if(minDist >= currentDist)
+		return bestUV;
+	else if(minDist < threshold)
+		return Vec2d(curU, curV);
 	else
 	{
 		// 4) Otherwise recursive search in smaller range
-		Scalar midU = minIdxU * du;
-		Scalar midV = minIdxV * dv;
+		Vec2d minRange( qMax(0.0, curU - du), qMax(0.0, curV - dv));
+		Vec2d maxRange( qMin(1.0, curU + du), qMin(1.0, curV + dv) );
 
-		Vec2d newRangeU( qMax(0.0, midU - du), qMin(1.0, midU + du) );
-		Vec2d newRangeV( qMax(0.0, midV - dv), qMin(1.0, midV + dv) );
-
-		return timeAt(pos, newRangeU, newRangeV, minDist, threshold);
-	}*/
+		return timeAt(pos, Vec2d(curU, curV), minRange, maxRange, minDist, threshold);
+	}
 }
 
 Real NURBSRectangle::aspectU()
@@ -612,8 +610,8 @@ Real NURBSRectangle::aspectU()
 	Real length = this->GetNumCtrlPoints(1);
 
 	Scalar aspect = 1.0;
-	if(length > width) aspect = width / length;
-	return 1.0 / aspect;
+	if(length > width) aspect = length / width;
+	return aspect;
 }
 
 Real NURBSRectangle::aspectV()
@@ -622,8 +620,8 @@ Real NURBSRectangle::aspectV()
 	Real length = this->GetNumCtrlPoints(1);
 
 	Scalar aspect = 1.0;
-	if(width > length) aspect = length / width;
-	return 1.0 / aspect;
+	if(width > length) aspect = width / length;
+	return aspect;
 }
 
 void NURBSRectangle::uniformCoordinates( std::vector<Real> & valU, std::vector<Real> & valV, int resolution, int u, int v )
@@ -632,12 +630,12 @@ void NURBSRectangle::uniformCoordinates( std::vector<Real> & valU, std::vector<R
 	Scalar resV = resolution * aspectU();
 
 	// Uniform across given U, V
-	std::vector<Vector3> cptsU = GetControlPointsV(v);
-	std::vector<Vector3> cptsV = GetControlPointsU(u);
-	NURBSCurve curveU( cptsU, std::vector<Scalar>(cptsU.size(),1) );
-	NURBSCurve curveV( cptsV, std::vector<Scalar>(cptsV.size(),1) );
-	Scalar deltaU = curveU.GetLength(0,1) / resU;
-	Scalar deltaV = curveV.GetLength(0,1) / resV;
+	std::vector<Vector3> cptsU = GetControlPointsU(u);
+	std::vector<Vector3> cptsV = GetControlPointsV(v);
+	NURBSCurve curveU( cptsU, std::vector<Scalar>(cptsU.size(), 1) );
+	NURBSCurve curveV( cptsV, std::vector<Scalar>(cptsV.size(), 1) );
+	Scalar deltaU = curveU.GetLength(0, 1) / resU;
+	Scalar deltaV = curveV.GetLength(0, 1) / resV;
 	for(int i = 0; i <= resU; i++)	valU.push_back(curveU.GetTime(i * deltaU));
 	for(int i = 0; i <= resV; i++)	valV.push_back(curveV.GetTime(i * deltaV));
 }

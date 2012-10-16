@@ -1,4 +1,6 @@
 #include <QElapsedTimer>
+#include <QFileDialog>
+
 #include "topo-blend.h"
 #include "StarlabMainWindow.h"
 #include "StarlabDrawArea.h"
@@ -42,7 +44,7 @@ void topoblend::decorate()
     drawArea()->drawText(40,40, "TopoBlend mode.");
 }
 
-void topoblend::test1()
+void topoblend::generateTwoModels()
 {
 	QElapsedTimer assembleTimer; assembleTimer.start(); 
 
@@ -107,26 +109,33 @@ void topoblend::test1()
 	chair2.addEdge( chair2.getNode("SeatSheet"), chair2.getNode("BackLegLeft") );
 	chair2.addEdge( chair2.getNode("SeatSheet"), chair2.getNode("BackLegRight") );
 
-    // Set scene bounds
-    Vector3 a = chair1.bbox().minimum();
-    Vector3 b = chair1.bbox().maximum();
-    drawArea()->setSceneBoundingBox(qglviewer::Vec(a.x(), a.y(), a.z()), qglviewer::Vec(b.x(), b.y(), b.z()));
-
 	// Save to file
-	//chair1.saveToFile("chair1.xml");
-	//chair1.loadFromFile("chair1.xml");
-
-	//graphs.push_back( chair1 );
-	graphs.push_back( chair2 );
-
-    drawArea()->updateGL();
+	chair1.saveToFile("chair1.xml");
+	chair2.saveToFile("chair2.xml");
 
 	qDebug() << "Chairs structure graphs construction " << assembleTimer.elapsed() << " ms.";
 }
 
-void topoblend::test2()
+void topoblend::loadModel()
 {
+	QStringList fileNames = QFileDialog::getOpenFileNames(0, tr("Open Model"), 
+		mainWindow()->settings()->getString("lastUsedDirectory"), tr("Model Files (*.xml)"));
 
+	foreach(QString file, fileNames)
+	{
+		graphs.push_back( Structure::Graph ( file ) );
+	}
+
+	if(!graphs.size()) return;
+
+	// Set scene bounds
+	QBox3D bigbox = graphs.front().bbox();
+	for(int i = 0; i < (int)graphs.size(); i++)
+		bigbox.unite( graphs[i].bbox() );
+
+	Vector3 a = bigbox.minimum();
+	Vector3 b = bigbox.maximum();
+	drawArea()->setSceneBoundingBox(qglviewer::Vec(a.x(), a.y(), a.z()), qglviewer::Vec(b.x(), b.y(), b.z()));
 }
 
 bool topoblend::keyPressEvent( QKeyEvent* event )
@@ -155,7 +164,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 			SurfaceMeshModel * m = new SurfaceMeshModel( QString("Voxel_%1.obj").arg(g), QString("Voxel_%1").arg(g) );
 			graphs[g].materialize(m);
-			DynamicVoxel::MeanCurvatureFlow(m, 0.1);
+			DynamicVoxel::MeanCurvatureFlow(m, 0.05);
 
 			document()->pushBusy();
 			document()->addModel(m);

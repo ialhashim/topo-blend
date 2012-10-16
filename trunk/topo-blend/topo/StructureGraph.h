@@ -17,11 +17,13 @@ struct Graph
 	
 	// Constructors
 	Graph();
+	Graph(QString fileName);
     ~Graph();
 	
 	// Modifiers
     Node * addNode( Node * n );
     Link addEdge( Node * n1, Node * n2 );
+	Link addEdge( Node * n1, Node * n2, Vec2d coord1, Vec2d coord2, QString linkName);
 
     QString linkName( Node * n1, Node * n2 );
 
@@ -43,7 +45,7 @@ struct Graph
 	DynamicVoxel::QuadMesh cached_mesh;
 
 	// DEBUG:
-	std::vector<Vector3> debugPoints, debugPoints2, debugPoints3;
+	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
 };
 
 }

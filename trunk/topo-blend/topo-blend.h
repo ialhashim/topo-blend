@@ -30,8 +30,8 @@ private:
     QVector<Structure::Graph> graphs;
 
 public slots:
-    void test1();
-    void test2();
+    void generateTwoModels();
+    void loadModel();
 
 signals:
 

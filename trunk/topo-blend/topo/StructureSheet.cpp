@@ -45,9 +45,13 @@ std::vector<Vector3> Sheet::controlPoints()
 {
 	std::vector<Vector3> cpoints;
 
-	for(int v = 0; v < surface.mNumVCtrlPoints; v++)
-		for(int u = 0; u < surface.mNumUCtrlPoints; u++)
-			cpoints.push_back( surface.mCtrlPoint[v][u] );
+	for(int u = 0; u < surface.mNumUCtrlPoints; u++)
+	{
+		for(int v = 0; v < surface.mNumVCtrlPoints; v++)
+		{
+			cpoints.push_back( surface.mCtrlPoint[u][v] );
+		}
+	}
 
 	return cpoints;
 }
@@ -58,7 +62,7 @@ std::vector<Scalar> Sheet::controlWeights()
 
 	for(int v = 0; v < surface.mNumVCtrlPoints; v++)
 		for(int u = 0; u < surface.mNumUCtrlPoints; u++)
-			cpoints.push_back( surface.mCtrlWeight[v][u] );
+			cpoints.push_back( surface.mCtrlWeight[u][v] );
 
 	return cpoints;
 }
@@ -75,10 +79,9 @@ void Structure::Sheet::get( const Vector3& coordinates, Vector3 & pos, std::vect
 	surface.GetFrame(u, v, pos, frame[0], frame[1], frame[2]);
 }
 
-SurfaceMeshTypes::Vector3 Structure::Sheet::approxProjection( const Vector3 & pos )
+Vec2d Structure::Sheet::approxProjection( const Vector3 & pos )
 {
-	Vec2d UV = surface.timeAt( pos );
-	return Vector3(UV[0], UV[1], 0);
+	return surface.timeAt( pos );
 }
 
 std::vector< std::vector<Vector3> > Structure::Sheet::discretized(Scalar resolution)
@@ -90,4 +93,3 @@ void Sheet::draw()
 {
     NURBS::SurfaceDraw::draw( &surface, vis_property["color"].value<QColor>(), vis_property["showControl"].toBool() );
 }
-

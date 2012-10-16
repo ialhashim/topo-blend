@@ -82,14 +82,14 @@
       <item row="0" column="0">
        <widget class="QPushButton" name="button1">
         <property name="text">
-         <string>Test 1</string>
+         <string>Generate two models</string>
         </property>
        </widget>
       </item>
       <item row="1" column="0">
        <widget class="QPushButton" name="button2">
         <property name="text">
-         <string>Test 2</string>
+         <string>Load model...</string>
         </property>
        </widget>
       </item>

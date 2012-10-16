@@ -25,12 +25,14 @@ struct Sheet : public Node
 
 	// Coordinates
 	void get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() );
-	Vector3 approxProjection( const Vector3 & pos );
+	Vec2d approxProjection( const Vector3 & pos );
 
     // Connections
 
     // Visualization
     void draw();
+
+	std::vector<Vector3> debugPoints;
 };
 
 }
