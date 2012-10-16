@@ -96,7 +96,7 @@ public:
 
 	// Projection
 	Vec2d timeAt(const Vector3 & pos);
-	Vec2d timeAt( const Vector3 & pos, Vec2d & rangeU, Vec2d & rangeV, Real currentDist, Real threshold = 1e-6 );
+	Vec2d timeAt( const Vector3 & pos, Vec2d & bestUV, Vec2d & minRange, Vec2d & maxRange, Real currentDist, Real threshold = 1e-4 );
 
 protected:
     // Replicate the necessary number of control points when the Create

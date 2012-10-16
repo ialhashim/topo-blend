@@ -56,10 +56,10 @@ void Structure::Curve::get( const Vector3& coordinates, Vector3 & pos, std::vect
 	curve.GetFrame(u, pos, frame[0], frame[1], frame[2]);
 }
 
-SurfaceMeshTypes::Vector3 Structure::Curve::approxProjection( const Vector3 & pos )
+Vec2d Structure::Curve::approxProjection( const Vector3 & pos )
 {
 	Scalar t = curve.timeAt( pos );
-	return Vector3( t, 0, 0 );
+	return Vec2d( t, 0 );
 }
 
 std::vector< std::vector<Vector3> > Structure::Curve::discretized(Scalar resolution)

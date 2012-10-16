@@ -13,6 +13,13 @@ Graph::Graph()
 	property["embeded2D"] = false;
 }
 
+Structure::Graph::Graph( QString fileName )
+{
+	property["embeded2D"] = false;
+
+	loadFromFile( fileName );
+}
+
 Graph::~Graph()
 {
     //qDeleteAll( nodes );
@@ -42,23 +49,29 @@ Node *Graph::addNode(Node * n)
 
 Link Graph::addEdge(Node *n1, Node *n2)
 {
-    if(n2->valence() > n1->valence())
-        std::swap(n1, n2);
-
     n1 = addNode(n1);
     n2 = addNode(n2);
 
 	Vector3 intersectPoint = nodeIntersection(n1, n2);
 
-	//debugPoints.push_back(intersectPoint);
-
-	Vector3 c1 = n1->approxProjection(intersectPoint);
-	Vector3 c2 = n2->approxProjection(intersectPoint);
+	Vec2d c1 = n1->approxProjection(intersectPoint);
+	Vec2d c2 = n2->approxProjection(intersectPoint);
 
     Link e( n1, n2, c1, c2, "none", linkName(n1, n2) );
     edges.insert(e);
 
     return e;
+}
+
+Link Graph::addEdge(Node *n1, Node *n2, Vec2d coord1, Vec2d coord2, QString linkName)
+{
+	n1 = addNode(n1);
+	n2 = addNode(n2);
+
+	Link e( n1, n2, coord1, coord2, "none", linkName );
+	edges.insert(e);
+
+	return e;
 }
 
 QString Graph::linkName(Node *n1, Node *n2)
@@ -89,8 +102,17 @@ void Graph::draw()
 
 			glColor3d(0,1,0);
 			glBegin(GL_POINTS);
-			//foreach(Vector3 p, s->surface.debugPoints)	glVector3(p);
+			foreach(Vector3 p, s->surface.debugPoints)	glVector3(p);
 			glEnd();
+
+			/*glBegin(GL_TRIANGLES);
+			foreach(std::vector<Vector3> tri, s->surface.generateSurfaceTris(0.20056171191456854))
+			{
+				glColor3d(1,0,0); glVector3(tri[0]);
+				glColor3d(0,1,0); glVector3(tri[1]);
+				glColor3d(0,0,1); glVector3(tri[2]);
+			}
+			glEnd();*/
 		}
     }
 
@@ -99,18 +121,17 @@ void Graph::draw()
         e.draw();
     }
 
-	// DEBUG:
 	glDisable(GL_LIGHTING);
-	glPointSize(20);
-	glBegin(GL_POINTS);
-	glColor3d(1,1,0);	foreach(Vector3 p, debugPoints2)	glVector3(p);
-	glColor3d(1,0,1);	foreach(Vector3 p, debugPoints3)	glVector3(p);
-	glEnd();
-	glPointSize(40);
-	glBegin(GL_POINTS);
-	glColor3d(0,1,1);	foreach(Vector3 p, debugPoints)		glVector3(p);
-	glEnd();
+	glColor3d(1,1,0); glPointSize(8);
+	glBegin(GL_POINTS); foreach(Vector3 p, debugPoints) glVector3(p); glEnd();
+
+	glColor3d(0,1,1); glPointSize(14);
+	glBegin(GL_POINTS); foreach(Vector3 p, debugPoints2) glVector3(p); glEnd();
+
+	glColor3d(1,0,1); glPointSize(20);
+	glBegin(GL_POINTS); foreach(Vector3 p, debugPoints3) glVector3(p); glEnd();
 	glEnable(GL_LIGHTING);
+
 
 	// Materialized
 	glBegin(GL_QUADS);
@@ -243,8 +264,8 @@ void Graph::saveToFile( QString fileName )
 		out << QString("\t<type>%1</type>\n\n").arg(e.type);
 		out << QString("\t<n>%1</n>\n").arg(e.n1->id);
 		out << QString("\t<n>%1</n>\n").arg(e.n2->id);
-		out << QString("\t<coord>%1 %2 %3</coord>\n").arg(e.coord[0].x()).arg(e.coord[0].y()).arg(e.coord[0].z());
-		out << QString("\t<coord>%1 %2 %3</coord>\n").arg(e.coord[1].x()).arg(e.coord[1].y()).arg(e.coord[1].z());
+		out << QString("\t<coord>%1 %2</coord>\n").arg(e.coord[0].x()).arg(e.coord[0].y());
+		out << QString("\t<coord>%1 %2</coord>\n").arg(e.coord[1].x()).arg(e.coord[1].y());
 		out << "\n</edge>\n\n";
 	}
 
@@ -306,14 +327,16 @@ void Graph::loadFromFile( QString fileName )
 		{
 			if(control_count.size() < 2) continue;
 
-			std::vector< std::vector<Vec3d> > cp = std::vector< std::vector<Vec3d> > (control_count.last(), std::vector<Vec3d>(control_count.first()));
-			std::vector< std::vector<Scalar> > cw = std::vector< std::vector<Scalar> > (control_count.last(), std::vector<Scalar>(control_count.first()));
+			std::vector< std::vector<Vec3d> > cp = std::vector< std::vector<Vec3d> > (control_count.first(), std::vector<Vec3d>(control_count.last(), Vector3(0)));
+			std::vector< std::vector<Scalar> > cw = std::vector< std::vector<Scalar> > (control_count.first(), std::vector<Scalar>(control_count.last(), 1.0));
 
-			for(int v = 0; v < control_count.last(); v++){
-				for(int u = 0; u < control_count.first(); u++){
-					int idx = (v * control_count.first()) + u;
-					cp[v][u] = ctrlPoints[idx];
-					cw[v][u] = ctrlWeights[idx];
+			for(int u = 0; u < control_count.first(); u++)
+			{
+				for(int v = 0; v < control_count.last(); v++)
+				{
+					int idx = (u * control_count.last()) + v;
+					cp[u][v] = ctrlPoints[idx];
+					cw[u][v] = ctrlWeights[idx];
 				}
 			}
 
@@ -333,8 +356,16 @@ void Graph::loadFromFile( QString fileName )
 		QString edge_type = edge.firstChildElement("type").text();
 
 		QDomNodeList n = edge.toElement().elementsByTagName("n");
+		
+		QString n1_id = n.at(0).toElement().text();
+		QString n2_id = n.at(1).toElement().text();
 
-		addEdge(getNode(n.at(0).toElement().text()), getNode(n.at(1).toElement().text()));
+		QDomNodeList coord = edge.toElement().elementsByTagName("coord");
+
+		QStringList c1 = coord.at(0).toElement().text().split(" ");
+		QStringList c2 = coord.at(1).toElement().text().split(" ");
+
+		addEdge(getNode(n1_id), getNode(n2_id), Vec2d(c1[0].toDouble(), c1[1].toDouble()), Vec2d(c2[0].toDouble(), c2[1].toDouble()), id);
 	}
 
 	file.close();
@@ -406,25 +437,48 @@ SurfaceMeshTypes::Vector3 Structure::Graph::nodeIntersection( Node * n1, Node * 
 	Scalar minDist = DBL_MAX;
 	int minI = 0, minJ = 0;
 
-	QMatrix4x4 ts;
-	ts.scale(1.01);
-
 	// Compare parts bounding boxes
 	for(int i = 0; i < (int)parts1.size(); i++)
 	{
+		Vector3 mean1(0);
+
 		QBox3D part1(parts1[i].front(), parts1[i].back());
-		foreach(Vector3 p, parts1[i]) part1.united(p);
-		part1.transform(ts);
+		foreach(Vector3 p, parts1[i]){
+			part1.united(p);
+			mean1 += p;
+		}
+
+		mean1 /= parts1[i].size();
 
 		for(int j = 0; j < (int)parts2.size(); j++)
 		{
-			QBox3D part2(parts2[j].front(), parts2[j].back());
-			foreach(Vector3 p, parts2[j]) part2.united(p);
-			part2.transform(ts);
+			Vector3 mean2(0);
 
-			if(part1.intersects(part2))
+			QBox3D part2(parts2[j].front(), parts2[j].back());
+			foreach(Vector3 p, parts2[j]){
+				part2.united(p);
+				mean2 += p;
+			}
+
+			mean2 /= parts2[j].size();
+
+			Vector3 diff = mean1 - mean2;
+			Scalar rSum = 0.5*part1.size().length() + 0.5*part2.size().length();
+
+			if(diff.sqrnorm() <= rSum * rSum)
 			{
-				double dist = -part1.intersected(part2).size().length();
+				std::vector<Vector3> p1 = parts1[ i ];
+				std::vector<Vector3> p2 = parts2[ j ];
+				int g1 = p1.size(), g2 = p2.size();
+				Vector3 c1,c2;
+				Scalar s,t;
+
+				if(g1 == 2 && g2 == 2) ClosestPointSegments		(p1[0],p1[1],  p2[0],p2[1],       s, t, c1, c2);	// curve -- curve
+				if(g1 == 2 && g2 == 3) ClosestSegmentTriangle	(p1[0],p1[1],  p2[0],p2[1],p2[2],       c1, c2);	// curve -- sheet
+				if(g1 == 3 && g2 == 2) ClosestSegmentTriangle	(p2[0],p2[1],  p1[0],p1[1],p1[2],       c1, c2);	// sheet -- curve
+				if(g1 == 3 && g2 == 3) TriTriIntersect			(p1[0],p1[1],p1[2],  p2[0],p2[1],p2[2], c1, c2);	// sheet -- sheet
+				
+				Scalar dist = (c1 - c2).norm();
 
 				if(dist < minDist)
 				{
@@ -432,6 +486,9 @@ SurfaceMeshTypes::Vector3 Structure::Graph::nodeIntersection( Node * n1, Node * 
 					minJ = j;
 					minDist = dist;
 				}
+
+				//foreach(Vector3 w, parts1[i]) debugPoints2.push_back(w);
+				//foreach(Vector3 w, parts2[j]) debugPoints2.push_back(w);
 			}
 		}
 	}
