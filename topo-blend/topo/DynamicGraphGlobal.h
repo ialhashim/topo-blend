@@ -60,4 +60,16 @@ struct GraphState
 		qDebug() << "  Type (curve-sheet)  # " << numMixedEdges;
 		qDebug() << "  Type (sheet-sheet)  # " << numSheetEdges;
 	}
+
+	bool equal(const GraphState & other) {
+		return numSheets		== other.numSheets 
+			&& numCurves		== other.numCurves 
+			&& numCurveEdges	== other.numCurveEdges 
+			&& numSheetEdges	== other.numSheetEdges 
+			&& numMixedEdges	== other.numMixedEdges;
+	}
+
+	bool isZero(){
+		return (numNodes() + numEdges()) == 0;
+	}
 };

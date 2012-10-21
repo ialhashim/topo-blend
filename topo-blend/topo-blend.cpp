@@ -1,5 +1,6 @@
 #include <QElapsedTimer>
 #include <QFileDialog>
+#include <QStack>
 
 #include "topo-blend.h"
 #include "StarlabMainWindow.h"
@@ -299,18 +300,52 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 void topoblend::experiment1()
 {
-	graphs.push_back( Structure::Graph("simple_model1.xml") );
-	graphs.push_back( Structure::Graph("simple_model2.xml") );
+	Structure::Graph * g1 = new Structure::Graph("simple_model1.xml");
+	Structure::Graph * g2 = new Structure::Graph("simple_model2.xml");
 
-	DynamicGraph g( &graphs.front() );
-	DynamicGraph g2( &graphs.back() );
+	DynamicGraph graph1( g1 );
+	DynamicGraph target( g2 );
 
-	g.printState();
-	g2.printState();
-
-	GraphState diff = g.difference( g2.State() );
-
+	// Print states
+	graph1.printState();
+	target.printState();
+	GraphState diff = graph1.difference( target.State() );
 	diff.print();
+
+	QStack<DynamicGraph> stack;
+
+	// Initial set of candidates
+	foreach(DynamicGraph g, graph1.candidates(target.State())) stack.push(g);
+
+	QVector<DynamicGraph> solutions;
+
+	while(!stack.empty())
+	{
+		DynamicGraph curr = stack.pop();
+
+		// Check against target
+		GraphState diff = curr.difference( target.State() );
+		if( diff.isZero() )
+		{
+			solutions.push_back(curr);
+			break;
+		}
+		
+		// Add new candidates
+		foreach( DynamicGraph g, curr.candidates( target.State() ) ) 
+		{
+			stack.push(g);
+		}
+	}
+
+	// Print out solutions
+	qDebug() << "Solutions found = " << solutions.size();
+
+	if(solutions.size())
+	{
+		solutions.front().printState();
+		graphs.push_back( *solutions.front().toStructureGraph() );
+	}
 
 	setSceneBounds();
 }
