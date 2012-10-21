@@ -39,6 +39,11 @@ public:
 	GraphState difference(GraphState & other);
 	operator GraphState() { return State(); }
 
+	// Graph edit
+	QVector<DynamicGraph> candidates(GraphState futureState);
+
+	Structure::Graph * toStructureGraph();
+
 public:
 
 	// Properties
