@@ -141,28 +141,46 @@ int DynamicGraph::numEdges( EdgeType t )
 	return count;
 }
 
+QVector<int> DynamicGraph::getSheets()
+{
+	QVector<int> sheets;
+	foreach(SimpleNode n, nodes) 
+		if(nodeType(n.idx) == Structure::SHEET)
+			sheets.push_back(n.idx);
+	return sheets;
+}
+
 int DynamicGraph::numSheets()
 {
-	int count = 0;
-	foreach(SimpleNode n, nodes) if(nodeType(n.idx) == Structure::SHEET) count++;
-	return count;
+	return getSheets().size();
+}
+
+QVector<int> DynamicGraph::getCurves()
+{
+	QVector<int> curves;
+	foreach(SimpleNode n, nodes) 
+		if(nodeType(n.idx) == Structure::CURVE)
+			curves.push_back(n.idx);
+	return curves;
 }
 
 int DynamicGraph::numCurves()
 {
-	int count = 0;
-	foreach(SimpleNode n, nodes) if(nodeType(n.idx) == Structure::CURVE) count++;
-	return count;
+	return getCurves().size();
 }
 
-void DynamicGraph::cloneNode( int index )
+int DynamicGraph::cloneNode( int index, bool cloneEdges )
 {
-	QSet<int> adj = adjNodes( index );
-
 	int newIndex = addNode( nodes[index].property, uniqueID );
 
-	foreach(int ni, adj)
-		addEdge(newIndex, ni);
+	if(cloneEdges){
+		QSet<int> adj = adjNodes( index );
+
+		foreach(int ni, adj)
+			addEdge(newIndex, ni);
+	}
+
+	return newIndex;
 }
 
 void DynamicGraph::printNodeInfo( int index )

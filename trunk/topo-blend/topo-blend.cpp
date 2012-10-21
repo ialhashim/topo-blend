@@ -302,8 +302,8 @@ void topoblend::experiment1()
 	graphs.push_back( Structure::Graph("simple_model1.xml") );
 	graphs.push_back( Structure::Graph("simple_model2.xml") );
 
-	DynamicGraph g(&graphs.front());
-	DynamicGraph g2(&graphs.back());
+	DynamicGraph g( &graphs.front() );
+	DynamicGraph g2( &graphs.back() );
 
 	g.printState();
 	g2.printState();
