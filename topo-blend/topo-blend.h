@@ -30,9 +30,13 @@ private:
     QVector<Structure::Graph> graphs;
 
 public slots:
-    void generateTwoModels();
+	void setSceneBounds();
+    void generateTwoChairModels();
+	void generateTwoSimpleModels();
     void loadModel();
-
+    void doBlend();
+	
+	void experiment1();
 signals:
 
 };

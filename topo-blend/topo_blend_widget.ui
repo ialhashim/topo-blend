@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>246</width>
-    <height>227</height>
+    <height>300</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -82,14 +82,35 @@
       <item row="0" column="0">
        <widget class="QPushButton" name="button1">
         <property name="text">
-         <string>Generate two models</string>
+         <string>Generate two chair models</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QPushButton" name="button4">
+        <property name="text">
+         <string>Experimental...</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QPushButton" name="button3">
+        <property name="text">
+         <string>Blend!</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QPushButton" name="button2">
+        <property name="text">
+         <string>Load model...</string>
         </property>
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QPushButton" name="button2">
+       <widget class="QPushButton" name="button5">
         <property name="text">
-         <string>Load model...</string>
+         <string>Generate two simple models</string>
         </property>
        </widget>
       </item>

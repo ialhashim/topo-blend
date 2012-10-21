@@ -18,13 +18,18 @@ HEADERS += topo-blend.h \
     topo/StructureCurve.h \
     topo/StructureSheet.h \
     topo/StructureLink.h \
-    topo/GraphEmbed.h
+    topo/GraphEmbed.h \
+    topo/TopoBlender.h \
+    topo/DynamicGraph.h \
+    topo/DynamicGraphGlobal.h
 SOURCES += topo-blend.cpp \ 
     topo_blend_widget.cpp \
     topo/StructureGraph.cpp \
     topo/StructureCurve.cpp \
     topo/StructureSheet.cpp \
-    topo/StructureLink.cpp
+    topo/StructureLink.cpp \
+    topo/TopoBlender.cpp \
+    topo/DynamicGraph.cpp
 RESOURCES += topo-blend.qrc
 FORMS += \ 
     topo_blend_widget.ui

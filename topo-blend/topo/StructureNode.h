@@ -23,11 +23,6 @@ struct Node
 
 	virtual std::vector< std::vector<Vector3> > discretized(Scalar resolution) = 0;
 
-	// Connections
-    QSet< Link* > edges;
-	int valence() { return edges.size(); }
-	bool disconnected() { return valence() == 0; }
-	
     // Visualization
     virtual void draw() = 0;
     QMap< QString, QVariant > vis_property;

@@ -13,7 +13,7 @@ Graph::Graph()
 	property["embeded2D"] = false;
 }
 
-Structure::Graph::Graph( QString fileName )
+Graph::Graph( QString fileName )
 {
 	property["embeded2D"] = false;
 
@@ -43,8 +43,13 @@ Node *Graph::addNode(Node * n)
     Node * found = getNode( n->id );
     if(found) return found;
 
-    nodes.insert(n);
+    nodes.push_back(n);
     return n;
+}
+
+Link Graph::addEdge(QString n1_id, QString n2_id)
+{
+	return addEdge(getNode(n1_id), getNode(n2_id));
 }
 
 Link Graph::addEdge(Node *n1, Node *n2)
@@ -58,7 +63,13 @@ Link Graph::addEdge(Node *n1, Node *n2)
 	Vec2d c2 = n2->approxProjection(intersectPoint);
 
     Link e( n1, n2, c1, c2, "none", linkName(n1, n2) );
-    edges.insert(e);
+    edges.push_back(e);
+
+	// Add to adjacency list
+	if(adjacency.cols() != nodes.size()) adjacency = MatrixXd::Zero( nodes.size(), nodes.size() );
+
+	adjacency(nodes.indexOf(n1), nodes.indexOf(n2)) = 1 ;
+	adjacency(nodes.indexOf(n2), nodes.indexOf(n1)) = 1 ;
 
     return e;
 }
@@ -69,9 +80,37 @@ Link Graph::addEdge(Node *n1, Node *n2, Vec2d coord1, Vec2d coord2, QString link
 	n2 = addNode(n2);
 
 	Link e( n1, n2, coord1, coord2, "none", linkName );
-	edges.insert(e);
+	edges.push_back(e);
+
+	// Add to adjacency list
+	if(adjacency.cols() != nodes.size()) adjacency = MatrixXd::Zero( nodes.size(), nodes.size() );
+
+	adjacency(nodes.indexOf(n1), nodes.indexOf(n2)) = 1 ;
+	adjacency(nodes.indexOf(n2), nodes.indexOf(n1)) = 1 ;
 
 	return e;
+}
+
+void Graph::removeEdge( Node * n1, Node * n2 )
+{
+	int edge_idx = -1;
+
+	for(int i = 0; i < (int)edges.size(); i++)
+	{
+		Link & e = edges[i];
+
+		if((e.n1 == n1 && e.n2 == n2) || (e.n2 == n1 && e.n1 == n2)){
+			edge_idx = i;
+			break;
+		}
+	}
+
+	if(edge_idx < 0) return;
+
+	edges.remove(edge_idx);
+
+	adjacency(nodes.indexOf(n1), nodes.indexOf(n2)) = 0;
+	adjacency(nodes.indexOf(n2), nodes.indexOf(n1)) = 0;
 }
 
 QString Graph::linkName(Node *n1, Node *n2)
@@ -105,14 +144,14 @@ void Graph::draw()
 			foreach(Vector3 p, s->surface.debugPoints)	glVector3(p);
 			glEnd();
 
-			/*glBegin(GL_TRIANGLES);
-			foreach(std::vector<Vector3> tri, s->surface.generateSurfaceTris(0.20056171191456854))
-			{
-				glColor3d(1,0,0); glVector3(tri[0]);
-				glColor3d(0,1,0); glVector3(tri[1]);
-				glColor3d(0,0,1); glVector3(tri[2]);
-			}
-			glEnd();*/
+			glBegin(GL_TRIANGLES);
+			//foreach(std::vector<Vector3> tri, s->surface.generateSurfaceTris(0.4))
+			//{
+			//	glColor3d(1,0,0); glVector3(tri[0]);
+			//	glColor3d(0,1,0); glVector3(tri[1]);
+			//	glColor3d(0,0,1); glVector3(tri[2]);
+			//}
+			glEnd();
 		}
     }
 
@@ -149,6 +188,7 @@ void Graph::draw()
 void Graph::draw2D(int width, int height)
 {
 	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_LIGHTING);
 
     // Embed structure graph to 2D screen plane
     if(!property["embeded2D"].toBool())
@@ -217,10 +257,13 @@ void Graph::draw2D(int width, int height)
 	endTextDraw();
 
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_LIGHTING);
 }
 
 void Graph::saveToFile( QString fileName )
 {
+	if(nodes.size() < 1) return;
+
 	QFile file(fileName);
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
 
@@ -424,7 +467,46 @@ void Graph::materialize( SurfaceMeshModel * m )
 
 	vox.buildMesh(m, cached_mesh);
 
-	if(m) cached_mesh.clear();
+    if(m) cached_mesh.clear();
+}
+
+Node *Graph::rootBySize()
+{
+	int idx = 0;
+	Scalar maxArea = 0;
+
+	for(int i = 0; i < nodes.size(); i++){
+		Vector3 diagonal = nodes[i]->bbox().size();
+
+		double area = (diagonal[0] == 0 ? 1 : diagonal[0]) * 
+					  (diagonal[1] == 0 ? 1 : diagonal[1]) * 
+					  (diagonal[2] == 0 ? 1 : diagonal[2]);
+
+		if( area > maxArea){
+			idx = i;
+			maxArea = area;
+		}
+	}
+
+    return nodes[idx];
+}
+
+Node *Graph::rootByValence()
+{
+	int maxIdx = 0;
+	int maxValence = valence(nodes[maxIdx]);
+
+	for(int i = 0; i < (int)nodes.size(); i++)
+	{
+		int curVal = valence(nodes[i]);
+		if(curVal > maxValence)
+		{
+			maxValence = curVal;
+			maxIdx = i;
+		}
+	}
+
+    return nodes[maxIdx];
 }
 
 SurfaceMeshTypes::Vector3 Structure::Graph::nodeIntersection( Node * n1, Node * n2 )
@@ -441,31 +523,27 @@ SurfaceMeshTypes::Vector3 Structure::Graph::nodeIntersection( Node * n1, Node * 
 	for(int i = 0; i < (int)parts1.size(); i++)
 	{
 		Vector3 mean1(0);
+		Scalar r1 = 0;
 
-		QBox3D part1(parts1[i].front(), parts1[i].back());
-		foreach(Vector3 p, parts1[i]){
-			part1.united(p);
-			mean1 += p;
-		}
-
+		foreach(Vector3 p, parts1[i])	mean1 += p;
 		mean1 /= parts1[i].size();
+		foreach(Vector3 p, parts1[i])	r1 = qMax((p - mean1).norm(), r1);
 
 		for(int j = 0; j < (int)parts2.size(); j++)
 		{
 			Vector3 mean2(0);
+			Scalar r2 = 0;
 
-			QBox3D part2(parts2[j].front(), parts2[j].back());
-			foreach(Vector3 p, parts2[j]){
-				part2.united(p);
-				mean2 += p;
-			}
-
+			foreach(Vector3 p, parts2[j])	mean2 += p;
 			mean2 /= parts2[j].size();
+			foreach(Vector3 p, parts2[j])	r2 = qMax((p - mean2).norm(), r2);
 
 			Vector3 diff = mean1 - mean2;
-			Scalar rSum = 0.5*part1.size().length() + 0.5*part2.size().length();
+			Scalar dist = diff.norm();
 
-			if(diff.sqrnorm() <= rSum * rSum)
+			Scalar sphereDist = dist - r1 - r2;
+
+			if(sphereDist <= 0)
 			{
 				std::vector<Vector3> p1 = parts1[ i ];
 				std::vector<Vector3> p2 = parts2[ j ];
@@ -512,4 +590,29 @@ SurfaceMeshTypes::Vector3 Structure::Graph::nodeIntersection( Node * n1, Node * 
 	//foreach(Vector3 w, p2) debugPoints3.push_back(w);
 
 	return (c1 + c2) / 2.0;
+}
+
+void Structure::Graph::printAdjacency()
+{
+	int n = nodes.size();
+
+	qDebug() << "\n\n== Adjacency Matrix ==";
+
+	for(int i = 0; i < n; i++)
+	{
+		QString line;
+
+		for(int j = 0; j < n; j++)
+			line += QString(" %1 ").arg(adjacency(i,j));
+
+		qDebug() << line;
+	}
+
+	qDebug() << "======";
+}
+
+int Structure::Graph::valence( Node * n )
+{
+	int idx = nodes.indexOf(n);
+	return 0.5 * (adjacency.col(idx).sum() + adjacency.row(idx).sum());
 }
