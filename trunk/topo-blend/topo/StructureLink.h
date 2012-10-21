@@ -30,6 +30,7 @@ struct Link
 		this->coord[0] = coord_n1;
 		this->coord[1] = coord_n2;
 	}
+	Link(){	n1 = n2 = NULL; }
 	
 	// Visualization
     void draw();
@@ -40,5 +41,3 @@ struct Link
 };
 
 }
-
-static inline uint qHash(const Structure::Link& edge) { return qHash(edge.id); }

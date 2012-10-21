@@ -5,15 +5,20 @@
 #include "StructureCurve.h"
 #include "StructureSheet.h"
 
+#include <Eigen/Core>
+
 namespace Structure{
 
 struct Graph
 {
 	// Properties
-    QSet<Node*> nodes;
-    QSet<Link> edges;
+    QVector<Node*> nodes;
+    QVector<Link> edges;
     QBox3D bbox();
     QMap< QString, QVariant > property;
+	Eigen::MatrixXd adjacency;
+
+	int valence(Node * n);
 	
 	// Constructors
 	Graph();
@@ -24,6 +29,8 @@ struct Graph
     Node * addNode( Node * n );
     Link addEdge( Node * n1, Node * n2 );
 	Link addEdge( Node * n1, Node * n2, Vec2d coord1, Vec2d coord2, QString linkName);
+	Link addEdge(QString n1_id, QString n2_id);
+	void removeEdge( Node * n1, Node * n2 );
 
     QString linkName( Node * n1, Node * n2 );
 
@@ -44,8 +51,13 @@ struct Graph
 	void materialize(SurfaceMeshModel * m);
 	DynamicVoxel::QuadMesh cached_mesh;
 
+    // Analysis
+    Node * rootBySize();
+    Node * rootByValence();
+
 	// DEBUG:
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
+	void printAdjacency();
 };
 
 }
