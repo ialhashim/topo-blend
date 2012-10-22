@@ -1,6 +1,6 @@
 #pragma once
 
-#include "qglviewer.h"
+#include "qglviewer/qglviewer.h"
 #include "SurfaceMeshPlugins.h"
 #include "SurfaceMeshHelper.h"
 #include "topo_blend_widget.h"

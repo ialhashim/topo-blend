@@ -11,6 +11,8 @@ using namespace Eigen;
 typedef CholmodSupernodalLLT< SparseMatrix<double> > CholmodSolver;
 #define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )
 
+using namespace SurfaceMeshTypes;
+
 DynamicVoxel::DynamicVoxel(double voxelSize){
 
     this->voxel_size = voxelSize;

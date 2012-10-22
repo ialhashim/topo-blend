@@ -1,7 +1,9 @@
-CONFIG += starlab
-STARLAB_TEMPLATE += plugin
-STARLAB_DEPENDS += ../../starlab/plugins-surfacemesh/surfacemesh
-STARLAB_EXTERNAL += nanoflann eigen cholmod
+load($$[STARLAB])
+load($$[SURFACEMESH])
+load($$[CHOLMOD])
+load($$[EIGEN])
+load($$[NANOFLANN])
+StarlabTemplate(plugin)
 
 # NURBS library
 LIBS += -L$$PWD/../NURBS/lib -lNURBS

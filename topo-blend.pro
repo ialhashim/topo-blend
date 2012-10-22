@@ -1,6 +1,7 @@
-system(qmake -set QMAKEFEATURES $$PWD/../starlab/starlab-core)
 TEMPLATE = subdirs
 CONFIG += ordered
+
+message($$INCLUDEPATH)
 
 # Libraries
 SUBDIRS += NURBS

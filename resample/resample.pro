@@ -1,7 +1,8 @@
-CONFIG += starlab
-STARLAB_TEMPLATE += plugin
-STARLAB_DEPENDS += ../../starlab/plugins-surfacemesh/surfacemesh
-STARLAB_EXTERNAL += nanoflann eigen
+load($$[STARLAB])
+load($$[SURFACEMESH])
+load($$[EIGEN])
+load($$[NANOFLANN])
+StarlabTemplate(plugin)
 
 QT += opengl
 
