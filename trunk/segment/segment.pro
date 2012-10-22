@@ -1,6 +1,13 @@
-CONFIG += starlab 
-STARLAB_TEMPLATE += plugin 
-STARLAB_DEPENDS += ../../starlab/plugins-surfacemesh/surfacemesh ../../starlab/plugins-curveskel/curveskel
+load($$[STARLAB])
+load($$[SURFACEMESH])
+StarlabTemplate(plugin)
 
 HEADERS += segment.h
 SOURCES += segment.cpp
+
+# Skeleton stuff
+HEADERS += curveskel/CurveskelModel.h
+SOURCES += curveskel/CurveskelModel.cpp
+
+DEFINES *= EXPORTFLAG
+INCLUDEPATH += curveskel

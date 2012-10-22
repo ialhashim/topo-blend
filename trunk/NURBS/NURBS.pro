@@ -1,8 +1,6 @@
-CONFIG += starlab
-
-STARLAB_DEPENDS *= common
-STARLAB_DEPENDS *= ../../starlab/plugins-surfacemesh/surfacemesh
-
+load($$[STARLAB])
+load($$[SURFACEMESH])
+StarlabTemplate(plugin)
 
 TARGET = NURBS
 TEMPLATE = lib

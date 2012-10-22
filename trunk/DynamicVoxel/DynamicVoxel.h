@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SurfaceMeshModel.h"
-#include "NanoKdTree.h"
+#include "SurfaceMeshTypes.h"
 
 #include "Voxel.h"
 #include "../CustomDrawObjects.h"
@@ -39,7 +39,7 @@ public:
     Voxel minVoxel, maxVoxel;
 
 	struct QuadMesh{
-		std::vector<Vector3> points;
+        std::vector<SurfaceMeshTypes::Vector3> points;
 		std::vector<QuadFace> faces;
 		void clear() { points.clear(); faces.clear(); }
 	};

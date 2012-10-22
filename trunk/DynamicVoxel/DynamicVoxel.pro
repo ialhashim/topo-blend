@@ -1,9 +1,8 @@
-QT += opengl
-CONFIG += starlab
-
-STARLAB_DEPENDS *= common
-STARLAB_DEPENDS *= ../../starlab/plugins-surfacemesh/surfacemesh
-STARLAB_EXTERNAL += nanoflann eigen cholmod
+load($$[STARLAB])
+load($$[SURFACEMESH])
+load($$[CHOLMOD])
+load($$[EIGEN])
+StarlabTemplate(plugin)
 
 TARGET = DynamicVoxel
 TEMPLATE = lib
