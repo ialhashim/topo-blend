@@ -313,14 +313,6 @@ QVector<DynamicGraph> DynamicGraph::candidates(GraphState futureState)
 
 Structure::Graph * DynamicGraph::toStructureGraph()
 {
-	// Add nodes
-	foreach(Structure::Node * n, mGraph->nodes)
-		addNode( SingleProperty("original", n->id) );
-
-	// Add edges
-	foreach(Structure::Link e, mGraph->edges)
-		addEdge( nodeIndex("original", e.n1->id), nodeIndex("original", e.n2->id) );
-
 	Structure::Graph * graph = new Structure::Graph();
 	QMap<int,QString> nodeMap;
 
