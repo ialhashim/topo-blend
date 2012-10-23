@@ -339,7 +339,6 @@ void topoblend::experiment1()
 		if( diff.isZero() )
 		{
 			solutions.push_back(curr);
-			continue;
 		}
 		
 		// Add new candidates
