@@ -1,8 +1,6 @@
 TEMPLATE = subdirs
 CONFIG += ordered
 
-message($$INCLUDEPATH)
-
 # Libraries
 SUBDIRS += NURBS
 SUBDIRS += DynamicVoxel

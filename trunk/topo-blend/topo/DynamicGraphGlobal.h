@@ -61,6 +61,11 @@ struct GraphState
 		qDebug() << "  Type (sheet-sheet)  # " << numSheetEdges;
 	}
 
+	void printShort()
+	{
+		qDebug() << QString("[%1,%2,%3,%4,%5]").arg(numSheets).arg(numCurves).arg(numCurveEdges).arg(numMixedEdges).arg(numSheetEdges);
+	}
+
 	bool equal(const GraphState & other) {
 		return numSheets		== other.numSheets 
 			&& numCurves		== other.numCurves 
