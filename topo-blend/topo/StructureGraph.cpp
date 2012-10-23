@@ -193,7 +193,9 @@ void Graph::draw2D(int width, int height)
     // Embed structure graph to 2D screen plane
     if(!property["embeded2D"].toBool())
 	{
-        GraphEmbed::embed( this );
+        //GraphEmbed::embed( this );
+		GraphEmbed::circleEmbed( this );
+
 		fontImage = QImage(":/images/font.png");
 	}
 
@@ -509,7 +511,7 @@ Node *Graph::rootByValence()
     return nodes[maxIdx];
 }
 
-SurfaceMeshTypes::Vector3 Structure::Graph::nodeIntersection( Node * n1, Node * n2 )
+SurfaceMeshTypes::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 {
 	Scalar r = 0.1 * qMin(n1->bbox().size().length(), n2->bbox().size().length());
 
@@ -592,7 +594,7 @@ SurfaceMeshTypes::Vector3 Structure::Graph::nodeIntersection( Node * n1, Node * 
 	return (c1 + c2) / 2.0;
 }
 
-void Structure::Graph::printAdjacency()
+void Graph::printAdjacency()
 {
 	int n = nodes.size();
 
@@ -611,7 +613,7 @@ void Structure::Graph::printAdjacency()
 	qDebug() << "======";
 }
 
-int Structure::Graph::valence( Node * n )
+int Graph::valence( Node * n )
 {
 	int idx = nodes.indexOf(n);
 	return 0.5 * (adjacency.col(idx).sum() + adjacency.row(idx).sum());

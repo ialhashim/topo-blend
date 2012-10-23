@@ -34,6 +34,56 @@ struct GraphEmbed
         graph->property["embeded2D"] = true;
     }
 
+	static void sphereRandomEmbed( Structure::Graph * graph )
+	{
+		// Get nodes centers
+		QMap<int, Node*> nmap;
+		std::vector<Vector3> centers;
+		foreach(Node * n, graph->nodes)
+		{
+			nmap[nmap.size()] = n;
+
+			double u = uniform(-1,1);
+			double theta = uniform(0, 2 * M_PI);
+			Vector3 randomCenter(sqrt(1 - (u*u)) * cos(theta), sqrt(1 - (u*u)) * sin(theta), u);
+
+			centers.push_back( randomCenter );
+		}
+		int N = centers.size();
+
+		// PCA
+		Vector3 plane_center(0), plane_normal(0); Scalar plane_d = 0;
+		planePCA(centers, plane_center, plane_normal, plane_d);
+
+		// Project to PCA plane, to XY plane and assign back to node
+		for(int i = 0; i < N; i++)
+		{
+			Vector3 p = pointOnPlane( centers[i], plane_normal, plane_d );
+			nmap[i]->vis_property[NODE_CENTER] = QVector3D( RotateFromTo(plane_normal, Vector3(0,0,1), p, plane_center) );
+		}
+
+		graph->property["embeded2D"] = true;
+	}
+
+	static void circleEmbed( Structure::Graph * graph )
+	{
+		int N = graph->nodes.size();
+
+		double theta = (2 * M_PI) / N;
+
+		for(int i = 0; i < N; i++)
+		{
+			graph->nodes[i]->vis_property[NODE_CENTER] = QVector3D( cos(i * theta), sin(i * theta), 0 );
+		}
+
+		graph->property["embeded2D"] = true;
+	}
+
+	static double inline uniform(double a = 0.0, double b = 1.0){
+		double len = b - a;
+		return ((double)rand()/RAND_MAX) * len + a;
+	}
+
     static void planePCA(const std::vector<Vector3> & points, Vector3 & center, Vector3 & normal, Scalar & d)
     {
         int N = points.size();

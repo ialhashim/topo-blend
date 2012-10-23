@@ -1,6 +1,7 @@
 #include <QElapsedTimer>
 #include <QFileDialog>
 #include <QStack>
+#include <QQueue>
 
 #include "topo-blend.h"
 #include "StarlabMainWindow.h"
@@ -43,7 +44,7 @@ void topoblend::decorate()
 		if(graphs[g].edges.size() < 2) continue;
 
 		drawArea()->startScreenCoordinatesSystem();
-		graphs[g].draw2D(150,100);
+		graphs[g].draw2D(150,150);
 		drawArea()->stopScreenCoordinatesSystem();
 	}
 
@@ -313,28 +314,40 @@ void topoblend::experiment1()
 	diff.print();
 
 	QStack<DynamicGraph> stack;
+	//QQueue<DynamicGraph> queue;
 
 	// Initial set of candidates
-	foreach(DynamicGraph g, graph1.candidates(target.State())) stack.push(g);
+	foreach(DynamicGraph g, graph1.candidates(target.State())) 
+	{
+		stack.push(g);
+		//queue.enqueue(g);
+	}
 
 	QVector<DynamicGraph> solutions;
 
 	while(!stack.empty())
+	//while(!queue.empty())
 	{
 		DynamicGraph curr = stack.pop();
+		//DynamicGraph curr = queue.dequeue();
 
 		// Check against target
 		GraphState diff = curr.difference( target.State() );
+		diff.printShort();
+		qDebug() << "Stack size : " << stack.size();
+
 		if( diff.isZero() )
 		{
 			solutions.push_back(curr);
-			break;
+			continue;
 		}
 		
 		// Add new candidates
-		foreach( DynamicGraph g, curr.candidates( target.State() ) ) 
+		QVector<DynamicGraph> newCandidates = curr.candidates( target.State() );
+		foreach( DynamicGraph g, newCandidates ) 
 		{
 			stack.push(g);
+			//queue.enqueue(g);
 		}
 	}
 
