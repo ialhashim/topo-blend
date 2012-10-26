@@ -79,14 +79,30 @@ void Structure::Sheet::get( const Vector3& coordinates, Vector3 & pos, std::vect
 	surface.GetFrame(u, v, pos, frame[0], frame[1], frame[2]);
 }
 
-Vec2d Structure::Sheet::approxProjection( const Vector3 & pos )
+Vec2d Structure::Sheet::approxCoordinates( const Vector3 & pos )
 {
 	return surface.timeAt( pos );
+}
+
+SurfaceMeshTypes::Vector3 Structure::Sheet::approxProjection( const Vector3 & point )
+{
+	Vector3 pos(0);
+	Vec2d coords = approxCoordinates(point);
+	surface.Get(coords[0], coords[1], pos);
+	return pos;
 }
 
 std::vector< std::vector<Vector3> > Structure::Sheet::discretized(Scalar resolution)
 {
 	return surface.generateSurfaceTris( resolution );
+}
+
+Vector3 & Structure::Sheet::controlPoint( int idx )
+{
+	int u = 0;
+	int v = 0;
+
+	return surface.mCtrlPoint[u][v];
 }
 
 void Sheet::draw()

@@ -38,11 +38,12 @@ public:
 	void printNodeInfo(int index);
 	GraphState difference(GraphState & other);
 	operator GraphState() { return State(); }
+	QVector<int> valences(bool isPrint = false);
+	Structure::Graph * toStructureGraph();
 
 	// Graph edit
-	QVector<DynamicGraph> candidates(GraphState futureState);
-
-	Structure::Graph * toStructureGraph();
+	QVector<DynamicGraph> candidateNodes(DynamicGraph & targetGraph);
+	QVector<DynamicGraph> candidateEdges(DynamicGraph & targetGraph);
 
 public:
 

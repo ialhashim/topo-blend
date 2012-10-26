@@ -13,6 +13,10 @@
 
 #include "topo/DynamicGraph.h"
 
+// Temporary solution
+#include "surface_mesh/IO.h"
+#include "surface_mesh/IO_off.cpp"
+
 topoblend::topoblend(){
     widget = NULL;
 }
@@ -47,6 +51,22 @@ void topoblend::decorate()
 		graphs[g].draw2D(150,150);
 		drawArea()->stopScreenCoordinatesSystem();
 	}
+
+	// DEBUG:
+	glDisable(GL_LIGHTING);
+
+	// Points
+	glColor3d(1,0,0); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints) glVector3(v); glEnd();
+	glColor3d(0,1,0); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints2) glVector3(v); glEnd();
+	glColor3d(0,0,1); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints3) glVector3(v); glEnd();
+
+	// Lines
+	typedef QPair<Vector3,Vector3> MyLine;
+	glColor3d(1,0,0); glBegin(GL_LINES); foreach(MyLine l, debugLines) {glVector3(l.first);  glVector3(l.second);} glEnd();
+	glColor3d(0,1,0); glBegin(GL_LINES); foreach(MyLine l, debugLines2) {glVector3(l.first); glVector3(l.second);} glEnd();
+	glColor3d(0,0,1); glBegin(GL_LINES); foreach(MyLine l, debugLines3) {glVector3(l.first); glVector3(l.second);} glEnd();
+
+	glEnable(GL_LIGHTING);
 
     glColor3d(1,1,1);
     drawArea()->drawText(40,40, "TopoBlend mode.");
@@ -314,49 +334,181 @@ void topoblend::experiment1()
 	diff.print();
 
 	QStack<DynamicGraph> stack;
-	//QQueue<DynamicGraph> queue;
 
 	// Initial set of candidates
-	foreach(DynamicGraph g, graph1.candidates(target.State())) 
+	foreach(DynamicGraph g, graph1.candidateNodes(target)) 
 	{
 		stack.push(g);
-		//queue.enqueue(g);
 	}
 
-	QVector<DynamicGraph> solutions;
-
-	while(!stack.empty())
-	//while(!queue.empty())
+	QVector<DynamicGraph> node_solutions, final_solutions;
+	int candidateSeen = 0;
+	
+	// First solve node discrepancy problem
+	while( !stack.empty() )
 	{
 		DynamicGraph curr = stack.pop();
-		//DynamicGraph curr = queue.dequeue();
 
 		// Check against target
 		GraphState diff = curr.difference( target.State() );
-		diff.printShort();
-		qDebug() << "Stack size : " << stack.size();
 
-		if( diff.isZero() )
+		if( diff.isZeroNodes() )
 		{
-			solutions.push_back(curr);
+			node_solutions.push_back(curr);
 		}
 		
 		// Add new candidates
-		QVector<DynamicGraph> newCandidates = curr.candidates( target.State() );
+		QVector<DynamicGraph> newCandidates = curr.candidateNodes( target );
 		foreach( DynamicGraph g, newCandidates ) 
 		{
 			stack.push(g);
-			//queue.enqueue(g);
 		}
+
+		candidateSeen++;
 	}
 
 	// Print out solutions
-	qDebug() << "Solutions found = " << solutions.size();
+	qDebug() << "Node solutions found = " << node_solutions.size() << "\tSeen = " << candidateSeen;
 
-	if(solutions.size())
+	foreach(DynamicGraph g, node_solutions) 
 	{
-		solutions.front().printState();
-		graphs.push_back( *solutions.front().toStructureGraph() );
+		stack.push(g);
+	}
+	candidateSeen = 0;
+
+	// Now solve for remaining edges discrepancy
+	while( !stack.empty() )
+	{
+		DynamicGraph curr = stack.pop();
+
+		// Check against target
+		GraphState diff = curr.difference( target.State() );
+
+		if( diff.isZero() )
+		{
+			final_solutions.push_back(curr);
+		}
+
+		// Add new candidates
+		QVector<DynamicGraph> newCandidates = curr.candidateEdges( target );
+		foreach( DynamicGraph g, newCandidates ) 
+		{
+			stack.push(g);
+		}
+
+		candidateSeen++;
+	}
+
+	// Print solution stats
+	qDebug() << "Final solutions found = " << final_solutions.size() << "\tSeen = " << candidateSeen;
+
+	QVector<DynamicGraph> corresonding;
+	QVector<int> targetVale = target.valences();
+	int N = target.nodes.size();
+
+	foreach(DynamicGraph g, final_solutions)
+	{
+		QVector<int> currVale = g.valences();
+
+		bool similar = true;
+
+		for(int i = 0; i < N; i++)
+		{
+			if(currVale[i] != targetVale[i]) 
+			{
+				similar = false;
+				break;
+			}
+		}
+
+		if(similar)
+		{
+			corresonding.push_back(g);
+		}
+	}
+
+	// Print solution stats
+	qDebug() << "Corresponding solutions found = " << corresonding.size();
+
+	// At this point, corresonding graphs are still ambiguous 
+	// when different parts have same connections.
+	//
+	// Simplest approach is to try out and evaluate all valid combinations.
+
+	// For this test we pick a candidate and work on it
+	// g2 = original target
+	// g3 = new target
+
+	Structure::Graph g3 = *corresonding[2].toStructureGraph();
+
+	QVector<Vector3*> cpoint;
+	QVector<Vector3> deltas;
+
+	foreach(Structure::Link e, g3.edges)
+	{
+		Structure::Node * n1 = e.n1;
+		Structure::Node * n2 = e.n2;
+
+		Vector3 pos1(0),pos2(0);
+
+		n1->get(Vector3(e.coord[0][0], e.coord[0][1], 0), pos1);
+		n2->get(Vector3(e.coord[1][0], e.coord[1][1], 0), pos2);
+
+		double dist = (pos2-pos1).norm();
+
+		if(dist < 1e-6) continue;
+
+		// 1) Find end closest to any of two nodes		
+		double d1 = (pos1 - n1->approxProjection(pos2)).norm();
+		double d2 = (pos2 - n2->approxProjection(pos1)).norm();
+
+		Structure::Node * nn = (n1->type() == Structure::CURVE) ? n1: n2;
+		Structure::Curve * curve = (Structure::Curve *)nn;
+
+		// Find closest control point
+		double minDist = DBL_MAX;
+		int idx = 0;
+		for(int i = 0; i < curve->curve.mCtrlPoint.size(); i++)
+		{
+			double dist = (pos1 - curve->curve.mCtrlPoint[i]).norm();
+
+			if(dist < minDist){
+				minDist = dist;
+				idx = i;
+			}
+		}
+		
+		// Compute trajectory to closet on other node
+		cpoint.push_back(&curve->curve.mCtrlPoint[idx]);
+		deltas.push_back(pos1-pos2);
+	}
+
+	// Generate meshes
+	SurfaceMeshModel m;
+	g2->materialize(&m);
+	DynamicVoxel::LaplacianSmoothing(&m);
+	write_off(m, "target.off");
+
+	for(int i = 0; i < cpoint.size(); i++)
+	{
+		int steps = 6;
+		Vector3 delta = deltas[i] / steps;
+
+		for(int s = 0; s < steps; s++)
+		{
+			Vector3 & cp = *cpoint[i];
+
+			cp += delta;
+
+			SurfaceMeshModel m;
+			g3.materialize(&m);
+			DynamicVoxel::LaplacianSmoothing(&m);
+			
+			// output step
+			char buffer [50];
+			sprintf (buffer, "sequence_%d.off", (i * steps) + s);
+			write_off(m, buffer);
+		}
 	}
 
 	setSceneBounds();

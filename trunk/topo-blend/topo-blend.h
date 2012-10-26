@@ -29,6 +29,10 @@ private:
 
     QVector<Structure::Graph> graphs;
 
+	// DEBUG:
+	QVector< Vector3 > debugPoints,debugPoints2,debugPoints3;
+	QVector< QPair<Vector3,Vector3> > debugLines,debugLines2,debugLines3;
+
 public slots:
 	void setSceneBounds();
     void generateTwoChairModels();
