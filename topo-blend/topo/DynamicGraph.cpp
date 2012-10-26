@@ -209,108 +209,6 @@ GraphState DynamicGraph::difference( GraphState & other )
 	return diff;
 }
 
-QVector<DynamicGraph> DynamicGraph::candidates(GraphState futureState)
-{
-	QVector<DynamicGraph> candidate;
-
-	// Compute graph difference
-	GraphState diff = difference( futureState );
-
-	// Should return no candidates when they are exactly the same
-	if( diff.isZero() ) return candidate;
-
-	// Missing nodes: nodes have precedent
-	if(diff.numSheets != 0 || diff.numCurves != 0)
-	{
-		QVector<int> activeNodes;
-		bool isAdding = true;
-
-		// Sheets and curves: sheet have precedent
-		if(diff.numSheets != 0)
-		{
-			activeNodes = getSheets();
-			if(diff.numSheets > 0) isAdding = false;
-		}
-		else if(diff.numCurves != 0)
-		{
-			activeNodes = getCurves();
-			if(diff.numCurves > 0) isAdding = false;
-		}
-
-		// Generate candidates
-		foreach(int ci, activeNodes)
-		{
-			DynamicGraph g = clone();
-
-			if(isAdding)	
-				g.cloneNode(ci);
-			else
-				g.removeNode(ci);
-
-			candidate.push_back(g);
-		}
-	}
-
-	// Edges
-	else if(diff.numEdges() != 0)		// NOTICE: else-if, in order to generate gradual candidates
-	{
-		QVector<int> groupA, groupB;
-		QSet<SimpleEdge> exploredEdges;
-		bool isAdding = true;
-
-		// Add existing edges as explored
-		foreach(SimpleEdge e, edges)
-			exploredEdges.insert(e);
-
-		if(diff.numMixedEdges != 0)
-		{
-			// Curve-Sheet edges
-			if(diff.numMixedEdges > 0) isAdding = false;
-			groupA = getSheets();
-			groupB = getCurves();
-		}
-		else if(diff.numSheetEdges != 0)
-		{
-			// Sheet-Sheet edges
-			if(diff.numSheetEdges > 0) isAdding = false;
-			groupA = getSheets();
-			groupB = groupA;
-		}
-		else if(diff.numCurveEdges != 0)
-		{
-			// Curve-Curve edges
-			if(diff.numCurveEdges > 0) isAdding = false;
-			groupA = getCurves();
-			groupB = groupA;
-		}
-
-		// Permutations
-		foreach(int a, groupA)
-		{
-			foreach(int b, groupB)
-			{
-				SimpleEdge e(a, b);
-
-				// Uniqueness check:
-				if(a == b || exploredEdges.contains(e)) continue;
-				exploredEdges.insert(e);
-
-				// Add operation as a candidate graph
-				DynamicGraph g = clone();
-
-				if(isAdding)
-					g.addEdge(a, b);
-				else
-					g.removeEdge(a, b);
-
-				candidate.push_back(g);
-			}
-		}
-	}
-
-	return candidate;
-}
-
 Structure::Graph * DynamicGraph::toStructureGraph()
 {
 	Structure::Graph * graph = new Structure::Graph();
@@ -343,4 +241,171 @@ Structure::Graph * DynamicGraph::toStructureGraph()
 	}
 
 	return graph;
+}
+
+QVector<DynamicGraph> DynamicGraph::candidateNodes(DynamicGraph & targetGraph)
+{
+	QVector<DynamicGraph> candidate;
+	GraphState futureState = targetGraph.State();
+
+	// Compute graph difference
+	GraphState diff = difference( futureState );
+
+	// Should return no candidates when they are exactly the same
+	if( diff.isZero() ) return candidate;
+
+	QVector<int> activeNodes;
+	bool isAdding = true;
+	int discrepancy = 0;
+
+	// Missing nodes: nodes have precedent
+	if(diff.numSheets != 0 || diff.numCurves != 0)
+	{
+		// Sheets and curves: sheet have precedent
+		if(diff.numSheets != 0)
+		{
+			activeNodes = getSheets();
+			if(diff.numSheets > 0) isAdding = false;
+			discrepancy = abs(diff.numSheets);
+		}
+		else if(diff.numCurves != 0)
+		{
+			activeNodes = getCurves();
+			if(diff.numCurves > 0) isAdding = false;
+			discrepancy = abs(diff.numCurves);
+		}
+	}
+
+	if(activeNodes.size() < 1) return candidate;
+
+	// Try all sets of new edges of size
+	std::vector<int> nodesSet = activeNodes.toStdVector();
+	std::vector<int>::iterator begin = nodesSet.begin(), end = nodesSet.end();
+	do {
+		std::vector<int> currentSet (begin, begin + discrepancy);
+
+		// Add operation as a candidate graph
+		DynamicGraph g = clone();
+
+		foreach(int ci, currentSet)
+		{
+			if(isAdding)	
+				g.cloneNode(ci);
+			else
+				g.removeNode(ci);
+		}
+
+		candidate.push_back(g);
+
+	} while (next_combination(begin, begin + discrepancy, end));
+
+	return candidate;
+}
+
+QVector<DynamicGraph> DynamicGraph::candidateEdges(DynamicGraph & targetGraph)
+{
+	QVector<DynamicGraph> candidate;
+	GraphState futureState = targetGraph.State();
+
+	// Compute graph difference
+	GraphState diff = difference( futureState );
+
+	// Should return no candidates when they are exactly the same
+	if( diff.isZero() ) return candidate;
+
+	QVector<int> groupA, groupB;
+	QSet<SimpleEdge> exploredEdges;
+	bool isAdding = true;
+
+	int discrepancy = 0;
+
+	// Add existing edges as explored
+	foreach(SimpleEdge e, edges)
+		exploredEdges.insert(e);
+
+	if(diff.numMixedEdges != 0)
+	{
+		// Curve-Sheet edges
+		if(diff.numMixedEdges > 0) isAdding = false;
+		groupA = getSheets();
+		groupB = getCurves();
+		discrepancy = abs(diff.numMixedEdges);
+	}
+	else if(diff.numSheetEdges != 0)
+	{
+		// Sheet-Sheet edges
+		if(diff.numSheetEdges > 0) isAdding = false;
+		groupA = getSheets();
+		groupB = groupA;
+		discrepancy = abs(diff.numSheetEdges);
+	}
+	else if(diff.numCurveEdges != 0)
+	{
+		// Curve-Curve edges
+		if(diff.numCurveEdges > 0) isAdding = false;
+		groupA = getCurves();
+		groupB = groupA;
+		discrepancy = abs(diff.numCurveEdges);
+	}
+
+	// Find all possible new edges
+	QMap<int, SimpleEdge> uniqueEdges;
+	foreach(int a, groupA)
+	{
+		foreach(int b, groupB)
+		{
+			SimpleEdge e(a, b);
+
+			// Uniqueness check:
+			if(a == b || exploredEdges.contains(e)) continue;
+			exploredEdges.insert(e);
+
+			uniqueEdges[uniqueEdges.size()] = e;
+		}
+	}
+
+	// Try all sets of new edges of size
+	std::vector<int> uniqueEdgesIdx;
+	foreach(int key, uniqueEdges.keys()) uniqueEdgesIdx.push_back(key);
+
+	std::vector<int>::iterator begin = uniqueEdgesIdx.begin(), end = uniqueEdgesIdx.end();
+	do {
+		std::vector<int> currentSet (begin, begin + discrepancy);
+
+		// Add operation as a candidate graph
+		DynamicGraph g = clone();
+
+		foreach(int key, currentSet)
+		{
+			SimpleEdge e = uniqueEdges[key];
+
+			if(isAdding)
+				g.addEdge(e.n[0], e.n[1]);
+			else
+				g.removeEdge(e.n[0], e.n[1]);
+		}
+
+		candidate.push_back(g);
+
+	} while (next_combination(begin, begin + discrepancy, end));
+
+	return candidate;
+}
+
+QVector<int> DynamicGraph::valences(bool isPrint)
+{
+	QVector<int> vals;
+
+	foreach(int ni, nodes.keys())
+		vals.push_back( adjacency[ni].size() );
+
+	qSort(vals.begin(), vals.end());
+
+	if(isPrint){
+		QStringList vstr;
+		foreach(int v, vals) vstr << QString::number(v);
+		qDebug() << vstr;
+	}
+
+	return vals;
 }

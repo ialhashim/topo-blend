@@ -16,10 +16,12 @@ struct Node
 	virtual std::vector<int> controlCount() = 0;
 	virtual std::vector<Vector3> controlPoints() = 0;
 	virtual std::vector<Scalar> controlWeights() = 0;
+	virtual Vector3 & controlPoint(int idx) = 0;
 
 	// Coordinates
 	virtual void get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() ) = 0;
-	virtual Vec2d approxProjection( const Vector3 & pos ) = 0;
+	virtual Vec2d approxCoordinates( const Vector3 & pos ) = 0;
+	virtual Vector3 approxProjection( const Vector3 & point ) = 0;
 
 	virtual std::vector< std::vector<Vector3> > discretized(Scalar resolution) = 0;
 

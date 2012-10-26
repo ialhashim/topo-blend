@@ -56,15 +56,26 @@ void Structure::Curve::get( const Vector3& coordinates, Vector3 & pos, std::vect
 	curve.GetFrame(u, pos, frame[0], frame[1], frame[2]);
 }
 
-Vec2d Structure::Curve::approxProjection( const Vector3 & pos )
+Vec2d Structure::Curve::approxCoordinates( const Vector3 & pos )
 {
 	Scalar t = curve.timeAt( pos );
 	return Vec2d( t, 0 );
 }
 
+SurfaceMeshTypes::Vector3 Structure::Curve::approxProjection( const Vector3 & point )
+{
+	Vec2d coords = approxCoordinates(point);
+	return curve.GetPosition(coords[0]);
+}
+
 std::vector< std::vector<Vector3> > Structure::Curve::discretized(Scalar resolution)
 {
 	return curve.toSegments( resolution );
+}
+
+Vector3 & Structure::Curve::controlPoint( int idx )
+{
+	return curve.mCtrlPoint[idx];
 }
 
 void Curve::draw()

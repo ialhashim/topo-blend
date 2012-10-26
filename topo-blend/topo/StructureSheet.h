@@ -21,11 +21,14 @@ struct Sheet : public Node
 	std::vector<Vector3> controlPoints();
 	std::vector<Scalar> controlWeights();
 
+	Vector3 & controlPoint(int idx);
+
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
 
 	// Coordinates
 	void get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() );
-	Vec2d approxProjection( const Vector3 & pos );
+	Vec2d approxCoordinates( const Vector3 & pos );
+	Vector3 approxProjection( const Vector3 & point );
 
     // Connections
 

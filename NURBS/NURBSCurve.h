@@ -92,7 +92,7 @@ public:
 
 	Real timeAt(const Vector3 & pos);
 
-protected:
+public:
     // Replicate the necessary number of control points when the Create
     // function has loop equal to true, in which case the spline curve must
     // be a closed curve.

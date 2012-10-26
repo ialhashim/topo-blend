@@ -28,6 +28,12 @@ struct SimpleEdge{
 	bool hasNode(int node_index){
 		return n[0] == node_index || n[1] == node_index;
 	}
+	bool operator< (const SimpleEdge & other) const{
+		if(this->n[0] <= other.n[0] && this->n[1] < other.n[1]) 
+			return true;
+		else
+			return false;
+	}
 };
 
 static inline uint qHash( const SimpleEdge &key ){return (key.n[0] << 16) ^ key.n[1]; }
@@ -77,4 +83,47 @@ struct GraphState
 	bool isZero(){
 		return (numNodes() + numEdges()) == 0;
 	}
+
+	bool isZeroNodes(){
+		return numNodes() == 0;
+	}
 };
+
+template <typename Iterator>
+bool next_combination(const Iterator first, Iterator k, const Iterator last)
+{
+	/* Credits: Mark Nelson http://marknelson.us */
+	if ((first == last) || (first == k) || (last == k))
+		return false;
+	Iterator i1 = first;
+	Iterator i2 = last;
+	++i1;
+	if (last == i1)
+		return false;
+	i1 = last;
+	--i1;
+	i1 = k;
+	--i2;
+	while (first != i1)
+	{
+		if (*--i1 < *i2)
+		{
+			Iterator j = k;
+			while (!(*i1 < *j)) ++j;
+			std::iter_swap(i1,j);
+			++i1;
+			++j;
+			i2 = k;
+			std::rotate(i1,j,last);
+			while (last != j)
+			{
+				++j;
+				++i2;
+			}
+			std::rotate(k,i2,last);
+			return true;
+		}
+	}
+	std::rotate(first,k,last);
+	return false;
+}

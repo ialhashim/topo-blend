@@ -59,8 +59,8 @@ Link Graph::addEdge(Node *n1, Node *n2)
 
 	Vector3 intersectPoint = nodeIntersection(n1, n2);
 
-	Vec2d c1 = n1->approxProjection(intersectPoint);
-	Vec2d c2 = n2->approxProjection(intersectPoint);
+	Vec2d c1 = n1->approxCoordinates(intersectPoint);
+	Vec2d c2 = n2->approxCoordinates(intersectPoint);
 
     Link e( n1, n2, c1, c2, "none", linkName(n1, n2) );
     edges.push_back(e);
