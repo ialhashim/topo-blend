@@ -39,6 +39,7 @@ public:
 	GraphState difference(GraphState & other);
 	operator GraphState() { return State(); }
 	QVector<int> valences(bool isPrint = false);
+	bool sameValences(DynamicGraph & other);
 	Structure::Graph * toStructureGraph();
 
 	// Graph edit

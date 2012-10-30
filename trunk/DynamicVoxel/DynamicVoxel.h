@@ -39,7 +39,7 @@ public:
     Voxel minVoxel, maxVoxel;
 
 	struct QuadMesh{
-        std::vector<SurfaceMeshTypes::Vector3> points;
+        std::vector<SurfaceMeshTypes::Vector3> points, debug;
 		std::vector<QuadFace> faces;
 		void clear() { points.clear(); faces.clear(); }
 	};
@@ -49,6 +49,10 @@ public:
 	void buildMesh(SurfaceMeshModel * mesh, QuadMesh & m = QuadMesh());
 
 	// Mesh smoothing
-	static void MeanCurvatureFlow( SurfaceMeshModel * m, double dt = 0.5 );
+	static void MeanCurvatureFlow( SurfaceMeshModel *m, double dt = 0.5 );
 	static void LaplacianSmoothing( SurfaceMeshModel *m, bool protectBorders = false );
+
+	// Basic hole filling
+	static void FillHoles( SurfaceMeshModel *m, double voxel_length );
+	static bool hasHoles( SurfaceMeshModel *m );
 };
