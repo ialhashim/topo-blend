@@ -409,3 +409,16 @@ QVector<int> DynamicGraph::valences(bool isPrint)
 
 	return vals;
 }
+
+bool DynamicGraph::sameValences( DynamicGraph & other )
+{
+	QVector<int> myValence = valences();
+	QVector<int> otherValence = other.valences();
+
+	for(int i = 0; i < (int) myValence.size(); i++){
+		if(otherValence[i] != myValence[i])
+			return false;
+	}
+
+	return true;
+}

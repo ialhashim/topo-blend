@@ -15,7 +15,12 @@ class topo_blend_widget : public QWidget
 public:
     explicit topo_blend_widget(topoblend * topo_blend, QWidget *parent = 0);
     ~topo_blend_widget();
-    
+
+public slots:
+    void renderViewer();
+    void renderAnimation();
+    void loadAnimationModel();
+
 private:
     Ui::topo_blend_widget *ui;
     topoblend * tb;

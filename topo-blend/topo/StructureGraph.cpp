@@ -183,6 +183,15 @@ void Graph::draw()
 		glVector3(cached_mesh.points[f[3]]);
 	}
 	glEnd();
+
+
+	glDisable(GL_LIGHTING);
+	glPointSize(15);
+	glColor3d(1,1,0);
+	glBegin(GL_POINTS);
+	foreach(Vector3 p, cached_mesh.debug) glVector3(p);
+	glEnd();
+	glEnable(GL_LIGHTING);
 }
 
 void Graph::draw2D(int width, int height)
@@ -425,7 +434,7 @@ void Graph::materialize( SurfaceMeshModel * m )
 	QBox3D box = bbox();
 	QVector3D b = bbox().size();
 	Scalar avg = (b.x() + b.y() + b.z()) / 3.0;
-	Scalar voxel_size = avg / 50;
+	Scalar voxel_size = avg / 70;
 
 	DynamicVoxel vox( voxel_size );
 

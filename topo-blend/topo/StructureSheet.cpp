@@ -99,9 +99,9 @@ std::vector< std::vector<Vector3> > Structure::Sheet::discretized(Scalar resolut
 
 Vector3 & Structure::Sheet::controlPoint( int idx )
 {
+    // TODO: return actual point
 	int u = 0;
 	int v = 0;
-
 	return surface.mCtrlPoint[u][v];
 }
 

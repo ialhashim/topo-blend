@@ -3,8 +3,6 @@
 #include "DoubleTupleMap.h"
 #include "DynamicVoxel.h"
 
-#include "weld.h"
-
 #include <Eigen/Sparse>
 #include <Eigen/CholmodSupport>
 using namespace Eigen;
@@ -12,6 +10,9 @@ typedef CholmodSupernodalLLT< SparseMatrix<double> > CholmodSolver;
 #define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )
 
 using namespace SurfaceMeshTypes;
+
+#include "weld.h"
+#include "PolygonArea.h"
 
 DynamicVoxel::DynamicVoxel(double voxelSize){
 
@@ -323,7 +324,7 @@ void DynamicVoxel::end()
 	std::vector<size_t> xrefs;
 	weld(voxels, xrefs, std::hash<Voxel>(), std::equal_to<Voxel>());
 
-	qDebug() << "Weld test " << timer.elapsed() << " ms";
+    qDebug() << "Voxel weld operation " << timer.elapsed() << " ms";
 }
 
 void DynamicVoxel::buildMesh(SurfaceMeshModel * mesh, QuadMesh & m)
@@ -367,9 +368,7 @@ void DynamicVoxel::buildMesh(SurfaceMeshModel * mesh, QuadMesh & m)
 	// Count face center occurrences
 	std::vector<int> fcount(allFaceCenters.size(), 0);
 	for (int i = 0; i < (int)face_xrefs.size(); i++)
-	{
 		fcount[face_xrefs[i]]++;
-	}
 
 	// Find shell faces
 	QSet<int> vidxs;
@@ -378,7 +377,7 @@ void DynamicVoxel::buildMesh(SurfaceMeshModel * mesh, QuadMesh & m)
 		int fi = face_xrefs[i];
 
 		// Shells only exist once
-		if(fcount[fi] > 1) continue; 
+		if(fcount[fi] == 2) continue; 
 		
 		// Assign vertex to its unique id + add to a SET
 		for(int j = 0; j < 4; j++) 
@@ -426,6 +425,19 @@ void DynamicVoxel::buildMesh(SurfaceMeshModel * mesh, QuadMesh & m)
 			}
 			mesh->add_face( faceVerts );
 		}
+
+        // Handle non-manifold voxel configurations: very simplistic
+        if(m.faces.size() != mesh->n_faces())
+        {
+			int counter = 0;
+
+			while(hasHoles(mesh))
+			{
+				FillHoles(mesh, voxel_size);
+			
+				if(counter++ > 5) break;
+			}
+        }
 
 		qDebug() << "Final mesh creation: " << timer.elapsed();
 	}
@@ -555,4 +567,91 @@ void DynamicVoxel::LaplacianSmoothing(SurfaceMeshModel * m, bool protectBorders)
         points[vit] = newPositions[vit];
 
     m->remove_vertex_property(newPositions);
+}
+
+void DynamicVoxel::FillHoles( SurfaceMeshModel *mesh, double voxel_length )
+{
+	Vector3VertexProperty mesh_points = mesh->vertex_property<Vector3>(VPOINT);
+
+	// Find holes
+	QList<Halfedge> all_holes;
+	QVector<Halfedge> holes;
+
+	foreach(Halfedge h, mesh->halfedges())
+		if(mesh->is_boundary(h)) all_holes.push_back(h);
+
+	// Find representative halfedge for each hole
+	while(!all_holes.empty()){
+		Halfedge h = all_holes.first(), end = h;
+		all_holes.removeFirst();
+		holes.push_back(h);
+		do{
+			h = mesh->next_halfedge(h);
+			all_holes.removeAll(h);
+		} while (h != end);
+	}
+
+	// Find a good center for each hole
+	QVector<Vector3> hole_center;
+	foreach(Halfedge h, holes)
+	{
+		Halfedge end = h;
+
+		Vector3 sum(0);
+		std::vector<Vector3> pnts;
+		int c = 0;
+
+		do{ 
+			pnts.push_back(mesh_points[ mesh->to_vertex(h) ]); 
+			sum += pnts.back(); 
+			c++; 
+			h = mesh->next_halfedge(h); 
+		} while (h != end);
+
+		// Give it a nudge
+		Vector3 nudge(0);
+		findNormal3D(pnts, nudge);
+		nudge = nudge.normalize() * 0.5 * sqrt( voxel_length*voxel_length + voxel_length*voxel_length );
+
+		hole_center.push_back((sum / c) + nudge);
+	}
+
+	// Hole filling structure
+	QVector< std::vector<Vertex> > filler;
+	for(int i = 0; i < (int)holes.size(); i++)
+	{
+		Halfedge h = holes[i], end = h;
+		Vertex c = mesh->add_vertex( hole_center[i] );
+
+		do{ 
+			Vertex a = mesh->to_vertex(h);
+			Vertex b = mesh->from_vertex(h);
+			h = mesh->next_halfedge(h); 
+
+			std::vector<Vertex> triangle;
+
+			triangle.push_back(b);
+			triangle.push_back(a);
+			triangle.push_back(c);
+
+			filler.push_back(triangle);
+		} while (h != end);
+	}
+
+	// Close the holes
+	foreach(std::vector<Vertex> triangle, filler)
+		mesh->add_face(triangle);
+
+	// Clean up
+	foreach(Vertex v, mesh->vertices())	if(mesh->is_isolated(v)) mesh->remove_vertex(v);
+	mesh->garbage_collection();
+}
+
+bool DynamicVoxel::hasHoles( SurfaceMeshModel *m )
+{
+	foreach(Edge e, m->edges())
+		if(m->is_boundary(e))
+			return true;
+
+	return false;
 }

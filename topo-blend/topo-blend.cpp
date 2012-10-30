@@ -286,6 +286,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 			SurfaceMeshModel * m = new SurfaceMeshModel( QString("Voxel_%1.obj").arg(g), QString("Voxel_%1").arg(g) );
 			graphs[g].materialize(m);
 			DynamicVoxel::MeanCurvatureFlow(m, 0.05);
+			//DynamicVoxel::LaplacianSmoothing(m);
 
 			document()->pushBusy();
 			document()->addModel(m);
@@ -324,113 +325,31 @@ void topoblend::experiment1()
 	Structure::Graph * g1 = new Structure::Graph("simple_model1.xml");
 	Structure::Graph * g2 = new Structure::Graph("simple_model2.xml");
 
-	DynamicGraph graph1( g1 );
+	DynamicGraph source( g1 );
 	DynamicGraph target( g2 );
 
 	// Print states
-	graph1.printState();
+	source.printState();
 	target.printState();
-	GraphState diff = graph1.difference( target.State() );
+	GraphState diff = source.difference( target.State() );
 	diff.print();
 
-	QStack<DynamicGraph> stack;
-
-	// Initial set of candidates
-	foreach(DynamicGraph g, graph1.candidateNodes(target)) 
+	// Solve for nodes and edges discrepancy
+	QVector<DynamicGraph> candidates;
+	foreach( DynamicGraph gn, source.candidateNodes( target ) )
 	{
-		stack.push(g);
-	}
-
-	QVector<DynamicGraph> node_solutions, final_solutions;
-	int candidateSeen = 0;
-	
-	// First solve node discrepancy problem
-	while( !stack.empty() )
-	{
-		DynamicGraph curr = stack.pop();
-
-		// Check against target
-		GraphState diff = curr.difference( target.State() );
-
-		if( diff.isZeroNodes() )
+		foreach( DynamicGraph ge, gn.candidateEdges( target )  )
 		{
-			node_solutions.push_back(curr);
-		}
-		
-		// Add new candidates
-		QVector<DynamicGraph> newCandidates = curr.candidateNodes( target );
-		foreach( DynamicGraph g, newCandidates ) 
-		{
-			stack.push(g);
-		}
-
-		candidateSeen++;
-	}
-
-	// Print out solutions
-	qDebug() << "Node solutions found = " << node_solutions.size() << "\tSeen = " << candidateSeen;
-
-	foreach(DynamicGraph g, node_solutions) 
-	{
-		stack.push(g);
-	}
-	candidateSeen = 0;
-
-	// Now solve for remaining edges discrepancy
-	while( !stack.empty() )
-	{
-		DynamicGraph curr = stack.pop();
-
-		// Check against target
-		GraphState diff = curr.difference( target.State() );
-
-		if( diff.isZero() )
-		{
-			final_solutions.push_back(curr);
-		}
-
-		// Add new candidates
-		QVector<DynamicGraph> newCandidates = curr.candidateEdges( target );
-		foreach( DynamicGraph g, newCandidates ) 
-		{
-			stack.push(g);
-		}
-
-		candidateSeen++;
-	}
-
-	// Print solution stats
-	qDebug() << "Final solutions found = " << final_solutions.size() << "\tSeen = " << candidateSeen;
-
-	QVector<DynamicGraph> corresonding;
-	QVector<int> targetVale = target.valences();
-	int N = target.nodes.size();
-
-	foreach(DynamicGraph g, final_solutions)
-	{
-		QVector<int> currVale = g.valences();
-
-		bool similar = true;
-
-		for(int i = 0; i < N; i++)
-		{
-			if(currVale[i] != targetVale[i]) 
-			{
-				similar = false;
-				break;
-			}
-		}
-
-		if(similar)
-		{
-			corresonding.push_back(g);
+			// Consider corresponding in terms of [node count] + [edge count] + [valences]
+			if( ge.sameValences(target) ) 
+				candidates.push_back(ge);
 		}
 	}
 
-	// Print solution stats
-	qDebug() << "Corresponding solutions found = " << corresonding.size();
+	// Stats
+	qDebug() << "Candidates solutions found = " << candidates.size();
 
-	// At this point, corresonding graphs are still ambiguous 
+	// At this point, corresponding graphs are still ambiguous 
 	// when different parts have same connections.
 	//
 	// Simplest approach is to try out and evaluate all valid combinations.
@@ -439,10 +358,11 @@ void topoblend::experiment1()
 	// g2 = original target
 	// g3 = new target
 
-	Structure::Graph g3 = *corresonding[2].toStructureGraph();
+	Structure::Graph g3 = *candidates[3].toStructureGraph();
 
 	QVector<Vector3*> cpoint;
 	QVector<Vector3> deltas;
+	QVector<Structure::Curve*> curves;
 
 	foreach(Structure::Link e, g3.edges)
 	{
@@ -459,16 +379,13 @@ void topoblend::experiment1()
 		if(dist < 1e-6) continue;
 
 		// 1) Find end closest to any of two nodes		
-		double d1 = (pos1 - n1->approxProjection(pos2)).norm();
-		double d2 = (pos2 - n2->approxProjection(pos1)).norm();
-
 		Structure::Node * nn = (n1->type() == Structure::CURVE) ? n1: n2;
 		Structure::Curve * curve = (Structure::Curve *)nn;
 
 		// Find closest control point
 		double minDist = DBL_MAX;
 		int idx = 0;
-		for(int i = 0; i < curve->curve.mCtrlPoint.size(); i++)
+		for(int i = 0; i < (int)curve->curve.mCtrlPoint.size(); i++)
 		{
 			double dist = (pos1 - curve->curve.mCtrlPoint[i]).norm();
 
@@ -479,40 +396,58 @@ void topoblend::experiment1()
 		}
 		
 		// Compute trajectory to closet on other node
-		cpoint.push_back(&curve->curve.mCtrlPoint[idx]);
+		cpoint.push_back(&(curve->curve.mCtrlPoint[idx]));
 		deltas.push_back(pos1-pos2);
+		curves.push_back(curve);
 	}
 
 	// Generate meshes
 	SurfaceMeshModel m;
 	g2->materialize(&m);
-	DynamicVoxel::LaplacianSmoothing(&m);
-	write_off(m, "target.off");
+	DynamicVoxel::MeanCurvatureFlow(&m, 0.05);
+	write_off(m, "sequence_.off");
+
+	int NUM_STEPS = 10;
+	int NUM_SMOOTH_ITR = 3;
 
 	for(int i = 0; i < cpoint.size(); i++)
 	{
-		int steps = 6;
-		Vector3 delta = deltas[i] / steps;
+		Vector3 delta = deltas[i] / NUM_STEPS;
 
-		for(int s = 0; s < steps; s++)
+		for(int s = 0; s < NUM_STEPS; s++)
 		{
 			Vector3 & cp = *cpoint[i];
 
 			cp += delta;
 
-			SurfaceMeshModel m;
-			g3.materialize(&m);
-			DynamicVoxel::LaplacianSmoothing(&m);
-			
+			// Laplacian smoothing
+			for(int itr = 0; itr < NUM_SMOOTH_ITR; itr++)
+			{
+				QVector<Vector3> newCtrlPnts;
+				for (int j = 1; j < (int)curves[i]->curve.mCtrlPoint.size() - 1; j++)
+				{
+					newCtrlPnts.push_back( (curves[i]->curve.mCtrlPoint[j-1] + curves[i]->curve.mCtrlPoint[j+1]) / 2.0 );
+				}
+				for (int j = 1; j < curves[i]->curve.mCtrlPoint.size() - 1; j++)
+				{
+					curves[i]->curve.mCtrlPoint[j] = newCtrlPnts[j-1];
+				}
+			}
+
+			SurfaceMeshModel meshStep;
+			g3.materialize(&meshStep);
+			//DynamicVoxel::MeanCurvatureFlow(&meshStep, 0.05);
+			DynamicVoxel::LaplacianSmoothing(&meshStep);
+			DynamicVoxel::LaplacianSmoothing(&meshStep);
+
 			// output step
-			char buffer [50];
-			sprintf (buffer, "sequence_%d.off", (i * steps) + s);
-			write_off(m, buffer);
+			QString fileName = QString("sequence_%1.off").arg((i * NUM_STEPS) + s);
+            meshStep.triangulate();
+			write_off(meshStep, qPrintable(fileName));
 		}
 	}
 
 	setSceneBounds();
 }
-
 
 Q_EXPORT_PLUGIN(topoblend)
