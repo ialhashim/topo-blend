@@ -209,19 +209,28 @@ GraphState DynamicGraph::difference( GraphState & other )
 	return diff;
 }
 
-Structure::Graph * DynamicGraph::toStructureGraph()
+Structure::Graph * DynamicGraph::toStructureGraph(DynamicGraph & target)
 {
 	Structure::Graph * graph = new Structure::Graph();
 	QMap<int,QString> nodeMap;
 
-	int id = 0;
+	double score = 0;
+	QVector<QPairInt> corr = correspondence(target, score, true);
+	QMap<int,int> corrMap;
+	foreach(QPairInt p, corr) corrMap[p.first] = p.second;
 
+	// Add nodes
 	foreach(SimpleNode n, nodes)
 	{
+		int oldIdx = n.idx;
+		int newIdx = corrMap[n.idx];
+
+		QString oldId = nodes[oldIdx].property["original"];
+		QString nodeId = target.nodes[ newIdx ].property["original"];
+
 		if(nodeType(n.idx) == Structure::SHEET)
 		{
 			Structure::Sheet * s = (Structure::Sheet *) mGraph->getNode(n.property["original"]);
-			QString nodeId = QString("%1-%2").arg(s->id).arg(QString::number(id++));
 			graph->addNode( new Structure::Sheet(s->surface, nodeId) );
 			nodeMap[n.idx] = nodeId;
 		}
@@ -229,15 +238,27 @@ Structure::Graph * DynamicGraph::toStructureGraph()
 		if(nodeType(n.idx) == Structure::CURVE)
 		{
 			Structure::Curve * s = (Structure::Curve *) mGraph->getNode(n.property["original"]);
-			QString nodeId = QString("%1-%2").arg(s->id).arg(QString::number(id++));
 			graph->addNode( new Structure::Curve(s->curve, nodeId) );
 			nodeMap[n.idx] = nodeId;
 		}
 	}
 
-	foreach(SimpleEdge e, edges)
+	// Add edges
+	foreach(SimpleEdge e, target.edges)
 	{
-		graph->addEdge( nodeMap[ e.n[0] ], nodeMap[ e.n[1] ] );
+		QString id1 = target.nodes[e.n[0]].property["original"];
+		QString id2 = target.nodes[e.n[1]].property["original"];
+
+		Structure::Node *n1 = graph->getNode(id1), *n2 = graph->getNode(id2);
+
+		graph->addEdge( n1, n2, Vec2d(0), Vec2d(0), graph->linkName(n1, n2) );
+
+		// Copy edge coordinates
+		Structure::Link *fromEdge = target.mGraph->getEdge(id1, id2);
+		Structure::Link *toEdge = graph->getEdge(id1, id2);
+
+		toEdge->setCoord(id1, fromEdge->getCoord(id1));
+		toEdge->setCoord(id2, fromEdge->getCoord(id2));
 	}
 
 	return graph;
@@ -392,33 +413,126 @@ QVector<DynamicGraph> DynamicGraph::candidateEdges(DynamicGraph & targetGraph)
 	return candidate;
 }
 
-QVector<int> DynamicGraph::valences(bool isPrint)
+QVector< QPairInt > DynamicGraph::valences(bool isPrint)
 {
-	QVector<int> vals;
+	std::vector<int> vals;
+	std::vector<unsigned int> indx;
 
 	foreach(int ni, nodes.keys())
+	{
 		vals.push_back( adjacency[ni].size() );
+		indx.push_back( ni );
+	}
 
-	qSort(vals.begin(), vals.end());
+	// Sort by valence
+	paired_sort(indx, vals, true);
 
+	// DEBUG:
 	if(isPrint){
 		QStringList vstr;
 		foreach(int v, vals) vstr << QString::number(v);
 		qDebug() << vstr;
 	}
 
-	return vals;
+	QVector< QPairInt > valPair;
+
+	for(int i = 0; i < (int) vals.size(); i++)
+		valPair.push_back( qMakePair(vals[i], (int)indx[i]) );
+
+	return valPair;
 }
 
 bool DynamicGraph::sameValences( DynamicGraph & other )
 {
-	QVector<int> myValence = valences();
-	QVector<int> otherValence = other.valences();
+	QVector< QPairInt > myValence = valences();
+	QVector< QPairInt > otherValence = other.valences();
 
 	for(int i = 0; i < (int) myValence.size(); i++){
-		if(otherValence[i] != myValence[i])
+		if(otherValence[i].first != myValence[i].first)
 			return false;
 	}
 
 	return true;
 }
+
+QVector< QPairInt > DynamicGraph::correspondence( DynamicGraph & other, double & score, bool isPrint )
+{
+	QVector< QPairInt > corr;
+
+	QVector< QPairInt > vme = valences();
+	QVector< QPairInt > vother = other.valences();
+
+	// Build the set for the other graph
+	QMap< int, QList<int> > vset;
+
+	foreach(QPairInt p, vother)
+	{
+		vset[ p.first ].push_back( p.second );
+	}
+
+	if(isPrint) qDebug() << "Correspondence map:";
+
+	// Test correspondence score and assign to smallest
+	foreach(QPairInt p, vme)
+	{
+		int valence = p.first;
+		int nodeID = p.second;
+
+		QMap<double, int> scoreBoard;
+
+		QString n1_id = nodes[nodeID].property["original"];
+		Structure::Node * n1 = this->mGraph->getNode( n1_id );
+		Vector3 center1(0); n1->get(Vector3(0.5), center1);
+
+		// Test against possible corresponding nodes
+		foreach( int curID, vset[ valence ] )
+		{
+			QString n2_id = other.nodes[curID].property["original"];
+			Structure::Node * n2 = other.mGraph->getNode( n2_id );
+			Vector3 center2(0); n2->get(Vector3(0.5), center2);
+
+			double currScore = (center1 - center2).norm();
+
+			scoreBoard[ currScore ] = curID;
+		}
+
+		// Add minimum score to total
+		double minScore = scoreBoard.keys().first();
+		score += minScore;
+
+		int otherID = scoreBoard[ minScore ];
+		vset[ valence ].removeAll( otherID );
+
+		// Pair current node with minimum one
+		corr.push_back( qMakePair(nodeID, otherID) );
+
+		if(isPrint)
+			qDebug() << nodes[nodeID].property["original"] << " <--> " << other.nodes[otherID].property["original"];
+	}
+
+	if(isPrint) qDebug() << "===\n";
+
+	return corr;
+}
+
+/*
+void DynamicGraph::correspondTo( DynamicGraph & other )
+{
+	double score = 0;
+	QVector< QPairInt > corr = correspondence(other, score);
+
+	foreach( QPairInt p, corr )
+	{
+		int from = p.first;
+		int to = p.second;
+
+		if(from == to) continue;
+
+		// Swap
+		QString from_original = nodes[from].property["original"];
+		QString to_original = nodes[to].property["original"];
+
+		nodes[from].property["original"] = to_original;
+		nodes[to].property["original"] = from_original;
+	}
+}*/

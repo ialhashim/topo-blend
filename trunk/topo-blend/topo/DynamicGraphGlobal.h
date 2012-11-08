@@ -89,6 +89,7 @@ struct GraphState
 	}
 };
 
+// Generate subset combinations
 template <typename Iterator>
 bool next_combination(const Iterator first, Iterator k, const Iterator last)
 {
@@ -127,3 +128,40 @@ bool next_combination(const Iterator first, Iterator k, const Iterator last)
 	std::rotate(first,k,last);
 	return false;
 }
+
+// Generate all permutations of a vector
+static inline std::vector< std::vector<int> > all_permutation( std::vector<int> data )
+{
+	std::vector< std::vector<int> > result;
+	do { result.push_back( data ); } while ( next_permutation (data.begin(), data.end()) );
+	return result;
+}
+
+
+/** Sorts a vector and returns index of the sorted values
+ * \param Index Contains the index of sorted values in the original vector
+ * \param data The vector to be sorted
+ */
+template<class T>
+void paired_sort(std::vector<unsigned int> & Index, std::vector<T> & data, bool isReverse = false)
+{
+    // A vector of a pair which will contain the sorted value and its index in the original array
+    std::vector< pair<T,unsigned int> > IndexedPair;
+    IndexedPair.resize(data.size());
+    for(unsigned int i=0;i<IndexedPair.size();++i)
+    {
+        IndexedPair[i].first = data[i];
+        IndexedPair[i].second = i;
+    }
+    std::sort(IndexedPair.begin(),IndexedPair.end());
+    Index.resize(data.size());
+    for(size_t i = 0; i < Index.size(); ++i) Index[i] = IndexedPair[i].second;
+	for(size_t i = 0; i < Index.size(); ++i) data[i] = IndexedPair[i].first;
+
+	if(isReverse){
+		std::reverse(Index.begin(), Index.end());
+		std::reverse(data.begin(), data.end());
+	}
+}
+
+typedef QPair<int,int> QPairInt;

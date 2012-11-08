@@ -18,27 +18,27 @@
 #include "surface_mesh/IO_off.cpp"
 
 topoblend::topoblend(){
-    widget = NULL;
+	widget = NULL;
 }
 
 void topoblend::create()
 {
-    if(!widget)
-    {
-        ModePluginDockWidget * dockwidget = new ModePluginDockWidget(mainWindow());
-        widget = new topo_blend_widget(this);
-        dockwidget->setWidget(widget);
-        dockwidget->setWindowTitle(widget->windowTitle());
-        mainWindow()->addDockWidget(Qt::RightDockWidgetArea,dockwidget);
-    }
+	if(!widget)
+	{
+		ModePluginDockWidget * dockwidget = new ModePluginDockWidget(mainWindow());
+		widget = new topo_blend_widget(this);
+		dockwidget->setWidget(widget);
+		dockwidget->setWindowTitle(widget->windowTitle());
+		mainWindow()->addDockWidget(Qt::RightDockWidgetArea,dockwidget);
+	}
 }
 
 void topoblend::decorate()
 {
 	// 3D visualization
-    for(int g = 0; g < (int) graphs.size(); g++)
+	for(int g = 0; g < (int) graphs.size(); g++)
 	{
-        graphs[g].draw();
+		graphs[g].draw();
 	}
 
 	// 2D view
@@ -68,17 +68,17 @@ void topoblend::decorate()
 
 	glEnable(GL_LIGHTING);
 
-    glColor3d(1,1,1);
-    drawArea()->drawText(40,40, "TopoBlend mode.");
+	glColor3d(1,1,1);
+	drawArea()->drawText(40,40, "TopoBlend mode.");
 }
 
 void topoblend::generateTwoChairModels()
 {
 	QElapsedTimer assembleTimer; assembleTimer.start(); 
 
-    Structure::Graph chair1, chair2;
+	Structure::Graph chair1, chair2;
 
-    NURBSRectangle backSheet = NURBSRectangle::createSheet(2,1, Vector3(0,-0.5,2));
+	NURBSRectangle backSheet = NURBSRectangle::createSheet(2,1, Vector3(0,-0.5,2));
 	NURBSRectangle seatSheet = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
 	NURBSCurve backLeft = NURBSCurve::createCurve(Vector3(-0.9,0,0), Vector3(-0.9,-0.5,1.5));
 	NURBSCurve backRight = NURBSCurve::createCurve(Vector3(0.9,0,0), Vector3(0.9,-0.5,1.5));
@@ -90,7 +90,7 @@ void topoblend::generateTwoChairModels()
 	NURBSCurve backLegRight = NURBSCurve::createCurve(Vector3(1,0.25,0), Vector3(1,0,-2));
 
 	// Chair 1
-    chair1.addNode( new Structure::Sheet(backSheet, "BackSheet") );
+	chair1.addNode( new Structure::Sheet(backSheet, "BackSheet") );
 	chair1.addNode( new Structure::Curve(backLeft, "BackLeft") );
 	chair1.addNode( new Structure::Curve(backRight, "BackRight") );
 	chair1.addNode( new Structure::Sheet(seatSheet, "SeatSheet") );
@@ -140,10 +140,10 @@ void topoblend::generateTwoChairModels()
 	// Save to file
 	chair1.saveToFile("chair1.xml");
 	chair2.saveToFile("chair2.xml");
-	
+
 	//graphs.push_back(chair1);
 	//graphs.push_back(chair2);
-	
+
 	qDebug() << "Chairs structure graphs construction " << assembleTimer.elapsed() << " ms.";
 
 	setSceneBounds();
@@ -252,9 +252,9 @@ void topoblend::loadModel()
 
 void topoblend::doBlend()
 {
-    Structure::TopoBlender blender( &graphs.front(), &graphs.last() );
+	Structure::TopoBlender blender( &graphs.front(), &graphs.last() );
 
-    graphs.push_back( blender.blend() );
+	graphs.push_back( blender.blend() );
 
 	setSceneBounds();
 }
@@ -322,8 +322,11 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 void topoblend::experiment1()
 {
-	Structure::Graph * g1 = new Structure::Graph("simple_model1.xml");
-	Structure::Graph * g2 = new Structure::Graph("simple_model2.xml");
+	//Structure::Graph * g1 = new Structure::Graph("simple_model1.xml");
+	//Structure::Graph * g2 = new Structure::Graph("simple_model2.xml");
+
+	Structure::Graph * g1 = new Structure::Graph("chair1.xml");
+	Structure::Graph * g2 = new Structure::Graph("chair2.xml");
 
 	DynamicGraph source( g1 );
 	DynamicGraph target( g2 );
@@ -349,102 +352,123 @@ void topoblend::experiment1()
 	// Stats
 	qDebug() << "Candidates solutions found = " << candidates.size();
 
-	// At this point, corresponding graphs are still ambiguous 
-	// when different parts have same connections.
-	//
-	// Simplest approach is to try out and evaluate all valid combinations.
+	// Correspondence
+	QMap< double, int > scores;
+	double minScore = DBL_MAX;
+	
+	int N = candidates.size();
 
-	// For this test we pick a candidate and work on it
-	// g2 = original target
-	// g3 = new target
+	for(int i = 0; i < N; i++)
+	{
+		double score = 0;
+		target.correspondence( candidates[i], score );
 
-	Structure::Graph g3 = *candidates[3].toStructureGraph();
+		minScore = qMin(score, minScore);
+		scores[ score ] = i; 
+	}
 
-	QVector<Vector3*> cpoint;
+	DynamicGraph & best = candidates[ scores[ minScore ] ];
+
+	Structure::Graph g3 = *best.toStructureGraph( target );
+
+	QVector<int> cpointIdx;
 	QVector<Vector3> deltas;
 	QVector<Structure::Curve*> curves;
 
-	foreach(Structure::Link e, g3.edges)
+	for(int ei = 0; ei < g3.edges.size(); ei++)
 	{
+		Structure::Link & e = g3.edges[ei];
+
 		Structure::Node * n1 = e.n1;
 		Structure::Node * n2 = e.n2;
 
-		Vector3 pos1(0),pos2(0);
+		Vec2d c1 = e.coord[0];
+		Vec2d c2 = e.coord[1];
 
-		n1->get(Vector3(e.coord[0][0], e.coord[0][1], 0), pos1);
-		n2->get(Vector3(e.coord[1][0], e.coord[1][1], 0), pos2);
+		Vector3 pos1(0), pos2(0);
+		n1->get(coord3(c1), pos1);
+		n2->get(coord3(c2), pos2);
 
-		double dist = (pos2-pos1).norm();
+		double dist = (pos2 - pos1).norm();
 
+		// Check disconnected edge
 		if(dist < 1e-6) continue;
 
-		// 1) Find end closest to any of two nodes		
-		Structure::Node * nn = (n1->type() == Structure::CURVE) ? n1: n2;
-		Structure::Curve * curve = (Structure::Curve *)nn;
+		// Get the curve in this link
+		Structure::Curve * curve = g3.getCurve(&e);
 
-		// Find closest control point
-		double minDist = DBL_MAX;
-		int idx = 0;
-		for(int i = 0; i < (int)curve->curve.mCtrlPoint.size(); i++)
+		Vector3 fixed = n1 == curve ? pos2 : pos1;
+
+		// Check if we need to swap ends
 		{
-			double dist = (pos1 - curve->curve.mCtrlPoint[i]).norm();
+			Vec2d origCoord = n1 == curve ? c1 : c2;
 
-			if(dist < minDist){
-				minDist = dist;
-				idx = i;
-			}
+			Vec2d invCoord = inverseCoord(origCoord);
+			Vector3 invPos(0);
+			curve->get(coord3(invCoord), invPos);
+
+			double dist_inv = (invPos - fixed).norm();
+
+			// Swap coordinates for bad orientations
+			if(dist_inv < dist)
+				e.setCoord( curve->id, invCoord );
 		}
-		
+
+		// Control point to move
+		Vec2d curveCoord = e.getCoord(curve->id);
+		int cpIdx = curve->controlPointIndexFromCoord( curveCoord );
+
 		// Compute trajectory to closet on other node
-		cpoint.push_back(&(curve->curve.mCtrlPoint[idx]));
-		deltas.push_back(pos1-pos2);
-		curves.push_back(curve);
+		cpointIdx.push_back( cpIdx );
+		curves.push_back( curve );
+		deltas.push_back( fixed - curve->controlPoint( cpIdx ) );
 	}
 
-	// Generate meshes
-	SurfaceMeshModel m;
-	g2->materialize(&m);
-	DynamicVoxel::MeanCurvatureFlow(&m, 0.05);
-	write_off(m, "sequence_.off");
+	// Generate target mesh
+	//SurfaceMeshModel m;
+	//g2->materialize(&m);
+	//DynamicVoxel::MeanCurvatureFlow(&m, 0.05);
+	//write_off(m, "sequence_.off");
 
-	int NUM_STEPS = 10;
+	int NUM_STEPS = 30;
 	int NUM_SMOOTH_ITR = 3;
 
-	for(int i = 0; i < cpoint.size(); i++)
+	for(int s = 0; s < NUM_STEPS; s++)
 	{
-		Vector3 delta = deltas[i] / NUM_STEPS;
-
-		for(int s = 0; s < NUM_STEPS; s++)
+		for(int i = 0; i < (int)cpointIdx.size(); i++)
 		{
-			Vector3 & cp = *cpoint[i];
+			std::vector<Vector3> & cpnts = curves[i]->curve.mCtrlPoint;
 
+			Vector3 & cp = cpnts[ cpointIdx[i] ];
+			Vector3 delta = deltas[i] / NUM_STEPS;
 			cp += delta;
 
 			// Laplacian smoothing
 			for(int itr = 0; itr < NUM_SMOOTH_ITR; itr++)
 			{
 				QVector<Vector3> newCtrlPnts;
-				for (int j = 1; j < (int)curves[i]->curve.mCtrlPoint.size() - 1; j++)
-				{
-					newCtrlPnts.push_back( (curves[i]->curve.mCtrlPoint[j-1] + curves[i]->curve.mCtrlPoint[j+1]) / 2.0 );
-				}
-				for (int j = 1; j < curves[i]->curve.mCtrlPoint.size() - 1; j++)
-				{
-					curves[i]->curve.mCtrlPoint[j] = newCtrlPnts[j-1];
-				}
+
+				for (int j = 1; j < (int)cpnts.size() - 1; j++)
+					newCtrlPnts.push_back( (cpnts[j-1] + cpnts[j+1]) / 2.0 );
+
+				for (int j = 1; j < (int)cpnts.size() - 1; j++)
+					cpnts[j] = newCtrlPnts[j-1];
 			}
-
-			SurfaceMeshModel meshStep;
-			g3.materialize(&meshStep);
-			//DynamicVoxel::MeanCurvatureFlow(&meshStep, 0.05);
-			DynamicVoxel::LaplacianSmoothing(&meshStep);
-			DynamicVoxel::LaplacianSmoothing(&meshStep);
-
-			// output step
-			QString fileName = QString("sequence_%1.off").arg((i * NUM_STEPS) + s);
-            meshStep.triangulate();
-			write_off(meshStep, qPrintable(fileName));
 		}
+
+		SurfaceMeshModel meshStep;
+		g3.materialize(&meshStep);
+		//DynamicVoxel::MeanCurvatureFlow(&meshStep, 0.05);
+		DynamicVoxel::LaplacianSmoothing(&meshStep);
+		DynamicVoxel::LaplacianSmoothing(&meshStep);
+
+		// output step
+		QString sequence_num;
+		sequence_num.sprintf("%02d", s);
+
+		QString fileName = QString("sequence_%1.off").arg(sequence_num);
+		meshStep.triangulate();
+		write_off(meshStep, qPrintable(fileName));
 	}
 
 	setSceneBounds();

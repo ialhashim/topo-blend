@@ -126,6 +126,22 @@ Node *Graph::getNode(QString nodeID)
     return NULL;
 }
 
+Link *Graph::getEdge(QString id1, QString id2)
+{
+	for(int i = 0; i < (int)edges.size(); i++)
+	{
+		Link & e = edges[i];
+
+		QString nid1 = e.n1->id;
+		QString nid2 = e.n2->id;
+
+		if( (nid1 == id1 && nid2 == id2) || (nid1 == id2 && nid2 == id1))
+			return &e;
+	}
+	
+	return NULL;
+}
+
 void Graph::draw()
 {
     foreach(Node * n, nodes)
@@ -626,4 +642,10 @@ int Graph::valence( Node * n )
 {
 	int idx = nodes.indexOf(n);
 	return 0.5 * (adjacency.col(idx).sum() + adjacency.row(idx).sum());
+}
+
+Structure::Curve* Graph::getCurve( Link * l )
+{
+	Structure::Node *n1 = l->n1, *n2 = l->n2;
+	return (Structure::Curve *) ((n1->type() == Structure::CURVE) ? n1: n2);
 }

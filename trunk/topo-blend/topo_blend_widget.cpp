@@ -47,15 +47,29 @@ void topo_blend_widget::renderViewer()
 
 void topo_blend_widget::renderAnimation()
 {
-    QString filename = cur_filename;
-    filename = filename.replace("0","%1");
+	QStringList filters, files;
+	filters << "*.obj" << "*.off";
+	files = QDir(".").entryList(filters);
 
-    for(int i = 0; i < 12; i++)
-    {
-        viewer->m->load(filename.arg(i));
-        viewer->updateGL();
-        viewer->saveSnapshot(filename.arg(i) + ".png");
-    }
+	int nframes = 0;
+
+	foreach(QString filename, files)
+	{
+		QString prefix = QFileInfo(cur_filename).baseName();
+
+		if(!filename.startsWith(prefix.mid(0,3))) continue;
+
+		viewer->m->load(filename);
+		viewer->updateGL();
+		viewer->saveSnapshot(filename + ".png");
+
+		nframes++;
+	}
+
+	// Generate GIF using ImageMagick
+	system(qPrintable( QString("convert	-delay %1	-loop 0		seq*.png	animation.gif").arg( nframes / 20 ) ));
+
+	viewer->setFocus();
 }
 
 void topo_blend_widget::loadAnimationModel()
@@ -63,4 +77,5 @@ void topo_blend_widget::loadAnimationModel()
     viewer->m = new QuickMesh;
     cur_filename = QFileDialog::getOpenFileName(this, tr("Open Mesh"), "", tr("Mesh Files (*.obj *.off)"));
     viewer->m->load(cur_filename);
+	viewer->setFocus();
 }
