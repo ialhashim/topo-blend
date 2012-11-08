@@ -24,3 +24,8 @@ static inline Vector3 orthogonalVector(const Vector3& n) {
 }
 
 #define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )
+
+// Coordinates
+static inline Vec2d inverseCoord(const Vec2d& c)	{ return Vec2d(1 - c.x(), 1 - c.y()); }
+static inline Vector3 coord3(const Vec2d& c)		{ return Vector3(c.x(), c.y(), 0); }
+static inline Vector3 inverseCoord3(const Vec2d& c) { return coord3(inverseCoord(c)); }

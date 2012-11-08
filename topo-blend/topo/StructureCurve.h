@@ -21,7 +21,9 @@ struct Curve : public Node
 	std::vector<Vector3> controlPoints();
 	std::vector<Scalar> controlWeights();
 
-	Vector3 & controlPoint(int idx);
+	Vector3 & controlPoint( int idx );
+	Vector3 & controlPointFromCoord( Vec2d coord );
+	int controlPointIndexFromCoord( Vec2d coord );
 
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
 

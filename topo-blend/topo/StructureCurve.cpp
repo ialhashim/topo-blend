@@ -46,7 +46,7 @@ std::vector<Scalar> Curve::controlWeights()
 	return curve.getControlWeights();
 }
 
-void Structure::Curve::get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3> & frame )
+void Curve::get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3> & frame )
 {
 	double u = coordinates[0];
 	Vector3 der1(0);
@@ -56,26 +56,51 @@ void Structure::Curve::get( const Vector3& coordinates, Vector3 & pos, std::vect
 	curve.GetFrame(u, pos, frame[0], frame[1], frame[2]);
 }
 
-Vec2d Structure::Curve::approxCoordinates( const Vector3 & pos )
+Vec2d Curve::approxCoordinates( const Vector3 & pos )
 {
 	Scalar t = curve.timeAt( pos );
 	return Vec2d( t, 0 );
 }
 
-SurfaceMeshTypes::Vector3 Structure::Curve::approxProjection( const Vector3 & point )
+SurfaceMeshTypes::Vector3 Curve::approxProjection( const Vector3 & point )
 {
 	Vec2d coords = approxCoordinates(point);
 	return curve.GetPosition(coords[0]);
 }
 
-std::vector< std::vector<Vector3> > Structure::Curve::discretized(Scalar resolution)
+std::vector< std::vector<Vector3> > Curve::discretized(Scalar resolution)
 {
 	return curve.toSegments( resolution );
 }
 
-Vector3 & Structure::Curve::controlPoint( int idx )
+Vector3 & Curve::controlPoint( int idx )
 {
 	return curve.mCtrlPoint[idx];
+}
+
+int Curve::controlPointIndexFromCoord( Vec2d coord )
+{
+	// Get point at these coordinates
+	Vector3 pos(0); curve.Get(coord[0], &pos, 0,0,0);
+
+	int minIdx = 0;
+	double minDist = DBL_MAX;
+
+	for(int i = 0; i < (int) curve.mCtrlPoint.size(); i++){
+		Vector3 & cp = curve.mCtrlPoint[i];
+		double dist = (pos - cp).norm();
+		if(dist < minDist){
+			minDist = dist;
+			minIdx = i;
+		}
+	}
+
+	return minIdx;
+}
+
+Vector3 & Curve::controlPointFromCoord( Vec2d coord )
+{
+	return curve.mCtrlPoint[controlPointIndexFromCoord( coord )];
 }
 
 void Curve::draw()

@@ -1,7 +1,28 @@
 #include "StructureLink.h"
 #include "StructureNode.h"
 
-void Structure::Link::draw()
+using namespace Structure;
+
+void Link::setCoord( QString nodeID, Vec2d newCoord )
+{
+	if(n1->id == nodeID) coord[0] = newCoord;
+	if(n2->id == nodeID) coord[1] = newCoord;
+}
+
+Vec2d Link::getCoord( QString nodeID )
+{
+	if(n1->id == nodeID) return coord[0];
+	if(n2->id == nodeID) return coord[1];
+	return Vec2d(DBL_MAX);
+}
+
+Node * Link::otherNode( QString nodeID )
+{
+	if(n1->id == nodeID) return n2;
+	else return n1;
+}
+
+void Link::draw()
 {
 	std::vector<Vector3> pos(2, Vector3(0));
 

@@ -38,9 +38,15 @@ public:
 	void printNodeInfo(int index);
 	GraphState difference(GraphState & other);
 	operator GraphState() { return State(); }
-	QVector<int> valences(bool isPrint = false);
-	bool sameValences(DynamicGraph & other);
-	Structure::Graph * toStructureGraph();
+
+	// Valence based operations
+	QVector< QPairInt > DynamicGraph::valences(bool isPrint = false);
+	bool sameValences( DynamicGraph & other );
+	QVector< QPairInt > DynamicGraph::correspondence( DynamicGraph & other, double & score, bool isPrint = false );
+	//void correspondTo( DynamicGraph & other );
+
+	// Generate structure graph
+	Structure::Graph * toStructureGraph(DynamicGraph & target);
 
 	// Graph edit
 	QVector<DynamicGraph> candidateNodes(DynamicGraph & targetGraph);

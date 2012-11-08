@@ -18,7 +18,11 @@ struct Link
     QMap< QString, QVariant > property;
 
 	Vec2d coord[2];
-	
+
+	void setCoord(QString nodeID, Vec2d newCoord);
+	Vec2d getCoord(QString nodeID);
+	Node * otherNode(QString nodeID);
+
 	// Constructors
     Link(Node * node1, Node * node2, Vec2d coord_n1, Vec2d coord_n2, QString link_type, QString ID)
 	{

@@ -36,7 +36,9 @@ struct Graph
 
     // Accessors
     Node* getNode(QString nodeID);
+	Link *getEdge(QString id1, QString id2);
 	Vector3 nodeIntersection( Node * n1, Node * n2 );
+	Curve* getCurve(Link * l);
 	
 	// Input / Output
 	void saveToFile(QString fileName);
