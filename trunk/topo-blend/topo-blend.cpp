@@ -76,7 +76,7 @@ void topoblend::generateTwoChairModels()
 {
 	QElapsedTimer assembleTimer; assembleTimer.start(); 
 
-	Structure::Graph chair1, chair2;
+	Structure::Graph chair1, chair2, chair3;
 
 	NURBSRectangle backSheet = NURBSRectangle::createSheet(2,1, Vector3(0,-0.5,2));
 	NURBSRectangle seatSheet = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
@@ -88,6 +88,8 @@ void topoblend::generateTwoChairModels()
 	NURBSCurve frontLegRight = NURBSCurve::createCurve(Vector3(1,1.75,0), Vector3(1,1.9,-2));
 	NURBSCurve backLegLeft = NURBSCurve::createCurve(Vector3(-1,0.25,0), Vector3(-1,0,-2));
 	NURBSCurve backLegRight = NURBSCurve::createCurve(Vector3(1,0.25,0), Vector3(1,0,-2));
+	NURBSCurve backTop = NURBSCurve::createCurve(Vector3(-0.9,-0.3345,1), Vector3(0.9,-0.3345,1));
+	NURBSCurve backBottom = NURBSCurve::createCurve(Vector3(-0.9,-0.171,0.5), Vector3(0.9,-0.171,0.5));
 
 	// Chair 1
 	chair1.addNode( new Structure::Sheet(backSheet, "BackSheet") );
@@ -111,6 +113,18 @@ void topoblend::generateTwoChairModels()
 	chair2.addNode( new Structure::Curve(backLegLeft, "BackLegLeft") );
 	chair2.addNode( new Structure::Curve(backLegRight, "BackLegRight") );
 
+	// Chair 3
+	chair3.addNode( new Structure::Sheet(backSheet, "BackSheet") );
+	chair3.addNode( new Structure::Curve(backLeft, "BackLeft") );
+	chair3.addNode( new Structure::Curve(backRight, "BackRight") );
+	chair3.addNode( new Structure::Sheet(seatSheet, "SeatSheet") );
+	chair3.addNode( new Structure::Curve(frontLegLeft, "FrontLegLeft") );
+	chair3.addNode( new Structure::Curve(frontLegRight, "FrontLegRight") );
+	chair3.addNode( new Structure::Curve(backLegLeft, "BackLegLeft") );
+	chair3.addNode( new Structure::Curve(backLegRight, "BackLegRight") );
+	chair3.addNode( new Structure::Curve(backTop, "BackTop") );
+	chair3.addNode( new Structure::Curve(backBottom, "BackBottom") );
+
 	// Add edges chair 1
 	chair1.addEdge( chair1.getNode("BackSheet"), chair1.getNode("BackLeft") );
 	chair1.addEdge( chair1.getNode("BackSheet"), chair1.getNode("BackRight") );
@@ -126,20 +140,34 @@ void topoblend::generateTwoChairModels()
 	chair2.addEdge( chair2.getNode("BackSheet"), chair2.getNode("BackRight") );
 	chair2.addEdge( chair2.getNode("SeatSheet"), chair2.getNode("BackLeft") );
 	chair2.addEdge( chair2.getNode("SeatSheet"), chair2.getNode("BackRight") );
-
 	chair2.addEdge( chair2.getNode("BackSheet"), chair2.getNode("BackLeft2") );
 	chair2.addEdge( chair2.getNode("BackSheet"), chair2.getNode("BackRight2") );
 	chair2.addEdge( chair2.getNode("SeatSheet"), chair2.getNode("BackLeft2") );
 	chair2.addEdge( chair2.getNode("SeatSheet"), chair2.getNode("BackRight2") );
-
 	chair2.addEdge( chair2.getNode("SeatSheet"), chair2.getNode("FrontLegLeft") );
 	chair2.addEdge( chair2.getNode("SeatSheet"), chair2.getNode("FrontLegRight") );
 	chair2.addEdge( chair2.getNode("SeatSheet"), chair2.getNode("BackLegLeft") );
 	chair2.addEdge( chair2.getNode("SeatSheet"), chair2.getNode("BackLegRight") );
 
+	// Add edges chair 3
+	chair3.addEdge( chair3.getNode("BackSheet"), chair3.getNode("BackLeft") );
+	chair3.addEdge( chair3.getNode("BackSheet"), chair3.getNode("BackRight") );
+	chair3.addEdge( chair3.getNode("SeatSheet"), chair3.getNode("BackLeft") );
+	chair3.addEdge( chair3.getNode("SeatSheet"), chair3.getNode("BackRight") );
+	chair3.addEdge( chair3.getNode("SeatSheet"), chair3.getNode("FrontLegLeft") );
+	chair3.addEdge( chair3.getNode("SeatSheet"), chair3.getNode("FrontLegRight") );
+	chair3.addEdge( chair3.getNode("SeatSheet"), chair3.getNode("BackLegLeft") );
+	chair3.addEdge( chair3.getNode("SeatSheet"), chair3.getNode("BackLegRight") );
+
+	chair3.addEdge( chair3.getNode("BackTop"), chair3.getNode("BackLeft") );
+	chair3.addEdge( chair3.getNode("BackTop"), chair3.getNode("BackRight") );
+	chair3.addEdge( chair3.getNode("BackBottom"), chair3.getNode("BackLeft") );
+	chair3.addEdge( chair3.getNode("BackBottom"), chair3.getNode("BackRight") );
+
 	// Save to file
 	chair1.saveToFile("chair1.xml");
 	chair2.saveToFile("chair2.xml");
+	chair3.saveToFile("chair3.xml");
 
 	//graphs.push_back(chair1);
 	//graphs.push_back(chair2);
