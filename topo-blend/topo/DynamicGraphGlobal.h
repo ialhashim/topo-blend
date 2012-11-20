@@ -34,7 +34,7 @@ static QDebug operator<<(QDebug dbg, const SimpleNode &n){
 }
 
 // Flags
-enum NODE_STATE{ ACTIVE, SLEEP, DONE };
+enum NODE_STATE{ ACTIVE, SLEEP, DONE, DISCONNECTED };
 typedef QVector<QVariant> Flags;
 
 /// Edges
