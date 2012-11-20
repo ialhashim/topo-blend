@@ -1,6 +1,7 @@
 #include "TopoBlender.h"
 using namespace Structure;
 
+typedef QPair<Node*,Node*> QPairNodes;
 typedef QPair<Link*,Link*> QPairLink;
 typedef QPair<Scalar, QPairLink> ScalarLinksPair;
 
@@ -23,19 +24,35 @@ Graph TopoBlender::blend(Scalar t)
 	/// 2) BFS solve for Link discrepancy
 	Flags flags;
 
+	// while number of 'DONE' nodes is not equal to target
 	while((flags = active.flags("state")).count(DONE) != target.nodes.size())
 	{
-		// Find active node index and its corresponding node at target
-		int active_idx = flags.indexOf(ACTIVE,0);
-		if(active_idx < 0) continue;
-		SimpleNode & n = active.nodes[active_idx];
-		int target_idx = target.nodeIndex("original", n.str("correspond"));
+		// Break if we ran out of 'ACTIVE' nodes
+		if(flags.indexOf(ACTIVE,0) < 0) break;
 
-		QMap<Link*, Vec2d> coord_active = g1->linksCoords(n.str("original"));
-		QMap<Link*, Vec2d> coord_target = g2->linksCoords(target.nodes[target_idx].str("original"));
+		// Find an active node
+		int active_idx = 0;
+		foreach(int key, active.nodes.keys()){
+			if(active.nodes[key].val("state") == ACTIVE){
+				active_idx = key;
+				break;
+			}
+		}
+
+		SimpleNode & n_active = active.nodes[active_idx];
+		QString activeNodeID = n_active.str("original");
+		QString targetNodeID = n_active.str("correspond");
+
+		// Get corresponding target node
+		int target_idx = target.nodeIndex("original", targetNodeID);
+
+		// Get coordinates of all links of both
+		QMap<Link*, Vec2d> coord_active = g1->linksCoords(activeNodeID);
+		QMap<Link*, Vec2d> coord_target = g2->linksCoords(targetNodeID);
 
 		QMap<QPairLink, Scalar> dists;
 
+		// Compute pair-wise distances [active coords] <-> [target coords]
 		foreach(Link * i, coord_active.keys())
 		{
 			double minDist = DBL_MAX;
@@ -55,6 +72,7 @@ Graph TopoBlender::blend(Scalar t)
 			dists[qMakePair(i, closestLink)] = minDist;
 		}
 
+		// Decide either remove links (when target has less links) or add links
 		int linkDiff = coord_active.size() - coord_target.size();
 
 		if(linkDiff > 0)
@@ -62,25 +80,35 @@ Graph TopoBlender::blend(Scalar t)
 			QVector<QPairLink> diffSet;
 			QList< ScalarLinksPair > sortedDists = sortQMapByValue(dists);
 
-			// Excess links on active node
+			// Find excess links on active node
 			for(int i = 0; i < linkDiff; i++)
 			{
+				// We take away from bottom of sorted list
 				Link * link = sortedDists.takeLast().second.first;
-				QString otherNodeID = link->otherNode( n.str("original") )->id;
+				QString otherNodeID = link->otherNode( activeNodeID )->id;
 				int other_idx = active.nodeIndex("original", otherNodeID);
 
 				// Remove the edges
-				active.removeEdge(n.idx, other_idx);
+				active.removeEdge(n_active.idx, other_idx);
+
+				// Mark as 'DISCONNECTED'
+				active.nodes[other_idx].set("state", DISCONNECTED);
 			}
 
-			// Assign neighbors as 'active'
+			// Propagate to remaining neighbors the 'ACTIVE' state
 			foreach(ScalarLinksPair sp, sortedDists)
 			{
 				Link * link = sp.second.first;
-				QString otherNodeID = link->otherNode( n.str("original") )->id;
+				QString otherNodeID = link->otherNode( activeNodeID )->id;
 				int other_idx = active.nodeIndex("original", otherNodeID);
 
+				// Mark as 'ACTIVE'
 				active.nodes[other_idx].set("state", ACTIVE);
+
+				// Set corresponding target node
+				Link * linkTarget = sp.second.second;
+				QString otherNodeTarget = linkTarget->otherNode(targetNodeID)->id;
+				active.nodes[other_idx].set("correspond", otherNodeTarget);
 			}
 		}
 		else
@@ -89,7 +117,8 @@ Graph TopoBlender::blend(Scalar t)
 
 		}
 
-		n.set("state", DONE);
+		// This node is now 'DONE'
+		n_active.set("state", DONE);
 
 		qDebug() << active.flags("state");
 
@@ -101,13 +130,9 @@ Graph TopoBlender::blend(Scalar t)
 
 void TopoBlender::bestPartialCorrespondence()
 {
-	typedef QPair<Node*,Node*> QPairNodes;
+	QMultiMap<Scalar, QPairNodes> scores;
 
-	QMultiMap< Scalar, QPairNodes> scores;
-
-	double maxScore = -DBL_MAX;
-
-	// Compute scores for pairs
+	/// 1) Compute scores for pairs
 	foreach(Node * i, g1->nodes)
 	{
 		double areaI = i->area();
@@ -132,6 +157,7 @@ void TopoBlender::bestPartialCorrespondence()
 		}
 	}
 
+	/// 2) Find pair with minimal score
 	QList<QPairNodes> minPairs;
 	double minScore = DBL_MAX;
 
@@ -144,13 +170,13 @@ void TopoBlender::bestPartialCorrespondence()
 		}
 	}
 
-	// Assign "root" node
+	/// 3) Assign "root" node as 'active'
 	Node * root = minPairs.first().first;
 	Node * targetRoot = minPairs.first().second;
 
 	active = DynamicGraph(g1);
 
 	active.flagNodes("state", SLEEP);
-	active.getNode( root->id )->set("state", ACTIVE);
 	active.getNode( root->id )->set("correspond", targetRoot->id);
+	active.getNode( root->id )->set("state", ACTIVE);
 }
