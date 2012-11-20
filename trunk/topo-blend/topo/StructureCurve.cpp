@@ -103,8 +103,27 @@ Vector3 & Curve::controlPointFromCoord( Vec2d coord )
 	return curve.mCtrlPoint[controlPointIndexFromCoord( coord )];
 }
 
+SurfaceMeshTypes::Scalar Curve::area()
+{
+	double a = 0;
+
+	std::vector<Vector3> pnts;
+	curve.SubdivideByLength(10, pnts);
+
+	for(int i = 0; i < (int)pnts.size() - 1; i++)
+		a += (pnts[i+1] - pnts[i]).norm();
+
+	return a;
+}
+
+SurfaceMeshTypes::Vector3 Curve::center()
+{
+	Vector3 pos(0);
+	get(coord3(0.5,0.5), pos);
+	return pos;
+}
+
 void Curve::draw()
 {
     NURBS::CurveDraw::draw( &curve, vis_property["color"].value<QColor>(), vis_property["showControl"].toBool() );
 }
-

@@ -649,3 +649,18 @@ Structure::Curve* Graph::getCurve( Link * l )
 	Structure::Node *n1 = l->n1, *n2 = l->n2;
 	return (Structure::Curve *) ((n1->type() == Structure::CURVE) ? n1: n2);
 }
+
+QMap<Link*, Vec2d> Structure::Graph::linksCoords( QString nodeID )
+{
+	QMap<Link*, Vec2d> coords;
+
+	for(int i = 0; i < edges.size(); i++)
+	{
+		Link * l = &edges[i];
+		if(!l->hasNode(nodeID)) continue;
+
+		coords[l] = l->getCoord(nodeID);
+	}
+
+	return coords;
+}

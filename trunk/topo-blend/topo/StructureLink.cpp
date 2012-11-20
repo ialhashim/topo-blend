@@ -43,3 +43,8 @@ void Link::draw()
 
 	glEnable(GL_LIGHTING);
 }
+
+bool Structure::Link::hasNode( QString nodeID )
+{
+	return n1->id == nodeID || n2->id == nodeID;
+}

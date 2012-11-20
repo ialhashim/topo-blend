@@ -18,10 +18,11 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 
     topo_blend->connect(ui->button1, SIGNAL(clicked()), SLOT(generateTwoChairModels()));
     topo_blend->connect(ui->button2, SIGNAL(clicked()), SLOT(loadModel()));
-	topo_blend->connect(ui->button3, SIGNAL(clicked()), SLOT(doBlend()));
 	topo_blend->connect(ui->button4, SIGNAL(clicked()), SLOT(experiment1()));
 	topo_blend->connect(ui->button5, SIGNAL(clicked()), SLOT(generateTwoSimpleModels()));
     this->connect(ui->button6, SIGNAL(clicked()), SLOT(renderViewer()));
+
+	topo_blend->connect(ui->buttonBlend, SIGNAL(clicked()), SLOT(doBlend()));
 }
 
 topo_blend_widget::~topo_blend_widget()

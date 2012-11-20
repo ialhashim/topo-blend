@@ -7,16 +7,35 @@
 struct SimpleNode{
     int idx;
     SimpleNode(int id = -1):idx(id){}
-    QMap<QString, QString> property;
+
+	// Properties
+    QMap<QString, QVariant> property;
+	QString str(QString propertyName){ return property[propertyName].toString(); }
+	double val(QString propertyName){ return property[propertyName].toDouble(); }
+	QVariant set(QString propertyName, QVariant value) { return property[propertyName] = value; }
 };
 
-typedef QMap<QString,QString> Properties;
+// Properties
+typedef QMap<QString, QVariant> Properties;
 static inline Properties noProperties(){ Properties p; return p; }
 static inline Properties SingleProperty(QString name, QString value){
     Properties p;
     p[name] = value;
     return p;
 }
+static QDebug operator<<(QDebug dbg, const SimpleNode &n){
+	dbg.nospace() << "Node:\n";
+	QMapIterator<QString, QVariant> i(n.property);
+	while (i.hasNext()) {
+		i.next();
+		dbg.nospace() << "  [" << i.key() << "] \t= " << i.value() << "\n"; 
+	}
+	return dbg.space();
+}
+
+// Flags
+enum NODE_STATE{ ACTIVE, SLEEP, DONE };
+typedef QVector<QVariant> Flags;
 
 /// Edges
 struct SimpleEdge{
@@ -165,3 +184,27 @@ void paired_sort(std::vector<unsigned int> & Index, std::vector<T> & data, bool 
 }
 
 typedef QPair<int,int> QPairInt;
+
+// Sort by QMap second value
+template<class F, class S>
+bool sortByFirst(const QPair<F,S>& e1, const QPair<F,S>& e2) {
+	return e1.first < e2.first;
+}
+
+template<class F, class S>
+QList< QPair<S, F> > sortQMapByValue(const QMap<F,S> & map)
+{
+	QList< QPair<S, F> > result;
+
+	// Append items to a list
+	QMapIterator<F, S> i(map);
+	while (i.hasNext()) {
+		i.next();
+		result.push_back(qMakePair(i.value(), i.key()));
+	}
+
+	// Sort that list
+	qSort(result.begin(), result.end(), sortByFirst<S,F>);
+
+	return result;
+}

@@ -67,7 +67,7 @@ std::vector<Scalar> Sheet::controlWeights()
 	return cpoints;
 }
 
-void Structure::Sheet::get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3> & frame )
+void Sheet::get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3> & frame )
 {
 	double u = coordinates[0];
 	double v = coordinates[1];
@@ -75,16 +75,15 @@ void Structure::Sheet::get( const Vector3& coordinates, Vector3 & pos, std::vect
 	frame.resize(3, Vector3(0));
 
 	surface.Get(u, v, pos, frame[0], frame[1]);
-
 	surface.GetFrame(u, v, pos, frame[0], frame[1], frame[2]);
 }
 
-Vec2d Structure::Sheet::approxCoordinates( const Vector3 & pos )
+Vec2d Sheet::approxCoordinates( const Vector3 & pos )
 {
 	return surface.timeAt( pos );
 }
 
-SurfaceMeshTypes::Vector3 Structure::Sheet::approxProjection( const Vector3 & point )
+SurfaceMeshTypes::Vector3 Sheet::approxProjection( const Vector3 & point )
 {
 	Vector3 pos(0);
 	Vec2d coords = approxCoordinates(point);
@@ -92,17 +91,42 @@ SurfaceMeshTypes::Vector3 Structure::Sheet::approxProjection( const Vector3 & po
 	return pos;
 }
 
-std::vector< std::vector<Vector3> > Structure::Sheet::discretized(Scalar resolution)
+std::vector< std::vector<Vector3> > Sheet::discretized(Scalar resolution)
 {
 	return surface.generateSurfaceTris( resolution );
 }
 
-Vector3 & Structure::Sheet::controlPoint( int idx )
+Vector3 & Sheet::controlPoint( int idx )
 {
     // TODO: return actual point
 	int u = 0;
 	int v = 0;
 	return surface.mCtrlPoint[u][v];
+}
+
+SurfaceMeshTypes::Scalar Sheet::area()
+{
+	double factor = 0.5; // distance of first control points
+
+	Scalar r = factor * (surface.mCtrlPoint[0][0] - surface.mCtrlPoint[0][1]).norm();
+	std::vector< std::vector<Vector3> > tris = discretized(r);
+
+	double a = 0;
+
+	foreach(std::vector<Vector3> v, tris)
+	{
+		double triArea = 0.5 * cross((v[1] - v[0]), (v[2] - v[0])).norm();
+		a += triArea;
+	}
+
+	return a;
+}
+
+SurfaceMeshTypes::Vector3 Sheet::center()
+{
+	Vector3 pos(0);
+	get(coord3(0.5,0.5), pos);
+	return pos;
 }
 
 void Sheet::draw()

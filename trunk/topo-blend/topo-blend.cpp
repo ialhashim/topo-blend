@@ -9,9 +9,9 @@
 #include "interfaces/ModePluginDockWidget.h"
 #include "../CustomDrawObjects.h"
 
-#include "topo/TopoBlender.h"
-
+// Graph manipulations
 #include "topo/DynamicGraph.h"
+#include "topo/TopoBlender.h"
 
 // Temporary solution
 #include "surface_mesh/IO.h"
@@ -280,7 +280,10 @@ void topoblend::loadModel()
 
 void topoblend::doBlend()
 {
-	Structure::TopoBlender blender( &graphs.front(), &graphs.last() );
+	Structure::Graph * source = new Structure::Graph("chair2.xml");
+	Structure::Graph * target = new Structure::Graph("chair3.xml");
+
+	Structure::TopoBlender blender( source, target );
 
 	graphs.push_back( blender.blend() );
 

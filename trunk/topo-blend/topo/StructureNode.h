@@ -22,8 +22,12 @@ struct Node
 	virtual void get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() ) = 0;
 	virtual Vec2d approxCoordinates( const Vector3 & pos ) = 0;
 	virtual Vector3 approxProjection( const Vector3 & point ) = 0;
+	virtual Vector3 center() = 0;
 
 	virtual std::vector< std::vector<Vector3> > discretized(Scalar resolution) = 0;
+
+	// Geometric properties
+	virtual Scalar area() = 0;
 
     // Visualization
     virtual void draw() = 0;
