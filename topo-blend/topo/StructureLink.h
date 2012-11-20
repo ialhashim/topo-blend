@@ -36,6 +36,9 @@ struct Link
 	}
 	Link(){	n1 = n2 = NULL; }
 	
+	// Accessors
+	bool hasNode(QString nodeID);
+
 	// Visualization
     void draw();
 

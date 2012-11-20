@@ -29,6 +29,10 @@ struct Sheet : public Node
 	void get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() );
 	Vec2d approxCoordinates( const Vector3 & pos );
 	Vector3 approxProjection( const Vector3 & point );
+	Vector3 center();
+
+	// Geometric properties
+	Scalar area();
 
     // Connections
 
