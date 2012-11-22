@@ -205,6 +205,7 @@ void segment::performCurveSheetSegmentation(double theta, double minRadius, int 
 	// Experiments:
 	if(isExtract)
 		doGraph();
+
 }
 
 void segment::doGraph()
