@@ -1,6 +1,8 @@
 #pragma once
 #include <qgl.h>
 
+namespace DynamicVoxelLib{
+
 struct Voxel{
     int x, y, z;
     int flag;
@@ -98,30 +100,6 @@ struct QuadFace{
 
 static inline uint qHash( const Voxel &key ){return qHash( QString("%1%2%3").arg(key.x).arg(key.y).arg(key.z) ); }
 
-namespace std {
-	template <> struct hash<Vec3d> {
-		size_t operator()(Vec3d v) { 
-			const unsigned int * h = (const unsigned int *)(&v);
-			unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0
-			return (f>>22)^(f>>12)^(f);
-		}
-	};
-	template <> struct hash<Vec3f> {
-		size_t operator()(Vec3f v) { 
-			const unsigned int * h = (const unsigned int *)(&v);
-			unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0
-			return (f>>22)^(f>>12)^(f);
-		}
-	};
-	template <> struct hash<Voxel> {
-		size_t operator()(Voxel v) { 
-			const unsigned int * h = (const unsigned int *)(&v);
-			unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0
-			return (f>>22)^(f>>12)^(f);
-		}
-	};
-}
-
 static void drawCube(double x, double y, double z, double scale = 1.0){
 
     glPushMatrix();
@@ -167,3 +145,31 @@ static void drawCube(double x, double y, double z, double scale = 1.0){
 
     glPopMatrix();
 }
+
+}
+
+namespace std {
+	template <> struct hash<Vec3d> {
+		size_t operator()(Vec3d v) { 
+			const unsigned int * h = (const unsigned int *)(&v);
+			unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0
+			return (f>>22)^(f>>12)^(f);
+		}
+	};
+	template <> struct hash<Vec3f> {
+		size_t operator()(Vec3f v) { 
+			const unsigned int * h = (const unsigned int *)(&v);
+			unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0
+			return (f>>22)^(f>>12)^(f);
+		}
+	};
+    template <> struct hash<DynamicVoxelLib::Voxel> {
+        size_t operator()(DynamicVoxelLib::Voxel v) {
+			const unsigned int * h = (const unsigned int *)(&v);
+			unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0
+			return (f>>22)^(f>>12)^(f);
+		}
+	};
+}
+
+#define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )

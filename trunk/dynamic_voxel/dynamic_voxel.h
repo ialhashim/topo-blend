@@ -18,7 +18,7 @@ public:
 
     void decorate();
 
-    DynamicVoxel vox;
+    DynamicVoxelLib::DynamicVoxel vox;
 
     bool showVoxels, showMesh;
 

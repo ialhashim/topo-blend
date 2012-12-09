@@ -3,16 +3,17 @@
 #include "DoubleTupleMap.h"
 #include "DynamicVoxel.h"
 
+#include "weld.h"
+#include "PolygonArea.h"
+
+using namespace SurfaceMeshTypes;
+using namespace DynamicVoxelLib;
+
+// Eigen Library
 #include <Eigen/Sparse>
 #include <Eigen/CholmodSupport>
 using namespace Eigen;
 typedef CholmodSupernodalLLT< SparseMatrix<double> > CholmodSolver;
-#define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )
-
-using namespace SurfaceMeshTypes;
-
-#include "weld.h"
-#include "PolygonArea.h"
 
 DynamicVoxel::DynamicVoxel(double voxelSize){
 
