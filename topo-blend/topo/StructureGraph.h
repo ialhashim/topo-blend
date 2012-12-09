@@ -1,9 +1,10 @@
 #pragma once
 
-#include "DynamicVoxel.h"
-
 #include "StructureCurve.h"
 #include "StructureSheet.h"
+
+#include "DynamicVoxel.h"
+using namespace DynamicVoxelLib;
 
 #include <Eigen/Core>
 
@@ -52,7 +53,7 @@ struct Graph
 
 	// Synthesis
 	void materialize(SurfaceMeshModel * m);
-	DynamicVoxel::QuadMesh cached_mesh;
+    DynamicVoxel::QuadMesh cached_mesh;
 
     // Analysis
     Node * rootBySize();

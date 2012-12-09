@@ -2,14 +2,17 @@ load($$[STARLAB])
 load($$[SURFACEMESH])
 load($$[CHOLMOD])
 load($$[EIGEN])
+load($$[NANOFLANN])
 
 TEMPLATE = lib
 CONFIG += staticlib
 QT += opengl
 
 # Library name and destination
-TARGET = DynamicVoxel
+TARGET = Voxeler
 DESTDIR = $$PWD/lib
 
-SOURCES += DynamicVoxel.cpp
-HEADERS += Voxel.h DynamicVoxel.h DoubleTupleMap.h
+# Source code
+SOURCES += Voxeler.cpp
+HEADERS += Voxeler.h Voxel.h
+

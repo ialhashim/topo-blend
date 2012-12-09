@@ -6,6 +6,8 @@
 #include "Voxel.h"
 #include "../CustomDrawObjects.h"
 
+namespace DynamicVoxelLib{
+
 class DynamicVoxel
 {
 public:
@@ -56,3 +58,5 @@ public:
 	static void FillHoles( SurfaceMeshModel *m, double voxel_length );
 	static bool hasHoles( SurfaceMeshModel *m );
 };
+
+}

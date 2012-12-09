@@ -1,10 +1,11 @@
 load($$[STARLAB])
 load($$[SURFACEMESH])
-StarlabTemplate(plugin)
 
-TARGET = NURBS
 TEMPLATE = lib
 CONFIG += staticlib
+
+# Library name and destination
+TARGET = NURBS
 DESTDIR = $$PWD/lib
 
 SOURCES += \
