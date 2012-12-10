@@ -12,16 +12,17 @@ namespace VoxelerLibrary{
 class Voxeler
 {
 private:
-    Surface_mesh * mesh;
+    SurfaceMeshModel * mesh;
     NanoKdTree kd;
+	Vector3VertexProperty points;
 
 	// Special voxels
     NanoKdTree outerVoxels, innerVoxels;
 
 public:
-    Voxeler( Surface_mesh * src_mesh, double voxel_size, bool verbose = false);
+    Voxeler( SurfaceMeshModel * src_mesh, double voxel_size, bool verbose = false);
 
-	FaceBounds findFaceBounds( Surface_mesh::Face f );
+	FaceBounds findFaceBounds( SurfaceMeshModel::Face f );
 	bool isVoxelIntersects( const Voxel & v, Surface_mesh::Face f );
 	
 	void update();
@@ -32,7 +33,7 @@ public:
 
 	// Find inside and outside of mesh surface
 	std::vector< Voxel > fillOther();
-    void fillInsideOut(NanoKdTree & inside, NanoKdTree & outside);
+    std::vector<Voxel> Voxeler::fillInside();
     void fillOuter(NanoKdTree & outside);
 
 	// Intersection

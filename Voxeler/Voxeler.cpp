@@ -2,9 +2,17 @@
 #include "Voxeler.h"
 using namespace VoxelerLibrary;
 
-Voxeler::Voxeler( Surface_mesh * src_mesh, double voxel_size, bool verbose /*= false*/ )
+#include "BoundingBox.h"
+#include <stack>
+
+#include "voxel_weld.h"
+
+Voxeler::Voxeler( SurfaceMeshModel * src_mesh, double voxel_size, bool verbose /*= false*/ )
 {
 	this->mesh = src_mesh;
+
+	points = mesh->vertex_property<Point>(SurfaceMeshTypes::VPOINT);
+
 	this->voxelSize = voxel_size;
 	this->isVerbose = verbose;
 	this->isReadyDraw = false;
@@ -12,12 +20,10 @@ Voxeler::Voxeler( Surface_mesh * src_mesh, double voxel_size, bool verbose /*= f
 	if(mesh == NULL)
 		return;
 
-	if(isVerbose) printf("Computing voxels..");
-
-	mesh->assignFaceArray();
+	if(isVerbose) qDebug() << "Computing voxels..";
 
 	// For each face in mesh
-	foreach(Surface_mesh::Face f, mesh->face_array)
+	foreach(Surface_mesh::Face f, mesh->faces())
 	{
 		FaceBounds fb = findFaceBounds( f );
 
@@ -29,21 +35,25 @@ Voxeler::Voxeler( Surface_mesh * src_mesh, double voxel_size, bool verbose /*= f
 				{
 					Voxel v(x,y,z);
 
-					if(isVoxelIntersects(v, f) && !kd.has(x,y,z)){
-						kd.insert3(v.x, v.y, v.z, voxels.size());
+					if(isVoxelIntersects(v, f))
 						voxels.push_back( v );
-					}
 				}
 			}
 		}
 	}
 	
-	if(isVerbose) printf(".voxel count = %d.\n", (int)voxels.size());
+	// Combine into a set of voxels
+	std::vector<size_t> xrefs;
+	weld(voxels, xrefs, std::hash<Voxel>(), std::equal_to<Voxel>());
 
-	// Inner / outer computation
-	//fillInsideOut(innerVoxels, outerVoxels);
-	
-	if(isVerbose) printf("done.");
+	// Add voxels to KD-tree and build
+	foreach(Voxel v, voxels) 
+		kd.addPoint(v);
+	kd.build();
+
+	computeBounds();
+
+	if(isVerbose) qDebug() << "Voxel count = " << (int)voxels.size();
 }
 
 void Voxeler::update()
@@ -58,7 +68,7 @@ void Voxeler::update()
 void Voxeler::computeBounds()
 {
 	minVox = Voxel(INT_MAX, INT_MAX, INT_MAX);
-	maxVox = Voxel(INT_MIN, INT_MIN, INT_MIN);
+	maxVox = Voxel(-INT_MAX, -INT_MAX, -INT_MAX);
 
 	for(int i = 0; i < (int)voxels.size(); i++)
 	{
@@ -76,7 +86,10 @@ FaceBounds Voxeler::findFaceBounds( Surface_mesh::Face f )
 	double minx = 0, miny = 0, minz = 0;
 	double maxx = 0, maxy = 0, maxz = 0;
 
-	std::vector<Vec3d> f_vec =  mesh->facePoints(f);
+	// Collect points
+	QVector<Vector3> f_vec; 
+	Surface_mesh::Vertex_around_face_circulator vit = mesh->vertices(f),vend=vit;
+	do{ f_vec.push_back(points[vit]); } while(++vit != vend);
 
 	minx = maxx = f_vec[0].x();
 	miny = maxy = f_vec[0].y();
@@ -115,7 +128,10 @@ bool Voxeler::isVoxelIntersects( const Voxel& v, Surface_mesh::Face f )
 
 	BoundingBox b(center, s,s,s);
 
-	std::vector<Vec3d> f_vec =  mesh->facePoints(f);
+	// Collect points
+	QVector<Vector3> f_vec; 
+	Surface_mesh::Vertex_around_face_circulator vit = mesh->vertices(f),vend=vit;
+	do{ f_vec.push_back(points[vit]); } while(++vit != vend);
 
 	return b.containsTriangle(f_vec[0], f_vec[1], f_vec[2]);
 }
@@ -137,25 +153,6 @@ void Voxeler::draw()
 	glColor3f(0, 1, 0);
 	glLineWidth(1.0);
 	glCallList(d2);
-
-	// DEBUG == DELETE ME:
-
-	std::vector<Voxel> temp1, temp2;// = fillOther();
-
-	std::vector<double*> insideVoxels = innerVoxels.getAll();
-	std::vector<double*> outsideVoxels = outerVoxels.getAll();
-
-	foreach(double * pos, insideVoxels)
-		temp1.push_back(Voxel(pos[0], pos[1], pos[2]));
-
-	foreach(double * pos, outsideVoxels)
-		temp2.push_back(Voxel(pos[0], pos[1], pos[2]));
-
-	for(int i = 0; i < (int) temp1.size(); i++){
-		Vec3d c = temp1[i];
-		c *= voxelSize;
-		SimpleDraw::DrawSolidBox(c, voxelSize, voxelSize, voxelSize, 0,0,1);
-	}
 
 	/*for(int i = 0; i < (int) temp2.size(); i++){
 		Vec3d c = temp2[i];
@@ -189,18 +186,25 @@ void Voxeler::setupDraw()
 	cornerIndices.clear();
 	cornerCorrespond.resize(n*8);
 
+	// Build corner_kd
+	std::vector<Vec3d> cornerPnts;
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < 8; j++)
+			cornerPnts.push_back(corner[i][j]);
+
+	std::vector<size_t> xrefs;
+	weld(cornerPnts, xrefs, std::hash<Vec3d>(), std::equal_to<Vec3d>());
+
+	foreach(Vec3d p, cornerPnts) corner_kd.addPoint(p);
+	corner_kd.build();
+
 	for(int i = 0; i < n; i++)
 	{
 		std::vector<int> p(8, 0);
 
 		for(int j = 0; j < 8; j++)
 		{
-			if(!corner_kd.has(corner[i][j])){
-				p[j] = corners.size();
-				corners.push_back(corner[i][j]);
-				corner_kd.insert3(corner[i][j][0], corner[i][j][1], corner[i][j][2], p[j]);
-			}else p[j] = corner_kd.getData(&corner[i][j][0]);
-
+            p[j] = corner_kd.closest(corner[i][j]);
 			cornerCorrespond[p[j]] = i; // will belong to last one
 		}
 
@@ -290,7 +294,7 @@ std::vector<Voxel> Voxeler::fillOther()
 	for(int x = minVox.x - 1; x <= maxVox.x + 1; x++){
 		for(int y = minVox.y - 1; y <= maxVox.y + 1; y++){
 			for(int z = minVox.z - 1; z <= maxVox.z + 1; z++){
-				if(!kd.has(x,y,z))
+				if(!kd.has(Vector3(x,y,z)))
 					filled.push_back(Voxel(x,y,z));
 			}
 		}
@@ -299,29 +303,40 @@ std::vector<Voxel> Voxeler::fillOther()
 	return filled;
 }
 
-void Voxeler::fillInsideOut(KDTree & inside, KDTree & outside)
+std::vector<Voxel> Voxeler::fillInside()
 {
 	printf("Computing inside, outside..");
 
+	std::vector<Voxel> innerVoxels;
+
+	NanoKdTree outside;
 	fillOuter(outside);
 
 	// Compute inner as complement of outside
 	for(int x = minVox.x - 1; x <= maxVox.x + 1; x++){
 		for(int y = minVox.y - 1; y <= maxVox.y + 1; y++){
 			for(int z = minVox.z - 1; z <= maxVox.z + 1; z++){
-				if(!kd.has(x,y,z) && !outside.has(x,y,z)){
-					inside.insert3(x,y,z,1);
+				if(!outside.has(Vector3(x,y,z))){
+					innerVoxels.push_back(Voxel(x,y,z));
 				}
 			}
 		}
 	}
+
+	return innerVoxels;
 }
 
-void Voxeler::fillOuter(KDTree & outside)
+void Voxeler::fillOuter(NanoKdTree & outside)
 {
 	std::stack<Voxel> stack;
 
 	stack.push(maxVox + Voxel(1,1,1));
+
+	std::vector<Voxel> outterVoxels;
+
+	QSet<QString> seenSet;
+
+	qDebug() << "Filling outside..";
 
 	while(!stack.empty())
 	{
@@ -329,11 +344,17 @@ void Voxeler::fillOuter(KDTree & outside)
 		Voxel c = stack.top(); // get current voxel
 		stack.pop();
 
+		// Bad: using strings for now
+		QString cellString = QString("%1,%2,%3").arg(c.x).arg(c.y).arg(c.z);
+
+		Vector3 p(c.x, c.y, c.z);
+
 		// Base case:
-		if( !kd.has(c.x, c.y, c.z) && !outside.has(c.x, c.y, c.z) )
+		if( !kd.has(p) && !seenSet.contains(cellString) )
 		{
-			// Otherwise, add it to set of outside voxels
-			outside.insert3(c.x, c.y, c.z, 1);
+			seenSet.insert( cellString );
+
+			outside.addPoint(p);
 
 			// Visit neighbors
 			if(c.x < maxVox.x + 1) stack.push( c + Voxel( 1, 0, 0) );
@@ -345,6 +366,10 @@ void Voxeler::fillOuter(KDTree & outside)
 			if(c.z > minVox.z - 1) stack.push( c + Voxel( 0, 0,-1) );
 		}
 	}
+
+	outside.build();
+
+	qDebug() << "Outside voxels filled!";
 }
 
 std::vector<Voxel> Voxeler::Intersects(Voxeler * other)
@@ -363,7 +388,7 @@ std::vector<Voxel> Voxeler::Intersects(Voxeler * other)
 	{
 		Voxel v = minVoxeler->voxels[i];
 
-		if(maxVoxeler->kd.has(v.x, v.y, v.z))
+		if(maxVoxeler->kd.has(Vector3(v.x, v.y, v.z)))
 			intersection.push_back(v);
 	}
 
@@ -385,8 +410,9 @@ std::map<int, Voxel> Voxeler::around(Point p)
 
 				Vec3d vpos(v.x, v.y, v.z);
 
-				if(kd.has(v.x, v.y, v.z)){
-					result[kd.getData(&vpos[0])] = v;
+				if(kd.has(Vector3(v.x, v.y, v.z))){
+					int idx = kd.closest(vpos);
+					result[idx] = v;
 				}
 			}
 		}
@@ -399,6 +425,8 @@ void Voxeler::grow()
 {
 	int N = (int)voxels.size();
 
+	std::vector<Voxel> newVox;
+
 	for(int i = 0; i < N; i++)
 	{
 		Voxel curVoxel = voxels[i];
@@ -407,16 +435,20 @@ void Voxeler::grow()
 			for(int y = -1; y <= 1; y++){
 				for(int z = -1; z <= 1; z++){
 					Voxel v(curVoxel.x + x, curVoxel.y + y, curVoxel.z + z);
-
-					if(!kd.has(v.x,v.y,v.z))
-					{
-						kd.insert3(v.x, v.y, v.z, voxels.size());
-						voxels.push_back( v );
-					}
+					newVox.push_back(v);
 				}
 			}
 		}
 	}
+
+	// Combine into set of voxels
+	std::vector<size_t> xrefs;
+	weld(voxels, xrefs, std::hash<Voxel>(), std::equal_to<Voxel>());
+
+	// Clear old, add new points and build
+	kd.cloud.pts.clear();
+	foreach(Voxel v, voxels) kd.addPoint(v);
+	kd.build();
 
 	printf("\nVoxler grown from (%d) to (%d).\n", N, (int)voxels.size());
 
@@ -435,7 +467,7 @@ std::vector< Point > Voxeler::getCorners( int vid )
 
 int Voxeler::getClosestVoxel( Vec3d point )
 {
-	return cornerCorrespond[ corner_kd.getData(&point[0]) ];
+	return cornerCorrespond[ corner_kd.closest(point) ];
 }
 
 int Voxeler::getEnclosingVoxel( Vec3d point )

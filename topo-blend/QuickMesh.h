@@ -152,7 +152,7 @@ private:
 	void postProcess()
 	{
 		// compute bounding box
-		QVector3D bbmin (DBL_MAX-1, DBL_MAX-1, DBL_MAX-1);
+		QVector3D bbmin (1e-12, 1e-12, 1e-12);
 		QVector3D bbmax = -bbmin;
 		QVector3D center(0,0,0);
 		foreach(const QVector3D v, verts)

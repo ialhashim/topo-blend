@@ -5,17 +5,20 @@
 
 #include "Graph.h"
 
+using namespace std;
+using namespace SurfaceMeshTypes;
+
 #define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )
 #define RADIANS(deg)    ((deg)/180.0 * M_PI)
 #define DEGREES(rad)    ((rad)/M_PI * 180.0)
 
-typedef Surface_mesh::Halfedge_around_face_circulator HalfedgeFaceIter;
-typedef Surface_mesh::Vertex_around_face_circulator VertFaceIter;
-typedef Surface_mesh::Face_around_vertex_circulator FaceVertIter;
-typedef Surface_mesh::Vertex_around_vertex_circulator VertIter;
+typedef SurfaceMeshModel::Halfedge_around_face_circulator HalfedgeFaceIter;
+typedef SurfaceMeshModel::Vertex_around_face_circulator VertFaceIter;
+typedef SurfaceMeshModel::Face_around_vertex_circulator FaceVertIter;
+typedef SurfaceMeshModel::Vertex_around_vertex_circulator VertIter;
 
-uint qHash( const Surface_mesh::Face &key ){return qHash(key.idx()); }
-uint qHash( const Surface_mesh::Vertex &key ){return qHash(key.idx()); }
+uint qHash( const SurfaceMeshModel::Face &key ){return qHash(key.idx()); }
+uint qHash( const SurfaceMeshModel::Vertex &key ){return qHash(key.idx()); }
 
 void segment::initParameters(RichParameterSet* pars){
 	pars->addParam( new RichFloat("angle_threshold", 10.0f, "Angle threshold"));
