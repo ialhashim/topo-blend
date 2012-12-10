@@ -1,7 +1,11 @@
 #pragma once
 #include "SurfaceMeshPlugins.h"
-#include "SurfaceMeshHelper.h"
 #include "RichParameterSet.h"
+
+#include "SurfaceMeshModel.h"
+#include "SurfaceMeshHelper.h"
+
+namespace SurfaceMeshTypes{
 
 enum FaceClass {CURVE, SHEET};
 typedef QSet<Face> Region;
@@ -55,3 +59,5 @@ public:
     void doGraph();
 };
 
+
+}

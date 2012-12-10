@@ -16,3 +16,5 @@ DESTDIR = $$PWD/lib
 SOURCES += Voxeler.cpp
 HEADERS += Voxeler.h Voxel.h
 
+SOURCES += BoundingBox.cpp
+HEADERS += BoundingBox.h

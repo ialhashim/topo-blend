@@ -165,7 +165,7 @@ template<class T>
 void paired_sort(std::vector<unsigned int> & Index, std::vector<T> & data, bool isReverse = false)
 {
     // A vector of a pair which will contain the sorted value and its index in the original array
-    std::vector< pair<T,unsigned int> > IndexedPair;
+    std::vector< std::pair<T,unsigned int> > IndexedPair;
     IndexedPair.resize(data.size());
     for(unsigned int i=0;i<IndexedPair.size();++i)
     {
