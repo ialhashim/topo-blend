@@ -54,8 +54,10 @@ void DynamicGraph::addEdge(int fromNode, int toNode)
 int DynamicGraph::nodeIndex(QString property_name, QString property_value)
 {
     foreach(SimpleNode n, nodes)
+	{
         if(n.property.contains(property_name) && n.property[property_name] == property_value)
             return n.idx;
+	}
     return -1;
 }
 
@@ -522,25 +524,26 @@ QVector< QPairInt > DynamicGraph::correspondence( DynamicGraph & other, double &
 
 void DynamicGraph::flagNodes( QString propertyName, QVariant value )
 {
-	for(int i = 0; i < numNodes(); i++)
+	foreach(int i, nodes.keys())
 		nodes[i].property[propertyName] = value;
 }
 
 QVector<QVariant> DynamicGraph::flags( QString propertyName )
 {
 	QVector<QVariant> f;
-	for(int i = 0; i < numNodes(); i++)
+	foreach(int i, nodes.keys())
 		f.push_back(nodes[i].property[propertyName]);
 	return f;
 }
 
 SimpleNode * DynamicGraph::getNode( QString originalID )
 {
-	for(int i = 0; i < numNodes(); i++)
+	foreach(int i, nodes.keys())
 		if(nodes[i].str("original") == originalID)
 			return &nodes[i];
 	return NULL;
 }
+
 
 /*
 void DynamicGraph::correspondTo( DynamicGraph & other )

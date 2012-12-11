@@ -25,7 +25,9 @@ HEADERS += topo-blend.h \
     topo/DynamicGraph.h \
     topo/DynamicGraphGlobal.h \
     QuickMesh.h \
-    QuickViewer.h
+    QuickViewer.h \
+	ExportDynamicGraph.h
+	
 SOURCES += topo-blend.cpp \ 
     topo_blend_widget.cpp \
     topo/StructureGraph.cpp \
@@ -34,7 +36,9 @@ SOURCES += topo-blend.cpp \
     topo/StructureLink.cpp \
     topo/TopoBlender.cpp \
     topo/DynamicGraph.cpp
+	
 RESOURCES += topo-blend.qrc
+
 FORMS += \ 
     topo_blend_widget.ui \
     animationWidget.ui

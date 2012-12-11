@@ -1,6 +1,8 @@
 #include "TopoBlender.h"
 using namespace Structure;
 
+#include "ExportDynamicGraph.h"
+
 typedef QPair<Node*,Node*> QPairNodes;
 typedef QPair<Link*,Link*> QPairLink;
 typedef QPair<Scalar, QPairLink> ScalarLinksPair;
@@ -24,11 +26,17 @@ Graph TopoBlender::blend(Scalar t)
 	/// 2) BFS solve for Link discrepancy
 	Flags flags;
 
+	int step = 0;
+	toGraphML(active, QString("step%1").arg(step));
+
+	toGraphviz(active, QString("step%1").arg(step));
+
 	// while number of 'DONE' nodes is not equal to target
 	while((flags = active.flags("state")).count(DONE) != target.nodes.size())
 	{
 		// Break if we ran out of 'ACTIVE' nodes
-		if(flags.indexOf(ACTIVE,0) < 0) break;
+		if(flags.indexOf(ACTIVE,0) < 0) 
+			break;
 
 		// Find an active node
 		int active_idx = 0;
@@ -77,6 +85,7 @@ Graph TopoBlender::blend(Scalar t)
 
 		if(linkDiff > 0)
 		{
+			// links abundance:
 			QVector<QPairLink> diffSet;
 			QList< ScalarLinksPair > sortedDists = sortQMapByValue(dists);
 
@@ -91,11 +100,12 @@ Graph TopoBlender::blend(Scalar t)
 				// Remove the edges
 				active.removeEdge(n_active.idx, other_idx);
 
-				// Mark as 'DISCONNECTED'
-				active.nodes[other_idx].set("state", DISCONNECTED);
+				// Mark as 'DISCONNECTED' if it is isolated
+				if(active.valence(other_idx) == 0)
+					active.nodes[other_idx].set("state", DISCONNECTED);
 			}
 
-			// Propagate to remaining neighbors the 'ACTIVE' state
+			// To remaining neighbors, propagate 'ACTIVE' state
 			foreach(ScalarLinksPair sp, sortedDists)
 			{
 				Link * link = sp.second.first;
@@ -113,7 +123,11 @@ Graph TopoBlender::blend(Scalar t)
 		}
 		else
 		{
-			// link deficiency
+			// link deficiency:
+			
+			// Add special links that need to be filled with [something]
+			//	[something] nearby nodes ?
+
 
 		}
 
@@ -122,7 +136,11 @@ Graph TopoBlender::blend(Scalar t)
 
 		qDebug() << active.flags("state");
 
-		break;
+		step++;
+
+		toGraphML(active, QString("step%1").arg(step));
+		toGraphviz(active, QString("step%1").arg(step));
+
 	}
 
     return blendedGraph;
