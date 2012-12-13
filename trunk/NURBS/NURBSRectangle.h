@@ -95,8 +95,8 @@ public:
 		std::vector<Real> & valU = std::vector<Real>(), std::vector<Real> & valV = std::vector<Real>());
 
 	// Projection
-	Vec2d timeAt(const Vector3 & pos);
-	Vec2d timeAt( const Vector3 & pos, Vec2d & bestUV, Vec2d & minRange, Vec2d & maxRange, Real currentDist, Real threshold = 1e-4 );
+	Vec4d timeAt(const Vector3 & pos);
+	Vec4d timeAt( const Vector3 & pos, Vec4d & bestUV, Vec4d & minRange, Vec4d & maxRange, Real currentDist, Real threshold = 1e-4 );
 
 protected:
     // Replicate the necessary number of control points when the Create
