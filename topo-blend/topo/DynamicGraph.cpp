@@ -51,14 +51,15 @@ void DynamicGraph::addEdge(int fromNode, int toNode)
     adjacency[toNode].insert(e);
 }
 
-int DynamicGraph::nodeIndex(QString property_name, QString property_value)
+int DynamicGraph::nodeIndex(QString property_name, QVariant property_value)
 {
     foreach(SimpleNode n, nodes)
 	{
         if(n.property.contains(property_name) && n.property[property_name] == property_value)
             return n.idx;
 	}
-    return -1;
+	assert(0);
+	return -1;
 }
 
 QString DynamicGraph::nodeType( int index )
@@ -253,7 +254,7 @@ Structure::Graph * DynamicGraph::toStructureGraph(DynamicGraph & target)
 
 		Structure::Node *n1 = graph->getNode(id1), *n2 = graph->getNode(id2);
 
-		graph->addEdge( n1, n2, Vec2d(0), Vec2d(0), graph->linkName(n1, n2) );
+		graph->addEdge( n1, n2, Vec4d(0), Vec4d(0), graph->linkName(n1, n2) );
 
 		// Copy edge coordinates
 		Structure::Link *fromEdge = target.mGraph->getEdge(id1, id2);
@@ -489,14 +490,14 @@ QVector< QPairInt > DynamicGraph::correspondence( DynamicGraph & other, double &
 
 		QString n1_id = nodes[nodeID].str("original");
 		Structure::Node * n1 = this->mGraph->getNode( n1_id );
-		Vector3 center1(0); n1->get(Vector3(0.5), center1);
+		Vector3 center1(0); n1->get(Vec4d(0.5), center1);
 
 		// Test against possible corresponding nodes
 		foreach( int curID, vset[ valence ] )
 		{
 			QString n2_id = other.nodes[curID].str("original");
 			Structure::Node * n2 = other.mGraph->getNode( n2_id );
-			Vector3 center2(0); n2->get(Vector3(0.5), center2);
+			Vector3 center2(0); n2->get(Vec4d(0.5), center2);
 
 			double currScore = (center1 - center2).norm();
 

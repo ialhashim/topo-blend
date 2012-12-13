@@ -11,6 +11,7 @@
 
 // Graph manipulations
 #include "topo/DynamicGraph.h"
+#include "topo/GraphDistance.h"
 #include "topo/TopoBlender.h"
 
 // Temporary solution
@@ -67,6 +68,14 @@ void topoblend::decorate()
 	glColor3d(0,0,1); glBegin(GL_LINES); foreach(MyLine l, debugLines3) {glVector3(l.first); glVector3(l.second);} glEnd();
 
 	glEnable(GL_LIGHTING);
+
+	// DEBUG distance:
+	for(int g = 0; g < (int) graphs.size(); g++){
+		if(graphs[g].misc.contains("distance")){
+			GraphDistance * gd = (GraphDistance *)graphs[g].misc["distance"];
+			gd->draw();
+		}
+	}
 
 	glColor3d(1,1,1);
 	drawArea()->drawText(40,40, "TopoBlend mode.");
@@ -329,6 +338,23 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		used = true;
 	}
 
+	if(event->key() == Qt::Key_W)
+	{
+		if(graphs.size() < 1) return true;
+
+		Structure::Graph * g = &graphs.back();
+
+		GraphDistance * gd = new GraphDistance(g);
+
+		gd->computeDistances(g->nodes.front());
+
+		g->misc["distance"] = gd;
+
+		mainWindow()->setStatusBarMessage("Distance test");
+
+		used = true;
+	}
+
 	if(event->key() == Qt::Key_M)
 	{
 		for(int g = 0; g < (int) graphs.size(); g++)
@@ -413,12 +439,12 @@ void topoblend::experiment1()
 		Structure::Node * n1 = e.n1;
 		Structure::Node * n2 = e.n2;
 
-		Vec2d c1 = e.coord[0];
-		Vec2d c2 = e.coord[1];
+		Vec4d c1 = e.coord[0];
+		Vec4d c2 = e.coord[1];
 
 		Vector3 pos1(0), pos2(0);
-		n1->get(coord3(c1), pos1);
-		n2->get(coord3(c2), pos2);
+		n1->get(c1, pos1);
+		n2->get(c2, pos2);
 
 		double dist = (pos2 - pos1).norm();
 
@@ -432,11 +458,11 @@ void topoblend::experiment1()
 
 		// Check if we need to swap ends
 		{
-			Vec2d origCoord = n1 == curve ? c1 : c2;
+			Vec4d origCoord = n1 == curve ? c1 : c2;
 
-			Vec2d invCoord = inverseCoord(origCoord);
+			Vec4d invCoord = inverseCoord(origCoord);
 			Vector3 invPos(0);
-			curve->get(coord3(invCoord), invPos);
+			curve->get(invCoord, invPos);
 
 			double dist_inv = (invPos - fixed).norm();
 
@@ -446,7 +472,7 @@ void topoblend::experiment1()
 		}
 
 		// Control point to move
-		Vec2d curveCoord = e.getCoord(curve->id);
+		Vec4d curveCoord = e.getCoord(curve->id);
 		int cpIdx = curve->controlPointIndexFromCoord( curveCoord );
 
 		// Compute trajectory to closet on other node

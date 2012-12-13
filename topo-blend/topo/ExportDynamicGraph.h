@@ -170,7 +170,7 @@ static void toGraphML(const DynamicGraph & g, QString fileName = "mygraph")
 }
 
 // Save to XML based graph file
-static void toGraphviz(const DynamicGraph & g, QString fileName = "mygraph")
+static void toGraphviz(const DynamicGraph & g, QString fileName = "mygraph", bool isOutputImage = true, QString subcaption="", QString caption = "")
 {
 	QFile file(fileName + ".gv");
 	if (!file.open(QFile::WriteOnly | QFile::Text))	return;
@@ -196,7 +196,7 @@ static void toGraphviz(const DynamicGraph & g, QString fileName = "mygraph")
 	{
 		const SimpleNode & n = g.nodes[i];
 
-		out << "\t" << QString("\"%1\" [color=%2];").arg(n.property["original"].toString()).arg(colors[n.property["state"].toInt()]) << "\n";
+		out << "\t" << QString("%1 [label = \"%2\", color = %3];").arg(n.idx).arg(n.property["original"].toString()).arg(colors[n.property["state"].toInt()]) << "\n";
 
 		// Move virtual cursor
 		x += dx;
@@ -214,10 +214,20 @@ static void toGraphviz(const DynamicGraph & g, QString fileName = "mygraph")
 		const SimpleNode & n1 = g.nodes[e.n[0]];
 		const SimpleNode & n2 = g.nodes[e.n[1]];
 
-		out << "\t\"" << n1.property["original"].toString() << "\" -- \"" << n2.property["original"].toString() << "\";\n";
+		out << "\t\"" << n1.idx << "\" -- \"" << n2.idx << "\";\n";
 	}
+
+	// Labels
+	out << "label = \"\\n\\n" << caption << "\\n" << subcaption << "\"\n";
+	out << "fontsize = 20;\n";
 
 	out << "}\n";
 
 	file.close();
+
+	// Show image of graph (assuming Graphviz is installed)
+	if(isOutputImage)
+	{
+		system(qPrintable(QString("dot %1 -Tpng > %2").arg(fileName+".gv").arg(fileName+".png")));
+	}
 }

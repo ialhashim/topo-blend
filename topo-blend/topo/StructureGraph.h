@@ -29,7 +29,7 @@ struct Graph
 	// Modifiers
     Node * addNode( Node * n );
     Link addEdge( Node * n1, Node * n2 );
-	Link addEdge( Node * n1, Node * n2, Vec2d coord1, Vec2d coord2, QString linkName);
+	Link addEdge( Node * n1, Node * n2, Vec4d coord1, Vec4d coord2, QString linkName);
 	Link addEdge(QString n1_id, QString n2_id);
 	void removeEdge( Node * n1, Node * n2 );
 
@@ -40,7 +40,7 @@ struct Graph
 	Link* getEdge(QString id1, QString id2);
 	Vector3 nodeIntersection( Node * n1, Node * n2 );
 	Curve* getCurve(Link * l);
-	QMap<Link*, Vec2d> linksCoords( QString nodeID );
+	QMap<Link*, Vec4d> linksCoords( QString nodeID );
 	
 	// Input / Output
 	void saveToFile(QString fileName);
@@ -62,6 +62,7 @@ struct Graph
 	// DEBUG:
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
 	void printAdjacency();
+	QMap< QString, void* > misc;
 };
 
 }

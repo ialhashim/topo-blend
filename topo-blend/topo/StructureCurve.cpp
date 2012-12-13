@@ -46,7 +46,7 @@ std::vector<Scalar> Curve::controlWeights()
 	return curve.getControlWeights();
 }
 
-void Curve::get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3> & frame )
+void Curve::get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame )
 {
 	double u = coordinates[0];
 	Vector3 der1(0);
@@ -56,15 +56,15 @@ void Curve::get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3>
 	curve.GetFrame(u, pos, frame[0], frame[1], frame[2]);
 }
 
-Vec2d Curve::approxCoordinates( const Vector3 & pos )
+Vec4d Curve::approxCoordinates( const Vector3 & pos )
 {
 	Scalar t = curve.timeAt( pos );
-	return Vec2d( t, 0 );
+	return Vec4d( t, 0, 0, 0 );
 }
 
 SurfaceMeshTypes::Vector3 Curve::approxProjection( const Vector3 & point )
 {
-	Vec2d coords = approxCoordinates(point);
+	Vec4d coords = approxCoordinates(point);
 	return curve.GetPosition(coords[0]);
 }
 
@@ -78,7 +78,7 @@ Vector3 & Curve::controlPoint( int idx )
 	return curve.mCtrlPoint[idx];
 }
 
-int Curve::controlPointIndexFromCoord( Vec2d coord )
+int Curve::controlPointIndexFromCoord( Vec4d coord )
 {
 	// Get point at these coordinates
 	Vector3 pos(0); curve.Get(coord[0], &pos, 0,0,0);
@@ -98,7 +98,7 @@ int Curve::controlPointIndexFromCoord( Vec2d coord )
 	return minIdx;
 }
 
-Vector3 & Curve::controlPointFromCoord( Vec2d coord )
+Vector3 & Curve::controlPointFromCoord( Vec4d coord )
 {
 	return curve.mCtrlPoint[controlPointIndexFromCoord( coord )];
 }
@@ -119,7 +119,7 @@ SurfaceMeshTypes::Scalar Curve::area()
 SurfaceMeshTypes::Vector3 Curve::center()
 {
 	Vector3 pos(0);
-	get(coord3(0.5,0.5), pos);
+	get(Vec4d(0.5,0.5,0,0), pos);
 	return pos;
 }
 

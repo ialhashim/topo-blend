@@ -67,7 +67,7 @@ std::vector<Scalar> Sheet::controlWeights()
 	return cpoints;
 }
 
-void Sheet::get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3> & frame )
+void Sheet::get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame )
 {
 	double u = coordinates[0];
 	double v = coordinates[1];
@@ -78,7 +78,7 @@ void Sheet::get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3>
 	surface.GetFrame(u, v, pos, frame[0], frame[1], frame[2]);
 }
 
-Vec2d Sheet::approxCoordinates( const Vector3 & pos )
+Vec4d Sheet::approxCoordinates( const Vector3 & pos )
 {
 	return surface.timeAt( pos );
 }
@@ -86,7 +86,7 @@ Vec2d Sheet::approxCoordinates( const Vector3 & pos )
 SurfaceMeshTypes::Vector3 Sheet::approxProjection( const Vector3 & point )
 {
 	Vector3 pos(0);
-	Vec2d coords = approxCoordinates(point);
+	Vec4d coords = approxCoordinates(point);
 	surface.Get(coords[0], coords[1], pos);
 	return pos;
 }
@@ -125,7 +125,7 @@ SurfaceMeshTypes::Scalar Sheet::area()
 SurfaceMeshTypes::Vector3 Sheet::center()
 {
 	Vector3 pos(0);
-	get(coord3(0.5,0.5), pos);
+	get(Vec4d(0.5,0.5,0,0), pos);
 	return pos;
 }
 
