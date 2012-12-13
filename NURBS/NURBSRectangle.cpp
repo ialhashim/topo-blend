@@ -524,7 +524,7 @@ void NURBSRectangle::generateSurfacePoints( Scalar stepSize, std::vector< std::v
 }
 //----------------------------------------------------------------------------
 
-Vec2d NURBSRectangle::timeAt( const Vector3 & pos )
+Vec4d NURBSRectangle::timeAt( const Vector3 & pos )
 {
 	std::vector< std::vector<Vector3> > pts;
 
@@ -551,15 +551,15 @@ Vec2d NURBSRectangle::timeAt( const Vector3 & pos )
 	}
 
 	// More precise search
-	Vec2d minRange( valU[qMax(0, minIdxU - 1)], valV[qMax(0, minIdxV - 1)]);
-	Vec2d maxRange( valU[qMin((int)valU.size() - 1, minIdxU + 1)], valV[qMin((int)valV.size() - 1, minIdxV + 1)] );
+	Vec4d minRange( valU[qMax(0, minIdxU - 1)], valV[qMax(0, minIdxV - 1)], 0, 0);
+	Vec4d maxRange( valU[qMin((int)valU.size() - 1, minIdxU + 1)], valV[qMin((int)valV.size() - 1, minIdxV + 1)], 0, 0);
 
-	Vec2d bestUV( valU[minIdxU], valV[minIdxV] );
+	Vec4d bestUV( valU[minIdxU], valV[minIdxV], 0, 0 );
 
 	return timeAt(pos, bestUV, minRange, maxRange, minDist);
 }
 
-Vec2d NURBSRectangle::timeAt( const Vector3 & pos, Vec2d & bestUV, Vec2d & minRange, Vec2d & maxRange, Real currentDist, Real threshold )
+Vec4d NURBSRectangle::timeAt( const Vector3 & pos, Vec4d & bestUV, Vec4d & minRange, Vec4d & maxRange, Real currentDist, Real threshold )
 {
 	// 1) Subdivide
 	int searchSteps = 10;
@@ -593,14 +593,14 @@ Vec2d NURBSRectangle::timeAt( const Vector3 & pos, Vec2d & bestUV, Vec2d & minRa
 	if(minDist >= currentDist)
 		return bestUV;
 	else if(minDist < threshold)
-		return Vec2d(curU, curV);
+		return Vec4d(curU, curV, 0, 0);
 	else
 	{
 		// 4) Otherwise recursive search in smaller range
-		Vec2d minRange( qMax(0.0, curU - du), qMax(0.0, curV - dv));
-		Vec2d maxRange( qMin(1.0, curU + du), qMin(1.0, curV + dv) );
+		Vec4d minRange( qMax(0.0, curU - du), qMax(0.0, curV - dv), 0, 0 );
+		Vec4d maxRange( qMin(1.0, curU + du), qMin(1.0, curV + dv), 0, 0 );
 
-		return timeAt(pos, Vec2d(curU, curV), minRange, maxRange, minDist, threshold);
+		return timeAt(pos, Vec4d(curU, curV, 0, 0), minRange, maxRange, minDist, threshold);
 	}
 }
 

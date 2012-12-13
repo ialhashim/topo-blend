@@ -47,7 +47,7 @@ void nurbs_plugin::create()
 
 	double omega = M_PI * 3 / qMin(width, length);
 
-	Vec2d surface_pos(0,1);
+	Vec4d surface_pos(0,1);
 
 	for(int i = 0; i < width; i++)
 		for(int j = 0; j < length; j++)
