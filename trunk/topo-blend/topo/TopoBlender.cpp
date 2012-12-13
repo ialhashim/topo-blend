@@ -1,3 +1,5 @@
+#include <QFileSystemModel>
+
 #include "TopoBlender.h"
 using namespace Structure;
 
@@ -26,37 +28,43 @@ Graph TopoBlender::blend(Scalar t)
 	/// 2) BFS solve for Link discrepancy
 	Flags flags;
 
-	int step = 0;
-	toGraphML(active, QString("step%1").arg(step));
+	// Clean up past work
+	QDir directory(QDir::currentPath());
+	QStringList filesList = directory.entryList(QDir::Files);
+	foreach(QString f, filesList) 
+	{
+		if(f.endsWith(".png") || f.endsWith(".gv") || f.endsWith(".graphml")) 
+			directory.remove(f);
+	}
 
-	toGraphviz(active, QString("step%1").arg(step));
+	int step = 0;
+	QString graphCaption = QString("step%1").arg(step);
+	QString graphSubtitle = QString("Initial graph");
+	toGraphML(active, graphCaption);
+	toGraphviz(active, graphCaption, true, graphCaption, graphSubtitle);
 
 	// while number of 'DONE' nodes is not equal to target
 	while((flags = active.flags("state")).count(DONE) != target.nodes.size())
 	{
+		QString log;
+
 		// Break if we ran out of 'ACTIVE' nodes
 		if(flags.indexOf(ACTIVE,0) < 0) 
 			break;
 
 		// Find an active node
-		int active_idx = 0;
-		foreach(int key, active.nodes.keys()){
-			if(active.nodes[key].val("state") == ACTIVE){
-				active_idx = key;
-				break;
-			}
-		}
+		int active_idx = active.nodeIndex("state", ACTIVE);
+		if(active_idx < 0) break;
 
+		// Get corresponding target node
 		SimpleNode & n_active = active.nodes[active_idx];
 		QString activeNodeID = n_active.str("original");
 		QString targetNodeID = n_active.str("correspond");
-
-		// Get corresponding target node
 		int target_idx = target.nodeIndex("original", targetNodeID);
 
 		// Get coordinates of all links of both
-		QMap<Link*, Vec2d> coord_active = g1->linksCoords(activeNodeID);
-		QMap<Link*, Vec2d> coord_target = g2->linksCoords(targetNodeID);
+		QMap<Link*, Vec4d> coord_active = g1->linksCoords(activeNodeID);
+		QMap<Link*, Vec4d> coord_target = g2->linksCoords(targetNodeID);
 
 		QMap<QPairLink, Scalar> dists;
 
@@ -80,15 +88,14 @@ Graph TopoBlender::blend(Scalar t)
 			dists[qMakePair(i, closestLink)] = minDist;
 		}
 
+		QList< ScalarLinksPair > sortedDists = sortQMapByValue(dists);
+
 		// Decide either remove links (when target has less links) or add links
 		int linkDiff = coord_active.size() - coord_target.size();
 
+		// Link abundance:
 		if(linkDiff > 0)
 		{
-			// links abundance:
-			QVector<QPairLink> diffSet;
-			QList< ScalarLinksPair > sortedDists = sortQMapByValue(dists);
-
 			// Find excess links on active node
 			for(int i = 0; i < linkDiff; i++)
 			{
@@ -111,37 +118,74 @@ Graph TopoBlender::blend(Scalar t)
 				Link * link = sp.second.first;
 				QString otherNodeID = link->otherNode( activeNodeID )->id;
 				int other_idx = active.nodeIndex("original", otherNodeID);
+				int otherState = active.nodes[other_idx].val("state");
 
 				// Mark as 'ACTIVE'
-				active.nodes[other_idx].set("state", ACTIVE);
+				if(otherState != DONE && otherState != DISCONNECTED)
+					active.nodes[other_idx].set("state", ACTIVE);
 
 				// Set corresponding target node
 				Link * linkTarget = sp.second.second;
 				QString otherNodeTarget = linkTarget->otherNode(targetNodeID)->id;
 				active.nodes[other_idx].set("correspond", otherNodeTarget);
 			}
+
+			// Log activity
+			log += QString("Removed links from node");
 		}
-		else
+
+		// link deficiency:
+		if(linkDiff < 0)
 		{
-			// link deficiency:
-			
 			// Add special links that need to be filled with [something]
-			//	[something] nearby nodes ?
+			//	[something] nearby nodes ? 
 
+			// propagate 'ACTIVE' state to neighbors
+			foreach(ScalarLinksPair sp, sortedDists)
+			{
+				Link * link = sp.second.first;
+				QString otherNodeID = link->otherNode( activeNodeID )->id;
+				int other_idx = active.nodeIndex("original", otherNodeID);
+				int otherState = active.nodes[other_idx].val("state");
 
+				// Mark as 'ACTIVE'
+				if(otherState != DONE && otherState != DISCONNECTED)
+				{
+					active.nodes[other_idx].set("state", ACTIVE);
+
+					// Set corresponding target node
+					Link * linkTarget = sp.second.second;
+					QString otherNodeTarget = linkTarget->otherNode(targetNodeID)->id;
+					active.nodes[other_idx].set("correspond", otherNodeTarget);
+				}
+			}
+
+			log += QString("Need to add links to node");
+		}
+
+		// Same links, need to check quality of these links
+		if(linkDiff == 0)
+		{
+			log += QString("Same links count");
 		}
 
 		// This node is now 'DONE'
 		n_active.set("state", DONE);
 
-		qDebug() << active.flags("state");
-
 		step++;
 
-		toGraphML(active, QString("step%1").arg(step));
-		toGraphviz(active, QString("step%1").arg(step));
-
+		QString graphCaption = QString("step%1").arg(step);
+		toGraphML(active, graphCaption);
+		toGraphviz(active, graphCaption, true, graphCaption, log);
 	}
+
+	graphCaption = QString("step%1").arg(++step);
+	graphSubtitle = QString("Final graph");
+	toGraphML(active, graphCaption);
+	toGraphviz(active, graphCaption, true, graphCaption, graphSubtitle);
+
+	// Create animated GIF (assuming ImageMagick installed)
+	system(qPrintable( QString("convert -resize 800x800	-delay %1 -loop 0 *.png steps.gif").arg( 200 ) ));
 
     return blendedGraph;
 }

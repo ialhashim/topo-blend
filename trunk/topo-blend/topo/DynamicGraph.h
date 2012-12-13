@@ -20,7 +20,7 @@ public:
 	void removeEdge(int fromNode, int toNode);
 
 	// GET
-    int nodeIndex(QString property_name, QString property_value);
+    int nodeIndex(QString property_name, QVariant property_value);
 	QSet<int> adjNodes(int index);
 	QString nodeType(int index);
 	SimpleNode * getNode( QString originalID );

@@ -26,8 +26,8 @@ struct Sheet : public Node
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
 
 	// Coordinates
-	void get( const Vector3& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() );
-	Vec2d approxCoordinates( const Vector3 & pos );
+	void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() );
+	Vec4d approxCoordinates( const Vector3 & pos );
 	Vector3 approxProjection( const Vector3 & point );
 	Vector3 center();
 

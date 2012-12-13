@@ -59,8 +59,8 @@ Link Graph::addEdge(Node *n1, Node *n2)
 
 	Vector3 intersectPoint = nodeIntersection(n1, n2);
 
-	Vec2d c1 = n1->approxCoordinates(intersectPoint);
-	Vec2d c2 = n2->approxCoordinates(intersectPoint);
+	Vec4d c1 = n1->approxCoordinates(intersectPoint);
+	Vec4d c2 = n2->approxCoordinates(intersectPoint);
 
     Link e( n1, n2, c1, c2, "none", linkName(n1, n2) );
     edges.push_back(e);
@@ -74,7 +74,7 @@ Link Graph::addEdge(Node *n1, Node *n2)
     return e;
 }
 
-Link Graph::addEdge(Node *n1, Node *n2, Vec2d coord1, Vec2d coord2, QString linkName)
+Link Graph::addEdge(Node *n1, Node *n2, Vec4d coord1, Vec4d coord2, QString linkName)
 {
 	n1 = addNode(n1);
 	n2 = addNode(n2);
@@ -334,8 +334,8 @@ void Graph::saveToFile( QString fileName )
 		out << QString("\t<type>%1</type>\n\n").arg(e.type);
 		out << QString("\t<n>%1</n>\n").arg(e.n1->id);
 		out << QString("\t<n>%1</n>\n").arg(e.n2->id);
-		out << QString("\t<coord>%1 %2</coord>\n").arg(e.coord[0].x()).arg(e.coord[0].y());
-		out << QString("\t<coord>%1 %2</coord>\n").arg(e.coord[1].x()).arg(e.coord[1].y());
+		out << QString("\t<coord>%1 %2 %3 %4</coord>\n").arg(e.coord[0][0]).arg(e.coord[0][1]).arg(e.coord[0][2]).arg(e.coord[0][3]);
+		out << QString("\t<coord>%1 %2 %3 %4</coord>\n").arg(e.coord[1][0]).arg(e.coord[1][1]).arg(e.coord[1][2]).arg(e.coord[1][3]);
 		out << "\n</edge>\n\n";
 	}
 
@@ -435,7 +435,7 @@ void Graph::loadFromFile( QString fileName )
 		QStringList c1 = coord.at(0).toElement().text().split(" ");
 		QStringList c2 = coord.at(1).toElement().text().split(" ");
 
-		addEdge(getNode(n1_id), getNode(n2_id), Vec2d(c1[0].toDouble(), c1[1].toDouble()), Vec2d(c2[0].toDouble(), c2[1].toDouble()), id);
+		addEdge(getNode(n1_id), getNode(n2_id), Vec4d(c1[0].toDouble(), c1[1].toDouble(), 0, 0), Vec4d(c2[0].toDouble(), c2[1].toDouble(), 0, 0), id);
 	}
 
 	file.close();
@@ -650,9 +650,9 @@ Structure::Curve* Graph::getCurve( Link * l )
 	return (Structure::Curve *) ((n1->type() == Structure::CURVE) ? n1: n2);
 }
 
-QMap<Link*, Vec2d> Structure::Graph::linksCoords( QString nodeID )
+QMap<Link*, Vec4d> Structure::Graph::linksCoords( QString nodeID )
 {
-	QMap<Link*, Vec2d> coords;
+	QMap<Link*, Vec4d> coords;
 
 	for(int i = 0; i < edges.size(); i++)
 	{
