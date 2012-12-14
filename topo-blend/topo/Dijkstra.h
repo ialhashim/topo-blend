@@ -24,7 +24,7 @@ struct neighbor {
 
 typedef std::vector< std::vector<neighbor> > adjacency_list_t;
 
-void DijkstraComputePaths(vertex_t source,
+static void DijkstraComputePaths(vertex_t source,
 	const adjacency_list_t &adjacency_list,
 	std::vector<weight_t> &min_distance,
 	std::vector<vertex_t> &previous)
@@ -63,7 +63,7 @@ void DijkstraComputePaths(vertex_t source,
 	}
 }
 
-std::list<vertex_t> DijkstraGetShortestPathTo(vertex_t vertex, const std::vector<vertex_t> &previous)
+static std::list<vertex_t> DijkstraGetShortestPathTo(vertex_t vertex, const std::vector<vertex_t> &previous)
 {
 	std::list<vertex_t> path;
 	for ( ; vertex != -1; vertex = previous[vertex])

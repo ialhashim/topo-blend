@@ -25,6 +25,7 @@ struct Node
 	virtual Vector3 center() = 0;
 
 	virtual std::vector< std::vector<Vector3> > discretized(Scalar resolution) = 0;
+	virtual std::vector< std::vector<Vector3> > discretizedPoints(Scalar resolution) = 0;
 
 	// Geometric properties
 	virtual Scalar area() = 0;
