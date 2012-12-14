@@ -96,6 +96,13 @@ std::vector< std::vector<Vector3> > Sheet::discretized(Scalar resolution)
 	return surface.generateSurfaceTris( resolution );
 }
 
+std::vector< std::vector<Vector3> > Structure::Sheet::discretizedPoints( Scalar resolution )
+{
+	std::vector< std::vector<Vector3> > points;
+	surface.generateSurfacePoints(resolution, points);
+	return points;
+}
+
 Vector3 & Sheet::controlPoint( int idx )
 {
     // TODO: return actual point

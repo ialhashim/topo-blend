@@ -24,6 +24,7 @@ struct Sheet : public Node
 	Vector3 & controlPoint(int idx);
 
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
+	std::vector< std::vector<Vector3> > discretizedPoints(Scalar resolution);
 
 	// Coordinates
 	void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() );

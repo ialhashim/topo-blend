@@ -73,6 +73,18 @@ std::vector< std::vector<Vector3> > Curve::discretized(Scalar resolution)
 	return curve.toSegments( resolution );
 }
 
+std::vector< std::vector<Vector3> > Structure::Curve::discretizedPoints( Scalar resolution )
+{
+	int np = 1 + (curve.GetLength(0,1) / resolution);
+	std::vector<Vector3> pts;
+
+	curve.SubdivideByLength(np, pts);
+
+	std::vector< std::vector<Vector3> > result;
+	result.push_back(pts);
+	return result;
+}
+
 Vector3 & Curve::controlPoint( int idx )
 {
 	return curve.mCtrlPoint[idx];
