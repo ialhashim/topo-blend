@@ -28,6 +28,7 @@ struct Sheet : public Node
 
 	// Coordinates
 	void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() );
+	Vector3 position( const Vec4d& coordinates );
 	Vec4d approxCoordinates( const Vector3 & pos );
 	Vector3 approxProjection( const Vector3 & point );
 	Vector3 center();

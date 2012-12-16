@@ -41,6 +41,7 @@ struct Graph
 	Vector3 nodeIntersection( Node * n1, Node * n2 );
 	Curve* getCurve(Link * l);
 	QMap<Link*, Vec4d> linksCoords( QString nodeID );
+	QVector<Link> nodeEdges( QString nodeID );
 	
 	// Input / Output
 	void saveToFile(QString fileName);

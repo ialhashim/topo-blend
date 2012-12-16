@@ -664,3 +664,13 @@ QMap<Link*, Vec4d> Structure::Graph::linksCoords( QString nodeID )
 
 	return coords;
 }
+
+QVector<Link> Structure::Graph::nodeEdges( QString nodeID )
+{
+	QVector<Link> nodeLinks;
+	
+	foreach(Link e, edges) if(e.hasNode(nodeID)) 
+		nodeLinks.push_back(e);
+
+	return nodeLinks;
+}

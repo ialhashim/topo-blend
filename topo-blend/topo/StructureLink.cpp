@@ -44,7 +44,25 @@ void Link::draw()
 	glEnable(GL_LIGHTING);
 }
 
-bool Structure::Link::hasNode( QString nodeID )
+bool Link::hasNode( QString nodeID )
 {
 	return n1->id == nodeID || n2->id == nodeID;
+}
+
+bool Link::hasNodeProperty( QString propertyName, QVariant propertyValue )
+{
+	bool pn1 = n1->hasProperty(propertyName) && n1->property[propertyName] == propertyValue;
+	bool pn2 = n2->hasProperty(propertyName) && n2->property[propertyName] == propertyValue;
+
+	return pn1 || pn2;
+}
+
+SurfaceMeshTypes::Vector3 Link::position( QString nodeID )
+{
+	Node * n = n1->id == nodeID ? n1 : n2;
+	assert(n->id == nodeID);
+
+	Vector3 pos(0);
+	n->get(getCoord(nodeID),pos);
+	return pos;
 }

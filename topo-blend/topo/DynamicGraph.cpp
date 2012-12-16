@@ -4,6 +4,7 @@ DynamicGraph::DynamicGraph(Structure::Graph *fromGraph)
 {
     this->mGraph = fromGraph;
 	this->uniqueID = 0;
+	this->uniqueEdgeID = 0;
 
 	if(mGraph == NULL) return;
 	
@@ -19,11 +20,12 @@ DynamicGraph::DynamicGraph(Structure::Graph *fromGraph)
 DynamicGraph DynamicGraph::clone()
 {
 	DynamicGraph g;
-	g.mGraph	= this->mGraph;
-	g.nodes		= this->nodes;
-	g.edges		= this->edges;
-	g.adjacency = this->adjacency;
-	g.uniqueID	= this->uniqueID;
+	g.mGraph		= this->mGraph;
+	g.nodes			= this->nodes;
+	g.edges			= this->edges;
+	g.adjacency		= this->adjacency;
+	g.uniqueID		= this->uniqueID;
+	g.uniqueEdgeID	= this->uniqueEdgeID;
 	return g;
 }
 
@@ -45,13 +47,14 @@ void DynamicGraph::addEdge(int fromNode, int toNode)
 
     SimpleEdge e(fromNode, toNode);
 
-    edges[edges.size()] = e;
+    edges[uniqueEdgeID] = e;
+	uniqueEdgeID++;
 
     adjacency[fromNode].insert(e);
     adjacency[toNode].insert(e);
 }
 
-int DynamicGraph::nodeIndex(QString property_name, QVariant property_value)
+int DynamicGraph::nodeIndex( QString property_name, QVariant property_value )
 {
     foreach(SimpleNode n, nodes)
 	{
@@ -60,6 +63,19 @@ int DynamicGraph::nodeIndex(QString property_name, QVariant property_value)
 	}
 	assert(0);
 	return -1;
+}
+
+std::vector<int> DynamicGraph::nodesWith( QString property_name, QVariant property_value )
+{
+	std::vector<int> result;
+
+	foreach(SimpleNode n, nodes)
+	{
+		if(n.property.contains(property_name) && n.property[property_name] == property_value)
+			result.push_back(n.idx);
+	}
+
+	return result;
 }
 
 QString DynamicGraph::nodeType( int index )
@@ -545,6 +561,29 @@ SimpleNode * DynamicGraph::getNode( QString originalID )
 	return NULL;
 }
 
+QMap<int, SimpleEdge> DynamicGraph::getEdges( int nodeIDX )
+{
+	QMap<int, SimpleEdge> result;
+
+	foreach(int i, edges.keys()){
+		if(edges[i].n[0] == nodeIDX || edges[i].n[1] == nodeIDX)
+			result[i] = edges[i];
+	}
+
+	return result;
+}
+
+Structure::Link * DynamicGraph::getOriginalLink( QString originalID1, QString originalID2 )
+{
+	QString n1_id = nodes[getNode(originalID1)->idx].str("original");
+	QString n2_id = nodes[getNode(originalID2)->idx].str("original");
+	return mGraph->getEdge(n1_id, n2_id);
+}
+
+bool DynamicGraph::hasEdge( int n1_index, int n2_index )
+{
+	return edges.values().contains(SimpleEdge(n1_index,n2_index));
+}
 
 /*
 void DynamicGraph::correspondTo( DynamicGraph & other )

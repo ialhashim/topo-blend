@@ -15,7 +15,7 @@ struct Link
 	Node *n1, *n2;	
 	QString id;
 	QString type;
-    QMap< QString, QVariant > property;
+    QMap< QString, QVariant > link_property;
 
 	Vec4d coord[2];
 
@@ -38,6 +38,8 @@ struct Link
 	
 	// Accessors
 	bool hasNode(QString nodeID);
+	bool hasNodeProperty(QString propertyName, QVariant propertyValue);
+	Vector3 position(QString nodeID);
 
 	// Visualization
     void draw();

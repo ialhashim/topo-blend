@@ -21,9 +21,13 @@ public:
 
 	// GET
     int nodeIndex(QString property_name, QVariant property_value);
+	std::vector<int> nodesWith(QString property_name, QVariant property_value);
 	QSet<int> adjNodes(int index);
 	QString nodeType(int index);
 	SimpleNode * getNode( QString originalID );
+	Structure::Link * getOriginalLink( QString originalID1, QString originalID2 );
+	QMap<int, SimpleEdge> getEdges( int nodeIDX );
+	bool hasEdge(int n1_index, int n2_index);
 
 	int numNodes(){ return nodes.size(); }
 	int numEdges(EdgeType t);
@@ -62,8 +66,10 @@ public:
 
 	// Properties
 	Structure::Graph * mGraph;
-	int uniqueID;
 	Structure::Graph * graph(){ return mGraph; }
+
+	int uniqueID;
+	int uniqueEdgeID;
 
 	QMap<int, SimpleNode> nodes;
 	QMap<int, SimpleEdge> edges;
