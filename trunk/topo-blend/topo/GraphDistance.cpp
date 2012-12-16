@@ -7,11 +7,27 @@ GraphDistance::GraphDistance(Structure::Graph *graph)
 	this->isReady = false;
 }
 
-void GraphDistance::computeDistances( Structure::Node * startNode, const Vec4d & coords, double resolution )
+void GraphDistance::computeDistances( Vector3 startingPoint, double resolution )
 {
-	int gid = 0;
+	std::vector<Vector3> pnts;
+	pnts.push_back(startingPoint);
+	computeDistances(pnts, resolution);
+}
 
-	// Setup control points adjacency
+void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, double resolution )
+{
+	this->isReady = false;
+
+	clear();
+
+	typedef std::map< int, std::pair<int,double> > CloseMap;
+	CloseMap closestStart;
+	foreach(Vector3 p, startingPoints) 
+		closestStart[closestStart.size()] = std::make_pair(-1,DBL_MAX);
+
+	int globalID = 0;
+
+	// Setup control points adjacency lists
 	foreach(Node * node, g->nodes)
 	{
 		int i = 0;
@@ -29,11 +45,21 @@ void GraphDistance::computeDistances( Structure::Node * startNode, const Vec4d &
 			}
 		}
 
-		foreach(Vector3 p, pointList){
+		foreach(Vector3 p, pointList)
+		{
+			// Check if its close to a start
+			for(int s = 0; s < (int)startingPoints.size(); s++)
+			{
+				Scalar dist = (p - startingPoints[s]).norm();
+				if(dist < closestStart[s].second)
+					closestStart[s] = std::make_pair(globalID, dist);
+			}
+
 			samplePoints[node].push_back(p);
 			allPoints.push_back(p);
-			nodesMap[node].push_back( GraphDistanceNode(p, node, i++, gid++) );
 			adjacency_list.push_back( std::vector<neighbor>() );
+			correspond.push_back(node);
+			nodesMap[node].push_back( GraphDistanceNode(p, node, i++, globalID++) );
 		}
 	}
 
@@ -124,31 +150,72 @@ void GraphDistance::computeDistances( Structure::Node * startNode, const Vec4d &
 		double weight = (samplePoints[e.n1][id1] - samplePoints[e.n2][id2]).norm();
 		adjacency_list[gid1 + id1].push_back(neighbor(gid2 + id2, weight));
 		adjacency_list[gid2 + id2].push_back(neighbor(gid1 + id1, weight));
+
+		// Keep record
+		jumpPoints.insert(std::make_pair(gid1 + id1, gid2 + id2));
 	}
 
-	// Test starting from point 0
-	int start_point = 0;
+	// Create and connect starting points to rest of graph
+	int start_point = globalID;
+	adjacency_list.push_back(std::vector<neighbor>());
+	allPoints.push_back(Vector3(0));
+	correspond.push_back(NULL);
 
-	std::vector<weight_t> min_distance;
-	std::vector<vertex_t> previous;
+	// Last element's adjacency list contains links to all starting points
+	for(CloseMap::iterator it = closestStart.begin(); it != closestStart.end(); it++){
+		adjacency_list.back().push_back(neighbor(it->second.first, 0));
+	}
 
 	// Compute distances
 	DijkstraComputePaths(start_point, adjacency_list, min_distance, previous);
 
+	// Find maximum
 	double max_dist = -DBL_MAX;
-
 	for(int i = 0; i < (int)allPoints.size(); i++)
-	{
 		max_dist = qMax(max_dist, min_distance[i]);
-	}
 
 	// Normalize
 	for(int i = 0; i < (int)allPoints.size(); i++)
-	{
 		dists.push_back(min_distance[i] / max_dist);
-	}
 
 	isReady = true;
+}
+
+double GraphDistance::distanceTo( Vector3 point, std::vector<Vector3> & path )
+{
+	// Find closest destination point
+	int closest = 0;
+	double minDist = DBL_MAX;
+
+	for(int i = 0; i < (int)allPoints.size(); i++)
+	{
+		double dist = (point - allPoints[i]).norm();
+		if(dist < minDist){
+			minDist = dist;
+			closest = i;
+		}
+	}
+
+	// Retrieve path 
+	std::list<vertex_t> shortestPath = DijkstraGetShortestPathTo(closest, previous);
+	foreach(vertex_t v, shortestPath) path.push_back(allPoints[v]);
+	
+	// Return distance
+	return dists[closest];
+}
+
+void GraphDistance::clear()
+{
+	adjacency_list.clear();
+	min_distance.clear();
+	previous.clear();
+	nodesMap.clear();
+	samplePoints.clear();
+	nodeCount.clear();
+	allPoints.clear();
+	dists.clear();
+	correspond.clear();
+	jumpPoints.clear();
 }
 
 void GraphDistance::draw()
@@ -157,26 +224,7 @@ void GraphDistance::draw()
 
 	glDisable(GL_LIGHTING);
 
-	int pointSize = 10;
-	int i = 0;
-
-	foreach(std::vector<Vec3d> pnts, debugPoints)
-	{
-		// Size
-		pointSize += 2;
-		glPointSize(pointSize);
-
-		// Color
-		QColor color = QColor(i < (int)debugColors.size() ? debugColors[i++] : qRandomColor());
-		glColorQt(color);
-
-		// Geometry
-		glBegin(GL_POINTS);
-		foreach(Vec3d p, pnts) glVector3(p);
-		glEnd();
-	}
-
-	// Draw edges
+	// Draw edges [slow!]
 	/*glLineWidth(4);
 	glBegin(GL_LINES);
 	int v1 = 0;
@@ -194,7 +242,7 @@ void GraphDistance::draw()
 	glEnd();*/
 
 	// Visualize resulting distances
-	glPointSize(pointSize + 15);
+	glPointSize(15);
 	glBegin(GL_POINTS);
 	for(int i = 0; i < (int)allPoints.size(); i++)
 	{
@@ -206,15 +254,26 @@ void GraphDistance::draw()
 	glEnable(GL_LIGHTING);
 }
 
-void GraphDistance::dbgPoint( const Vec3d & p ){
-	if(debugPoints.size() < 1) 
-	{
-		debugPoints.push_back(std::vector<Vec3d>());
-		debugColors.push_back(qRandomColor());
-	}
-	debugPoints.back().push_back(p);
-}
+Structure::Node * GraphDistance::closestNeighbourNode( Vector3 to, double resolution )
+{
+	computeDistances(to, resolution);
 
-void GraphDistance::pushDebugPoints( const std::vector<Vec3d> & pnts ){
-	debugPoints.push_back(pnts);
+	// Get start point appointed
+	int startID = adjacency_list.back().back().target;
+
+	Node * closestNode = NULL;
+	double minDist = DBL_MAX;
+	typedef std::pair<int,int> PairIds;
+
+	// Compare distance at jump points
+	foreach(PairIds i, jumpPoints)
+	{
+		double dist = dists[i.first];
+
+		if(dist < minDist){
+			minDist = dist;
+			closestNode = correspond[i.first] == correspond[startID] ? correspond[i.second] : correspond[i.first];
+		}
+	}
+	return closestNode;
 }

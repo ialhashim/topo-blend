@@ -47,6 +47,9 @@ struct SimpleEdge{
 	bool hasNode(int node_index){
 		return n[0] == node_index || n[1] == node_index;
 	}
+	int otherNode(int node_index){
+		return n[0] == node_index ? n[1] : n[0];
+	}
 	bool operator< (const SimpleEdge & other) const{
 		if(this->n[0] <= other.n[0] && this->n[1] < other.n[1]) 
 			return true;

@@ -56,6 +56,12 @@ void Curve::get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> &
 	curve.GetFrame(u, pos, frame[0], frame[1], frame[2]);
 }
 
+SurfaceMeshTypes::Vector3 Curve::position( const Vec4d& coordinates )
+{
+	Vector3 p(0); get(coordinates,p);
+	return p;
+}
+
 Vec4d Curve::approxCoordinates( const Vector3 & pos )
 {
 	Scalar t = curve.timeAt( pos );

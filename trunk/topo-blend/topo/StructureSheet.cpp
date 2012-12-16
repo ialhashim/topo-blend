@@ -78,6 +78,12 @@ void Sheet::get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> &
 	surface.GetFrame(u, v, pos, frame[0], frame[1], frame[2]);
 }
 
+SurfaceMeshTypes::Vector3 Sheet::position( const Vec4d& coordinates )
+{
+	Vector3 p(0); get(coordinates,p);
+	return p;
+}
+
 Vec4d Sheet::approxCoordinates( const Vector3 & pos )
 {
 	return surface.timeAt( pos );

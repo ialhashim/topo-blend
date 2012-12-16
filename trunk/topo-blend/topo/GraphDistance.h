@@ -15,10 +15,17 @@ class GraphDistance
 public:
     GraphDistance(Structure::Graph * graph);
 
-	void computeDistances( Structure::Node * startNode, const Vec4d & coords = Vec4d(0), double resolution = 0.1 );
-    Structure::Graph * g;
+	void computeDistances( Vector3 startingPoint, double resolution = 0.25 );
+	void computeDistances( std::vector<Vector3> startingPoints, double resolution = 0.25 );
+	double distanceTo( Vector3 point, std::vector<Vector3> & path = std::vector<Vector3>() );
+	Structure::Node * closestNeighbourNode( Vector3 to, double resolution = 0.25 );
+	void clear();
+
+	Structure::Graph * g;
 
 	adjacency_list_t adjacency_list;
+	std::vector<weight_t> min_distance;
+	std::vector<vertex_t> previous;
 
 	std::map< Structure::Node *, std::vector<GraphDistanceNode> > nodesMap;
 	std::map< Structure::Node *, std::vector<Vector3> > samplePoints;
@@ -26,13 +33,11 @@ public:
 
 	std::vector<Vector3> allPoints;
 	std::vector<double> dists;
+	std::vector<Structure::Node *> correspond;
+	std::set< std::pair<int,int> > jumpPoints;
 
 	bool isReady;
 
 	// DEBUG:
 	void draw();
-	void dbgPoint(const Vec3d & p);
-	void pushDebugPoints(const std::vector<Vec3d> & pnts);
-	std::vector< std::vector<Vec3d> > debugPoints;
-	std::vector< QColor > debugColors;
 };

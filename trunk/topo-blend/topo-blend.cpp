@@ -346,7 +346,10 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 		GraphDistance * gd = new GraphDistance(g);
 
-		gd->computeDistances(g->nodes.front());
+		std::vector<Vector3> starts;
+		starts.push_back(Vector3(1,-0.5,2.5));
+		starts.push_back(Vector3(-1,-0.5,2.5));
+		gd->computeDistances(starts,0.1);
 
 		g->misc["distance"] = gd;
 
