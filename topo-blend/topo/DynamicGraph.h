@@ -11,7 +11,7 @@ public:
 
 	// ADD
     int addNode(Properties properties = noProperties(), int index = -1);
-	void addEdge(int fromNode, int toNode);
+	int addEdge(int fromNode, int toNode);
 
 	int cloneNode(int index, bool cloneEdges = false);
 
@@ -56,7 +56,8 @@ public:
 	//void correspondTo( DynamicGraph & other );
 
 	// Generate structure graph
-	Structure::Graph * toStructureGraph(DynamicGraph & target);
+	Structure::Graph * toStructureGraph();
+	Structure::Graph * toStructureGraphOld(DynamicGraph & target);
 
 	// Graph edit
 	QVector<DynamicGraph> candidateNodes(DynamicGraph & targetGraph);
@@ -74,4 +75,8 @@ public:
 	QMap<int, SimpleNode> nodes;
 	QMap<int, SimpleEdge> edges;
 	QMap<int, QSet<SimpleEdge> > adjacency;
+
+	// Special cases
+	QMap< int, QMap< int, Vec4d > > specialCoords;
+	Vec4d firstSpecialCoord(int node_index);
 };
