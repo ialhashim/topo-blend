@@ -41,17 +41,20 @@ int DynamicGraph::addNode(Properties properties, int index)
 	return index;
 }
 
-void DynamicGraph::addEdge(int fromNode, int toNode)
+int DynamicGraph::addEdge(int fromNode, int toNode)
 {
     if(fromNode == toNode) assert(0);
 
     SimpleEdge e(fromNode, toNode);
 
-    edges[uniqueEdgeID] = e;
+	int edgeIndex = uniqueEdgeID;
+    edges[edgeIndex] = e;
 	uniqueEdgeID++;
 
     adjacency[fromNode].insert(e);
     adjacency[toNode].insert(e);
+
+	return edgeIndex;
 }
 
 int DynamicGraph::nodeIndex( QString property_name, QVariant property_value )
@@ -228,7 +231,68 @@ GraphState DynamicGraph::difference( GraphState & other )
 	return diff;
 }
 
-Structure::Graph * DynamicGraph::toStructureGraph(DynamicGraph & target)
+Structure::Graph * DynamicGraph::toStructureGraph()
+{
+	Structure::Graph * graph = new Structure::Graph();
+	QMap<int,QString> nodeMap;
+
+	// Add nodes
+	foreach(SimpleNode n, nodes)
+	{
+		QString nodeId = n.str("original");
+
+		if(nodeType(n.idx) == Structure::SHEET)
+		{
+			Structure::Sheet * s = (Structure::Sheet *) mGraph->getNode(nodeId);
+			graph->addNode( new Structure::Sheet(s->surface, nodeId) );
+			nodeMap[n.idx] = nodeId;
+		}
+
+		if(nodeType(n.idx) == Structure::CURVE)
+		{
+			Structure::Curve * s = (Structure::Curve *) mGraph->getNode(nodeId);
+			graph->addNode( new Structure::Curve(s->curve, nodeId) );
+			nodeMap[n.idx] = nodeId;
+		}
+	}
+
+	// Add edges
+	QMapIterator<int, SimpleEdge> i(edges);
+	while (i.hasNext()){
+		i.next();
+
+		int edgeIndex = i.key();
+		SimpleEdge e = i.value();
+
+		QString id1 = nodes[e.n[0]].str("original");
+		QString id2 = nodes[e.n[1]].str("original");
+
+		Structure::Node *n1 = graph->getNode(id1), *n2 = graph->getNode(id2);
+
+		graph->addEdge( n1, n2, Vec4d(0), Vec4d(0), graph->linkName(n1, n2) );
+
+		// Copy edge coordinates
+		Structure::Link *toEdge = graph->getEdge(id1, id2);
+		Structure::Link *fromEdge;
+		if(fromEdge = mGraph->getEdge(id1,id2))
+		{
+			toEdge->setCoord(id1, fromEdge->getCoord(id1));
+			toEdge->setCoord(id2, fromEdge->getCoord(id2));
+		}
+		else if( specialCoords.contains(edgeIndex) )
+		{
+			Vec4d c1 = specialCoords[edgeIndex][e.n[0]];
+			Vec4d c2 = specialCoords[edgeIndex][e.n[1]];
+
+			toEdge->setCoord(id1, c1);
+			toEdge->setCoord(id2, c2);
+		}
+	}
+
+	return graph;
+}
+
+Structure::Graph * DynamicGraph::toStructureGraphOld(DynamicGraph & target)
 {
 	Structure::Graph * graph = new Structure::Graph();
 	QMap<int,QString> nodeMap;
@@ -583,6 +647,19 @@ Structure::Link * DynamicGraph::getOriginalLink( QString originalID1, QString or
 bool DynamicGraph::hasEdge( int n1_index, int n2_index )
 {
 	return edges.values().contains(SimpleEdge(n1_index,n2_index));
+}
+
+Vec4d DynamicGraph::firstSpecialCoord( int node_index )
+{
+	typedef QMap< int, Vec4d > NodeCoord;
+
+	foreach(NodeCoord nodeCoord, specialCoords.values())
+	{
+		if(nodeCoord.contains(node_index))
+			return nodeCoord[node_index];
+	}
+
+	return Vec4d(0);
 }
 
 /*

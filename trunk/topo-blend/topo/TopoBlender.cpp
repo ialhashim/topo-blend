@@ -8,6 +8,10 @@ using namespace Structure;
 
 #include "ExportDynamicGraph.h"
 
+// Temporary solution for output
+//#include "surface_mesh/IO.h"
+//#include "surface_mesh/IO_off.cpp"
+
 TopoBlender::TopoBlender(Graph *graph1, Graph *graph2, QObject *parent) : QObject(parent)
 {
     g1 = graph1;
@@ -101,10 +105,8 @@ QList< ScalarLinksPair > TopoBlender::badCorrespondence(  QString activeNodeID, 
 	return sortQMapByValue(dists);
 }
 
-Graph TopoBlender::blend(Scalar t)
+Graph * TopoBlender::blend()
 {
-	t = t;
-
 	Graph blendedGraph;
 
 	/// 1) Best partial correspondence
@@ -131,6 +133,7 @@ Graph TopoBlender::blend(Scalar t)
 	// Keep track of one-sided links
 	QMap< int, int > needLink;
 	std::map< int, std::vector<Link> > deadLinks;
+	std::vector< int > movingLinks;
 
 	// STAGE 1) Remove extra links + track missing links:
 
@@ -310,7 +313,7 @@ Graph TopoBlender::blend(Scalar t)
 			// Pick closest dissconnected node
 			std::pair<int,Vec4d> closestRecord = dists.values().first();
 			int closestIdx = closestRecord.first;
-			Vec4d closestCoord = closestRecord.second;
+			Vec4d closestCoordinate = closestRecord.second;
 
 			SimpleNode & closest = active.nodes[closestIdx];
 
@@ -319,7 +322,12 @@ Graph TopoBlender::blend(Scalar t)
 			closest.set("state", ACTIVE);
 
 			// Add a new edge
-			active.addEdge(index, closest.idx);
+			int edgeID = active.addEdge(index, closest.idx);
+			movingLinks.push_back( edgeID );
+
+			// Handle new link coordinates
+			active.specialCoords[edgeID][index] = coordinate;
+			active.specialCoords[edgeID][closest.idx] = closestCoordinate;
 
 			needLink[index]--;
 
@@ -341,6 +349,8 @@ Graph TopoBlender::blend(Scalar t)
 		if(active_idx < 0) break;
 		SimpleNode & n_active = active.nodes[active_idx];
 		QString activeNodeID = n_active.str("original");
+
+		if(!n_active.has("correspond")) break;
 		QString targetNodeID = n_active.str("correspond");
 		SimpleNode & n_target = target.nodes[target.nodeIndex("original",targetNodeID)];
 
@@ -351,10 +361,20 @@ Graph TopoBlender::blend(Scalar t)
 			QString targetOtherID = target.nodes[edges[ei].otherNode(n_target.idx)].str("original");
 			
 			int other_idx = active.nodeIndex("correspond",targetOtherID);
+
+			// Check:
 			if(other_idx < 0 || active.hasEdge(active_idx, other_idx)) continue;
 
 			// Add a new edge
-			active.addEdge(active_idx, other_idx);
+			int edgeID = active.addEdge(active_idx, other_idx);
+			movingLinks.push_back( edgeID );
+
+			// Handle new link coordinates
+			Link * targetLink = target.mGraph->getEdge(targetNodeID, targetOtherID);
+			Vec4d otherCoordinate = targetLink->getCoord(targetOtherID);
+			Vec4d activeCoordinate = inverseCoord(active.firstSpecialCoord(active_idx)); // expected other end from before
+			active.specialCoords[edgeID][active_idx] = activeCoordinate;
+			active.specialCoords[edgeID][other_idx] = otherCoordinate;
 
 			needLink[active_idx]--;
 
@@ -372,7 +392,7 @@ Graph TopoBlender::blend(Scalar t)
 
 	// STAGE 4) Grow new nodes if needed
 
-
+	// Show final graph
 	graphCaption = QString("step%1").arg(++step);
 	graphSubtitle = QString("Final graph");
 	toGraphML(active, graphCaption);
@@ -381,5 +401,84 @@ Graph TopoBlender::blend(Scalar t)
 	// Create animated GIF (assuming ImageMagick installed)
 	system(qPrintable( QString("convert -resize 800x800	-delay %1 -loop 0 *.png steps.gif").arg( 200 ) ));
 
-    return blendedGraph;
+    return active.toStructureGraph();
+}
+
+void TopoBlender::materializeInBetween( Graph * graph, double t )
+{
+	foreach(Link link, graph->edges)
+	{
+		Vector3 p1 = link.position(link.n1->id);
+		Vector3 p2 = link.position(link.n2->id);
+
+		double delta = (p1-p2).norm();
+
+		if(delta > 0.1)
+		{
+			// Create path on structural geometry
+
+		}
+	}
+
+	// Create morph animation:
+
+	int NUM_STEPS = 30;
+	int NUM_SMOOTH_ITR = 3;
+
+	for(int s = 0; s < NUM_STEPS; s++)
+	{
+		/*for(int i = 0; i < (int)cpointIdx.size(); i++)
+		{
+			std::vector<Vector3> & cpnts = curves[i]->curve.mCtrlPoint;
+
+			Vector3 & cp = cpnts[ cpointIdx[i] ];
+			Vector3 delta = deltas[i] / NUM_STEPS;
+			cp += delta;
+
+			// Laplacian smoothing
+			for(int itr = 0; itr < NUM_SMOOTH_ITR; itr++)
+			{
+				QVector<Vector3> newCtrlPnts;
+
+				for (int j = 1; j < (int)cpnts.size() - 1; j++)
+					newCtrlPnts.push_back( (cpnts[j-1] + cpnts[j+1]) / 2.0 );
+
+				for (int j = 1; j < (int)cpnts.size() - 1; j++)
+					cpnts[j] = newCtrlPnts[j-1];
+			}
+		}
+
+		SurfaceMeshModel meshStep;
+		graph.materialize(&meshStep);
+		DynamicVoxel::MeanCurvatureFlow(&meshStep, 0.05);
+
+		// output step
+		QString sequence_num;
+		sequence_num.sprintf("%02d", s);
+
+		QString fileName = QString("blend_sequence_%1.off").arg(sequence_num);
+		meshStep.triangulate();
+		write_off(meshStep, qPrintable(fileName));*/
+	}
+}
+
+void TopoBlender::drawDebug()
+{
+	glDisable(GL_LIGHTING);
+
+	glColor3d(1,0,0);
+	glPointSize(25);
+	glBegin(GL_POINTS);
+	foreach(Vector3 p, debugPoints) glVector3(p);
+	glEnd();
+
+	glColor3d(1,0,0);
+	glLineWidth(12);
+	glBegin(GL_LINES);
+	foreach(PairVector3 line, debugLines){
+		glLine(line.first, line.second);
+	}
+	glEnd();
+
+	glEnable(GL_LIGHTING);
 }

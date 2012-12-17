@@ -23,13 +23,22 @@ namespace Structure{
 		DynamicGraph active;
 		DynamicGraph target;
 
-		Graph blend( Scalar t = 0.5 );
+		Graph * blend();
+		void materializeInBetween( Graph * graph, double t = 0.0 );
 
 		QList< ScalarLinksPair > badCorrespondence( QString activeNodeID, QString targetNodeID, 
 			QMap<Link*, Vec4d> & coord_active, QMap<Link*, Vec4d> & coord_target );
 
-		public slots:
-			void bestPartialCorrespondence();
-		signals:
+	public slots:
+		void bestPartialCorrespondence();
+
+	public:
+		// DEBUG:
+		std::vector< Vector3 > debugPoints;
+		std::vector< PairVector3 > debugLines;
+		void drawDebug();
+
+	signals:
+
 	};
 }

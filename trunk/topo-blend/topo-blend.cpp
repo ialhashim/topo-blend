@@ -18,6 +18,9 @@
 #include "surface_mesh/IO.h"
 #include "surface_mesh/IO_off.cpp"
 
+// Temp
+Structure::TopoBlender * blender = NULL;
+
 topoblend::topoblend(){
 	widget = NULL;
 }
@@ -76,6 +79,8 @@ void topoblend::decorate()
 			gd->draw();
 		}
 	}
+
+	if(blender) blender->drawDebug();
 
 	glColor3d(1,1,1);
 	drawArea()->drawText(40,40, "TopoBlend mode.");
@@ -292,9 +297,11 @@ void topoblend::doBlend()
 	Structure::Graph * source = new Structure::Graph("chair2.xml");
 	Structure::Graph * target = new Structure::Graph("chair3.xml");
 
-	Structure::TopoBlender blender( source, target );
+	blender = new Structure::TopoBlender ( source, target );
+	Structure::Graph * blendedGraph = blender->blend();
+	blender->materializeInBetween( blendedGraph );
 
-	graphs.push_back( blender.blend() );
+	graphs.push_back( *blendedGraph );
 
 	setSceneBounds();
 }
@@ -429,7 +436,7 @@ void topoblend::experiment1()
 
 	DynamicGraph & best = candidates[ scores[ minScore ] ];
 
-	Structure::Graph g3 = *best.toStructureGraph( target );
+	Structure::Graph g3 = *best.toStructureGraphOld( target );
 
 	QVector<int> cpointIdx;
 	QVector<Vector3> deltas;

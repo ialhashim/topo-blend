@@ -13,6 +13,7 @@ struct SimpleNode{
 	QString str(QString propertyName){ return property[propertyName].toString(); }
 	double val(QString propertyName){ return property[propertyName].toDouble(); }
 	QVariant set(QString propertyName, QVariant value) { return property[propertyName] = value; }
+	bool has(QString propertyName){ return property.contains(propertyName); }
 };
 
 // Properties
