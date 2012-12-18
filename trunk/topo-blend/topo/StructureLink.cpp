@@ -22,6 +22,12 @@ Node * Link::otherNode( QString nodeID )
 	else return n1;
 }
 
+Node * Link::getNode( QString nodeID )
+{
+	if(n1->id == nodeID) return n1;
+	else return n2;
+}
+
 void Link::draw()
 {
 	std::vector<Vector3> pos(2, Vector3(0));

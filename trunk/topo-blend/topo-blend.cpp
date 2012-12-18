@@ -299,7 +299,8 @@ void topoblend::doBlend()
 
 	blender = new Structure::TopoBlender ( source, target );
 	Structure::Graph * blendedGraph = blender->blend();
-	blender->materializeInBetween( blendedGraph );
+	
+	blender->materializeInBetween( blendedGraph, 0, source );
 
 	graphs.push_back( *blendedGraph );
 

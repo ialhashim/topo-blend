@@ -91,6 +91,33 @@ std::vector< std::vector<Vector3> > Structure::Curve::discretizedPoints( Scalar 
 	return result;
 }
 
+void Structure::Curve::laplacianSmoothControls( int num_iterations, std::set<int> anchored )
+{
+	std::vector<Vector3> & cpnts = curve.mCtrlPoint;
+
+	// Special case anchoring
+	if(anchored.count(-1)){
+		anchored.clear();		
+		anchored.insert(0);
+		anchored.insert(cpnts.size() - 1);
+	}
+
+	// Laplacian smoothing
+	for(int itr = 0; itr < num_iterations; itr++)
+	{
+		std::vector<Vector3> newCtrlPnts = cpnts;
+
+		for (int j = 0; j < (int)cpnts.size(); j++)
+		{
+			if(anchored.count(j) == 0)
+				newCtrlPnts[j] = (cpnts[j-1] + cpnts[j+1]) / 2.0;
+		}
+
+		for (int j = 0; j < (int)cpnts.size(); j++)
+			cpnts[j] = newCtrlPnts[j];
+	}
+}
+
 Vector3 & Curve::controlPoint( int idx )
 {
 	return curve.mCtrlPoint[idx];
@@ -101,7 +128,7 @@ int Curve::controlPointIndexFromCoord( Vec4d coord )
 	// Get point at these coordinates
 	Vector3 pos(0); curve.Get(coord[0], &pos, 0,0,0);
 
-	int minIdx = 0;
+	int minIdx = -1;
 	double minDist = DBL_MAX;
 
 	for(int i = 0; i < (int) curve.mCtrlPoint.size(); i++){

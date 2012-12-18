@@ -21,6 +21,7 @@ struct Link
 
 	void setCoord(QString nodeID, Vec4d newCoord);
 	Vec4d getCoord(QString nodeID);
+	Node * getNode(QString nodeID);
 	Node * otherNode(QString nodeID);
 
 	// Constructors

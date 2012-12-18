@@ -24,6 +24,7 @@ struct Curve : public Node
 	Vector3 & controlPoint( int idx );
 	Vector3 & controlPointFromCoord( Vec4d coord );
 	int controlPointIndexFromCoord( Vec4d coord );
+	void laplacianSmoothControls( int num_iterations, std::set<int> anchored = std::set<int>() );
 
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
 	std::vector< std::vector<Vector3> > discretizedPoints(Scalar resolution);

@@ -441,7 +441,7 @@ void Graph::loadFromFile( QString fileName )
 	file.close();
 }
 
-void Graph::materialize( SurfaceMeshModel * m )
+void Graph::materialize( SurfaceMeshModel * m, Scalar voxel_scaling )
 {
 	QElapsedTimer timer; timer.start();
 
@@ -450,7 +450,7 @@ void Graph::materialize( SurfaceMeshModel * m )
 	QBox3D box = bbox();
 	QVector3D b = bbox().size();
 	Scalar avg = (b.x() + b.y() + b.z()) / 3.0;
-	Scalar voxel_size = avg / 70;
+	Scalar voxel_size = (avg / 70) * voxel_scaling;
 
 	DynamicVoxel vox( voxel_size );
 
