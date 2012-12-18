@@ -53,8 +53,8 @@ struct Graph
 	QImage fontImage;
 
 	// Synthesis
-	void materialize(SurfaceMeshModel * m);
-    DynamicVoxel::QuadMesh cached_mesh;
+	void materialize( SurfaceMeshModel * m, Scalar voxel_scaling = 1.0 );
+	DynamicVoxel::QuadMesh cached_mesh;
 
     // Analysis
     Node * rootBySize();

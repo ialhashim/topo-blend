@@ -198,7 +198,12 @@ double GraphDistance::distanceTo( Vector3 point, std::vector<Vector3> & path )
 
 	// Retrieve path 
 	std::list<vertex_t> shortestPath = DijkstraGetShortestPathTo(closest, previous);
-	foreach(vertex_t v, shortestPath) path.push_back(allPoints[v]);
+	foreach(vertex_t v, shortestPath) 
+		path.push_back( allPoints[v] );
+
+	// Remove first node and reverse order
+	path.erase( path.begin() );
+	std::reverse(path.begin(), path.end());
 	
 	// Return distance
 	return dists[closest];

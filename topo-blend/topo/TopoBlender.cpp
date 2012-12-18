@@ -9,8 +9,7 @@ using namespace Structure;
 #include "ExportDynamicGraph.h"
 
 // Temporary solution for output
-//#include "surface_mesh/IO.h"
-//#include "surface_mesh/IO_off.cpp"
+#include "surface_mesh/IO.h"
 
 TopoBlender::TopoBlender(Graph *graph1, Graph *graph2, QObject *parent) : QObject(parent)
 {
@@ -328,6 +327,7 @@ Graph * TopoBlender::blend()
 			// Handle new link coordinates
 			active.specialCoords[edgeID][index] = coordinate;
 			active.specialCoords[edgeID][closest.idx] = closestCoordinate;
+			active.movable[edgeID] = closestIdx;
 
 			needLink[index]--;
 
@@ -373,9 +373,11 @@ Graph * TopoBlender::blend()
 			Link * targetLink = target.mGraph->getEdge(targetNodeID, targetOtherID);
 			Vec4d otherCoordinate = targetLink->getCoord(targetOtherID);
 			Vec4d activeCoordinate = inverseCoord(active.firstSpecialCoord(active_idx)); // expected other end from before
+			
 			active.specialCoords[edgeID][active_idx] = activeCoordinate;
 			active.specialCoords[edgeID][other_idx] = otherCoordinate;
-
+			active.movable[edgeID] = active_idx;
+			
 			needLink[active_idx]--;
 
 			// Log event
@@ -404,61 +406,78 @@ Graph * TopoBlender::blend()
     return active.toStructureGraph();
 }
 
-void TopoBlender::materializeInBetween( Graph * graph, double t )
+void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceGraph )
 {
-	foreach(Link link, graph->edges)
-	{
-		Vector3 p1 = link.position(link.n1->id);
-		Vector3 p2 = link.position(link.n2->id);
-
-		double delta = (p1-p2).norm();
-
-		if(delta > 0.1)
-		{
-			// Create path on structural geometry
-
-		}
-	}
-
 	// Create morph animation:
-
-	int NUM_STEPS = 30;
+	int NUM_STEPS = 10;
 	int NUM_SMOOTH_ITR = 3;
 
-	for(int s = 0; s < NUM_STEPS; s++)
+	std::vector< std::pair< Link, std::vector<Vector3> > > specialLinks;
+
+	// Create paths on structural geometry
+	foreach(Link link, graph->edges)
 	{
-		/*for(int i = 0; i < (int)cpointIdx.size(); i++)
+		// Only consider special links with movable nodes
+		if(!link.link_property.contains("special") || !link.link_property.contains("movable"))
+			continue;
+
+		QString movableNode = link.link_property["movable"].toString();
+
+		Vector3 destination = link.position(movableNode);
+		Vector3 source = link.position( link.otherNode(movableNode)->id );
+
+		std::vector<Vector3> path;
+
+		GraphDistance gd(sourceGraph);
+		gd.computeDistances(source, 0.05);
+		gd.distanceTo(destination, path);
+
+		specialLinks.push_back( std::make_pair(link,path) );
+
+		// DEBUG:
+		//debugLines.push_back(PairVector3(source, destination));
+		//debugPoints.clear();
+		//foreach(Vector3 p, path) debugPoints.push_back(p);
+	}
+	
+	// Apply motion
+	for(int s = 0; s <= NUM_STEPS; s++)
+	{
+		for(int i = 0; i < (int) specialLinks.size(); i++)
 		{
-			std::vector<Vector3> & cpnts = curves[i]->curve.mCtrlPoint;
+			Link link = specialLinks[i].first;
+			std::vector<Vector3> path = specialLinks[i].second;
+			QString movableNode = link.link_property["movable"].toString();
+			Node * n = link.getNode(movableNode);
 
-			Vector3 & cp = cpnts[ cpointIdx[i] ];
-			Vector3 delta = deltas[i] / NUM_STEPS;
-			cp += delta;
-
-			// Laplacian smoothing
-			for(int itr = 0; itr < NUM_SMOOTH_ITR; itr++)
+			if(n->type() == Structure::CURVE)
 			{
-				QVector<Vector3> newCtrlPnts;
+				Curve * curve = (Curve *) n;
 
-				for (int j = 1; j < (int)cpnts.size() - 1; j++)
-					newCtrlPnts.push_back( (cpnts[j-1] + cpnts[j+1]) / 2.0 );
+				// Pick up closest control point on curve
+				int cpIdx = curve->controlPointIndexFromCoord( link.getCoord(movableNode) );	
 
-				for (int j = 1; j < (int)cpnts.size() - 1; j++)
-					cpnts[j] = newCtrlPnts[j-1];
+				// Move the control point to location on path
+				int path_idx = (double(s) / NUM_STEPS) * (path.size() - 1);
+				curve->controlPoint(cpIdx) = path[path_idx];
+
+				// Smooth other control points
+				std::set<int> a; a.insert(-1); // anchor first and last
+
+				curve->laplacianSmoothControls(NUM_SMOOTH_ITR, a);
 			}
 		}
 
+		// Synthesize the geometry
 		SurfaceMeshModel meshStep;
-		graph.materialize(&meshStep);
+		graph->materialize(&meshStep, 1.0);
 		DynamicVoxel::MeanCurvatureFlow(&meshStep, 0.05);
 
-		// output step
-		QString sequence_num;
-		sequence_num.sprintf("%02d", s);
-
-		QString fileName = QString("blend_sequence_%1.off").arg(sequence_num);
+		// Output this step to mesh file
+		QString seq_num; seq_num.sprintf("%02d", s);
+		QString fileName = QString("blend_sequence_%1.off").arg(seq_num);
 		meshStep.triangulate();
-		write_off(meshStep, qPrintable(fileName));*/
+		write_off(meshStep, qPrintable(fileName));
 	}
 }
 

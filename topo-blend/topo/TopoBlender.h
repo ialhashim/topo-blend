@@ -24,7 +24,7 @@ namespace Structure{
 		DynamicGraph target;
 
 		Graph * blend();
-		void materializeInBetween( Graph * graph, double t = 0.0 );
+		void materializeInBetween( Graph * graph, double t, Graph * sourceGraph );
 
 		QList< ScalarLinksPair > badCorrespondence( QString activeNodeID, QString targetNodeID, 
 			QMap<Link*, Vec4d> & coord_active, QMap<Link*, Vec4d> & coord_target );

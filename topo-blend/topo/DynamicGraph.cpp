@@ -281,11 +281,21 @@ Structure::Graph * DynamicGraph::toStructureGraph()
 		}
 		else if( specialCoords.contains(edgeIndex) )
 		{
+			// Deal with special coordinates
 			Vec4d c1 = specialCoords[edgeIndex][e.n[0]];
 			Vec4d c2 = specialCoords[edgeIndex][e.n[1]];
 
 			toEdge->setCoord(id1, c1);
 			toEdge->setCoord(id2, c2);
+
+			toEdge->link_property["special"] = true;
+		}
+		
+		// Track movable nodes
+		if(movable.contains(edgeIndex))
+		{
+			QString movableNode = nodes[movable[edgeIndex]].str("original");
+			toEdge->link_property["movable"] = movableNode;
 		}
 	}
 

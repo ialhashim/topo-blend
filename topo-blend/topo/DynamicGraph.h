@@ -78,5 +78,6 @@ public:
 
 	// Special cases
 	QMap< int, QMap< int, Vec4d > > specialCoords;
+	QMap< int, int > movable;
 	Vec4d firstSpecialCoord(int node_index);
 };
