@@ -121,7 +121,10 @@ QString Graph::linkName(Node *n1, Node *n2)
 Node *Graph::getNode(QString nodeID)
 {
     foreach(Node* n, nodes)
-        if(n->id == nodeID) return n;
+	{
+        if(n->id == nodeID) 
+			return n;
+	}
 
     return NULL;
 }

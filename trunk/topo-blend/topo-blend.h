@@ -35,7 +35,7 @@ private:
 
 public slots:
 	void setSceneBounds();
-    void generateTwoChairModels();
+    void generateChairModels();
 	void generateTwoSimpleModels();
     void loadModel();
     void doBlend();

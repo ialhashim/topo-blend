@@ -235,25 +235,28 @@ Structure::Graph * DynamicGraph::toStructureGraph()
 {
 	Structure::Graph * graph = new Structure::Graph();
 	QMap<int,QString> nodeMap;
+	QMap<int,QString> originalNodeIds;
 
 	// Add nodes
 	foreach(SimpleNode n, nodes)
 	{
 		QString nodeId = n.str("original");
+		QString newId = nodeId + QString("_%1").arg(n.idx);
 
 		if(nodeType(n.idx) == Structure::SHEET)
 		{
 			Structure::Sheet * s = (Structure::Sheet *) mGraph->getNode(nodeId);
-			graph->addNode( new Structure::Sheet(s->surface, nodeId) );
-			nodeMap[n.idx] = nodeId;
+			graph->addNode( new Structure::Sheet(s->surface, newId) );
 		}
 
 		if(nodeType(n.idx) == Structure::CURVE)
 		{
 			Structure::Curve * s = (Structure::Curve *) mGraph->getNode(nodeId);
-			graph->addNode( new Structure::Curve(s->curve, nodeId) );
-			nodeMap[n.idx] = nodeId;
+			graph->addNode( new Structure::Curve(s->curve, newId) );
 		}
+
+		nodeMap[n.idx] = newId;
+		originalNodeIds[n.idx] = nodeId;
 	}
 
 	// Add edges
@@ -264,8 +267,11 @@ Structure::Graph * DynamicGraph::toStructureGraph()
 		int edgeIndex = i.key();
 		SimpleEdge e = i.value();
 
-		QString id1 = nodes[e.n[0]].str("original");
-		QString id2 = nodes[e.n[1]].str("original");
+		QString id1 = nodeMap[e.n[0]];
+		QString id2 = nodeMap[e.n[1]];
+
+		QString orig_id1 = originalNodeIds[e.n[0]];
+		QString orig_id2 = originalNodeIds[e.n[1]];
 
 		Structure::Node *n1 = graph->getNode(id1), *n2 = graph->getNode(id2);
 
@@ -274,12 +280,13 @@ Structure::Graph * DynamicGraph::toStructureGraph()
 		// Copy edge coordinates
 		Structure::Link *toEdge = graph->getEdge(id1, id2);
 		Structure::Link *fromEdge;
-		if(fromEdge = mGraph->getEdge(id1,id2))
+		if(fromEdge = mGraph->getEdge(orig_id1,orig_id2))
 		{
 			toEdge->setCoord(id1, fromEdge->getCoord(id1));
 			toEdge->setCoord(id2, fromEdge->getCoord(id2));
 		}
-		else if( specialCoords.contains(edgeIndex) )
+		
+		if( specialCoords.contains(edgeIndex) )
 		{
 			// Deal with special coordinates
 			Vec4d c1 = specialCoords[edgeIndex][e.n[0]];
@@ -294,7 +301,7 @@ Structure::Graph * DynamicGraph::toStructureGraph()
 		// Track movable nodes
 		if(movable.contains(edgeIndex))
 		{
-			QString movableNode = nodes[movable[edgeIndex]].str("original");
+			QString movableNode = nodeMap[movable[edgeIndex]];
 			toEdge->link_property["movable"] = movableNode;
 		}
 	}
