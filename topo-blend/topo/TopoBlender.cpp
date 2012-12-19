@@ -237,6 +237,25 @@ Graph * TopoBlender::blend()
 		// Same links, need to check quality of these links
 		if(linkDiff == 0)
 		{
+			foreach(ScalarLinksPair sp, corresp)
+			{
+				Link * link = sp.second.first;
+				QString otherNodeID = link->otherNode( activeNodeID )->id;
+				int other_idx = active.nodeIndex("original", otherNodeID);
+				int otherState = active.nodes[other_idx].val("state");
+
+				// Mark as 'ACTIVE'
+				if(otherState != DONE && otherState != DISCONNECTED)
+				{
+					active.nodes[other_idx].set("state", ACTIVE);
+
+					// Set corresponding target node
+					Link * linkTarget = sp.second.second;
+					QString otherNodeTarget = linkTarget->otherNode(targetNodeID)->id;
+					active.nodes[other_idx].set("correspond", otherNodeTarget);
+				}
+			}
+
 			log += QString("Same links count");
 		}
 
@@ -259,15 +278,10 @@ Graph * TopoBlender::blend()
 		// get link differences
 		QMap<int, SimpleEdge> adjActive = active.getEdges(n_active.idx);
 		QMap<int, SimpleEdge> adjTarget = target.getEdges(n_target.idx);
-
-		foreach(int ei, adjActive.keys())
-		{
+		foreach(int ei, adjActive.keys()){
 			SimpleNode & ni = active.nodes[adjActive[ei].otherNode(n_active.idx)];
-
-			foreach(int ej, adjTarget.keys())
-			{
+			foreach(int ej, adjTarget.keys()){
 				SimpleNode & nj = target.nodes[adjTarget[ej].otherNode(n_target.idx)];
-
 				if(ni.property.contains("correspond") && ni.str("correspond") == nj.str("original"))
 					adjTarget.remove(ej);
 			}
@@ -287,58 +301,116 @@ Graph * TopoBlender::blend()
 
 			// Find all distances from link point
 			GraphDistance gd(g1);
-			gd.computeDistances(linkPosition, 0.25);
+			gd.computeDistances(linkPosition, 0.1);
 
+			std::vector<int> dissconnected = active.nodesWith("state", DISCONNECTED);
+			
 			// Store computed distances
 			QMap< double, std::pair<int,Vec4d> > dists;
 
-			std::vector<int> dissconnected = active.nodesWith("state", DISCONNECTED);
-
-			// Check : no more dissconnected parts
-			if(!dissconnected.size()) break;
-
-			foreach(int d, dissconnected)
+			// First: dissconnected parts
+			if( dissconnected.size() )
 			{
-				Structure::Node * n = active.mGraph->getNode(active.nodes[d].str("original"));
+				foreach(int d, dissconnected)
+				{
+					Structure::Node * n = active.mGraph->getNode(active.nodes[d].str("original"));
 				
-				// Two extremities (based on a coordinate system [0,1])
-				double d1 = gd.distanceTo( n->position(n->minCoord()) );
-				double d2 = gd.distanceTo( n->position(n->maxCoord()) );
+					// Two extremities (based on a coordinate system [0,1])
+					double d1 = gd.distanceTo( n->position(n->minCoord()) );
+					double d2 = gd.distanceTo( n->position(n->maxCoord()) );
 
-				dists[d1] = std::make_pair(d, n->minCoord());
-				dists[d2] = std::make_pair(d, n->maxCoord());
+					dists[d1] = std::make_pair(d, n->minCoord());
+					dists[d2] = std::make_pair(d, n->maxCoord());
+				}
+
+				// Pick closest dissconnected node
+				std::pair<int,Vec4d> closestRecord = dists.values().first();
+				int closestIdx = closestRecord.first;
+				Vec4d closestCoordinate = closestRecord.second;
+
+				SimpleNode & closest = active.nodes[closestIdx];
+
+				// Set corresponding target node & set as active
+				closest.set("correspond", n_targetOther.str("original"));
+				closest.set("state", ACTIVE);
+
+				// Add a new edge
+				int edgeID = active.addEdge(index, closest.idx);
+				movingLinks.push_back( edgeID );
+
+				// Handle new link coordinates
+				active.specialCoords[edgeID][index] = coordinate;
+				active.specialCoords[edgeID][closest.idx] = closestCoordinate;
+				active.movable[edgeID] = closestIdx;
+
+				needLink[index]--;
+
+				// Log event
+				QString log = QString("connected node [%1] with [%2]").arg(active.nodes[index].str(
+					"original")).arg(active.nodes[closest.idx].str("original"));
+				QString graphCaption = QString("step%1").arg(step++);
+				toGraphML(active, graphCaption);
+				toGraphviz(active, graphCaption, true, graphCaption, log);
 			}
+			else
+			{
+				// Second: clone parts
 
-			// Pick closest dissconnected node
-			std::pair<int,Vec4d> closestRecord = dists.values().first();
-			int closestIdx = closestRecord.first;
-			Vec4d closestCoordinate = closestRecord.second;
+				// Find node similar to n_targetOther in active
+				foreach(SimpleEdge edge, active.getEdges(index))
+				{
+					int other_idx = edge.otherNode(index);
+					SimpleNode & n_other = active.nodes[other_idx];
 
-			SimpleNode & closest = active.nodes[closestIdx];
+					if(active.nodeType(other_idx) != target.nodeType(n_targetOther.idx)) continue;
 
-			// Set corresponding target node
-			closest.set("correspond", n_targetOther.str("original"));
-			closest.set("state", ACTIVE);
+					Structure::Node * n = active.mGraph->getNode(active.nodes[other_idx].str("original"));
 
-			// Add a new edge
-			int edgeID = active.addEdge(index, closest.idx);
-			movingLinks.push_back( edgeID );
+					// Two extremities (based on a coordinate system [0,1])
+					double d1 = gd.distanceTo( n->position(n->minCoord()) );
+					double d2 = gd.distanceTo( n->position(n->maxCoord()) );
 
-			// Handle new link coordinates
-			active.specialCoords[edgeID][index] = coordinate;
-			active.specialCoords[edgeID][closest.idx] = closestCoordinate;
-			active.movable[edgeID] = closestIdx;
+					dists[d1] = std::make_pair(other_idx, n->minCoord());
+					dists[d2] = std::make_pair(other_idx, n->maxCoord());
+				}
+				if(dists.size() < 1) continue;
 
-			needLink[index]--;
+				// Found a good candidate for clone
 
-			// Log event
-			QString log = QString("connected node [%1] with [%2]").arg(active.nodes[index].str(
-				"original")).arg(active.nodes[closest.idx].str("original"));
-			QString graphCaption = QString("step%1").arg(step++);
-			toGraphML(active, graphCaption);
-			toGraphviz(active, graphCaption, true, graphCaption, log);
+				std::pair<int,Vec4d> bestRecord = dists.values().first();
+				int bestIdx = bestRecord.first;
+				Vec4d bestCoordinate = bestRecord.second;
+
+				SimpleNode & candidate = active.nodes[bestIdx];
+
+				// Clone if no corresponding already exists
+				if(active.nodesWith("correspond",n_targetOther.str("original")).size()) continue;
+
+				int new_idx = active.cloneNode( candidate.idx );
+				SimpleNode & cloned = active.nodes[new_idx];
+
+				// Set corresponding target node & set as active
+				cloned.set("correspond", n_targetOther.str("original"));
+				cloned.set("state", ACTIVE);
+
+				// Add a new edge
+				int edgeID = active.addEdge(index, cloned.idx);
+				movingLinks.push_back( edgeID );
+
+				// Handle new link coordinates
+				active.specialCoords[edgeID][index] = coordinate;
+				active.specialCoords[edgeID][cloned.idx] = bestCoordinate;
+				active.movable[edgeID] = new_idx;
+
+				needLink[index]--;
+
+				// Log event
+				QString log = QString("Cloned node [%1]").arg(cloned.str("original"));
+				QString graphCaption = QString("step%1").arg(step++);
+				toGraphML(active, graphCaption);
+				toGraphviz(active, graphCaption, true, graphCaption, log);
+			}
 		}
-
 	}
 
 	// STAGE 3) Fix missing links for newly connected nodes
@@ -378,7 +450,7 @@ Graph * TopoBlender::blend()
 			active.specialCoords[edgeID][other_idx] = otherCoordinate;
 			active.movable[edgeID] = active_idx;
 			
-			needLink[active_idx]--;
+			needLink[other_idx]--;
 
 			// Log event
 			QString log = QString("connected node [%1] with [%2]").arg(active.nodes[active_idx].str(
@@ -392,7 +464,41 @@ Graph * TopoBlender::blend()
 		n_active.set("state", DONE);
 	}
 
+	// Remove resolved links so far
+	foreach(int index, needLink.keys()){
+		if(needLink[index] == 0) 
+			needLink.remove(index);
+	}
+
 	// STAGE 4) Grow new nodes if needed
+	foreach(int index, needLink.keys())
+	{
+		SimpleNode & n_active = active.nodes[index];
+		SimpleNode & n_target = *target.getNode(n_active.str("correspond"));
+
+		// get link differences
+		QMap<int, SimpleEdge> adjActive = active.getEdges(n_active.idx);
+		QMap<int, SimpleEdge> adjTarget = target.getEdges(n_target.idx);
+		foreach(int ei, adjActive.keys()){
+			SimpleNode & ni = active.nodes[adjActive[ei].otherNode(n_active.idx)];
+			foreach(int ej, adjTarget.keys()){
+				SimpleNode & nj = target.nodes[adjTarget[ej].otherNode(n_target.idx)];
+				if(ni.property.contains("correspond") && ni.str("correspond") == nj.str("original"))
+					adjTarget.remove(ej);
+			}
+		}
+		
+		foreach(int ei, adjTarget.keys())
+		{
+			SimpleEdge & edge = adjTarget[ei];
+			SimpleNode & missed = target.nodes[edge.otherNode(n_target.idx)];
+			Properties missedProperty = missed.property;
+
+			int jjj = 0;
+			//Structure::Node * newNode = active.mGraph->addNode( target.mGraph->getNode(missed.str("original")) );
+			//active.addNode();
+		}
+	}
 
 	// Show final graph
 	graphCaption = QString("step%1").arg(++step);
@@ -435,9 +541,9 @@ void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceG
 		specialLinks.push_back( std::make_pair(link,path) );
 
 		// DEBUG:
-		//debugLines.push_back(PairVector3(source, destination));
-		//debugPoints.clear();
-		//foreach(Vector3 p, path) debugPoints.push_back(p);
+		debugLines.push_back(PairVector3(source, destination));
+		debugPoints.clear();
+		foreach(Vector3 p, path) debugPoints.push_back(p);
 	}
 	
 	// Apply motion
@@ -471,7 +577,8 @@ void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceG
 		// Synthesize the geometry
 		SurfaceMeshModel meshStep;
 		graph->materialize(&meshStep, 1.0);
-		DynamicVoxel::MeanCurvatureFlow(&meshStep, 0.05);
+		//DynamicVoxel::MeanCurvatureFlow(&meshStep, 0.05);
+		DynamicVoxel::LaplacianSmoothing(&meshStep);
 
 		// Output this step to mesh file
 		QString seq_num; seq_num.sprintf("%02d", s);
