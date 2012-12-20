@@ -4,8 +4,6 @@
 #include "TopoBlender.h"
 using namespace Structure;
 
-#include "GraphDistance.h"
-
 #include "ExportDynamicGraph.h"
 
 // Temporary solution for output
@@ -133,6 +131,8 @@ Graph * TopoBlender::blend()
 	QMap< int, int > needLink;
 	std::map< int, std::vector<Link> > deadLinks;
 	std::vector< int > movingLinks;
+
+	originalGraphDistance = new GraphDistance(g1);
 
 	// STAGE 1) Remove extra links + track missing links:
 
@@ -300,8 +300,7 @@ Graph * TopoBlender::blend()
 			Vector3 linkPosition = active.mGraph->getNode(n_active.str("original"))->position(coordinate);
 
 			// Find all distances from link point
-			GraphDistance gd(g1);
-			gd.computeDistances(linkPosition, 0.1);
+			originalGraphDistance->computeDistances(linkPosition, 0.1);
 
 			std::vector<int> dissconnected = active.nodesWith("state", DISCONNECTED);
 			
@@ -316,8 +315,8 @@ Graph * TopoBlender::blend()
 					Structure::Node * n = active.mGraph->getNode(active.nodes[d].str("original"));
 				
 					// Two extremities (based on a coordinate system [0,1])
-					double d1 = gd.distanceTo( n->position(n->minCoord()) );
-					double d2 = gd.distanceTo( n->position(n->maxCoord()) );
+					double d1 = originalGraphDistance->distanceTo( n->position(n->minCoord()) );
+					double d2 = originalGraphDistance->distanceTo( n->position(n->maxCoord()) );
 
 					dists[d1] = std::make_pair(d, n->minCoord());
 					dists[d2] = std::make_pair(d, n->maxCoord());
@@ -367,8 +366,8 @@ Graph * TopoBlender::blend()
 					Structure::Node * n = active.mGraph->getNode(active.nodes[other_idx].str("original"));
 
 					// Two extremities (based on a coordinate system [0,1])
-					double d1 = gd.distanceTo( n->position(n->minCoord()) );
-					double d2 = gd.distanceTo( n->position(n->maxCoord()) );
+					double d1 = originalGraphDistance->distanceTo( n->position(n->minCoord()) );
+					double d2 = originalGraphDistance->distanceTo( n->position(n->maxCoord()) );
 
 					dists[d1] = std::make_pair(other_idx, n->minCoord());
 					dists[d2] = std::make_pair(other_idx, n->maxCoord());
@@ -473,6 +472,8 @@ Graph * TopoBlender::blend()
 	// STAGE 4) Grow new nodes if needed
 	foreach(int index, needLink.keys())
 	{
+		if(needLink[index] == 0) continue;
+
 		SimpleNode & n_active = active.nodes[index];
 		SimpleNode & n_target = *target.getNode(n_active.str("correspond"));
 
@@ -491,12 +492,93 @@ Graph * TopoBlender::blend()
 		foreach(int ei, adjTarget.keys())
 		{
 			SimpleEdge & edge = adjTarget[ei];
-			SimpleNode & missed = target.nodes[edge.otherNode(n_target.idx)];
-			Properties missedProperty = missed.property;
+			SimpleNode & missing = target.nodes[edge.otherNode(n_target.idx)];
+			Properties missingProperty = missing.property;
+			QString missingID = missing.str("original");
+			QSet<int> missingNeighbors = target.adjNodes(missing.idx);
+			
+			if(missingNeighbors.size() == 1)
+			{
+				// CASE 1) Missing node branches out with no other connections
 
-			int jjj = 0;
-			//Structure::Node * newNode = active.mGraph->addNode( target.mGraph->getNode(missed.str("original")) );
-			//active.addNode();
+			}
+			else
+			{
+				// CASE 2) Missing is connected with only done nodes
+
+				// Check neighbors status
+				bool isNeighborsDone = true;
+				foreach(int j, missingNeighbors)
+				{
+					QString nodeid = target.nodes[j].str("original");
+					if(!active.nodesWith("correspond",nodeid).size()){
+						isNeighborsDone = false;
+						break;
+					}
+				}
+				if(!isNeighborsDone) continue;
+
+				QList<Link> furthermost = target.mGraph->furthermostEdges(missing.str("original"));
+
+				Link l1 = furthermost.front();
+				Link l2 = furthermost.back();
+				
+				Vector3 p1 = l1.position(missingID);
+				Vector3 p2 = l2.position(missingID);
+
+				// Get middle point
+				std::vector<Vector3> path;
+
+				originalGraphDistance->computeDistances(p1, 0.1);
+				originalGraphDistance->distanceTo(p2, path);
+
+				Vector3 midPoint = path[path.size() / 2];
+
+				// Create a single point node
+				if(target.nodeType(missing.idx) == Structure::CURVE)
+				{
+					active.mGraph->addNode(new Structure::Curve(NURBSCurve::createCurve(midPoint,midPoint), missingID));
+				}
+				if(target.nodeType(missing.idx) == Structure::SHEET)
+				{
+					// [TODO: correct this]
+					active.mGraph->addNode(new Structure::Sheet(NURBSRectangle::createSheet(0,0,midPoint), missingID));
+				}
+
+				// Add node to dynamic graph
+				SimpleNode & newNode = active.nodes[active.addNode(missingProperty)];
+
+				// Log event
+				QString log = QString("Added new node [%1]").arg(newNode.str("original"));
+				QString graphCaption = QString("step%1").arg(step++);
+				toGraphML(active, graphCaption);
+				toGraphviz(active, graphCaption, true, graphCaption, log);
+
+				// Set correspondence and state
+				newNode.set("correspond",missingID);
+				newNode.set("state", DONE);
+				int active_idx = newNode.idx;
+
+				// Add edges
+				foreach(Link l, furthermost)
+				{
+					int other_idx = active.nodeIndex("correspond", l.otherNode(missingID)->id);
+					int edgeID = active.addEdge(active_idx, other_idx);
+					
+					active.specialCoords[edgeID][active_idx] = l.getCoord(missingID);
+					active.specialCoords[edgeID][other_idx] = l.getCoordOther(missingID);
+					active.movable[edgeID] = active_idx;
+
+					needLink[other_idx]--;
+
+					// Log event
+					QString log = QString("connected node [%1] with [%2]").arg(active.nodes[active_idx].str(
+						"original")).arg(active.nodes[other_idx].str("original"));
+					QString graphCaption = QString("step%1").arg(step++);
+					toGraphML(active, graphCaption);
+					toGraphviz(active, graphCaption, true, graphCaption, log);
+				}
+			}
 		}
 	}
 

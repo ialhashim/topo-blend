@@ -20,6 +20,18 @@ Graph::Graph( QString fileName )
 	loadFromFile( fileName );
 }
 
+Structure::Graph::Graph( const Graph & other )
+{
+	nodes = other.nodes;
+	edges = other.edges;
+	property = other.property;
+	adjacency = other.adjacency;
+	misc = other.misc;
+
+	// WARNING: not a deep copy!!
+	qDebug() << ">>>  WARNING: not a deep copy!!  <<<";
+}
+
 Graph::~Graph()
 {
     //qDeleteAll( nodes );
@@ -676,4 +688,13 @@ QVector<Link> Structure::Graph::nodeEdges( QString nodeID )
 		nodeLinks.push_back(e);
 
 	return nodeLinks;
+}
+
+QList<Link> Graph::furthermostEdges( QString nodeID )
+{
+	QMap<double, Link> sortedLinks;
+	foreach(Link l, nodeEdges(nodeID))
+		sortedLinks[l.getCoord(nodeID).norm()] = l;
+
+	return sortedLinks.values();
 }

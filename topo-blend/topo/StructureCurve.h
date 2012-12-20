@@ -8,7 +8,8 @@ namespace Structure{
 struct Curve : public Node
 {
     // Constructors
-    Curve(NURBSCurve newCurve, QString newID, QColor color = qRandomColor());
+    Curve(const NURBSCurve & newCurve, QString newID, QColor color = qRandomColor());
+	Node * clone();
 
     // Underlaying structure
     NURBSCurve curve;

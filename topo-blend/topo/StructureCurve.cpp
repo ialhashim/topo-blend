@@ -2,13 +2,19 @@
 #include "LineSegment.h"
 using namespace Structure;
 
-Curve::Curve(NURBSCurve newCurve, QString newID, QColor color)
+Curve::Curve(const NURBSCurve & newCurve, QString newID, QColor color)
 {
     this->curve = newCurve;
     this->id = newID;
 
     this->vis_property["color"] = color;
     this->vis_property["showControl"] = false;
+}
+
+Node * Curve::clone()
+{
+	Curve * cloneCurve = new Curve( this->curve, this->id );
+	return cloneCurve;
 }
 
 QString Curve::type()
@@ -81,12 +87,21 @@ std::vector< std::vector<Vector3> > Curve::discretized(Scalar resolution)
 
 std::vector< std::vector<Vector3> > Structure::Curve::discretizedPoints( Scalar resolution )
 {
-	int np = 1 + (curve.GetLength(0,1) / resolution);
+	std::vector< std::vector<Vector3> > result;
+
+	Scalar curveLength = curve.GetLength(0,1);
+
+	// For singular cases
+	if(curveLength < 1e-10){
+		result.push_back(curve.mCtrlPoint);
+		return result;
+	}
+
+	int np = 1 + (curveLength / resolution);
 	std::vector<Vector3> pts;
 
 	curve.SubdivideByLength(np, pts);
 
-	std::vector< std::vector<Vector3> > result;
 	result.push_back(pts);
 	return result;
 }

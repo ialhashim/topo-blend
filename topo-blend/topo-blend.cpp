@@ -90,7 +90,7 @@ void topoblend::generateChairModels()
 {
 	QElapsedTimer assembleTimer; assembleTimer.start(); 
 
-	Structure::Graph chair1, chair2, chair3, chair4;
+	Structure::Graph chair1, chair2, chair3, chair4, chair5;
 
 	NURBSRectangle backSheet = NURBSRectangle::createSheet(2,1, Vector3(0,-0.5,2));
 	NURBSRectangle seatSheet = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
@@ -104,11 +104,11 @@ void topoblend::generateChairModels()
 	NURBSCurve backLegRight = NURBSCurve::createCurve(Vector3(1,0.25,0), Vector3(1,0,-2));
 	NURBSCurve backTop = NURBSCurve::createCurve(Vector3(-0.9,-0.3345,1), Vector3(0.9,-0.3345,1));
 	NURBSCurve backBottom = NURBSCurve::createCurve(Vector3(-0.9,-0.171,0.5), Vector3(0.9,-0.171,0.5));
-	
 	NURBSCurve legBarLeft = NURBSCurve::createCurve(Vector3(-1,0.126,-1), Vector3(-1,1.825,-1));
 	NURBSCurve legBarMiddle = NURBSCurve::createCurve(Vector3(-1,1.825,-1), Vector3(1,1.825,-1));
 	NURBSCurve legBarRight = NURBSCurve::createCurve(Vector3(1,0.126,-1), Vector3(1,1.825,-1));
-	
+	NURBSCurve extraBar = NURBSCurve::createCurve(Vector3(1,0.079,-1.36), Vector3(1,-0.2,-1.6));
+
 	// Chair 1
 	chair1.addNode( new Structure::Sheet(backSheet, "BackSheet") );
 	chair1.addNode( new Structure::Curve(backLeft, "BackLeft") );
@@ -158,6 +158,21 @@ void topoblend::generateChairModels()
 	chair4.addNode( new Structure::Curve(legBarMiddle, "LegBarMiddle") );
 	chair4.addNode( new Structure::Curve(legBarRight, "LegBarRight") );
 
+	// Chair 5
+	chair5.addNode( new Structure::Sheet(backSheet, "BackSheet") );
+	chair5.addNode( new Structure::Curve(backLeft, "BackLeft") );
+	chair5.addNode( new Structure::Curve(backRight, "BackRight") );
+	chair5.addNode( new Structure::Sheet(seatSheet, "SeatSheet") );
+	chair5.addNode( new Structure::Curve(frontLegLeft, "FrontLegLeft") );
+	chair5.addNode( new Structure::Curve(frontLegRight, "FrontLegRight") );
+	chair5.addNode( new Structure::Curve(backLegLeft, "BackLegLeft") );
+	chair5.addNode( new Structure::Curve(backLegRight, "BackLegRight") );
+	chair5.addNode( new Structure::Curve(backTop, "BackTop") );
+	chair5.addNode( new Structure::Curve(backBottom, "BackBottom") );
+	chair5.addNode( new Structure::Curve(legBarLeft, "LegBarLeft") );
+	chair5.addNode( new Structure::Curve(legBarMiddle, "LegBarMiddle") );
+	chair5.addNode( new Structure::Curve(legBarRight, "LegBarRight") );
+	chair5.addNode( new Structure::Curve(extraBar, "ExtraBar") );
 
 	// Add edges chair 1
 	chair1.addEdge( chair1.getNode("BackSheet"), chair1.getNode("BackLeft") );
@@ -217,11 +232,34 @@ void topoblend::generateChairModels()
 	chair4.addEdge( chair4.getNode("FrontLegRight"), chair4.getNode("LegBarRight") );
 	chair4.addEdge( chair4.getNode("BackLegRight"), chair4.getNode("LegBarRight") );
 
+	// Add edges chair 5
+	chair5.addEdge( chair5.getNode("BackSheet"), chair5.getNode("BackLeft") );
+	chair5.addEdge( chair5.getNode("BackSheet"), chair5.getNode("BackRight") );
+	chair5.addEdge( chair5.getNode("SeatSheet"), chair5.getNode("BackLeft") );
+	chair5.addEdge( chair5.getNode("SeatSheet"), chair5.getNode("BackRight") );
+	chair5.addEdge( chair5.getNode("SeatSheet"), chair5.getNode("FrontLegLeft") );
+	chair5.addEdge( chair5.getNode("SeatSheet"), chair5.getNode("FrontLegRight") );
+	chair5.addEdge( chair5.getNode("SeatSheet"), chair5.getNode("BackLegLeft") );
+	chair5.addEdge( chair5.getNode("SeatSheet"), chair5.getNode("BackLegRight") );
+	chair5.addEdge( chair5.getNode("BackTop"), chair5.getNode("BackLeft") );
+	chair5.addEdge( chair5.getNode("BackTop"), chair5.getNode("BackRight") );
+	chair5.addEdge( chair5.getNode("BackBottom"), chair5.getNode("BackLeft") );
+	chair5.addEdge( chair5.getNode("BackBottom"), chair5.getNode("BackRight") );
+	chair5.addEdge( chair5.getNode("BackLegLeft"), chair5.getNode("LegBarLeft") );
+	chair5.addEdge( chair5.getNode("FrontLegLeft"), chair5.getNode("LegBarLeft") );
+	chair5.addEdge( chair5.getNode("FrontLegLeft"), chair5.getNode("LegBarMiddle") );
+	chair5.addEdge( chair5.getNode("FrontLegRight"), chair5.getNode("LegBarMiddle") );
+	chair5.addEdge( chair5.getNode("FrontLegRight"), chair5.getNode("LegBarRight") );
+	chair5.addEdge( chair5.getNode("BackLegRight"), chair5.getNode("LegBarRight") );
+	chair5.addEdge( chair5.getNode("BackLegRight"), chair5.getNode("LegBarRight") );
+	chair5.addEdge( chair5.getNode("BackLegRight"), chair5.getNode("ExtraBar") );
+
 	// Save to file
 	chair1.saveToFile("chair1.xml");
 	chair2.saveToFile("chair2.xml");
 	chair3.saveToFile("chair3.xml");
 	chair4.saveToFile("chair4.xml");
+	chair5.saveToFile("chair5.xml");
 
 	//graphs.push_back(chair1);
 	//graphs.push_back(chair2);
@@ -415,7 +453,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 void topoblend::doBlend()
 {
-	Structure::Graph * source = new Structure::Graph("chair3.xml");
+	Structure::Graph * source = new Structure::Graph("chair2.xml");
 	Structure::Graph * target = new Structure::Graph("chair4.xml");
 
 	blender = new Structure::TopoBlender ( source, target );

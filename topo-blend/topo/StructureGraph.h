@@ -18,12 +18,14 @@ struct Graph
     QBox3D bbox();
     QMap< QString, QVariant > property;
 	Eigen::MatrixXd adjacency;
+	QMap< QString, void* > misc;
 
 	int valence(Node * n);
 	
 	// Constructors
 	Graph();
 	Graph(QString fileName);
+	Graph(const Graph & other);
     ~Graph();
 	
 	// Modifiers
@@ -42,6 +44,7 @@ struct Graph
 	Curve* getCurve(Link * l);
 	QMap<Link*, Vec4d> linksCoords( QString nodeID );
 	QVector<Link> nodeEdges( QString nodeID );
+	QList<Link> furthermostEdges( QString nodeID );
 	
 	// Input / Output
 	void saveToFile(QString fileName);
@@ -63,7 +66,6 @@ struct Graph
 	// DEBUG:
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
 	void printAdjacency();
-	QMap< QString, void* > misc;
 };
 
 }

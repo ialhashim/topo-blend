@@ -158,8 +158,16 @@ std::vector < std::vector<Vector3> > NURBSCurve::toSegments( Scalar resolution )
 {
 	std::vector< std::vector<Vector3> > segments;
 
+	Scalar curveLength = this->GetLength(0,1);
+
+	// For singular cases
+	if(curveLength < 1e-10){
+		segments.push_back(this->mCtrlPoint);
+		return segments;
+	}
+
 	// Get a curve polyline for given resolution
-	int np = 1 + (this->GetLength(0,1) / resolution);
+	int np = 1 + (curveLength / resolution);
 
 	std::vector<Vector3> pts;
 	this->SubdivideByLength(np, pts);
