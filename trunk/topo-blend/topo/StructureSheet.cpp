@@ -1,13 +1,19 @@
 #include "StructureSheet.h"
 using namespace Structure;
 
-Sheet::Sheet(NURBSRectangle sheet, QString sheetID, QColor color)
+Sheet::Sheet(const NURBSRectangle & sheet, QString sheetID, QColor color)
 {
     this->surface = sheet;
     this->id = sheetID;
 
     this->vis_property["color"] = color;
     this->vis_property["showControl"] = true;
+}
+
+Node * Sheet::clone()
+{
+	Sheet * cloneSheet = new Sheet( this->surface, this->id );
+	return cloneSheet;
 }
 
 QString Sheet::type()

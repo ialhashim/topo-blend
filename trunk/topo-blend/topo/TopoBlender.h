@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include "DynamicGraph.h"
+#include "GraphDistance.h"
 
 namespace Structure{
 	typedef QPair<Node*,Node*> QPairNodes;
@@ -18,6 +19,8 @@ namespace Structure{
 
 		Graph * g1;
 		Graph * g2;
+
+		GraphDistance * originalGraphDistance;
 
 		DynamicGraph source;
 		DynamicGraph active;

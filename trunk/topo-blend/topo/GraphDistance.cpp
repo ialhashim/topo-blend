@@ -3,7 +3,7 @@ using namespace Structure;
 
 GraphDistance::GraphDistance(Structure::Graph *graph)
 {
-    this->g = graph;
+    this->g = new Structure::Graph(*graph);
 	this->isReady = false;
 }
 

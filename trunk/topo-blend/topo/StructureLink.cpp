@@ -16,6 +16,11 @@ Vec4d Link::getCoord( QString nodeID )
 	return Vec4d(DBL_MAX);
 }
 
+Vec4d Structure::Link::getCoordOther( QString nodeID )
+{
+	return getCoord(otherNode(nodeID)->id);
+}
+
 Node * Link::otherNode( QString nodeID )
 {
 	if(n1->id == nodeID) return n2;

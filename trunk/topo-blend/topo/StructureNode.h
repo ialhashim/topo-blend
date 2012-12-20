@@ -7,6 +7,9 @@ namespace Structure{
 
 struct Node
 {
+	// Constructors
+	virtual Node * clone() = 0;
+
 	// Properties
 	QString id;
     virtual QString type() = 0;
