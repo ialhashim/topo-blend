@@ -27,7 +27,8 @@ HEADERS += topo-blend.h \
     topo/GraphDistance.h \
     topo/ExportDynamicGraph.h \
     QuickMesh.h \
-    QuickViewer.h
+    QuickViewer.h \
+    topo/GraphCorresponder.h
 
 SOURCES += topo-blend.cpp \ 
     topo_blend_widget.cpp \
@@ -37,7 +38,8 @@ SOURCES += topo-blend.cpp \
     topo/StructureLink.cpp \
     topo/TopoBlender.cpp \
     topo/DynamicGraph.cpp \
-    topo/GraphDistance.cpp
+    topo/GraphDistance.cpp \
+    topo/GraphCorresponder.cpp
 	
 RESOURCES += topo-blend.qrc
 

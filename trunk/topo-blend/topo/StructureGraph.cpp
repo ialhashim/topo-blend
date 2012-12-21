@@ -18,6 +18,8 @@ Graph::Graph( QString fileName )
 	property["embeded2D"] = false;
 
 	loadFromFile( fileName );
+
+	property["name"] = fileName;
 }
 
 Structure::Graph::Graph( const Graph & other )
