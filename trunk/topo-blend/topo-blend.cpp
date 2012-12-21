@@ -132,7 +132,7 @@ void topoblend::generateChairModels()
 	NURBSCurve swivel2Branch4 = NURBSCurve::createCurve(Vector3(0,1,-0.5), Vector3(-1,0,-2));
 
 
-if (0)
+if (1)
 {
 	// Chair 1
 	chair1.addNode( new Structure::Sheet(backSheet, "BackSheet") );

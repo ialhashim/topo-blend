@@ -79,5 +79,6 @@ public:
 	// Special cases
 	QMap< int, QMap< int, Vec4d > > specialCoords;
 	QMap< int, int > movable;
+	QMap< int, std::pair<int,double> > growingNodes;
 	Vec4d firstSpecialCoord(int node_index);
 };

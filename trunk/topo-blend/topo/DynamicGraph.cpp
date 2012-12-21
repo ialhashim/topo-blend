@@ -286,6 +286,7 @@ Structure::Graph * DynamicGraph::toStructureGraph()
 			toEdge->setCoord(id2, fromEdge->getCoord(id2));
 		}
 		
+		// Assign coordinates to special edges
 		if( specialCoords.contains(edgeIndex) )
 		{
 			// Deal with special coordinates
@@ -303,6 +304,15 @@ Structure::Graph * DynamicGraph::toStructureGraph()
 		{
 			QString movableNode = nodeMap[movable[edgeIndex]];
 			toEdge->link_property["movable"] = movableNode;
+		}
+
+		if( growingNodes.contains(edgeIndex) )
+		{
+			QString growingNode = nodeMap[growingNodes[edgeIndex].first];
+			Scalar growFactor = growingNodes[edgeIndex].second;
+
+			toEdge->link_property["growing"] = growingNode;
+			toEdge->link_property["growFactor"] = growFactor;
 		}
 	}
 
