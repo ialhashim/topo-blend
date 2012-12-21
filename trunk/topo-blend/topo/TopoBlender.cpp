@@ -153,7 +153,7 @@ Graph * TopoBlender::blend()
 		SimpleNode & n_active = active.nodes[active_idx];
 		QString activeNodeID = n_active.str("original");
 		QString targetNodeID = n_active.str("correspond");
-
+		
 		// Get coordinates of all links of both
 		QMap<Link*, Vec4d> coord_active, coord_target;
 		QList< ScalarLinksPair > corresp = badCorrespondence(activeNodeID, targetNodeID, coord_active, coord_target);
@@ -500,7 +500,7 @@ Graph * TopoBlender::blend()
 			if(missingNeighbors.size() == 1)
 			{
 				// CASE 1) Missing node branches out with no other connections
-
+				int ddd = 0;
 			}
 			else
 			{

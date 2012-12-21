@@ -251,7 +251,6 @@ void topoblend::generateChairModels()
 	chair5.addEdge( chair5.getNode("FrontLegRight"), chair5.getNode("LegBarMiddle") );
 	chair5.addEdge( chair5.getNode("FrontLegRight"), chair5.getNode("LegBarRight") );
 	chair5.addEdge( chair5.getNode("BackLegRight"), chair5.getNode("LegBarRight") );
-	chair5.addEdge( chair5.getNode("BackLegRight"), chair5.getNode("LegBarRight") );
 	chair5.addEdge( chair5.getNode("BackLegRight"), chair5.getNode("ExtraBar") );
 
 	// Save to file
@@ -453,8 +452,8 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 void topoblend::doBlend()
 {
-	Structure::Graph * source = new Structure::Graph("chair2.xml");
-	Structure::Graph * target = new Structure::Graph("chair4.xml");
+	Structure::Graph * source = new Structure::Graph("chair4.xml");
+	Structure::Graph * target = new Structure::Graph("chair5.xml");
 
 	blender = new Structure::TopoBlender ( source, target );
 	Structure::Graph * blendedGraph = blender->blend();
