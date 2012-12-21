@@ -22,16 +22,25 @@ Graph::Graph( QString fileName )
 	property["name"] = fileName;
 }
 
-Structure::Graph::Graph( const Graph & other )
+Graph::Graph( const Graph & other )
 {
-	nodes = other.nodes;
-	edges = other.edges;
+	foreach(Node * n, other.nodes)
+	{
+		this->addNode(n->clone());
+	}
+
+	foreach(Link edg, other.edges)
+	{
+		Node * n1 = this->getNode(edg.n1->id);
+		Node * n2 = this->getNode(edg.n2->id);
+
+		Link e( n1, n2, edg.coord[0], edg.coord[1], "none", linkName(n1, n2) );
+		this->edges.push_back(e);
+	}
+
 	property = other.property;
 	adjacency = other.adjacency;
 	misc = other.misc;
-
-	// WARNING: not a deep copy!!
-	qDebug() << ">>>  WARNING: not a deep copy!!  <<<";
 }
 
 Graph::~Graph()

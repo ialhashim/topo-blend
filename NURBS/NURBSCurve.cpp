@@ -161,7 +161,7 @@ std::vector < std::vector<Vector3> > NURBSCurve::toSegments( Scalar resolution )
 	Scalar curveLength = this->GetLength(0,1);
 
 	// For singular cases
-	if(curveLength < 1e-10){
+	if(curveLength < resolution){
 		segments.push_back(this->mCtrlPoint);
 		return segments;
 	}
@@ -361,4 +361,24 @@ Real NURBSCurve::timeAt( const Vector3 & pos )
 	closestSegment.ClosestPoint(pos, t, d);
 	Scalar found_t = qMax(0.0, qMin( (timeStep * minIdx) + (t * timeStep), 1.0) );
 	return found_t;
+}
+
+void NURBSCurve::translate( const Vector3 & delta )
+{
+	for(int i = 0; i < (int)mCtrlPoint.size(); i++)
+		mCtrlPoint[i] += delta;
+}
+
+void NURBSCurve::scale( Scalar scaleFactor )
+{
+	for(int i = 0; i < (int)mCtrlPoint.size(); i++)
+		mCtrlPoint[i] *= scaleFactor;
+}
+
+void NURBSCurve::scaleInPlace( Scalar scaleFactor, int placeCtrlPoint )
+{
+	Vector3 delta = mCtrlPoint[placeCtrlPoint];
+	translate( -delta );
+	scale(scaleFactor);
+	translate( delta );
 }

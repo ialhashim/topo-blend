@@ -290,7 +290,11 @@ Graph * TopoBlender::blend()
 		// Try to connect with dissconnected nodes
 		foreach(int edge, adjTarget.keys())
 		{
-			SimpleNode & n_targetOther = target.nodes[adjTarget[edge].otherNode(n_target.idx)];
+			int n_targetOtherIdx = adjTarget[edge].otherNode(n_target.idx);
+			SimpleNode & n_targetOther = target.nodes[n_targetOtherIdx];
+
+			if(target.getEdges(n_targetOtherIdx).size() == 1) 
+				continue;
 
 			// Get coordinates on the corresponding target node
 			Structure::Link * link = target.getOriginalLink(n_target.str("original"), n_targetOther.str("original"));
@@ -477,6 +481,8 @@ Graph * TopoBlender::blend()
 		SimpleNode & n_active = active.nodes[index];
 		SimpleNode & n_target = *target.getNode(n_active.str("correspond"));
 
+		QString targetNodeID = n_target.str("original");
+
 		// get link differences
 		QMap<int, SimpleEdge> adjActive = active.getEdges(n_active.idx);
 		QMap<int, SimpleEdge> adjTarget = target.getEdges(n_target.idx);
@@ -500,11 +506,59 @@ Graph * TopoBlender::blend()
 			if(missingNeighbors.size() == 1)
 			{
 				// CASE 1) Missing node branches out with no other connections
-				int ddd = 0;
+				
+				Link & l = *target.mGraph->getEdge(missingID, targetNodeID);
+				Vec4d coordOnTarget = l.getCoord(targetNodeID);
+
+				Vector3 linkPosition = active.mGraph->getNode(n_active.str("original"))->position(coordOnTarget);
+
+				double shrinkFactor = 1e-5;
+
+				// Create a single point node
+				if(target.nodeType(missing.idx) == Structure::CURVE){
+					Curve * targetcurve = (Curve*)target.mGraph->getNode(missingID);
+					NURBSCurve curveCopy = targetcurve->curve;
+
+					// Place curve
+					curveCopy.translate( -curveCopy.GetControlPoint(0) );
+					curveCopy.translate( linkPosition );
+
+					// Resize to baby size
+					curveCopy.scaleInPlace(shrinkFactor);
+
+					active.mGraph->addNode(new Structure::Curve(curveCopy, missingID));
+				}
+
+				// [TODO: code this]
+				if(target.nodeType(missing.idx) == Structure::SHEET){
+				}
+
+				// Add node to dynamic graph
+				SimpleNode & newNode = active.nodes[active.addNode(missingProperty)];
+
+				// Set correspondence and state
+				newNode.set("correspond",missingID);
+				newNode.set("state", DONE);
+				int active_idx = newNode.idx;
+
+				int other_idx = active.nodeIndex("correspond", targetNodeID);
+				int edgeID = active.addEdge(active_idx, other_idx);
+
+				active.specialCoords[edgeID][active_idx] = l.getCoord(missingID);
+				active.specialCoords[edgeID][other_idx] = l.getCoordOther(missingID);
+				active.growingNodes[edgeID] = std::make_pair(active_idx, 1.0 / shrinkFactor);
+
+				// Log event
+				QString log = QString("Added new node [%1] that will grow").arg(newNode.str("original"));
+				QString graphCaption = QString("step%1").arg(step++);
+				toGraphML(active, graphCaption);
+				toGraphviz(active, graphCaption, true, graphCaption, log);
+
+				needLink[index]--;
 			}
 			else
 			{
-				// CASE 2) Missing is connected with only done nodes
+				// CASE 2) Missing is connected with done nodes only
 
 				// Check neighbors status
 				bool isNeighborsDone = true;
@@ -589,7 +643,7 @@ Graph * TopoBlender::blend()
 	toGraphviz(active, graphCaption, true, graphCaption, graphSubtitle);
 
 	// Create animated GIF (assuming ImageMagick installed)
-	system(qPrintable( QString("convert -resize 800x800	-delay %1 -loop 0 *.png steps.gif").arg( 200 ) ));
+	//system(qPrintable( QString("convert -resize 800x800	-delay %1 -loop 0 *.png steps.gif").arg( 200 ) ));
 
     return active.toStructureGraph();
 }
@@ -606,53 +660,97 @@ void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceG
 	foreach(Link link, graph->edges)
 	{
 		// Only consider special links with movable nodes
-		if(!link.link_property.contains("special") || !link.link_property.contains("movable"))
+		if(!link.link_property.contains("special"))
 			continue;
 
-		QString movableNode = link.link_property["movable"].toString();
-
-		Vector3 destination = link.position(movableNode);
-		Vector3 source = link.position( link.otherNode(movableNode)->id );
-
-		std::vector<Vector3> path;
-
-		GraphDistance gd(sourceGraph);
-		gd.computeDistances(source, 0.05);
-		gd.distanceTo(destination, path);
-
-		specialLinks.push_back( std::make_pair(link,path) );
-
-		// DEBUG:
-		debugLines.push_back(PairVector3(source, destination));
-		debugPoints.clear();
-		foreach(Vector3 p, path) debugPoints.push_back(p);
-	}
-	
-	// Apply motion
-	for(int s = 0; s <= NUM_STEPS; s++)
-	{
-		for(int i = 0; i < (int) specialLinks.size(); i++)
+		if(link.link_property.contains("movable"))
 		{
-			Link link = specialLinks[i].first;
-			std::vector<Vector3> path = specialLinks[i].second;
 			QString movableNode = link.link_property["movable"].toString();
-			Node * n = link.getNode(movableNode);
+
+			Vector3 destination = link.position(movableNode);
+			Vector3 source = link.position( link.otherNode(movableNode)->id );
+
+			std::vector<Vector3> path;
+
+			GraphDistance gd(sourceGraph);
+			gd.computeDistances(source, 0.05);
+			gd.distanceTo(destination, path);
+
+			specialLinks.push_back( std::make_pair(link,path) );
+
+			// DEBUG:
+			debugLines.push_back(PairVector3(source, destination));
+			debugPoints.clear();
+			foreach(Vector3 p, path) debugPoints.push_back(p);
+		}
+
+		if(link.link_property.contains("growing"))
+		{
+			QString growingNode = link.link_property["growing"].toString();
+
+			Node * n = link.getNode(growingNode);
 
 			if(n->type() == Structure::CURVE)
 			{
 				Curve * curve = (Curve *) n;
 
-				// Pick up closest control point on curve
-				int cpIdx = curve->controlPointIndexFromCoord( link.getCoord(movableNode) );	
+				specialLinks.push_back( std::make_pair( link, curve->curve.mCtrlPoint) );
+			}
+		}
+	}
+	
+	// Apply motion
+	for(int s = 0; s <= NUM_STEPS; s++)
+	{
+		double stepTime = double(s) / NUM_STEPS;
 
-				// Move the control point to location on path
-				int path_idx = (double(s) / NUM_STEPS) * (path.size() - 1);
-				curve->controlPoint(cpIdx) = path[path_idx];
+		for(int i = 0; i < (int) specialLinks.size(); i++)
+		{
+			Link link = specialLinks[i].first;
 
-				// Smooth other control points
-				std::set<int> a; a.insert(-1); // anchor first and last
+			if(link.link_property.contains("movable"))
+			{
+				std::vector<Vector3> path = specialLinks[i].second;
+				QString movableNode = link.link_property["movable"].toString();
+				Node * n = link.getNode(movableNode);
 
-				curve->laplacianSmoothControls(NUM_SMOOTH_ITR, a);
+				if(n->type() == Structure::CURVE)
+				{
+					Curve * curve = (Curve *) n;
+
+					// Pick up closest control point on curve
+					int cpIdx = curve->controlPointIndexFromCoord( link.getCoord(movableNode) );	
+
+					// Move the control point to location on path
+					int path_idx = stepTime * (path.size() - 1);
+					curve->controlPoint(cpIdx) = path[path_idx];
+
+					// Smooth other control points
+					std::set<int> a; a.insert(-1); // anchor first and last
+
+					curve->laplacianSmoothControls(NUM_SMOOTH_ITR, a);
+				}
+			}
+
+			if(link.link_property.contains("growing"))
+			{
+				QString growingNode = link.link_property["growing"].toString();
+				Scalar growFactor = link.link_property["growFactor"].toDouble();
+
+				std::vector<Vector3> ctrlPoints = specialLinks[i].second;
+				Vector3 anchor = ctrlPoints.front();
+
+				Node * n = link.getNode(growingNode);
+
+				if(n->type() == Structure::CURVE)
+				{
+					Curve * curve = (Curve *) n;
+					
+					for(int j = 0; j < (int)ctrlPoints.size(); j++)
+						ctrlPoints[j] = ((ctrlPoints[j] - anchor) * (growFactor * stepTime)) + anchor;
+					
+					curve->curve.mCtrlPoint = ctrlPoints;
+				}
 			}
 		}
 

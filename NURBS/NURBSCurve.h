@@ -99,6 +99,10 @@ public:
     //void CreateControl ( Vector3* ctrlPoint,  Real* ctrlWeight);
     void CreateControl (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight);
 
+	void translate(const Vector3 & delta);
+	void scale(Scalar scaleFactor);
+	void scaleInPlace(Scalar scaleFactor, int placeCtrlPoint = 0);
+
     int mNumCtrlPoints;
     std::vector<Vector3> mCtrlPoint;            // ctrl[n+1]
     std::vector<Real> mCtrlWeight;              // weight[n+1]
