@@ -16,13 +16,18 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 
     this->tb = topo_blend;
 
-    topo_blend->connect(ui->button1, SIGNAL(clicked()), SLOT(generateChairModels()));
+    topo_blend->connect(ui->button0, SIGNAL(clicked()), SLOT(generateChairModels()));
     topo_blend->connect(ui->button2, SIGNAL(clicked()), SLOT(loadModel()));
 	topo_blend->connect(ui->button4, SIGNAL(clicked()), SLOT(experiment1()));
 	topo_blend->connect(ui->button5, SIGNAL(clicked()), SLOT(generateTwoSimpleModels()));
     this->connect(ui->button6, SIGNAL(clicked()), SLOT(renderViewer()));
 
 	topo_blend->connect(ui->buttonBlend, SIGNAL(clicked()), SLOT(doBlend()));
+
+	// Correspondence
+	topo_blend->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizeFuzzyDistance(int)));
+	topo_blend->connect(ui->corrButton, SIGNAL(clicked()), SLOT(findNodeCorrespondences()));
+	// End of Correspondence
 }
 
 topo_blend_widget::~topo_blend_widget()
@@ -32,8 +37,8 @@ topo_blend_widget::~topo_blend_widget()
 
 void topo_blend_widget::renderViewer()
 {
-    QDialog * d = new QDialog;
-    d->show();
+	QDialog * d = new QDialog;
+	d->show();
 
     Ui::AnimationForm aniForm;
     aniForm.setupUi(d);
@@ -80,3 +85,4 @@ void topo_blend_widget::loadAnimationModel()
     viewer->m->load(cur_filename);
 	viewer->setFocus();
 }
+

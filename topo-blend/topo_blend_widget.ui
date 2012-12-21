@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>246</width>
-    <height>337</height>
+    <height>589</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -79,6 +79,13 @@
       <string>Experiments</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
+      <item row="0" column="0">
+       <widget class="QPushButton" name="button1">
+        <property name="text">
+         <string>Generate two chair models</string>
+        </property>
+       </widget>
+      </item>
       <item row="2" column="0">
        <widget class="QPushButton" name="button2">
         <property name="text">
@@ -93,7 +100,7 @@
         </property>
        </widget>
       </item>
-      <item row="6" column="0">
+      <item row="7" column="0">
        <widget class="QPushButton" name="button6">
         <property name="text">
          <string>Animation</string>
@@ -101,7 +108,7 @@
        </widget>
       </item>
       <item row="0" column="0">
-       <widget class="QPushButton" name="button1">
+       <widget class="QPushButton" name="button0">
         <property name="text">
          <string>Generate chair models</string>
         </property>
@@ -114,7 +121,7 @@
         </property>
        </widget>
       </item>
-      <item row="7" column="0">
+      <item row="8" column="0">
        <widget class="QPushButton" name="buttonBlend">
         <property name="font">
          <font>
@@ -123,6 +130,46 @@
         </property>
         <property name="text">
          <string>Blend!</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_3">
+     <property name="title">
+      <string>Correspondence</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_3">
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>sourceID</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QSpinBox" name="sourceID">
+        <property name="maximum">
+         <number>20</number>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="2">
+       <widget class="QPushButton" name="corrButton">
+        <property name="text">
+         <string>Graph Correspondence</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0" colspan="2">
+       <widget class="QLabel" name="label_6">
+        <property name="text">
+         <string>Visualize Fuzzy Distance</string>
         </property>
        </widget>
       </item>

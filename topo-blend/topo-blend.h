@@ -41,6 +41,11 @@ public slots:
     void doBlend();
 	
 	void experiment1();
+
+	// Correspondence
+	void visualizeFuzzyDistance(int sourceID);
+	void findNodeCorrespondences();
+	// End of Correspondence
 signals:
 
 };
