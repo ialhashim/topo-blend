@@ -16,14 +16,22 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 
     this->tb = topo_blend;
 
-    topo_blend->connect(ui->button0, SIGNAL(clicked()), SLOT(generateChairModels()));
-    topo_blend->connect(ui->button2, SIGNAL(clicked()), SLOT(loadModel()));
-	topo_blend->connect(ui->button4, SIGNAL(clicked()), SLOT(experiment1()));
-	topo_blend->connect(ui->button5, SIGNAL(clicked()), SLOT(generateTwoSimpleModels()));
-    this->connect(ui->button6, SIGNAL(clicked()), SLOT(renderViewer()));
+	// Generate models
+    topo_blend->connect(ui->genChairsButton, SIGNAL(clicked()), SLOT(generateChairModels()));
+	topo_blend->connect(ui->genSimpleButton, SIGNAL(clicked()), SLOT(generateTwoSimpleModels()));
 
-	topo_blend->connect(ui->buttonBlend, SIGNAL(clicked()), SLOT(doBlend()));
+	// Save / load graphs
+    topo_blend->connect(ui->loadButton, SIGNAL(clicked()), SLOT(loadModel()));
+	topo_blend->connect(ui->saveButton, SIGNAL(clicked()), SLOT(saveModel()));
+	topo_blend->connect(ui->linksButton, SIGNAL(clicked()), SLOT(modifyModel()));
 	topo_blend->connect(ui->clearButton, SIGNAL(clicked()), SLOT(clearGraphs()));
+
+	// Animation widget
+	topo_blend->connect(ui->button4, SIGNAL(clicked()), SLOT(experiment1()));
+	this->connect(ui->animationButton, SIGNAL(clicked()), SLOT(renderViewer()));
+
+	// Main blending process
+	topo_blend->connect(ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()));
 
 	// Correspondence
 	topo_blend->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizeFuzzyDistance(int)));

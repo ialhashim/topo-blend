@@ -35,13 +35,21 @@ private:
 
 public slots:
 	void setSceneBounds();
+
+	// Generate
     void generateChairModels();
 	void generateTwoSimpleModels();
+
+	// Graphs
     void loadModel();
+	void saveModel();
+	void modifyModel();
 	void clearGraphs();
-    void doBlend();
-	
+
 	void experiment1();
+
+	// Main blend process
+	void doBlend();
 
 	// Correspondence
 	void visualizeFuzzyDistance(int sourceID);

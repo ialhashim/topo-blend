@@ -1,6 +1,15 @@
 <RCC>
     <qresource prefix="/">
+        <file>images/animation.png</file>
+        <file>images/network.png</file>
+        <file>images/cross-white.png</file>
+        <file>images/openGraph.png</file>
+        <file>images/saveGraph.png</file>
         <file>images/topo-blend-icon.png</file>
-		<file>images/font.png</file>
+        <file>images/font.png</file>
+        <file>images/minus.png</file>
+        <file>images/render.png</file>
+        <file>images/connect.png</file>
+        <file>images/disconnect.png</file>
     </qresource>
 </RCC>

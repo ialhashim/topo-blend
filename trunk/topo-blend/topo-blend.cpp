@@ -1,5 +1,6 @@
 #include <QElapsedTimer>
 #include <QFileDialog>
+#include <QDialog>
 #include <QStack>
 #include <QQueue>
 
@@ -8,6 +9,7 @@
 #include "StarlabDrawArea.h"
 #include "interfaces/ModePluginDockWidget.h"
 #include "../CustomDrawObjects.h"
+#include "graph_modify_dialog.h"
 
 // Graph manipulations
 #include "DynamicGraph.h"
@@ -439,6 +441,30 @@ void topoblend::loadModel()
 		graphs.push_back( new Structure::Graph ( file ) );
 
 	setSceneBounds();
+}
+
+void topoblend::saveModel()
+{
+	if (graphs.size() < 1){
+		qDebug() << "Please load a graph.";
+		return;
+	}
+
+	QString filename = QFileDialog::getSaveFileName(0, tr("Save Model"), 
+		mainWindow()->settings()->getString("lastUsedDirectory"), tr("Model Files (*.xml)"));
+
+	graphs.back()->saveToFile(filename);
+}
+
+void topoblend::modifyModel()
+{
+	if (graphs.size() < 1){
+		qDebug() << "Please load a graph";
+		return;
+	}
+	
+    GraphModifyDialog modifyDialog(graphs.back());
+	modifyDialog.exec();
 }
 
 bool topoblend::keyPressEvent( QKeyEvent* event )
