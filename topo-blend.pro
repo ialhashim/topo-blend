@@ -5,6 +5,7 @@ CONFIG += ordered
 SUBDIRS += NURBS
 SUBDIRS += DynamicVoxel
 SUBDIRS += Voxeler
+SUBDIRS += TopoBlenderLib
 
 # Plugins
 SUBDIRS += resample
@@ -12,7 +13,8 @@ SUBDIRS += segment
 SUBDIRS += dynamic_voxel
 SUBDIRS += voxel_resampler
 SUBDIRS += nurbs_plugin
-SUBDIRS += topo-blend
+
+SUBDIRS += topo-blend # Main UI for topo-blending
 
 # Dependecy map
 topo-blend.depends = NURBS DynamicVoxel

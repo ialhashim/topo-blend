@@ -5,7 +5,7 @@
 #include "SurfaceMeshHelper.h"
 #include "topo_blend_widget.h"
 
-#include "topo/StructureGraph.h"
+#include "StructureGraph.h"
 
 class topoblend : public SurfaceMeshModePlugin{
     Q_OBJECT

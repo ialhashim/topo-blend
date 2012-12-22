@@ -1,6 +1,6 @@
 #pragma once
 #include "StructureGlobal.h"
-#include "../font.inl"
+#include "font.inl"
 
 #define glColorQt(c) glColor4d(c.redF(), c.greenF(), c.blueF(), c.alphaF())
 
