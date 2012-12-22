@@ -89,7 +89,7 @@
       <item row="0" column="0" colspan="2">
        <widget class="QPushButton" name="genChairsButton">
         <property name="text">
-         <string>Generate two chair models</string>
+         <string>Generate chairs</string>
         </property>
        </widget>
       </item>
