@@ -10,12 +10,12 @@
 #include "../CustomDrawObjects.h"
 
 // Graph manipulations
-#include "topo/DynamicGraph.h"
-#include "topo/GraphDistance.h"
-#include "topo/TopoBlender.h"
+#include "DynamicGraph.h"
+#include "GraphDistance.h"
+#include "TopoBlender.h"
 
 // Graph Correspondence
-#include "topo/GraphCorresponder.h"
+#include "GraphCorresponder.h"
 
 // Temporary solution
 #include "surface_mesh/IO.h"
