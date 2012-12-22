@@ -48,7 +48,7 @@ void topoblend::decorate()
 	{
 		glPushMatrix();
 		glTranslatef(posX, posY, 0);
-		graphs[g].draw();
+		graphs[g]->draw();
 		glPopMatrix();
 
 		posX += 3;
@@ -58,10 +58,10 @@ void topoblend::decorate()
 	//glDisable(GL_LIGHTING);
 	for(int g = 0; g < (int) graphs.size(); g++)
 	{
-		if(graphs[g].edges.size() < 2) continue;
+		if(graphs[g]->edges.size() < 2) continue;
 
 		drawArea()->startScreenCoordinatesSystem();
-		graphs[g].draw2D(150,150);
+		graphs[g]->draw2D(150,150);
 		drawArea()->stopScreenCoordinatesSystem();
 	}
 
@@ -83,8 +83,8 @@ void topoblend::decorate()
 
 	// DEBUG distance:
 	for(int g = 0; g < (int) graphs.size(); g++){
-		if(graphs[g].misc.contains("distance")){
-			GraphDistance * gd = (GraphDistance *)graphs[g].misc["distance"];
+		if(graphs[g]->misc.contains("distance")){
+			GraphDistance * gd = (GraphDistance *)graphs[g]->misc["distance"];
 			gd->draw();
 		}
 	}
@@ -130,7 +130,6 @@ void topoblend::generateChairModels()
 	NURBSCurve swivel2Branch2 = NURBSCurve::createCurve(Vector3(0,1,-0.5), Vector3(-1,1.9,-2));
 	NURBSCurve swivel2Branch3 = NURBSCurve::createCurve(Vector3(0,1,-0.5), Vector3(1,0,-2));
 	NURBSCurve swivel2Branch4 = NURBSCurve::createCurve(Vector3(0,1,-0.5), Vector3(-1,0,-2));
-
 
 if (1)
 {
@@ -420,9 +419,9 @@ void topoblend::setSceneBounds()
 	if(!graphs.size()) return;
 
 	// Set scene bounds
-	QBox3D bigbox = graphs.front().bbox();
+	QBox3D bigbox = graphs.front()->bbox();
 	for(int i = 0; i < (int)graphs.size(); i++)
-		bigbox.unite( graphs[i].bbox() );
+		bigbox.unite( graphs[i]->bbox() );
 
 	Vector3 a = bigbox.minimum();
 	Vector3 b = bigbox.maximum();
@@ -437,7 +436,7 @@ void topoblend::loadModel()
 		mainWindow()->settings()->getString("lastUsedDirectory"), tr("Model Files (*.xml)"));
 
 	foreach(QString file, fileNames)
-		graphs.push_back( Structure::Graph ( file ) );
+		graphs.push_back( new Structure::Graph ( file ) );
 
 	setSceneBounds();
 }
@@ -452,7 +451,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 	{
 		for(int g = 0; g < (int) graphs.size(); g++)
 		{
-			graphs[g].materialize(0);
+			graphs[g]->materialize(0);
 		}
 
 		qDebug() << "Materialized graphs (voxel only) " << timer.elapsed() << " ms";
@@ -464,10 +463,10 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 	{
 		for(int g = 0; g < (int) graphs.size(); g++)
 		{
-			graphs[g].cached_mesh.clear();
+			graphs[g]->cached_mesh.clear();
 
 			SurfaceMeshModel * m = new SurfaceMeshModel( QString("Voxel_%1.obj").arg(g), QString("Voxel_%1").arg(g) );
-			graphs[g].materialize(m);
+			graphs[g]->materialize(m);
 			DynamicVoxel::MeanCurvatureFlow(m, 0.05);
 			//DynamicVoxel::LaplacianSmoothing(m);
 
@@ -485,7 +484,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 	{
 		if(graphs.size() < 1) return true;
 
-		Structure::Graph * g = &graphs.back();
+		Structure::Graph * g = graphs.back();
 
 		GraphDistance * gd = new GraphDistance(g);
 
@@ -504,7 +503,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 	if(event->key() == Qt::Key_M)
 	{
 		for(int g = 0; g < (int) graphs.size(); g++)
-			graphs[g].printAdjacency();
+			graphs[g]->printAdjacency();
 		used = true;
 	}
 
@@ -512,8 +511,8 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 	{
 		for(int g = 0; g < (int) graphs.size(); g++)
 		{
-			qDebug() << "Root (by valence) = " << graphs[g].rootByValence()->id;
-			qDebug() << "Root (by size) = " << graphs[g].rootBySize()->id;
+			qDebug() << "Root (by valence) = " << graphs[g]->rootByValence()->id;
+			qDebug() << "Root (by size) = " << graphs[g]->rootBySize()->id;
 		}
 		used = true;
 	}
@@ -525,15 +524,21 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 void topoblend::doBlend()
 {
-	Structure::Graph * source = new Structure::Graph("chair4.xml");
-	Structure::Graph * target = new Structure::Graph("chair5.xml");
+	if (graphs.size() < 2)
+	{
+		qDebug() << "Please load at least two graphs.";
+		return;
+	}
 
-	blender = new Structure::TopoBlender ( source, target );
+	Structure::Graph * source = graphs.front();
+	Structure::Graph * target = graphs.back();
+
+	blender = new Structure::TopoBlender( source, target );
+
 	Structure::Graph * blendedGraph = blender->blend();
-
 	blender->materializeInBetween( blendedGraph, 0, source );
 
-	graphs.push_back( *blendedGraph );
+	graphs.push_back( blendedGraph );
 
 	setSceneBounds();
 }
@@ -701,8 +706,9 @@ void topoblend::visualizeFuzzyDistance(int sourceID)
 		return;
 	}
 
-	Structure::Graph *sg = &graphs[0];
-	Structure::Graph *tg = &graphs[1];
+	Structure::Graph *sg = graphs[0];
+	Structure::Graph *tg = graphs[1];
+
 	GraphCorresponder *gcoor = new GraphCorresponder(sg, tg);
 
 	gcoor->visualizeHausdorffDistances(sourceID);
@@ -718,11 +724,19 @@ void topoblend::findNodeCorrespondences()
 		return;
 	}
 
-	Structure::Graph *sg = &graphs[0];
-	Structure::Graph *tg = &graphs[1];
+	Structure::Graph *sg = graphs[0];
+	Structure::Graph *tg = graphs[1];
+
 	GraphCorresponder *gcoor = new GraphCorresponder(sg, tg);
 
 	gcoor->findCorrespondences();
+}
+
+void topoblend::clearGraphs()
+{
+	qDeleteAll(graphs);
+	graphs.clear();
+	drawArea()->updateGL();
 }
 
 // End of Correspondences

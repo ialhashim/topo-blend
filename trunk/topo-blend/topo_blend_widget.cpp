@@ -23,6 +23,7 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
     this->connect(ui->button6, SIGNAL(clicked()), SLOT(renderViewer()));
 
 	topo_blend->connect(ui->buttonBlend, SIGNAL(clicked()), SLOT(doBlend()));
+	topo_blend->connect(ui->clearButton, SIGNAL(clicked()), SLOT(clearGraphs()));
 
 	// Correspondence
 	topo_blend->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizeFuzzyDistance(int)));
