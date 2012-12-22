@@ -29,10 +29,16 @@
      <property name="text">
       <string>Render..</string>
      </property>
+     <property name="icon">
+      <iconset resource="topo-blend.qrc">
+       <normaloff>:/images/render.png</normaloff>:/images/render.png</iconset>
+     </property>
     </widget>
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="topo-blend.qrc"/>
+ </resources>
  <connections/>
 </ui>
