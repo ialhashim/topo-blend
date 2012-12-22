@@ -104,46 +104,28 @@ QList< ScalarLinksPair > TopoBlender::badCorrespondence(  QString activeNodeID, 
 
 Graph * TopoBlender::blend()
 {
-	Graph blendedGraph;
+	// Initial steps
+	cleanup();
+	visualizeActiveGraph(QString("step%1").arg(stepCounter), "Initial graph");
+	originalGraphDistance = new GraphDistance(g1);
 
 	/// 1) Best partial correspondence
 	bestPartialCorrespondence();
-
-	/// 2) BFS solve for Link discrepancy
-	Flags flags;
-
-	// Clean up past work
-	QDir directory(QDir::currentPath());
-	QStringList filesList = directory.entryList(QDir::Files);
-	foreach(QString f, filesList) 
-	{
-		if(f.endsWith(".png") || f.endsWith(".gv") || f.endsWith(".graphml")) 
-			directory.remove(f);
-	}
-
-	int step = 0;
-	QString graphCaption = QString("step%1").arg(step);
-	QString graphSubtitle = QString("Initial graph");
-	toGraphML(active, graphCaption);
-	toGraphviz(active, graphCaption, true, graphCaption, graphSubtitle);
 
 	// Keep track of one-sided links
 	QMap< int, int > needLink;
 	std::map< int, std::vector<Link> > deadLinks;
 	std::vector< int > movingLinks;
 
-	originalGraphDistance = new GraphDistance(g1);
+	Flags flags;
 
-	// STAGE 1) Remove extra links + track missing links:
-
-	// while number of 'DONE' nodes is not equal to target
+	// STAGE 1) Check ACTIVE nodes link situation
 	while((flags = active.flags("state")).count(DONE) != target.nodes.size())
 	{
 		QString log;
 
 		// Break if we ran out of 'ACTIVE' nodes
-		if(flags.indexOf(ACTIVE,0) < 0) 
-			break;
+		if(flags.indexOf(ACTIVE,0) < 0) break;
 
 		// Find an active node
 		int active_idx = active.nodeIndex("state", ACTIVE);
@@ -262,11 +244,7 @@ Graph * TopoBlender::blend()
 		// This node is now 'DONE'
 		n_active.set("state", DONE);
 
-		step++;
-
-		QString graphCaption = QString("step%1").arg(step);
-		toGraphML(active, graphCaption);
-		toGraphviz(active, graphCaption, true, graphCaption, log);
+		visualizeActiveGraph(QString("step%1").arg(stepCounter++), log);
 	}
 
 	// STAGE 2) Reconnect for missing links
@@ -275,7 +253,7 @@ Graph * TopoBlender::blend()
 		SimpleNode & n_active = active.nodes[index];
 		SimpleNode & n_target = *target.getNode(n_active.str("correspond"));
 
-		// get link differences
+		// Get link differences
 		QMap<int, SimpleEdge> adjActive = active.getEdges(n_active.idx);
 		QMap<int, SimpleEdge> adjTarget = target.getEdges(n_target.idx);
 		foreach(int ei, adjActive.keys()){
@@ -306,12 +284,11 @@ Graph * TopoBlender::blend()
 			// Find all distances from link point
 			originalGraphDistance->computeDistances(linkPosition, 0.1);
 
-			std::vector<int> dissconnected = active.nodesWith("state", DISCONNECTED);
-			
 			// Store computed distances
 			QMap< double, std::pair<int,Vec4d> > dists;
 
 			// First: dissconnected parts
+			std::vector<int> dissconnected = active.nodesWith("state", DISCONNECTED);
 			if( dissconnected.size() )
 			{
 				foreach(int d, dissconnected)
@@ -351,13 +328,11 @@ Graph * TopoBlender::blend()
 				// Log event
 				QString log = QString("connected node [%1] with [%2]").arg(active.nodes[index].str(
 					"original")).arg(active.nodes[closest.idx].str("original"));
-				QString graphCaption = QString("step%1").arg(step++);
-				toGraphML(active, graphCaption);
-				toGraphviz(active, graphCaption, true, graphCaption, log);
+				visualizeActiveGraph(QString("step%1").arg(stepCounter++), log);
 			}
 			else
 			{
-				// Second: clone parts
+				// Second: clone parts case
 
 				// Find node similar to n_targetOther in active
 				foreach(SimpleEdge edge, active.getEdges(index))
@@ -378,8 +353,7 @@ Graph * TopoBlender::blend()
 				}
 				if(dists.size() < 1) continue;
 
-				// Found a good candidate for clone
-
+				// Found best candidate for a clone
 				std::pair<int,Vec4d> bestRecord = dists.values().first();
 				int bestIdx = bestRecord.first;
 				Vec4d bestCoordinate = bestRecord.second;
@@ -407,11 +381,8 @@ Graph * TopoBlender::blend()
 
 				needLink[index]--;
 
-				// Log event
-				QString log = QString("Cloned node [%1]").arg(cloned.str("original"));
-				QString graphCaption = QString("step%1").arg(step++);
-				toGraphML(active, graphCaption);
-				toGraphviz(active, graphCaption, true, graphCaption, log);
+				visualizeActiveGraph(QString("step%1").arg(stepCounter++), 
+					QString("Cloned node [%1]").arg(cloned.str("original")));
 			}
 		}
 	}
@@ -425,6 +396,7 @@ Graph * TopoBlender::blend()
 		SimpleNode & n_active = active.nodes[active_idx];
 		QString activeNodeID = n_active.str("original");
 
+		// Only worry about parts we know correspond
 		if(!n_active.has("correspond")) break;
 		QString targetNodeID = n_active.str("correspond");
 		SimpleNode & n_target = target.nodes[target.nodeIndex("original",targetNodeID)];
@@ -458,9 +430,7 @@ Graph * TopoBlender::blend()
 			// Log event
 			QString log = QString("connected node [%1] with [%2]").arg(active.nodes[active_idx].str(
 				"original")).arg(active.nodes[other_idx].str("original"));
-			QString graphCaption = QString("step%1").arg(step++);
-			toGraphML(active, graphCaption);
-			toGraphviz(active, graphCaption, true, graphCaption, log);
+			visualizeActiveGraph(QString("step%1").arg(stepCounter++), log);
 		}
 
 		// Set corresponding target node
@@ -483,7 +453,7 @@ Graph * TopoBlender::blend()
 
 		QString targetNodeID = n_target.str("original");
 
-		// get link differences
+		// Get link differences
 		QMap<int, SimpleEdge> adjActive = active.getEdges(n_active.idx);
 		QMap<int, SimpleEdge> adjTarget = target.getEdges(n_target.idx);
 		foreach(int ei, adjActive.keys()){
@@ -495,6 +465,7 @@ Graph * TopoBlender::blend()
 			}
 		}
 		
+		// For each missing link
 		foreach(int ei, adjTarget.keys())
 		{
 			SimpleEdge & edge = adjTarget[ei];
@@ -506,7 +477,7 @@ Graph * TopoBlender::blend()
 			if(missingNeighbors.size() == 1)
 			{
 				// CASE 1) Missing node branches out with no other connections
-				
+
 				Link & l = *target.mGraph->getEdge(missingID, targetNodeID);
 				Vec4d coordOnTarget = l.getCoord(targetNodeID);
 
@@ -548,17 +519,15 @@ Graph * TopoBlender::blend()
 				active.specialCoords[edgeID][other_idx] = l.getCoordOther(missingID);
 				active.growingNodes[edgeID] = std::make_pair(active_idx, 1.0 / shrinkFactor);
 
+				needLink[index]--;
+
 				// Log event
 				QString log = QString("Added new node [%1] that will grow").arg(newNode.str("original"));
-				QString graphCaption = QString("step%1").arg(step++);
-				toGraphML(active, graphCaption);
-				toGraphviz(active, graphCaption, true, graphCaption, log);
-
-				needLink[index]--;
+				visualizeActiveGraph(QString("step%1").arg(stepCounter++), log);
 			}
 			else
 			{
-				// CASE 2) Missing is connected with done nodes only
+				// CASE 2) Missing is connected with 'DONE' nodes only
 
 				// Check neighbors status
 				bool isNeighborsDone = true;
@@ -603,10 +572,8 @@ Graph * TopoBlender::blend()
 				SimpleNode & newNode = active.nodes[active.addNode(missingProperty)];
 
 				// Log event
-				QString log = QString("Added new node [%1]").arg(newNode.str("original"));
-				QString graphCaption = QString("step%1").arg(step++);
-				toGraphML(active, graphCaption);
-				toGraphviz(active, graphCaption, true, graphCaption, log);
+				visualizeActiveGraph(QString("step%1").arg(stepCounter++), 
+					QString("Added new node [%1]").arg(newNode.str("original")));
 
 				// Set correspondence and state
 				newNode.set("correspond",missingID);
@@ -625,24 +592,17 @@ Graph * TopoBlender::blend()
 
 					needLink[other_idx]--;
 
-					// Log event
+					// Visualize event
 					QString log = QString("connected node [%1] with [%2]").arg(active.nodes[active_idx].str(
 						"original")).arg(active.nodes[other_idx].str("original"));
-					QString graphCaption = QString("step%1").arg(step++);
-					toGraphML(active, graphCaption);
-					toGraphviz(active, graphCaption, true, graphCaption, log);
+					visualizeActiveGraph(QString("step%1").arg(stepCounter++), log);
 				}
 			}
 		}
 	}
 
-	// Show final graph
-	graphCaption = QString("step%1").arg(++step);
-	graphSubtitle = QString("Final graph");
-	toGraphML(active, graphCaption);
-	toGraphviz(active, graphCaption, true, graphCaption, graphSubtitle);
-
-	// Create animated GIF (assuming ImageMagick installed)
+	// Show final graph & create GIF animation
+	visualizeActiveGraph(QString("step%1").arg(stepCounter++), "Final Graph");
 	//system(qPrintable( QString("convert -resize 800x800	-delay %1 -loop 0 *.png steps.gif").arg( 200 ) ));
 
     return active.toStructureGraph();
@@ -787,4 +747,24 @@ void TopoBlender::drawDebug()
 	glEnd();
 
 	glEnable(GL_LIGHTING);
+}
+
+void Structure::TopoBlender::visualizeActiveGraph( QString caption, QString subcaption )
+{
+	toGraphML(active, caption);
+	toGraphviz(active, caption, true, caption, subcaption);
+}
+
+void Structure::TopoBlender::cleanup()
+{
+	// Reset step counter
+	stepCounter = 0;
+
+	// Delete resulting graph files etc.
+	QDir directory(QDir::currentPath());
+	QStringList filesList = directory.entryList(QDir::Files);
+	foreach(QString f, filesList){
+		if(f.endsWith(".png") || f.endsWith(".gv") || f.endsWith(".graphml")) 
+			directory.remove(f);
+	}
 }

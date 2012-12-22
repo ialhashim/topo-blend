@@ -32,6 +32,13 @@ namespace Structure{
 		QList< ScalarLinksPair > badCorrespondence( QString activeNodeID, QString targetNodeID, 
 			QMap<Link*, Vec4d> & coord_active, QMap<Link*, Vec4d> & coord_target );
 
+		// Logging
+		int stepCounter;
+		void visualizeActiveGraph(QString caption, QString subcaption);
+
+		// Preprocessing
+		void cleanup();
+
 	public slots:
 		void bestPartialCorrespondence();
 

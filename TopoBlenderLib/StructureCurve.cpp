@@ -92,7 +92,7 @@ std::vector< std::vector<Vector3> > Structure::Curve::discretizedPoints( Scalar 
 	Scalar curveLength = curve.GetLength(0,1);
 
 	// For singular cases
-	if(curveLength < 1e-10){
+	if(curveLength < resolution){
 		result.push_back(curve.mCtrlPoint);
 		return result;
 	}

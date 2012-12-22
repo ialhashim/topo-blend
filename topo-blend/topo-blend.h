@@ -27,7 +27,7 @@ public:
 private:
     topo_blend_widget * widget;
 
-    QVector<Structure::Graph> graphs;
+    QVector<Structure::Graph*> graphs;
 
 	// DEBUG:
 	QVector< Vector3 > debugPoints,debugPoints2,debugPoints3;
@@ -38,6 +38,7 @@ public slots:
     void generateChairModels();
 	void generateTwoSimpleModels();
     void loadModel();
+	void clearGraphs();
     void doBlend();
 	
 	void experiment1();
