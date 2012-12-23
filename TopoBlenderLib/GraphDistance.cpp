@@ -131,8 +131,8 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 
 		// Get positions
 		Vector3 pos1(0),pos2(0);
-		e.n1->get(e.coord[0], pos1);
-		e.n2->get(e.coord[1], pos2);
+		e.n1->get(e.coord[0].front(), pos1);
+		e.n2->get(e.coord[1].front(), pos2);
 
 		QMap<double,int> dists1, dists2;
 

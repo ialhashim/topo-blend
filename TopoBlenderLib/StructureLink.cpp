@@ -5,14 +5,14 @@ using namespace Structure;
 
 void Link::setCoord( QString nodeID, Vec4d newCoord )
 {
-	if(n1->id == nodeID) coord[0] = newCoord;
-	if(n2->id == nodeID) coord[1] = newCoord;
+	if(n1->id == nodeID) coord[0] = std::vector<Vec4d> (1, newCoord);
+	if(n2->id == nodeID) coord[1] = std::vector<Vec4d> (1, newCoord);
 }
 
 Vec4d Link::getCoord( QString nodeID )
 {
-	if(n1->id == nodeID) return coord[0];
-	if(n2->id == nodeID) return coord[1];
+	if(n1->id == nodeID) return coord[0].front();
+	if(n2->id == nodeID) return coord[1].front();
 	return Vec4d(DBL_MAX);
 }
 
@@ -37,8 +37,8 @@ void Link::draw()
 {
 	std::vector<Vector3> pos(2, Vector3(0));
 
-	Vec4d c1(coord[0].x(), coord[0].y(), 0, 0);
-	Vec4d c2(coord[1].x(), coord[1].y(), 0, 0);
+	Vec4d c1 = coord[0].front();
+	Vec4d c2 = coord[1].front();
 
 	n1->get(c1, pos[0], noFrame());
 	n2->get(c2, pos[1], noFrame());
