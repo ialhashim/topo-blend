@@ -82,8 +82,10 @@ Link Graph::addEdge(Node *n1, Node *n2)
 
 	Vector3 intersectPoint = nodeIntersection(n1, n2);
 
-	Vec4d c1 = n1->approxCoordinates(intersectPoint);
-	Vec4d c2 = n2->approxCoordinates(intersectPoint);
+	std::vector<Vec4d> c1,c2;
+
+	c1.push_back(n1->approxCoordinates(intersectPoint));
+	c2.push_back(n2->approxCoordinates(intersectPoint));
 
     Link e( n1, n2, c1, c2, "none", linkName(n1, n2) );
     edges.push_back(e);
@@ -97,7 +99,7 @@ Link Graph::addEdge(Node *n1, Node *n2)
     return e;
 }
 
-Link Graph::addEdge(Node *n1, Node *n2, Vec4d coord1, Vec4d coord2, QString linkName)
+Link Graph::addEdge(Node *n1, Node *n2, std::vector<Vec4d> coord1, std::vector<Vec4d> coord2, QString linkName)
 {
 	n1 = addNode(n1);
 	n2 = addNode(n2);
@@ -349,7 +351,7 @@ void Graph::saveToFile( QString fileName )
 			out << QString::number(w) + " ";
 		out << "</weights>\n";
 
-		out << "\n</node>\n\n";
+		out << "</node>\n\n";
 	}
 
 	// Save edges
@@ -360,9 +362,16 @@ void Graph::saveToFile( QString fileName )
 		out << QString("\t<type>%1</type>\n\n").arg(e.type);
 		out << QString("\t<n>%1</n>\n").arg(e.n1->id);
 		out << QString("\t<n>%1</n>\n").arg(e.n2->id);
-		out << QString("\t<coord>%1 %2 %3 %4</coord>\n").arg(e.coord[0][0]).arg(e.coord[0][1]).arg(e.coord[0][2]).arg(e.coord[0][3]);
-		out << QString("\t<coord>%1 %2 %3 %4</coord>\n").arg(e.coord[1][0]).arg(e.coord[1][1]).arg(e.coord[1][2]).arg(e.coord[1][3]);
-		out << "\n</edge>\n\n";
+
+		for(int k = 0; k < 2; k++)
+		{
+			out << "\t<coord>\n";
+			foreach(Vec4d c, e.coord[k])
+				out << "\t\t<uv>" << c[0] << " " << c[1] << " " << c[2] << " " << c[3] << "</uv>\n";
+			out << "\t</coord>\n";
+		}
+
+		out << "</edge>\n\n";
 	}
 
 	out << "\n</document>\n";
@@ -456,12 +465,21 @@ void Graph::loadFromFile( QString fileName )
 		QString n1_id = n.at(0).toElement().text();
 		QString n2_id = n.at(1).toElement().text();
 
-		QDomNodeList coord = edge.toElement().elementsByTagName("coord");
+		QDomNodeList coordList = edge.toElement().elementsByTagName("coord");
+		std::vector< std::vector<Vec4d> > coords((int)coordList.size());
+		for(int j = 0; j < (int) coords.size(); j++)
+		{
+			QDomNodeList uv = coordList.at(j).toElement().elementsByTagName("uv");
+			int uv_count = uv.count();
 
-		QStringList c1 = coord.at(0).toElement().text().split(" ");
-		QStringList c2 = coord.at(1).toElement().text().split(" ");
+			for(int k = 0; k < uv_count; k++)
+			{
+				QStringList c = uv.at(k).toElement().text().split(" ");
+				coords[j].push_back(Vec4d(c[0].toDouble(), c[1].toDouble(), c[2].toDouble(), c[3].toDouble()));
+			}
+		}
 
-		addEdge(getNode(n1_id), getNode(n2_id), Vec4d(c1[0].toDouble(), c1[1].toDouble(), 0, 0), Vec4d(c2[0].toDouble(), c2[1].toDouble(), 0, 0), id);
+		addEdge(getNode(n1_id), getNode(n2_id), coords.front(), coords.back(), id);
 	}
 
 	file.close();

@@ -631,8 +631,8 @@ void topoblend::experiment1()
 		Structure::Node * n1 = e.n1;
 		Structure::Node * n2 = e.n2;
 
-		Vec4d c1 = e.coord[0];
-		Vec4d c2 = e.coord[1];
+		Vec4d c1 = e.coord[0].front();
+		Vec4d c2 = e.coord[1].front();
 
 		Vector3 pos1(0), pos2(0);
 		n1->get(c1, pos1);

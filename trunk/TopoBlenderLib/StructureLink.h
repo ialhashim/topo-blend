@@ -17,7 +17,7 @@ struct Link
 	QString type;
     QMap< QString, QVariant > link_property;
 
-	Vec4d coord[2];
+	std::vector<Vec4d> coord[2];
 
 	void setCoord(QString nodeID, Vec4d newCoord);
 	Vec4d getCoord(QString nodeID);
@@ -26,7 +26,7 @@ struct Link
 	Node * otherNode(QString nodeID);
 
 	// Constructors
-    Link(Node * node1, Node * node2, Vec4d coord_n1, Vec4d coord_n2, QString link_type, QString ID)
+    Link(Node * node1, Node * node2, std::vector<Vec4d> coord_n1, std::vector<Vec4d> coord_n2, QString link_type, QString ID)
 	{
 		this->n1 = node1;
 		this->n2 = node2;

@@ -275,7 +275,7 @@ Structure::Graph * DynamicGraph::toStructureGraph()
 
 		Structure::Node *n1 = graph->getNode(id1), *n2 = graph->getNode(id2);
 
-		graph->addEdge( n1, n2, Vec4d(0), Vec4d(0), graph->linkName(n1, n2) );
+		graph->addEdge( n1, n2, std::vector<Vec4d>(1, Vec4d(0)), std::vector<Vec4d>(1, Vec4d(0)), graph->linkName(n1, n2) );
 
 		// Copy edge coordinates
 		Structure::Link *toEdge = graph->getEdge(id1, id2);
@@ -361,7 +361,7 @@ Structure::Graph * DynamicGraph::toStructureGraphOld(DynamicGraph & target)
 
 		Structure::Node *n1 = graph->getNode(id1), *n2 = graph->getNode(id2);
 
-		graph->addEdge( n1, n2, Vec4d(0), Vec4d(0), graph->linkName(n1, n2) );
+		graph->addEdge( n1, n2, std::vector<Vec4d>(1, Vec4d(0)), std::vector<Vec4d>(1, Vec4d(0)), graph->linkName(n1, n2) );
 
 		// Copy edge coordinates
 		Structure::Link *fromEdge = target.mGraph->getEdge(id1, id2);
