@@ -8,6 +8,8 @@ struct Node;
 
 static QString CURVE = "CURVE";
 static QString SHEET = "SHEET";
+static QString POINT_EDGE = "POINT";
+static QString LINE_EDGE = "LINE";
 
 struct Link
 {

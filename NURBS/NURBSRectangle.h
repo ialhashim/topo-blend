@@ -97,6 +97,14 @@ public:
 	// Projection
 	Vec4d timeAt(const Vector3 & pos);
 	Vec4d timeAt( const Vector3 & pos, Vec4d & bestUV, Vec4d & minRange, Vec4d & maxRange, Real currentDist, Real threshold = 1e-4 );
+	std::vector<Vec4d> NURBSRectangle::timeAt( const std::vector<Vector3> & pos, Real threshold );
+
+	// Modifiers
+	void bend( Scalar amount, int bendDirection = 0 );
+
+	// Intersection
+	std::vector<Vec3d> NURBSRectangle::intersect( NURBSRectangle & other, double resolution, 
+		std::vector<Vec4d> & coordMe = std::vector<Vec4d>(), std::vector<Vec4d> & coordOther = std::vector<Vec4d>() );
 
 protected:
     // Replicate the necessary number of control points when the Create

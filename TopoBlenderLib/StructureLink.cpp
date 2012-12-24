@@ -35,22 +35,32 @@ Node * Link::getNode( QString nodeID )
 
 void Link::draw()
 {
-	std::vector<Vector3> pos(2, Vector3(0));
-
-	Vec4d c1 = coord[0].front();
-	Vec4d c2 = coord[1].front();
-
-	n1->get(c1, pos[0], noFrame());
-	n2->get(c2, pos[1], noFrame());
-
 	glDisable( GL_LIGHTING );
 	glEnable( GL_POINT_SMOOTH );
 
-	glPointSize(10.0f);
-	glColor3d(0,0,1);glBegin(GL_POINTS);glVector3(pos[0]);glVector3(pos[1]);glEnd();
+	std::vector<Vector3> linkPos;
 
-	glPointSize(12.0f);
-	glColor3d(1,1,1);glBegin(GL_POINTS);glVector3(pos[0]);glVector3(pos[1]);glEnd();
+	for(int j = 0; j < (int)coord[0].size(); j++)
+	{
+		Vector3 p1(0), p2(0);
+
+		n1->get(coord[0][j], p1);
+		n2->get(coord[1][j], p2);
+
+		linkPos.push_back(p1);
+		linkPos.push_back(p2);
+	}
+
+	for(int i = 0; i < (int)linkPos.size(); i++)
+	{
+		// Blue
+		glPointSize(10.0f);
+		glColor3d(0,0,1);glBegin(GL_POINTS);glVector3(linkPos[i]);glEnd();
+
+		// White
+		glPointSize(12.0f);
+		glColor3d(1,1,1);glBegin(GL_POINTS);glVector3(linkPos[i]);glEnd();
+	}
 
 	glEnable(GL_LIGHTING);
 }

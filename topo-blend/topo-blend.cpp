@@ -46,6 +46,9 @@ void topoblend::decorate()
 {
 	// 3D visualization
 	float posX = -1.5, posY = 0;
+
+	if(graphs.size() < 2) { posX = posY = 0.0; }
+
 	for(int g = 0; g < (int) graphs.size(); g++)
 	{
 		glPushMatrix();
@@ -67,11 +70,22 @@ void topoblend::decorate()
 		drawArea()->stopScreenCoordinatesSystem();
 	}
 
+	// DEBUG distance:
+	for(int g = 0; g < (int) graphs.size(); g++){
+		if(graphs[g]->misc.contains("distance")){
+			GraphDistance * gd = (GraphDistance *)graphs[g]->misc["distance"];
+			gd->draw();
+		}
+	}
+
 	// DEBUG:
 	glDisable(GL_LIGHTING);
 
+	glClear( GL_DEPTH_BUFFER_BIT );
+
 	// Points
-	glColor3d(1,0,0); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints) glVector3(v); glEnd();
+	glPointSize(10); glColor3d(1,0,0); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints) glVector3(v); glEnd();
+	glPointSize(15); glColor3d(1,1,1); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints) glVector3(v); glEnd();
 	glColor3d(0,1,0); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints2) glVector3(v); glEnd();
 	glColor3d(0,0,1); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints3) glVector3(v); glEnd();
 
@@ -82,14 +96,6 @@ void topoblend::decorate()
 	glColor3d(0,0,1); glBegin(GL_LINES); foreach(MyLine l, debugLines3) {glVector3(l.first); glVector3(l.second);} glEnd();
 
 	glEnable(GL_LIGHTING);
-
-	// DEBUG distance:
-	for(int g = 0; g < (int) graphs.size(); g++){
-		if(graphs[g]->misc.contains("distance")){
-			GraphDistance * gd = (GraphDistance *)graphs[g]->misc["distance"];
-			gd->draw();
-		}
-	}
 
 	if(blender) blender->drawDebug();
 
@@ -425,8 +431,11 @@ void topoblend::setSceneBounds()
 	for(int i = 0; i < (int)graphs.size(); i++)
 		bigbox.unite( graphs[i]->bbox() );
 
+	bigbox.transform(QMatrix4x4() * 2);
+
 	Vector3 a = bigbox.minimum();
 	Vector3 b = bigbox.maximum();
+
 	drawArea()->setSceneBoundingBox(qglviewer::Vec(a.x(), a.y(), a.z()), qglviewer::Vec(b.x(), b.y(), b.z()));
 
 	drawArea()->updateGL();
@@ -757,6 +766,7 @@ void topoblend::findOne2OneCorrespondences()
 
 	gcoor->findOneToOneCorrespondences();
 }
+// End of Correspondences
 
 
 void topoblend::findOne2ManyCorrespondences()
@@ -783,6 +793,28 @@ void topoblend::clearGraphs()
 	qDeleteAll(graphs);
 	graphs.clear();
 	drawArea()->updateGL();
+}
+
+void topoblend::currentExperiment()
+{
+	NURBSRectangle sheetA = NURBSRectangle::createSheet(1.75,2, Vector3(0,0.25,0));
+	NURBSRectangle sheetB = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
+
+	sheetA.bend(-0.7);
+	sheetB.bend(0.2);
+	sheetB.bend(0.1,1);
+
+	Structure::Graph * graph = new Structure::Graph();
+
+	graph->addNode( new Structure::Sheet( sheetA, "SheetA" ) );
+	graph->addNode( new Structure::Sheet( sheetB, "SheetB" ) );
+
+	graph->addEdge( graph->getNode("SheetA"), graph->getNode("SheetB") );
+
+	graphs.push_back( graph );
+	setSceneBounds();
+
+	qDebug() << "Done";
 }
 
 Q_EXPORT_PLUGIN(topoblend)

@@ -14,10 +14,10 @@ GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph
 float GraphCorresponder::supInfDistance( std::vector<Vector3> &A, std::vector<Vector3> &B )
 {
 	float supinfDis = -1;
-	for (int i = 0; i < A.size(); i++)
+	for (int i = 0; i < (int)A.size(); i++)
 	{
 		float infDis = FLT_MAX;
-		for (int j = 0; j < B.size(); j++)
+		for (int j = 0; j < (int)B.size(); j++)
 		{
 			float dis = (A[i] - B[j]).norm();
 
@@ -129,8 +129,8 @@ bool GraphCorresponder::minElementInMatrix( std::vector< std::vector<float> > &M
 	}
 
 	float minValue = FLT_MAX;
-	for (int i = 0; i < M.size(); i++){
-		for (int j = 0; j < M[0].size(); j++)
+	for (int i = 0; i < (int)M.size(); i++){
+		for (int j = 0; j < (int)M[0].size(); j++)
 		{
 			if (M[i][j] != INVALID_VALUE && M[i][j] < minValue)
 			{

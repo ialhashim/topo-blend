@@ -84,10 +84,21 @@ Link Graph::addEdge(Node *n1, Node *n2)
 
 	std::vector<Vec4d> c1,c2;
 
-	c1.push_back(n1->approxCoordinates(intersectPoint));
-	c2.push_back(n2->approxCoordinates(intersectPoint));
+	QString edgeType = POINT_EDGE;
 
-    Link e( n1, n2, c1, c2, "none", linkName(n1, n2) );
+	if(n1->type() == SHEET && n2->type() == SHEET)
+	{
+		Sheet *s1 = (Sheet*) n1, *s2 = (Sheet*) n2;
+		s1->surface.intersect(s2->surface, 0.1, c1, c2);
+		edgeType = LINE_EDGE;
+	}
+	else
+	{
+		c1.push_back(n1->approxCoordinates(intersectPoint));
+		c2.push_back(n2->approxCoordinates(intersectPoint));
+	}
+
+    Link e( n1, n2, c1, c2, edgeType, linkName(n1, n2) );
     edges.push_back(e);
 
 	// Add to adjacency list
