@@ -1,6 +1,9 @@
 #include "NURBSRectangle.h"
 #include "NURBSCurve.h"
 
+#include "weld.h"
+#include "Graph.h"
+
 //----------------------------------------------------------------------------
 NURBSRectangle::NURBSRectangle (Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight,
     int uDegree, int vDegree, bool uLoop, bool vLoop, bool uOpen, bool vOpen) : ParametricSurface(0, 1, 0, 1, true)
@@ -529,9 +532,7 @@ Vec4d NURBSRectangle::timeAt( const Vector3 & pos )
 	std::vector< std::vector<Vector3> > pts;
 
 	std::vector<Real> valU, valV;
-
 	Scalar stepSize = 0.1;
-
 	generateSurfacePoints(stepSize, pts, valU, valV);
 
 	int minIdxU = 0, minIdxV = 0;
@@ -604,6 +605,47 @@ Vec4d NURBSRectangle::timeAt( const Vector3 & pos, Vec4d & bestUV, Vec4d & minRa
 	}
 }
 
+std::vector<Vec4d> NURBSRectangle::timeAt( const std::vector<Vector3> & positions, Real threshold )
+{
+	std::vector<Vec4d> times;
+
+	std::vector< std::vector<Vector3> > pts;
+	std::vector<Real> valU, valV;
+	Scalar stepSize = 0.1;
+	generateSurfacePoints(stepSize, pts, valU, valV);
+
+	for(int i = 0; i < (int)positions.size(); i++)
+	{
+		Vector3 pos = positions[i];
+
+		int minIdxU = 0, minIdxV = 0;
+		Scalar minDist = std::numeric_limits<Scalar>::max();
+
+		// Approximate area search
+		for(int x = 0; x < (int)valU.size(); x++){
+			for(int y = 0; y < (int)valV.size(); y++){
+				Scalar dist = (pts[x][y] - pos).norm();
+
+				if(dist < minDist){
+					minDist = dist;
+					minIdxU = x;
+					minIdxV = y;
+				}
+			}
+		}
+
+		// More precise search
+		Vec4d minRange( valU[qMax(0, minIdxU - 1)], valV[qMax(0, minIdxV - 1)], 0, 0);
+		Vec4d maxRange( valU[qMin((int)valU.size() - 1, minIdxU + 1)], valV[qMin((int)valV.size() - 1, minIdxV + 1)], 0, 0);
+
+		Vec4d bestUV( valU[minIdxU], valV[minIdxV], 0, 0 );
+
+		times.push_back( timeAt(pos, bestUV, minRange, maxRange, minDist, threshold) );
+	}
+
+	return times;
+}
+
 Real NURBSRectangle::aspectU()
 {
 	Real width = this->GetNumCtrlPoints(0);
@@ -653,4 +695,168 @@ Real NURBSRectangle::avgCtrlEdgeLength()
 	}
 
 	return sum / c;
+}
+
+void NURBSRectangle::bend( Scalar amount, int bendDirection )
+{
+	int U = mCtrlPoint.size();
+	int V = mCtrlPoint.front().size();
+
+	std::vector<Vector3*> tobend;
+
+	Vector3 delta(0), p(0),t0(0),t1(0);
+	this->GetFrame(0,0,p,t0,t1,delta);
+
+	delta = delta.normalized() * amount;
+
+	switch(bendDirection)
+	{
+	case 0:
+		for(int i = 0; i < V; i++){
+			tobend.push_back(&mCtrlPoint.front().at(i));
+			tobend.push_back(&mCtrlPoint.back().at(i));
+		}
+		break;
+
+	case 1:
+		for(int i = 0; i < U; i++){
+			tobend.push_back(&mCtrlPoint.at(i).front());
+			tobend.push_back(&mCtrlPoint.at(i).back());
+		}	
+		break;
+	}
+
+	foreach(Vector3 * p, tobend){
+		(*p) += delta;
+	}
+}
+
+std::vector<Vec3d> NURBSRectangle::intersect( NURBSRectangle & other, double resolution, 
+	std::vector<Vec4d> & coordMe, std::vector<Vec4d> & coordOther )
+{
+	std::vector<Vec3d> samples;
+
+	std::vector< std::vector<Vector3> > pnts1, pnts2;
+	std::vector< std::vector< std::vector<Real> > > val( 2, std::vector< std::vector<Real> >(2) );
+	std::vector<Real> valU1,valV1,valU2,valV2;
+	std::vector<Real> iU1,iV1,iU2,iV2;
+
+	generateSurfacePoints(resolution, pnts1, valU1, valV1);
+	other.generateSurfacePoints(resolution, pnts2, valU2, valV2);
+
+	val[0][0] = valU1; val[0][1] = valV1;
+	val[1][0] = valU2; val[1][1] = valV2;
+
+	std::vector< std::pair< std::pair<Scalar,Scalar>, Vec3d> > mysamples, othersamples;
+
+	for(int y1 = 0; y1 < (int)valV1.size(); y1++){
+		for(int x1 = 0; x1 < (int)valU1.size(); x1++){
+			mysamples.push_back(std::make_pair( std::make_pair(valU1[x1], valV1[y1]), pnts1[x1][y1] ));
+		}
+	}
+
+	for(int y2 = 0; y2 < (int)valV2.size(); y2++){
+		for(int x2 = 0; x2 < (int)valU2.size(); x2++){
+			othersamples.push_back(std::make_pair( std::make_pair(valU2[x2], valV2[y2]), pnts2[x2][y2] ));
+		}
+	}
+
+	for(int i = 0; i < (int)mysamples.size(); i++)
+	{
+		for(int j = 0; j < (int)othersamples.size(); j++)
+		{
+			if(sphereTest(mysamples[i].second, othersamples[j].second, resolution * 0.5, resolution * 0.5))
+				samples.push_back(mysamples[i].second);
+		}
+	}
+
+	std::vector<size_t> corner_xrefs;
+	weld(samples, corner_xrefs, std::hash<Vec3d>(), std::equal_to<Vec3d>());
+
+	Vec3d p(0);	
+	double threshold = resolution * 0.1;
+
+	// Project onto other surface
+	std::vector<Vec4d> otheruv = other.timeAt(samples, threshold);
+	std::vector<Vec3d> projectionOther;
+	for(int i = 0; i < (int)otheruv.size(); i++){
+		other.Get(otheruv[i][0], otheruv[i][1], p);
+		projectionOther.push_back(p);
+	}
+
+	samples.clear();
+
+	// Project on me
+	coordMe = this->timeAt(projectionOther, threshold);
+	std::vector<Vec3d> projectionMe;
+	for(int i = 0; i < (int)coordMe.size(); i++){
+		this->Get(coordMe[i][0], coordMe[i][1], p);
+		samples.push_back(p);
+	}
+
+	weld(samples, corner_xrefs, std::hash<Vec3d>(), std::equal_to<Vec3d>());
+
+	// Cluster and average
+	std::vector<bool> visited(samples.size(), false);
+	QMap<int, QVector<Vec3d> > group;
+	for(int i = 0; i < (int)samples.size(); i++){
+		if(!visited[i]){
+			for(int j = 0; j < (int)samples.size(); j++){
+				if((samples[i] - samples[j]).norm() < resolution * 2){
+					samples[j] = samples[i];
+					visited[j] = true;
+					group[i].push_back(samples[j]);
+				}
+			}
+			group[i].push_back(samples[i]);
+			visited[i] = true;
+		}
+	}
+	samples.clear();
+	foreach(QVector<Vec3d> pnts, group.values()){
+		Vec3d avg(0);
+		foreach(Vec3d p, pnts){	avg += p; }
+		avg /= pnts.size();
+		samples.push_back(avg);
+	}
+
+	weld(samples, corner_xrefs, std::hash<Vec3d>(), std::equal_to<Vec3d>());
+
+	// Quick dirty MST then get longest path
+	Graph<int, double> graph;
+	typedef std::pair<int,int> PairInts;
+	QMap< PairInts, double > edges; 
+	for(int i = 0; i < (int)samples.size(); i++){
+		for(int j = 0; j < (int) samples.size(); j++){
+			if(i == j) continue;
+			Vec3d p = samples[i];
+			Vec3d q = samples[j];
+			double weight = (p - q).norm();
+			if(weight < resolution * 4){
+				int id1 = qMin(i,j);
+				int id2 = qMax(i,j);
+				edges[ std::make_pair(id1,id2) ] = weight;
+			}
+		}
+	}
+	QMapIterator<PairInts, double> i(edges);
+	while (i.hasNext()) {
+		i.next();
+		PairInts edge = i.key();
+		double weight = i.value();
+		graph.AddEdge(graph.AddVertex(edge.first), graph.AddVertex(edge.second), weight, edge.first);
+	}
+
+	graph = graph.kruskal();
+
+	// Longest path
+	std::list<int> path = graph.GetLargestConnectedPath();
+	std::vector<Vec3d> temp = samples;
+	samples.clear();
+	foreach(int i, path) samples.push_back( temp[i] );
+
+	coordMe = timeAt(samples, threshold);
+	coordOther = other.timeAt(samples, threshold);
+
+	return samples;
 }

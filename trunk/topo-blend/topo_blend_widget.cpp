@@ -27,7 +27,7 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	topo_blend->connect(ui->clearButton, SIGNAL(clicked()), SLOT(clearGraphs()));
 
 	// Animation widget
-	topo_blend->connect(ui->button4, SIGNAL(clicked()), SLOT(experiment1()));
+	topo_blend->connect(ui->button4, SIGNAL(clicked()), SLOT(currentExperiment()));
 	this->connect(ui->animationButton, SIGNAL(clicked()), SLOT(renderViewer()));
 
 	// Main blending process

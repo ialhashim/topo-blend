@@ -238,3 +238,11 @@ inline Vector3 TriTriIntersect(	Vector3 a, Vector3 b, Vector3 c,
 
 	return (p + q) / 2.0;
 }
+
+inline static bool sphereTest(Vec3d & p1, Vec3d & p2, double r1, double r2)
+{
+	double minDist = r1 + r2;
+	Vec3d relPos = p1 - p2;
+	double dist = relPos.x() * relPos.x() + relPos.y() * relPos.y() + relPos.z() * relPos.z();
+	return dist <= minDist * minDist;
+}

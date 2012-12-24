@@ -47,6 +47,7 @@ public slots:
 	void clearGraphs();
 
 	void experiment1();
+	void currentExperiment();
 
 	// Main blend process
 	void doBlend();
