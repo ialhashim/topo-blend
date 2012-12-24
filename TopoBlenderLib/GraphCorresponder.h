@@ -11,7 +11,7 @@ public:
     GraphCorresponder(Structure::Graph *source, Structure::Graph *target);
 
 	// Hausdorff distance
-	float supinfDistance(std::vector<Vector3> &A, std::vector<Vector3> &B);
+	float supInfDistance(std::vector<Vector3> &A, std::vector<Vector3> &B);
 	float HausdorffDistance(std::vector<Vector3> &A, std::vector<Vector3> &B);
 
 	// Distance matrix
@@ -21,7 +21,8 @@ public:
 	void visualizeHausdorffDistances(int sourceID);
 
 	// Find correspondences
-	void findCorrespondences();
+	void findOneToOneCorrespondences();
+	void findOneToManyCorrespondences();
 
 private:
 	Structure::Graph *sg, *tg;

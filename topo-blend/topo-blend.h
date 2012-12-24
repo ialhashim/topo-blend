@@ -53,7 +53,8 @@ public slots:
 
 	// Correspondence
 	void visualizeFuzzyDistance(int sourceID);
-	void findNodeCorrespondences();
+	void findOne2OneCorrespondences();
+	void findOne2ManyCorrespondences();
 	// End of Correspondence
 signals:
 
