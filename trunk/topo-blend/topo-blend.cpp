@@ -742,7 +742,7 @@ void topoblend::visualizeFuzzyDistance(int sourceID)
 	drawArea()->updateGL();
 }
 
-void topoblend::findNodeCorrespondences()
+void topoblend::findOne2OneCorrespondences()
 {
 	if (graphs.size() < 2)
 	{
@@ -755,8 +755,28 @@ void topoblend::findNodeCorrespondences()
 
 	GraphCorresponder *gcoor = new GraphCorresponder(sg, tg);
 
-	gcoor->findCorrespondences();
+	gcoor->findOneToOneCorrespondences();
 }
+
+
+void topoblend::findOne2ManyCorrespondences()
+{
+	if (graphs.size() < 2)
+	{
+		qDebug() << "Please load at least two graphs.";
+		return;
+	}
+
+	Structure::Graph *sg = graphs[0];
+	Structure::Graph *tg = graphs[1];
+
+	GraphCorresponder *gcoor = new GraphCorresponder(sg, tg);
+
+	gcoor->findOneToManyCorrespondences();
+}
+
+// End of Correspondences
+
 
 void topoblend::clearGraphs()
 {
@@ -764,7 +784,5 @@ void topoblend::clearGraphs()
 	graphs.clear();
 	drawArea()->updateGL();
 }
-
-// End of Correspondences
 
 Q_EXPORT_PLUGIN(topoblend)
