@@ -2,6 +2,8 @@
 #include "StructureGraph.h"
 #include "Dijkstra.h"
 
+typedef std::map< int, std::pair<int,double> > CloseMap;
+
 struct GraphDistanceNode{
 	Vector3 pos;
 	Structure::Node * n;
@@ -14,6 +16,12 @@ class GraphDistance
 {
 public:
     GraphDistance(Structure::Graph * graph);
+	GraphDistance(Structure::Node * n);
+
+	int globalID;
+
+	void prepareNodes( Scalar resolution, const std::vector<Vector3> & startingPoints, 
+		CloseMap & closestStart, QVector<Structure::Node *> nodes );
 
 	void computeDistances( Vector3 startingPoint, double resolution = 0.25 );
 	void computeDistances( std::vector<Vector3> startingPoints, double resolution = 0.25 );

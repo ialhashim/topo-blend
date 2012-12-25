@@ -814,6 +814,11 @@ void topoblend::currentExperiment()
 	graphs.push_back( graph );
 	setSceneBounds();
 
+	// Test graph distance on a single node
+	//GraphDistance * gd = new GraphDistance( graph->nodes.front() );
+	//gd->computeDistances( Vector3(0,0.25,0) );
+	//graphs.back()->misc["distance"] = gd;
+
 	qDebug() << "Done";
 }
 

@@ -1,6 +1,9 @@
 #include "StructureSheet.h"
 using namespace Structure;
 
+// Used for sheet folding
+#include "GraphDistance.h"
+
 Sheet::Sheet(const NURBSRectangle & sheet, QString sheetID, QColor color)
 {
     this->surface = sheet;
@@ -151,4 +154,9 @@ SurfaceMeshTypes::Vector3 Sheet::center()
 void Sheet::draw()
 {
     NURBS::SurfaceDraw::draw( &surface, vis_property["color"].value<QColor>(), vis_property["showControl"].toBool() );
+}
+
+void Structure::Sheet::foldTo( const std::vector<Vector3> & curve )
+{
+
 }

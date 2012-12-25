@@ -27,6 +27,8 @@ struct Sheet : public Node
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
 	std::vector< std::vector<Vector3> > discretizedPoints(Scalar resolution);
 
+	void foldTo( const std::vector<Vector3> & curve );
+
 	// Coordinates
 	void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() );
 	Vector3 position( const Vec4d& coordinates );
