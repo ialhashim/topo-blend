@@ -5,30 +5,25 @@ GraphDistance::GraphDistance(Structure::Graph *graph)
 {
     this->g = new Structure::Graph(*graph);
 	this->isReady = false;
+	this->globalID = 0;
 }
 
-void GraphDistance::computeDistances( Vector3 startingPoint, double resolution )
-{
-	std::vector<Vector3> pnts;
-	pnts.push_back(startingPoint);
-	computeDistances(pnts, resolution);
-}
-
-void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, double resolution )
+GraphDistance::GraphDistance( Structure::Node * n )
 {
 	this->isReady = false;
+	this->globalID = 0;
 
-	clear();
+	this->g = new Structure::Graph();
+	g->addNode( n->clone() );
+}
 
-	typedef std::map< int, std::pair<int,double> > CloseMap;
-	CloseMap closestStart;
-	foreach(Vector3 p, startingPoints) 
-		closestStart[closestStart.size()] = std::make_pair(-1,DBL_MAX);
-
-	int globalID = 0;
+void GraphDistance::prepareNodes( Scalar resolution, const std::vector<Vector3> & startingPoints, CloseMap & closestStart,
+									QVector<Structure::Node *> nodes)
+{
+	globalID = 0;
 
 	// Setup control points adjacency lists
-	foreach(Node * node, g->nodes)
+	foreach(Node * node, nodes)
 	{
 		int i = 0;
 
@@ -64,7 +59,7 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	}
 
 	// Compute neighbors and distances at each node
-	foreach(Node * node, g->nodes)
+	foreach(Node * node, nodes)
 	{			
 		int gid = nodesMap[node].front().gid;
 
@@ -122,6 +117,18 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 			}
 		}
 	}
+}
+
+void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, double resolution )
+{
+	this->isReady = false;
+	clear();
+
+	CloseMap closestStart;
+	foreach(Vector3 p, startingPoints) 
+		closestStart[closestStart.size()] = std::make_pair(-1,DBL_MAX);
+
+	prepareNodes(resolution, startingPoints, closestStart, g->nodes);
 
 	// Connect between nodes
 	foreach(Link e, g->edges)
@@ -131,28 +138,32 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 
 		// Get positions
 		Vector3 pos1(0),pos2(0);
-		e.n1->get(e.coord[0].front(), pos1);
-		e.n2->get(e.coord[1].front(), pos2);
 
-		QMap<double,int> dists1, dists2;
+		for(int c = 0; c < (int)e.coord[0].size(); c++)
+		{
+			e.n1->get(e.coord[0][c], pos1);
+			e.n2->get(e.coord[1][c], pos2);
 
-		// Find closest on node 1
-		for(int i = 0; i < (int)samplePoints[e.n1].size(); i++) 
-			dists1[(pos1-samplePoints[e.n1][i]).norm()] = i;
-		int id1 = dists1.values().first();
+			QMap<double,int> dists1, dists2;
 
-		// Find closest on node 2
-		for(int i = 0; i < (int)samplePoints[e.n2].size(); i++) 
-			dists2[(pos2-samplePoints[e.n2][i]).norm()] = i;
-		int id2 = dists2.values().first();
+			// Find closest on node 1
+			for(int i = 0; i < (int)samplePoints[e.n1].size(); i++) 
+				dists1[(pos1-samplePoints[e.n1][i]).norm()] = i;
+			int id1 = dists1.values().first();
 
-		// Connect them
-		double weight = (samplePoints[e.n1][id1] - samplePoints[e.n2][id2]).norm();
-		adjacency_list[gid1 + id1].push_back(neighbor(gid2 + id2, weight));
-		adjacency_list[gid2 + id2].push_back(neighbor(gid1 + id1, weight));
+			// Find closest on node 2
+			for(int i = 0; i < (int)samplePoints[e.n2].size(); i++) 
+				dists2[(pos2-samplePoints[e.n2][i]).norm()] = i;
+			int id2 = dists2.values().first();
 
-		// Keep record
-		jumpPoints.insert(std::make_pair(gid1 + id1, gid2 + id2));
+			// Connect them
+			double weight = (samplePoints[e.n1][id1] - samplePoints[e.n2][id2]).norm();
+			adjacency_list[gid1 + id1].push_back(neighbor(gid2 + id2, weight));
+			adjacency_list[gid2 + id2].push_back(neighbor(gid1 + id1, weight));
+
+			// Keep record
+			jumpPoints.insert(std::make_pair(gid1 + id1, gid2 + id2));
+		}
 	}
 
 	// Create and connect starting points to rest of graph
@@ -179,6 +190,13 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 		dists.push_back(min_distance[i] / max_dist);
 
 	isReady = true;
+}
+
+void GraphDistance::computeDistances( Vector3 startingPoint, double resolution )
+{
+	std::vector<Vector3> pnts;
+	pnts.push_back(startingPoint);
+	computeDistances(pnts, resolution);
 }
 
 double GraphDistance::distanceTo( Vector3 point, std::vector<Vector3> & path )
