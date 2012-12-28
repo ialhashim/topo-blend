@@ -28,6 +28,7 @@ Structure::TopoBlender * blender = NULL;
 
 topoblend::topoblend(){
 	widget = NULL;
+	gcoor = NULL;
 }
 
 void topoblend::create()
@@ -733,56 +734,47 @@ void topoblend::experiment1()
 }
 
 // Correspondence
-void topoblend::visualizeFuzzyDistance(int sourceID)
+
+GraphCorresponder* topoblend::corresponder()
 {
-	if (graphs.size() < 2)
+	if (!gcoor)
 	{
-		qDebug() << "Please load at least two graphs.";
-		return;
+		if (graphs.size() < 2)
+		{
+			qDebug() << "Please load at least two graphs.";
+			return NULL;
+		}
+
+		Structure::Graph *sg = graphs[0];
+		Structure::Graph *tg = graphs[1];
+
+		gcoor = new GraphCorresponder(sg, tg);
 	}
 
-	Structure::Graph *sg = graphs[0];
-	Structure::Graph *tg = graphs[1];
+	return gcoor;
+}
 
-	GraphCorresponder *gcoor = new GraphCorresponder(sg, tg);
 
-	gcoor->visualizeHausdorffDistances(sourceID);
+void topoblend::visualizePart2PartDistance(int sourceID)
+{
+	if (corresponder())
+		corresponder()->visualizePart2PartDistance(sourceID);
 
 	drawArea()->updateGL();
 }
 
 void topoblend::findOne2OneCorrespondences()
 {
-	if (graphs.size() < 2)
-	{
-		qDebug() << "Please load at least two graphs.";
-		return;
-	}
-
-	Structure::Graph *sg = graphs[0];
-	Structure::Graph *tg = graphs[1];
-
-	GraphCorresponder *gcoor = new GraphCorresponder(sg, tg);
-
-	gcoor->findOneToOneCorrespondences();
+	if (corresponder())
+		corresponder()->findOneToOneCorrespondences();
 }
 // End of Correspondences
 
 
 void topoblend::findOne2ManyCorrespondences()
 {
-	if (graphs.size() < 2)
-	{
-		qDebug() << "Please load at least two graphs.";
-		return;
-	}
-
-	Structure::Graph *sg = graphs[0];
-	Structure::Graph *tg = graphs[1];
-
-	GraphCorresponder *gcoor = new GraphCorresponder(sg, tg);
-
-	gcoor->findOneToManyCorrespondences();
+	if (corresponder())
+		corresponder()->findOneToManyCorrespondences();
 }
 
 // End of Correspondences
@@ -793,6 +785,9 @@ void topoblend::clearGraphs()
 	qDeleteAll(graphs);
 	graphs.clear();
 	drawArea()->updateGL();
+
+	delete gcoor;
+	gcoor = NULL;
 }
 
 void topoblend::currentExperiment()

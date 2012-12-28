@@ -34,7 +34,7 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	topo_blend->connect(ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()));
 
 	// Correspondence
-	topo_blend->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizeFuzzyDistance(int)));
+	topo_blend->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizePart2PartDistance(int)));
 	topo_blend->connect(ui->one2oneButton, SIGNAL(clicked()), SLOT(findOne2OneCorrespondences()));
 	topo_blend->connect(ui->one2manyButton, SIGNAL(clicked()), SLOT(findOne2ManyCorrespondences()));
 	// End of Correspondence
