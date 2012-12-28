@@ -28,3 +28,9 @@ static inline Vector3 orthogonalVector(const Vector3& n) {
 // Coordinates utility functions
 static inline Vec4d coord(Scalar u = 0, Scalar v = 0)	{ return Vec4d(u, v, 0, 0); }
 static inline Vec4d inverseCoord(const Vec4d& c)		{ return Vec4d(1 - c.x(), 1 - c.y(), 0,0); }
+static inline std::vector<Vec4d> inverseCoords(const std::vector<Vec4d>& fromCoords)	{ 
+	std::vector<Vec4d> invertedCoords;
+	foreach(Vec4d coord, fromCoords) invertedCoords.push_back( inverseCoord(coord) );
+	return invertedCoords; 
+}
+

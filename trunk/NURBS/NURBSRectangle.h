@@ -94,6 +94,10 @@ public:
 	void generateSurfacePoints( Scalar stepSize, std::vector< std::vector<Vector3> > & points, 
 		std::vector<Real> & valU = std::vector<Real>(), std::vector<Real> & valV = std::vector<Real>());
 
+	// Control cage / network
+	std::vector< std::vector<Vector3> > triangulateControlCage();
+	Vector3 projectOnControl( Real u, Real v );
+
 	// Projection
 	Vec4d timeAt(const Vector3 & pos);
 	Vec4d timeAt( const Vector3 & pos, Vec4d & bestUV, Vec4d & minRange, Vec4d & maxRange, Real currentDist, Real threshold = 1e-4 );

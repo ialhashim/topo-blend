@@ -426,6 +426,12 @@ void GraphCorresponder::correspondTwoCurves( Structure::Curve *sCurve, Structure
 
 		NURBSCurve newCurve(tCtrlPoint, tCtrlWeight);
 		tCurve->curve = newCurve;
+
+		// Update the coordinates of links
+		foreach( Structure::Link * l, tg->getEdges(tCurve->id) )
+		{
+			l->setCoord(tCurve->id, inverseCoords( l->getCoord(tCurve->id) ));
+		}
 	}
 }
 
@@ -436,8 +442,8 @@ std::vector<std::vector<Type> > transpose(const std::vector<std::vector<Type> > 
 	// this assumes that all inner vectors have the same size and
 	// allocates space for the complete result in advance
 	std::vector<std::vector<Type> > result(data[0].size(), std::vector<Type>(data.size()));
-	for (int i = 0; i < data[0].size(); i++){
-		for (int j = 0; j < data.size(); j++) 
+	for (int i = 0; i < (int)data[0].size(); i++){
+		for (int j = 0; j < (int)data.size(); j++) 
 		{
 			result[i][j] = data[j][i];
 		}
@@ -499,6 +505,13 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 		tU = -tU;
 		tUV = -tUV;
 		isModified = true;
+
+		// Update the coordinates of links
+		foreach( Structure::Link * l, tg->getEdges(tSheet->id) ){
+			std::vector<Vec4d> oldCoord = l->getCoord(tSheet->id), newCoord;
+			foreach(Vec4d c, oldCoord) newCoord.push_back(Vec4d(1-c[0], c[1], c[2], c[3]));
+			l->setCoord(tSheet->id, newCoord);
+		}
 	}
 
 	// Rotate if need
@@ -521,7 +534,7 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 		std::reverse(tCtrlPoint.begin(), tCtrlPoint.end());
 		std::reverse(tCtrlWeight.begin(), tCtrlWeight.end());
 
-		for (int i = 0; i < tCtrlPoint.size(); i++)
+		for (int i = 0; i < (int)tCtrlPoint.size(); i++)
 		{
 			std::reverse(tCtrlPoint[i].begin(), tCtrlPoint[i].end());
 			std::reverse(tCtrlWeight[i].begin(), tCtrlWeight[i].end());
@@ -531,6 +544,13 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 		tCtrlPointNew = tCtrlPoint;
 		tCtrlWeightNew = tCtrlWeight;
 		isModified = true;
+
+		// Update the coordinates of links
+		foreach( Structure::Link * l, tg->getEdges(tSheet->id) ){
+			std::vector<Vec4d> oldCoord = l->getCoord(tSheet->id), newCoord;
+			foreach(Vec4d c, oldCoord) newCoord.push_back(Vec4d(1-c[0], 1-c[1], c[2], c[3]));
+			l->setCoord(tSheet->id, newCoord);
+		}
 	}
 	// Rotate 90 degrees 
 	else
@@ -547,6 +567,13 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 
 			std::reverse(tCtrlPointNew.begin(), tCtrlPointNew.end());
 			std::reverse(tCtrlWeightNew.begin(), tCtrlWeightNew.end());
+
+			// Update the coordinates of links
+			foreach( Structure::Link * l, tg->getEdges(tSheet->id) ){
+				std::vector<Vec4d> oldCoord = l->getCoord(tSheet->id), newCoord;
+				foreach(Vec4d c, oldCoord) newCoord.push_back(Vec4d(1- c[1], c[0], c[2], c[3]));
+				l->setCoord(tSheet->id, newCoord);
+			}
 		}
 		else
 		{
@@ -559,6 +586,13 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 
 			tCtrlPointNew = transpose<Vector3>(tCtrlPoint);
 			tCtrlWeightNew = transpose<Scalar>(tCtrlWeight);
+
+			// Update the coordinates of links
+			foreach( Structure::Link * l, tg->getEdges(tSheet->id) ){
+				std::vector<Vec4d> oldCoord = l->getCoord(tSheet->id), newCoord;
+				foreach(Vec4d c, oldCoord) newCoord.push_back(Vec4d(c[1], 1- c[0], c[2], c[3]));
+				l->setCoord(tSheet->id, newCoord);
+			}
 		}
 
 		isModified = true;
@@ -585,7 +619,7 @@ void GraphCorresponder::computeCorrespondences()
 
 	// Adjust the frames for corresponded parts
 	// Then Point-to-Point correspondences can be easily retrieved via parameterized NURBS. 
-	for (int i = 0; i < correspondences.size(); i++)
+	for (int i = 0; i < (int)correspondences.size(); i++)
 	{
 		std::set<QString> &sSet = correspondences[i].first;
 		std::set<QString> &tSet = correspondences[i].second;

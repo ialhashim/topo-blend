@@ -32,7 +32,7 @@ NURBSRectangle::NURBSRectangle (Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeig
 //----------------------------------------------------------------------------
 NURBSRectangle NURBSRectangle::createSheet(Scalar width, Scalar length, Vector3 center, Vector3 dU, Vector3 dV)
 {
-    int nU = 4, nV = 4;
+    int nU = 5, nV = 5;
     int degree = 3;
 
 	Vector3 corner = center - (dU * width * 0.5) - (dV * length * 0.5);
@@ -705,7 +705,7 @@ void NURBSRectangle::bend( Scalar amount, int bendDirection )
 	std::vector<Vector3*> tobend;
 
 	Vector3 delta(0), p(0),t0(0),t1(0);
-	this->GetFrame(0,0,p,t0,t1,delta);
+	this->GetFrame(0.5,0.5,p,t0,t1,delta);
 
 	delta = delta.normalized() * amount;
 
@@ -822,6 +822,11 @@ std::vector<Vec3d> NURBSRectangle::intersect( NURBSRectangle & other, double res
 
 	weld(samples, corner_xrefs, std::hash<Vec3d>(), std::equal_to<Vec3d>());
 
+	std::vector<Vec3d> clusterdSamples = samples;
+
+	if(samples.size() == 0)
+		return samples;
+
 	// Quick dirty MST then get longest path
 	Graph<int, double> graph;
 	typedef std::pair<int,int> PairInts;
@@ -858,5 +863,60 @@ std::vector<Vec3d> NURBSRectangle::intersect( NURBSRectangle & other, double res
 	coordMe = timeAt(samples, threshold);
 	coordOther = other.timeAt(samples, threshold);
 
-	return samples;
+	return clusterdSamples;
+}
+
+std::vector< std::vector<Vector3> > NURBSRectangle::triangulateControlCage()
+{
+	int width = GetNumCtrlPoints(0);
+	int length = GetNumCtrlPoints(1);
+
+	std::vector< std::vector<Vector3> > tris;
+	std::vector<Vector3> emptyTri(3, Vector3(0));
+	
+	// Draw surface of control cage
+	for(int j = 0; j < length - 1; j++)
+	{
+		for(int i = 0; i < width - 1; i++)
+		{
+			// Triangle 1
+			tris.push_back(emptyTri);
+			tris.back()[0] = GetControlPoint(i,j);
+			tris.back()[1] = GetControlPoint(i+1,j);
+			tris.back()[2] = GetControlPoint(i,j+1);
+			
+			// Triangle 2
+			tris.push_back(emptyTri);
+			tris.back()[0] = GetControlPoint(i+1,j);
+			tris.back()[1] = GetControlPoint(i+1,j+1);
+			tris.back()[2] = GetControlPoint(i,j+1);
+		}
+	}
+
+	return tris;
+}
+
+SurfaceMeshTypes::Vector3 NURBSRectangle::projectOnControl( Real u, Real v )
+{
+	std::vector< std::vector<Vector3> > tris = NURBSRectangle::triangulateControlCage();
+
+	Vector3 pos(0), t0(0), t1(0), normal;
+	GetFrame(u,v, pos, t0,t1, normal);
+	normal.normalize();
+
+	QMap<double, Vec3d> hits;
+	Vec3d isect(0);
+
+	foreach( std::vector<Vector3> tri, tris )
+	{
+		if(intersectRayTri(tri, pos, normal, isect))
+			hits[ (isect - pos).norm() ] = isect;
+	}
+
+	if(hits.size())
+		return hits.values().front();
+	else{
+		qDebug() << "No intersection at u = " << u << ", v = " << v;
+		return pos;
+	}
 }

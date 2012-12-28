@@ -21,9 +21,10 @@ struct Link
 
 	std::vector<Vec4d> coord[2];
 
-	void setCoord(QString nodeID, Vec4d newCoord);
-	Vec4d getCoord(QString nodeID);
-	Vec4d getCoordOther(QString nodeID);
+	void Link::setCoord( QString nodeID, std::vector<Vec4d> newCoord );
+
+	std::vector<Vec4d> getCoord(QString nodeID);
+	std::vector<Vec4d> getCoordOther(QString nodeID);
 	Node * getNode(QString nodeID);
 	Node * otherNode(QString nodeID);
 

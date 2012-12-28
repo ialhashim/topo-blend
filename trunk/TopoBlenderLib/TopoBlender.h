@@ -26,11 +26,13 @@ namespace Structure{
 		DynamicGraph active;
 		DynamicGraph target;
 
+		QMap<QString, QVariant> params;
+
 		Graph * blend();
 		void materializeInBetween( Graph * graph, double t, Graph * sourceGraph );
 
 		QList< ScalarLinksPair > badCorrespondence( QString activeNodeID, QString targetNodeID, 
-			QMap<Link*, Vec4d> & coord_active, QMap<Link*, Vec4d> & coord_target );
+			QMap< Link*, std::vector<Vec4d> > & coord_active, QMap< Link*, std::vector<Vec4d> > & coord_target );
 
 		// Logging
 		int stepCounter;

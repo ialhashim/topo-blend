@@ -43,7 +43,8 @@ struct Graph
 	Link* getEdge(QString id1, QString id2);
 	Vector3 nodeIntersection( Node * n1, Node * n2 );
 	Curve* getCurve(Link * l);
-	QMap<Link*, Vec4d> linksCoords( QString nodeID );
+	QVector<Link*> getEdges( QString nodeID );
+	QMap< Link*, std::vector<Vec4d> > linksCoords( QString nodeID );
 	QVector<Link> nodeEdges( QString nodeID );
 	QList<Link> furthermostEdges( QString nodeID );
 	

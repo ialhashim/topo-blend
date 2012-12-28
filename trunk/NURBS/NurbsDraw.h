@@ -101,6 +101,7 @@ public:
             glLineWidth(2.0f);
             glColor3d(0,0,0);
 
+			// Draw "horizontal"
             for(int i = 0; i < width; i++)
             {
                 glBegin(GL_LINE_STRIP);
@@ -112,6 +113,7 @@ public:
                 glEnd();
             }
 
+			// Draw verticals
             for(int j = 0; j < length; j++)
             {
                 glBegin(GL_LINE_STRIP);
@@ -122,6 +124,18 @@ public:
                 }
                 glEnd();
             }
+
+			// Draw surface of control cage
+			/*std::vector< std::vector<Vector3> > tris = nc->triangulateControlCage();
+			glBegin(GL_TRIANGLES);
+			for(int i = 0; i < (int)tris.size(); i++){
+				std::vector<Vector3> & tri = tris[i];
+				(i % 2 == 0) ? glColor3d(0,1,0) : glColor3d(0,0,1);
+				glVector3(tri[0]);
+				glVector3(tri[1]);
+				glVector3(tri[2]);
+			}
+			glEnd();*/
         }
 
 		// Draw actual surface

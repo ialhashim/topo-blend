@@ -57,7 +57,6 @@ public:
 
 	// Generate structure graph
 	Structure::Graph * toStructureGraph();
-	Structure::Graph * toStructureGraphOld(DynamicGraph & target);
 
 	// Graph edit
 	QVector<DynamicGraph> candidateNodes(DynamicGraph & targetGraph);
@@ -77,8 +76,9 @@ public:
 	QMap<int, QSet<SimpleEdge> > adjacency;
 
 	// Special cases
-	QMap< int, QMap< int, Vec4d > > specialCoords;
+	QMap< int, QMap< int, std::vector<Vec4d> > > specialCoords;
 	QMap< int, int > movable;
-	QMap< int, std::pair<int,double> > growingNodes;
-	Vec4d firstSpecialCoord(int node_index);
+	QMap< int, std::pair<int, std::pair<int,double> > > growingCurves;
+	QMap< int, std::pair<int,Array2D_Vector3> > growingSheets;
+	std::vector<Vec4d> DynamicGraph::firstSpecialCoord( int node_index );
 };

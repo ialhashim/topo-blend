@@ -31,7 +31,7 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	this->connect(ui->animationButton, SIGNAL(clicked()), SLOT(renderViewer()));
 
 	// Main blending process
-	topo_blend->connect(ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()));
+	this->connect(ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()));
 
 	// Correspondence
 	topo_blend->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizePart2PartDistance(int)));
@@ -45,6 +45,13 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 topo_blend_widget::~topo_blend_widget()
 {
     delete ui;
+}
+
+void topo_blend_widget::doBlend()
+{
+	tb->params["NUM_STEPS"] = ui->numSteps->value();
+	tb->params["materialize"] = ui->voxelSize->value();
+	tb->doBlend();
 }
 
 void topo_blend_widget::renderViewer()
@@ -77,7 +84,7 @@ void topo_blend_widget::renderAnimation()
 
 		if(!filename.startsWith(prefix.mid(0,3))) continue;
 
-		viewer->m->load(filename);
+		viewer->m->load(filename, false, false);
 		viewer->updateGL();
 		viewer->saveSnapshot(filename + ".png");
 
@@ -94,7 +101,13 @@ void topo_blend_widget::loadAnimationModel()
 {
     viewer->m = new QuickMesh;
     cur_filename = QFileDialog::getOpenFileName(this, tr("Open Mesh"), "", tr("Mesh Files (*.obj *.off)"));
-    viewer->m->load(cur_filename);
+    viewer->m->load(cur_filename, false, false);
+
+	qglviewer::Vec a = qglviewer::Vec(viewer->m->bbmin.x(), viewer->m->bbmin.y(),viewer->m->bbmin.z());
+	qglviewer::Vec b = qglviewer::Vec(viewer->m->bbmax.x(), viewer->m->bbmax.y(),viewer->m->bbmax.z());
+	viewer->setSceneBoundingBox(a,b);
+	viewer->showEntireScene();
+
 	viewer->setFocus();
 }
 

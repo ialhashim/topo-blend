@@ -290,85 +290,37 @@ Structure::Graph * DynamicGraph::toStructureGraph()
 		if( specialCoords.contains(edgeIndex) )
 		{
 			// Deal with special coordinates
-			Vec4d c1 = specialCoords[edgeIndex][e.n[0]];
-			Vec4d c2 = specialCoords[edgeIndex][e.n[1]];
-
-			toEdge->setCoord(id1, c1);
-			toEdge->setCoord(id2, c2);
+			toEdge->setCoord(id1, specialCoords[edgeIndex][e.n[0]]);
+			toEdge->setCoord(id2, specialCoords[edgeIndex][e.n[1]]);
 
 			toEdge->link_property["special"] = true;
 		}
 		
 		// Track movable nodes
-		if(movable.contains(edgeIndex))
+		if( movable.contains(edgeIndex) )
 		{
 			QString movableNode = nodeMap[movable[edgeIndex]];
 			toEdge->link_property["movable"] = movableNode;
 		}
 
-		if( growingNodes.contains(edgeIndex) )
+		if( growingCurves.contains(edgeIndex) )
 		{
-			QString growingNode = nodeMap[growingNodes[edgeIndex].first];
-			Scalar growFactor = growingNodes[edgeIndex].second;
-
-			toEdge->link_property["growing"] = growingNode;
-			toEdge->link_property["growFactor"] = growFactor;
-		}
-	}
-
-	return graph;
-}
-
-Structure::Graph * DynamicGraph::toStructureGraphOld(DynamicGraph & target)
-{
-	Structure::Graph * graph = new Structure::Graph();
-	QMap<int,QString> nodeMap;
-
-	double score = 0;
-	QVector<QPairInt> corr = correspondence(target, score, true);
-	QMap<int,int> corrMap;
-	foreach(QPairInt p, corr) corrMap[p.first] = p.second;
-
-	// Add nodes
-	foreach(SimpleNode n, nodes)
-	{
-		int oldIdx = n.idx;
-		int newIdx = corrMap[n.idx];
-
-		QString oldId = nodes[oldIdx].str("original");
-		QString nodeId = target.nodes[ newIdx ].str("original");
-
-		if(nodeType(n.idx) == Structure::SHEET)
-		{
-			Structure::Sheet * s = (Structure::Sheet *) mGraph->getNode(n.str("original"));
-			graph->addNode( new Structure::Sheet(s->surface, nodeId) );
-			nodeMap[n.idx] = nodeId;
+			toEdge->link_property["growing"] = nodeMap[growingCurves[edgeIndex].first];
+			toEdge->link_property["growAnchor"] = growingCurves[edgeIndex].second.first;
+			toEdge->link_property["growFactor"] = growingCurves[edgeIndex].second.second;
 		}
 
-		if(nodeType(n.idx) == Structure::CURVE)
+		if( growingSheets.contains(edgeIndex) )
 		{
-			Structure::Curve * s = (Structure::Curve *) mGraph->getNode(n.str("original"));
-			graph->addNode( new Structure::Curve(s->curve, nodeId) );
-			nodeMap[n.idx] = nodeId;
+			QString growingNodeID = nodeMap[growingSheets[edgeIndex].first];
+			toEdge->link_property["growing"] = growingNodeID;
+
+			QVariant val; val.setValue(growingSheets[edgeIndex].second);
+			toEdge->link_property["deltas"] = val;
+
+			QVariant cpts; cpts.setValue(((Structure::Sheet*)toEdge->getNode(growingNodeID))->surface.mCtrlPoint);
+			toEdge->link_property["cpts"] = cpts;
 		}
-	}
-
-	// Add edges
-	foreach(SimpleEdge e, target.edges)
-	{
-		QString id1 = target.nodes[e.n[0]].str("original");
-		QString id2 = target.nodes[e.n[1]].str("original");
-
-		Structure::Node *n1 = graph->getNode(id1), *n2 = graph->getNode(id2);
-
-		graph->addEdge( n1, n2, std::vector<Vec4d>(1, Vec4d(0)), std::vector<Vec4d>(1, Vec4d(0)), graph->linkName(n1, n2) );
-
-		// Copy edge coordinates
-		Structure::Link *fromEdge = target.mGraph->getEdge(id1, id2);
-		Structure::Link *toEdge = graph->getEdge(id1, id2);
-
-		toEdge->setCoord(id1, fromEdge->getCoord(id1));
-		toEdge->setCoord(id2, fromEdge->getCoord(id2));
 	}
 
 	return graph;
@@ -676,9 +628,9 @@ bool DynamicGraph::hasEdge( int n1_index, int n2_index )
 	return edges.values().contains(SimpleEdge(n1_index,n2_index));
 }
 
-Vec4d DynamicGraph::firstSpecialCoord( int node_index )
+std::vector<Vec4d> DynamicGraph::firstSpecialCoord( int node_index )
 {
-	typedef QMap< int, Vec4d > NodeCoord;
+	typedef QMap< int, std::vector<Vec4d> > NodeCoord;
 
 	foreach(NodeCoord nodeCoord, specialCoords.values())
 	{
@@ -686,7 +638,7 @@ Vec4d DynamicGraph::firstSpecialCoord( int node_index )
 			return nodeCoord[node_index];
 	}
 
-	return Vec4d(0);
+	return std::vector<Vec4d>(1, Vec4d(0));
 }
 
 /*

@@ -1,12 +1,16 @@
+// Used for sheet folding
+#include "NanoKdTree.h"
+#include "GraphDistance.h"
+#include "PCA.h"
+
 #include "StructureSheet.h"
 using namespace Structure;
-
-// Used for sheet folding
-#include "GraphDistance.h"
 
 Sheet::Sheet(const NURBSRectangle & sheet, QString sheetID, QColor color)
 {
     this->surface = sheet;
+	this->surface.quads.clear();
+
     this->id = sheetID;
 
     this->vis_property["color"] = color;
@@ -120,9 +124,8 @@ std::vector< std::vector<Vector3> > Structure::Sheet::discretizedPoints( Scalar 
 
 Vector3 & Sheet::controlPoint( int idx )
 {
-    // TODO: return actual point
-	int u = 0;
-	int v = 0;
+	int u = idx / surface.mNumVCtrlPoints;
+	int v = idx - (u * surface.mNumVCtrlPoints);
 	return surface.mCtrlPoint[u][v];
 }
 
@@ -156,7 +159,66 @@ void Sheet::draw()
     NURBS::SurfaceDraw::draw( &surface, vis_property["color"].value<QColor>(), vis_property["showControl"].toBool() );
 }
 
-void Structure::Sheet::foldTo( const std::vector<Vector3> & curve )
+std::vector< std::vector<Vec3d> > Sheet::foldTo( const std::vector<Vec4d> & curve, bool isApply )
 {
+	std::vector<Vec3d> projections, coords;
+	NanoKdTree tree;
+	foreach(Vec4d coord, curve) 
+	{
+		coords.push_back(Vec3d(coord[0], coord[1], 0));
+		projections.push_back( surface.projectOnControl( coord[0], coord[1] ) );
+		tree.addPoint( projections.back() );
+	}
+	tree.build();
 
+	std::vector< std::vector<Vec3d> > deltas = std::vector< std::vector<Vec3d> > (surface.mNumUCtrlPoints, 
+		std::vector<Vec3d>(surface.mNumVCtrlPoints, Vector3(0)));
+
+	// Project onto itself (PCA then project on closest main axis)
+	Vec3d mp = PCA::mainAxis(coords);
+	//int midIdx = curve.size() * 0.5;
+
+	for(int u = 0; u < surface.mNumUCtrlPoints; u++)
+	{
+		for(int v = 0; v < surface.mNumVCtrlPoints; v++)
+		{
+			Vec4d currCoord(double(u) / (surface.mNumUCtrlPoints-1), double(v) / (surface.mNumVCtrlPoints-1),0,0);
+
+			double minDist = DBL_MAX;
+			int minIDX = -1;
+
+			for(int i = 0; i < (int)curve.size(); i++)
+			{
+				Vec4d coord = curve[i];
+
+				if(qMax(mp[0],mp[1]) == mp[0])
+					currCoord[1] = coord[1];
+				else
+					currCoord[0] = coord[0];
+
+				double dist = (coord - currCoord).norm();
+
+				if(dist < minDist)
+				{
+					minIDX = i;
+					minDist = dist;
+				}
+			}
+
+			deltas[u][v] = surface.mCtrlPoint[u][v] - projections[minIDX];
+		}
+	}
+
+	if(isApply)
+	{
+		for(int u = 0; u < surface.mNumUCtrlPoints; u++)
+		{
+			for(int v = 0; v < surface.mNumVCtrlPoints; v++)
+			{
+				surface.mCtrlPoint[u][v] += -deltas[u][v];
+			}
+		}
+	}
+
+	return deltas;
 }

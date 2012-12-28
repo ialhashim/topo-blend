@@ -20,6 +20,7 @@ public slots:
     void renderViewer();
     void renderAnimation();
     void loadAnimationModel();
+	void doBlend();
 
 private:
     Ui::topo_blend_widget *ui;

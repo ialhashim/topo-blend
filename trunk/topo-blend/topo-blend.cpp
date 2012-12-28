@@ -46,9 +46,13 @@ void topoblend::create()
 void topoblend::decorate()
 {
 	// 3D visualization
-	float posX = -1.5, posY = 0;
+	float posX = 0, posY = 0, deltaX = 0;
 
-	if(graphs.size() < 2) { posX = posY = 0.0; }
+	if(graphs.size() > 1) 
+	{
+		posX = -drawArea()->sceneRadius();
+		deltaX = (drawArea()->sceneRadius() * 2.0) / (graphs.size()-1);
+	}
 
 	for(int g = 0; g < (int) graphs.size(); g++)
 	{
@@ -57,7 +61,7 @@ void topoblend::decorate()
 		graphs[g]->draw();
 		glPopMatrix();
 
-		posX += 3;
+		posX += deltaX * 2;
 	}
 	
 	// 2D view
@@ -112,7 +116,10 @@ void topoblend::generateChairModels()
 	Structure::Graph swivel_chair1, swivel_chair2;
 
 	NURBSRectangle backSheet = NURBSRectangle::createSheet(2,1, Vector3(0,-0.5,2));
+
 	NURBSRectangle seatSheet = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
+	NURBSRectangle seatSheetInv = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,-1,0));
+
 	NURBSCurve backLeft = NURBSCurve::createCurve(Vector3(-0.9,0,0), Vector3(-0.9,-0.5,1.5));
 	NURBSCurve backRight = NURBSCurve::createCurve(Vector3(0.9,0,0), Vector3(0.9,-0.5,1.5));
 	NURBSCurve backLeft2 = NURBSCurve::createCurve(Vector3(-0.5,0,0), Vector3(-0.5,-0.5,1.5));
@@ -253,7 +260,7 @@ if (1)
 	chair5.addNode( new Structure::Sheet(backSheet, "BackSheet") );
 	chair5.addNode( new Structure::Curve(backLeft, "BackLeft") );
 	chair5.addNode( new Structure::Curve(backRight, "BackRight") );
-	chair5.addNode( new Structure::Sheet(seatSheet, "SeatSheet") );
+	chair5.addNode( new Structure::Sheet(seatSheetInv, "SeatSheet") );
 	chair5.addNode( new Structure::Curve(frontLegLeft, "FrontLegLeft") );
 	chair5.addNode( new Structure::Curve(frontLegRight, "FrontLegRight") );
 	chair5.addNode( new Structure::Curve(backLegLeft, "BackLegLeft") );
@@ -437,8 +444,12 @@ void topoblend::setSceneBounds()
 	Vector3 a = bigbox.minimum();
 	Vector3 b = bigbox.maximum();
 
-	drawArea()->setSceneBoundingBox(qglviewer::Vec(a.x(), a.y(), a.z()), qglviewer::Vec(b.x(), b.y(), b.z()));
+	qglviewer::Vec vecA(a.x(), a.y(), a.z());
+	qglviewer::Vec vecB(b.x(), b.y(), b.z());
 
+	drawArea()->setSceneCenter((vecA + vecB) * 0.5);
+	drawArea()->setSceneBoundingBox(vecA, vecB);
+	drawArea()->showEntireScene();
 	drawArea()->updateGL();
 }
 
@@ -572,6 +583,11 @@ void topoblend::doBlend()
 	blender = new Structure::TopoBlender( source, target );
 
 	Structure::Graph * blendedGraph = blender->blend();
+
+	// Set options
+	blender->params["NUM_STEPS"] = this->params["NUM_STEPS"];
+	blender->params["materialize"] = this->params["materialize"];
+
 	blender->materializeInBetween( blendedGraph, 0, source );
 
 	graphs.push_back( blendedGraph );
@@ -581,156 +597,7 @@ void topoblend::doBlend()
 
 void topoblend::experiment1()
 {
-	//Structure::Graph * g1 = new Structure::Graph("simple_model1.xml");
-	//Structure::Graph * g2 = new Structure::Graph("simple_model2.xml");
 
-	Structure::Graph * g1 = new Structure::Graph("chair1.xml");
-	Structure::Graph * g2 = new Structure::Graph("chair2.xml");
-
-	DynamicGraph source( g1 );
-	DynamicGraph target( g2 );
-
-	// Print states
-	source.printState();
-	target.printState();
-	GraphState diff = source.difference( target.State() );
-	diff.print();
-
-	// Solve for nodes and edges discrepancy
-	QVector<DynamicGraph> candidates;
-	foreach( DynamicGraph gn, source.candidateNodes( target ) )
-	{
-		foreach( DynamicGraph ge, gn.candidateEdges( target )  )
-		{
-			// Consider corresponding in terms of [node count] + [edge count] + [valences]
-			if( ge.sameValences(target) ) 
-				candidates.push_back(ge);
-		}
-	}
-
-	// Stats
-	qDebug() << "Candidates solutions found = " << candidates.size();
-
-	// Correspondence
-	QMap< double, int > scores;
-	double minScore = DBL_MAX;
-	
-	int N = candidates.size();
-
-	for(int i = 0; i < N; i++)
-	{
-		double score = 0;
-		target.correspondence( candidates[i], score );
-
-		minScore = qMin(score, minScore);
-		scores[ score ] = i; 
-	}
-
-	DynamicGraph & best = candidates[ scores[ minScore ] ];
-
-	Structure::Graph g3 = *best.toStructureGraphOld( target );
-
-	QVector<int> cpointIdx;
-	QVector<Vector3> deltas;
-	QVector<Structure::Curve*> curves;
-
-	for(int ei = 0; ei < g3.edges.size(); ei++)
-	{
-		Structure::Link & e = g3.edges[ei];
-
-		Structure::Node * n1 = e.n1;
-		Structure::Node * n2 = e.n2;
-
-		Vec4d c1 = e.coord[0].front();
-		Vec4d c2 = e.coord[1].front();
-
-		Vector3 pos1(0), pos2(0);
-		n1->get(c1, pos1);
-		n2->get(c2, pos2);
-
-		double dist = (pos2 - pos1).norm();
-
-		// Check disconnected edge
-		if(dist < 1e-6) continue;
-
-		// Get the curve in this link
-		Structure::Curve * curve = g3.getCurve(&e);
-
-		Vector3 fixed = n1 == curve ? pos2 : pos1;
-
-		// Check if we need to swap ends
-		{
-			Vec4d origCoord = n1 == curve ? c1 : c2;
-
-			Vec4d invCoord = inverseCoord(origCoord);
-			Vector3 invPos(0);
-			curve->get(invCoord, invPos);
-
-			double dist_inv = (invPos - fixed).norm();
-
-			// Swap coordinates for bad orientations
-			if(dist_inv < dist)
-				e.setCoord( curve->id, invCoord );
-		}
-
-		// Control point to move
-		Vec4d curveCoord = e.getCoord(curve->id);
-		int cpIdx = curve->controlPointIndexFromCoord( curveCoord );
-
-		// Compute trajectory to closet on other node
-		cpointIdx.push_back( cpIdx );
-		curves.push_back( curve );
-		deltas.push_back( fixed - curve->controlPoint( cpIdx ) );
-	}
-
-	// Generate target mesh
-	//SurfaceMeshModel m;
-	//g2->materialize(&m);
-	//DynamicVoxel::MeanCurvatureFlow(&m, 0.05);
-	//write_off(m, "sequence_.off");
-
-	int NUM_STEPS = 30;
-	int NUM_SMOOTH_ITR = 3;
-
-	for(int s = 0; s < NUM_STEPS; s++)
-	{
-		for(int i = 0; i < (int)cpointIdx.size(); i++)
-		{
-			std::vector<Vector3> & cpnts = curves[i]->curve.mCtrlPoint;
-
-			Vector3 & cp = cpnts[ cpointIdx[i] ];
-			Vector3 delta = deltas[i] / NUM_STEPS;
-			cp += delta;
-
-			// Laplacian smoothing
-			for(int itr = 0; itr < NUM_SMOOTH_ITR; itr++)
-			{
-				QVector<Vector3> newCtrlPnts;
-
-				for (int j = 1; j < (int)cpnts.size() - 1; j++)
-					newCtrlPnts.push_back( (cpnts[j-1] + cpnts[j+1]) / 2.0 );
-
-				for (int j = 1; j < (int)cpnts.size() - 1; j++)
-					cpnts[j] = newCtrlPnts[j-1];
-			}
-		}
-
-		SurfaceMeshModel meshStep;
-		g3.materialize(&meshStep);
-		//DynamicVoxel::MeanCurvatureFlow(&meshStep, 0.05);
-		DynamicVoxel::LaplacianSmoothing(&meshStep);
-		DynamicVoxel::LaplacianSmoothing(&meshStep);
-
-		// output step
-		QString sequence_num;
-		sequence_num.sprintf("%02d", s);
-
-		QString fileName = QString("sequence_%1.off").arg(sequence_num);
-		meshStep.triangulate();
-		write_off(meshStep, qPrintable(fileName));
-	}
-
-	setSceneBounds();
 }
 
 // Correspondence
@@ -779,7 +646,7 @@ void topoblend::findOne2ManyCorrespondences()
 
 void topoblend::testPoint2PointCorrespondences()
 {
-	// Create two graphs
+	// Create graphs
 	Structure::Graph *sg = new Structure::Graph();
 	Structure::Graph *tg = new Structure::Graph();
 	Structure::Graph *newG = new Structure::Graph();
@@ -788,36 +655,52 @@ void topoblend::testPoint2PointCorrespondences()
 	graphs.push_back(tg);
 	graphs.push_back(newG);
 
-	//// Create one sheet for each graph
-	//NURBSRectangle sheet1 = NURBSRectangle::createSheet(2,1, Vector3(0,0,0), Vector3(1,0,0), Vector3(0,1,0));
-	//Structure::Sheet *sSheet = new Structure::Sheet(sheet1, "sheet");
-	//sg->addNode(sSheet);
+	// Create one sheet for each graph
+	NURBSRectangle sheet1 = NURBSRectangle::createSheet(2,1, Vector3(0,0,0), Vector3(1,0,0), Vector3(0,1,0));
+	Structure::Sheet *sSheet = new Structure::Sheet(sheet1, "sheet");
+	sg->addNode(sSheet);
 
-	//NURBSRectangle sheet2 = NURBSRectangle::createSheet(2,1.5, Vector3(0,0,0), Vector3(1,0,0), Vector3(0,-1,0));
-	//Structure::Sheet *tSheet = new Structure::Sheet(sheet2, "sheet");
-	//tg->addNode(tSheet);
+	NURBSRectangle sheet2 = NURBSRectangle::createSheet(2,1.5, Vector3(0,0,0), Vector3(-1,0,0), Vector3(0,-1,0));
+	Structure::Sheet *tSheet = new Structure::Sheet(sheet2, "sheet");
+	tg->addNode(tSheet);
 
-	//Structure::Sheet *newSheet = new Structure::Sheet(*tSheet);
-	//newG->addNode(newSheet);
+	Structure::Sheet *newSheet = new Structure::Sheet(*tSheet);
+	newG->addNode(newSheet);
 
-	//// Realign two sheets
-	//if (corresponder())
-	//	corresponder()->correspondTwoSheets(sSheet, newSheet);
+	NURBSCurve curve = NURBSCurve::createCurve(Vector3(0.3, 0.4, 0), Vector3(0.3, 0.6, 1));
+	sg->addNode(new Structure::Curve(curve, "curve"));
+	sg->addEdge("sheet", "curve");
+	tg->addNode(new Structure::Curve(curve, "curve"));
+	tg->addEdge("sheet", "curve");
+	newG->addNode(new Structure::Curve(curve, "curve"));
+	newG->addEdge("sheet", "curve");
 
-	// Create one curve for each graph
-	NURBSCurve curve1 = NURBSCurve::createCurve(Vector3(0,-1,0), Vector3(0,1,0));
-	Structure::Curve *sCurve = new Structure::Curve(curve1, "curve");
-	sg->addNode(sCurve);
-
-	NURBSCurve curve2 = NURBSCurve::createCurve(Vector3(0.3, 0.6, 0), Vector3(-0.3, -1, 0));
-	Structure::Curve *tCurve = new Structure::Curve(curve2, "curve");
-	tg->addNode(tCurve);
-
-	Structure::Curve *newCurve = new Structure::Curve(*tCurve);
-	newG->addNode(newCurve);
-
+	// Realign two sheets
 	if (corresponder())
-		corresponder()->correspondTwoCurves(sCurve, newCurve);
+		corresponder()->correspondTwoSheets(sSheet, tSheet);
+
+	//// Create one curve for each graph
+	//NURBSCurve curve1 = NURBSCurve::createCurve(Vector3(0,-1,0), Vector3(0,1,0));
+	//Structure::Curve *sCurve = new Structure::Curve(curve1, "curve");
+	//sg->addNode(sCurve);
+
+	//NURBSCurve curve2 = NURBSCurve::createCurve(Vector3(0, 1, 0), Vector3(0, -1, 0));
+	//Structure::Curve *tCurve = new Structure::Curve(curve2, "curve");
+	//tg->addNode(tCurve);
+
+	//Structure::Curve *newCurve = new Structure::Curve(*tCurve);
+	//newG->addNode(newCurve);
+
+	//NURBSCurve curve3 = NURBSCurve::createCurve(Vector3(-0.1, 0.7, 0), Vector3(0.5, 0.7, 0));
+	//sg->addNode(new Structure::Curve(curve3, "hcurve"));
+	//sg->addEdge("curve", "hcurve");
+	//tg->addNode(new Structure::Curve(curve3, "hcurve"));
+	//tg->addEdge("curve", "hcurve");
+	//newG->addNode(new Structure::Curve(curve3, "hcurve"));
+	//newG->addEdge("curve", "hcurve");
+
+	//if (corresponder())
+	//	corresponder()->correspondTwoCurves(sCurve, tCurve);
 
 	drawArea()->updateGL();
 }
@@ -845,7 +728,7 @@ void topoblend::clearGraphs()
 
 void topoblend::currentExperiment()
 {
-	NURBSRectangle sheetA = NURBSRectangle::createSheet(1.75,2, Vector3(0,0.25,0));
+	NURBSRectangle sheetA = NURBSRectangle::createSheet(1.75,2, Vector3(0,0.5,0));
 	NURBSRectangle sheetB = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
 
 	sheetA.bend(-0.7);
@@ -853,19 +736,59 @@ void topoblend::currentExperiment()
 	sheetB.bend(0.1,1);
 
 	Structure::Graph * graph = new Structure::Graph();
+	
+	Structure::Sheet * sheet0 = new Structure::Sheet( sheetA, "SheetA" );
+	Structure::Sheet * sheet1 = new Structure::Sheet( sheetB, "SheetB" );
 
-	graph->addNode( new Structure::Sheet( sheetA, "SheetA" ) );
-	graph->addNode( new Structure::Sheet( sheetB, "SheetB" ) );
+	// Create model
+	graph->addNode( sheet0 );
+	graph->addNode( sheet1 );
+	Structure::Link e = graph->addEdge( graph->getNode("SheetA"), graph->getNode("SheetB") );
 
-	graph->addEdge( graph->getNode("SheetA"), graph->getNode("SheetB") );
+	LineSegments * vs = new LineSegments;
 
-	graphs.push_back( graph );
-	setSceneBounds();
+	Structure::Sheet * sheet = sheet0;
+	int idx = sheet == sheet0 ? 0 : 1;
+	std::vector< std::vector<Vec3d> > src = sheet->surface.mCtrlPoint;
+	std::vector< std::vector<Vec3d> > deltas = sheet->foldTo(e.coord[idx], false);
+
+	int NUM_STEPS = -1;
+
+	for(int x = 0; x <= NUM_STEPS; x++)
+	{
+		double t = (double)x / NUM_STEPS;
+
+		// Modify sheet
+		for(int u = 0; u < sheet->surface.mNumUCtrlPoints; u++)
+		{
+			for(int v = 0; v < sheet->surface.mNumVCtrlPoints; v++)
+			{
+				sheet->surface.mCtrlPoint[u][v] = src[u][v] - (t * deltas[u][v]);
+			}
+		}
+
+		// Synthesize the geometry
+		SurfaceMeshModel meshStep;
+		graph->materialize(&meshStep, 0.75);
+		//DynamicVoxel::MeanCurvatureFlow(&meshStep, 0.05);
+		DynamicVoxel::LaplacianSmoothing(&meshStep);
+
+		// Output this step to mesh file
+		QString seq_num; seq_num.sprintf("%02d", x);
+		QString fileName = QString("sheet_grow_%1.off").arg(seq_num);
+		meshStep.triangulate();
+		write_off(meshStep, qPrintable(fileName));
+	}
+
+	drawArea()->addRenderObject(vs);
 
 	// Test graph distance on a single node
 	//GraphDistance * gd = new GraphDistance( graph->nodes.front() );
 	//gd->computeDistances( Vector3(0,0.25,0) );
 	//graphs.back()->misc["distance"] = gd;
+
+	graphs.push_back( graph );
+	setSceneBounds();
 
 	qDebug() << "Done";
 }

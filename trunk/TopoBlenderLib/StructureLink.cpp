@@ -3,20 +3,20 @@
 
 using namespace Structure;
 
-void Link::setCoord( QString nodeID, Vec4d newCoord )
+void Link::setCoord( QString nodeID, std::vector<Vec4d> newCoord )
 {
-	if(n1->id == nodeID) coord[0] = std::vector<Vec4d> (1, newCoord);
-	if(n2->id == nodeID) coord[1] = std::vector<Vec4d> (1, newCoord);
+	if(n1->id == nodeID) coord[0] = newCoord;
+	if(n2->id == nodeID) coord[1] = newCoord;
 }
 
-Vec4d Link::getCoord( QString nodeID )
+std::vector<Vec4d> Link::getCoord( QString nodeID )
 {
-	if(n1->id == nodeID) return coord[0].front();
-	if(n2->id == nodeID) return coord[1].front();
-	return Vec4d(DBL_MAX);
+	if(n1->id == nodeID) return coord[0];
+	if(n2->id == nodeID) return coord[1];
+	return std::vector<Vec4d>();
 }
 
-Vec4d Structure::Link::getCoordOther( QString nodeID )
+std::vector<Vec4d> Structure::Link::getCoordOther( QString nodeID )
 {
 	return getCoord(otherNode(nodeID)->id);
 }
@@ -84,6 +84,6 @@ SurfaceMeshTypes::Vector3 Link::position( QString nodeID )
 	assert(n->id == nodeID);
 
 	Vector3 pos(0);
-	n->get(getCoord(nodeID),pos);
+	n->get(getCoord(nodeID).front(),pos);
 	return pos;
 }
