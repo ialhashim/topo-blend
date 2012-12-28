@@ -106,7 +106,10 @@ void GraphCorresponder::computeDistanceMatrix()
 	int tN = tg->nodes.size();
 	for(int i = 0; i < sN; i++){
 		for (int j = 0; j < tN; j++){
-			disM[i][j] = M1[i][j] + 0.5 * M2[i][j];
+			if (sg->nodes[i]->type() != tg->nodes[j]->type())
+				disM[i][j] = INVALID_VALUE;
+			else
+				disM[i][j] = M1[i][j] + 0.5 * M2[i][j];
 		}
 	}
 
@@ -133,7 +136,7 @@ void GraphCorresponder::normalizeMatrix(std::vector< std::vector<float> > & M)
 	for(int i = 0; i < sN; i++){
 		for (int j = 0; j < tN; j++)
 		{
-			if (M[i][j] > maxDis)
+			if (M[i][j] != INVALID_VALUE && M[i][j] > maxDis)
 				maxDis = M[i][j];
 		}
 	}
@@ -142,7 +145,8 @@ void GraphCorresponder::normalizeMatrix(std::vector< std::vector<float> > & M)
 	for(int i = 0; i < sN; i++){
 		for (int j = 0; j < tN; j++)
 		{
-			M[i][j] /= maxDis;
+			if (M[i][j] != INVALID_VALUE)
+				M[i][j] /= maxDis;
 		}
 	}
 }
@@ -167,7 +171,12 @@ void GraphCorresponder::visualizePart2PartDistance( int sourceID )
 	for (int j = 0; j < tg->nodes.size(); j++)
 	{
 		Structure::Node *tNode = tg->nodes[j];
-		float value = (1 - disM[sourceID][j]) / 4 + 0.75;
+
+		float value;
+		if (disM[sourceID][j] == INVALID_VALUE)
+			value = 0;
+		else
+			value = (1 - disM[sourceID][j]) / 4 + 0.75;
 		tNode->vis_property["color"] = qtJetColorMap(value);
 		tNode->vis_property["showControl"] = false;
 	}
@@ -214,13 +223,23 @@ void GraphCorresponder::findOneToOneCorrespondences()
 	outF << "Source shape: " << sg->property["name"].toString().toStdString() << '\n';
 	outF << "Target shape: " << tg->property["name"].toString().toStdString() << "\n\n\n";
 
+	this->correspondences.clear();
 	int r, c;
 	while (minElementInMatrix(disMatrix, r, c))
 	{
 		// To-Do: check the consistency
 
 		// source:r <-> target:c
-		outF << sg->nodes[r]->id.toStdString() << '\t' << tg->nodes[c]->id.toStdString() << '\n';
+		QString sr =  sg->nodes[r]->id;
+		QString tc =  tg->nodes[c]->id;
+
+		std::set<QString> sSet, tSet;
+		sSet.insert(sr);
+		tSet.insert(tc);
+		this->correspondences.push_back(std::make_pair(sSet, tSet));
+
+		// Write into the file
+		outF << sr.toStdString() << '\t' << tc.toStdString() << '\n';
 
 		// Remove scores of r and c
 		for (int i = 0; i < sN; i++) // Column c
@@ -248,6 +267,7 @@ void GraphCorresponder::findOneToManyCorrespondences()
 	outF << "Source shape: " << sg->property["name"].toString().toStdString() << '\n';
 	outF << "Target shape: " << tg->property["name"].toString().toStdString() << "\n\n\n";
 
+	this->correspondences.clear();
 	int r, c;
 	while (minElementInMatrix(disMatrix, r, c))
 	{
@@ -316,6 +336,10 @@ void GraphCorresponder::findOneToManyCorrespondences()
 		}
 
 		// Results
+		std::set<QString> sSet, tSet;
+		sSet.insert(sg->nodes[r]->id);
+		tSet.insert(tg->nodes[c]->id);
+
 		if (c_many.size() > r_many.size()) // r <-> {c_i}
 		{
 			outF << sg->nodes[r]->id.toStdString() << "\t:\t"
@@ -323,6 +347,8 @@ void GraphCorresponder::findOneToManyCorrespondences()
 			
 			foreach(int ci, c_many)
 			{
+				tSet.insert(tg->nodes[ci]->id);
+
 				outF << tg->nodes[ci]->id.toStdString() << '\t';
 
 				for (int i = 0; i < sN; i++) // Column c
@@ -335,6 +361,8 @@ void GraphCorresponder::findOneToManyCorrespondences()
 		{
 			foreach(int ri, r_many)
 			{
+				sSet.insert(sg->nodes[ri]->id);
+
 				outF << sg->nodes[ri]->id.toStdString() << '\t';
 
 				for (int j = 0; j < tN; j++) // Row r
@@ -343,7 +371,10 @@ void GraphCorresponder::findOneToManyCorrespondences()
 
 			outF << sg->nodes[r]->id.toStdString() << "\t:\t"
 				 << tg->nodes[c]->id.toStdString() << '\n';
-		}			
+		}
+
+		// Save results
+		this->correspondences.push_back(std::make_pair(sSet, tSet));
 		
 		// Remove r and c in the disMatrix
 		for (int i = 0; i < sN; i++) // Column c
@@ -356,17 +387,32 @@ void GraphCorresponder::findOneToManyCorrespondences()
 }
 
 
+void GraphCorresponder::correspondTwoNodes( Structure::Node *sNode, Structure::Node *tNode )
+{
+	if (sNode->type() != tNode->type())
+	{
+		qDebug() << "Two nodes with different types cannot be corresponded. ";
+		return;
+	}
+
+	if (sNode->type() == Structure::SHEET)
+		correspondTwoSheets((Structure::Sheet*) sNode, (Structure::Sheet*) tNode);
+	else
+		correspondTwoCurves((Structure::Curve*) sNode, (Structure::Curve*) tNode);
+}
+
+
 void GraphCorresponder::correspondTwoCurves( Structure::Curve *sCurve, Structure::Curve *tCurve )
 {
-	std::vector<Vector3> sCtrPnts = sCurve->controlPoints();
-	std::vector<Vector3> tCtrPnts = tCurve->controlPoints();
+	std::vector<Vector3> sCtrlPoint = sCurve->controlPoints();
+	std::vector<Vector3> tCtrlPoint = tCurve->controlPoints();
 
 	// Euclidean for now, can use Geodesic distance instead if need
 	Vector3 scenter = sCurve->center();
-	Vector3 sfront = sCtrPnts.front() - scenter;
+	Vector3 sfront = sCtrlPoint.front() - scenter;
 	Vector3 tcenter = tCurve->center();
-	Vector3 tfront = tCtrPnts.front() - tcenter;
-	Vector3 tback = tCtrPnts.back() - tcenter;
+	Vector3 tfront = tCtrlPoint.front() - tcenter;
+	Vector3 tback = tCtrlPoint.back() - tcenter;
 
 	float f2f = (sfront - tfront).norm();
 	float f2b = (sfront - tback).norm();
@@ -374,36 +420,201 @@ void GraphCorresponder::correspondTwoCurves( Structure::Curve *sCurve, Structure
 	if (f2f > f2b)
 	{
 		// Flip the target
-		std::vector<Scalar> tWeights = tCurve->controlWeights();
-		std::reverse(tCtrPnts.begin(), tCtrPnts.end());
-		std::reverse(tWeights.begin(), tWeights.end());
+		std::vector<Scalar> tCtrlWeight = tCurve->controlWeights();
+		std::reverse(tCtrlPoint.begin(), tCtrlPoint.end());
+		std::reverse(tCtrlWeight.begin(), tCtrlWeight.end());
 
-		NURBSCurve newCurve(tCtrPnts, tWeights);
+		NURBSCurve newCurve(tCtrlPoint, tCtrlWeight);
 		tCurve->curve = newCurve;
 	}
+}
+
+// Helper function
+template <class Type>
+std::vector<std::vector<Type> > transpose(const std::vector<std::vector<Type> > data) 
+{
+	// this assumes that all inner vectors have the same size and
+	// allocates space for the complete result in advance
+	std::vector<std::vector<Type> > result(data[0].size(), std::vector<Type>(data.size()));
+	for (int i = 0; i < data[0].size(); i++){
+		for (int j = 0; j < data.size(); j++) 
+		{
+			result[i][j] = data[j][i];
+		}
+	}
+
+	return result;
 }
 
 
 void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure::Sheet *tSheet )
 {
-	Array2D_Vector3 sCtrPnts = sSheet->surface.mCtrlPoint;
-	Array2D_Vector3 tCtrPnts = tSheet->surface.mCtrlPoint;
+	// Old properties
+	NURBSRectangle &oldRect = tSheet->surface;
+	int uDegree = oldRect.GetDegree(0);
+	int vDegree = oldRect.GetDegree(1);
+	bool uLoop = oldRect.IsLoop(0);
+	bool vLoop = oldRect.IsLoop(1);
+	bool uOpen = oldRect.IsOpen(0);
+	bool vOpen = oldRect.IsOpen(1);
+	bool isModified = false;
+	bool isUVFlipped = false;
+
+	// Control points and weights
+	Array2D_Vector3 sCtrlPoint = sSheet->surface.mCtrlPoint;
+	Array2D_Real sCtrlWeight = sSheet->surface.mCtrlWeight;
+
+	Array2D_Vector3 tCtrlPoint = tSheet->surface.mCtrlPoint;
+	Array2D_Real tCtrlWeight = tSheet->surface.mCtrlWeight;
+
+	Array2D_Vector3 tCtrlPointNew;
+	Array2D_Real tCtrlWeightNew;
 
 	Vector3 scenter = sSheet->center();
 	Vector3 tcenter = tSheet->center();
 
 	// Get the extreme points.
-	Vector3 s0 = sCtrPnts.front().front();
-	Vector3 s1 = sCtrPnts.front().back();
-	Vector3 t0 = tCtrPnts.front().front();
-	Vector3 t1 = tCtrPnts.front().back();
+	Vector3 s00 = sCtrlPoint.front().front();
+	Vector3 s01 = sCtrlPoint.front().back();
+	Vector3 s10 = sCtrlPoint.back().front();
+	Vector3 sU = s10 - s00;
+	Vector3 sV = s01 - s00;
 
-	Vector3 sDir = (s0 + s1) / 2 - scenter;
-	Vector3 tDir = (t0 + t1) / 2 - tcenter;
- 
-	Scalar cosAngle = dot(sDir.normalized(), tDir.normalized());
-	Scalar angle = acosf(cosAngle);
-	if ()
+	Vector3 t00 = tCtrlPoint.front().front();
+	Vector3 t01 = tCtrlPoint.front().back();
+	Vector3 t10 = tCtrlPoint.back().front();
+	Vector3 tU = t10 - t00;
+	Vector3 tV = t01 - t00;
+
+	// Flip if need
+	Vector3 sUV = cross(sU, sV);
+	Vector3 tUV = cross(tU, tV);
+	if (dot(sUV, tUV) < 0)
 	{
+		// Reverse the target along u direction
+		std::reverse(tCtrlPoint.begin(), tCtrlPoint.end());
+		std::reverse(tCtrlWeight.begin(), tCtrlWeight.end());
+
+		// Update tU
+		tU = -tU;
+		tUV = -tUV;
+		isModified = true;
+	}
+
+	// Rotate if need
+	Scalar cosAngle = dot(sU.normalized(), tU.normalized());
+	Scalar cos45 = sqrtf(2.0) / 2;
+
+	// Do Nothing
+	if (cosAngle > cos45)
+	{
+		tCtrlPointNew = tCtrlPoint;
+		tCtrlWeightNew = tCtrlWeight;
+	}
+	// Rotate 180 degrees
+	else if (cosAngle < - cos45)
+	{
+		//  --> sV				tU
+		// |					|
+		// sU             tV <--
+		// By flipping along both directions
+		std::reverse(tCtrlPoint.begin(), tCtrlPoint.end());
+		std::reverse(tCtrlWeight.begin(), tCtrlWeight.end());
+
+		for (int i = 0; i < tCtrlPoint.size(); i++)
+		{
+			std::reverse(tCtrlPoint[i].begin(), tCtrlPoint[i].end());
+			std::reverse(tCtrlWeight[i].begin(), tCtrlWeight[i].end());
+		}
+
+		// The new control points and weights
+		tCtrlPointNew = tCtrlPoint;
+		tCtrlWeightNew = tCtrlWeight;
+		isModified = true;
+	}
+	// Rotate 90 degrees 
+	else
+	{
+		Vector3 stU = cross(sU, tU);
+		if (dot(stU, sUV) >= 0)
+		{
+			//  --> sV		tV
+			// |			|
+			// sU           --> tU
+			// Transpose and reverse along U
+			tCtrlPointNew = transpose<Vector3>(tCtrlPoint);
+			tCtrlWeightNew = transpose<Scalar>(tCtrlWeight);
+
+			std::reverse(tCtrlPointNew.begin(), tCtrlPointNew.end());
+			std::reverse(tCtrlWeightNew.begin(), tCtrlWeightNew.end());
+		}
+		else
+		{
+			//  --> sV	tU<--
+			// |			 |
+			// sU			tV
+			// Reverse along U and Transpose
+			std::reverse(tCtrlPoint.begin(), tCtrlPoint.end());
+			std::reverse(tCtrlWeight.begin(), tCtrlWeight.end());
+
+			tCtrlPointNew = transpose<Vector3>(tCtrlPoint);
+			tCtrlWeightNew = transpose<Scalar>(tCtrlWeight);
+		}
+
+		isModified = true;
+		isUVFlipped = true;
+	}
+
+	// Create a new sheet if need
+	if (isModified)
+	{
+		NURBSRectangle newRect; 
+		if (isUVFlipped)
+			newRect = NURBSRectangle(tCtrlPointNew, tCtrlWeightNew, vDegree, uDegree, vLoop, uLoop, vOpen, uOpen);
+		else
+			newRect = NURBSRectangle(tCtrlPointNew, tCtrlWeightNew, uDegree, vDegree, uLoop, vLoop, uOpen, vOpen);
+
+		tSheet->surface = newRect;
 	}
 }
+
+void GraphCorresponder::computeCorrespondences()
+{
+	// Part-to-Part correspondences
+	findOneToOneCorrespondences();
+
+	// Adjust the frames for corresponded parts
+	// Then Point-to-Point correspondences can be easily retrieved via parameterized NURBS. 
+	for (int i = 0; i < correspondences.size(); i++)
+	{
+		std::set<QString> &sSet = correspondences[i].first;
+		std::set<QString> &tSet = correspondences[i].second;
+
+		// One to many
+		if (sSet.size() == 1)
+		{
+			Structure::Node *sNode = sg->getNode(*sSet.begin());
+			foreach(QString tID, tSet)
+			{
+				Structure::Node *tNode = tg->getNode(tID);
+				correspondTwoNodes(sNode, tNode);
+			}
+		}
+		// Many to one
+		else if (tSet.size() == 1)
+		{
+			Structure::Node *tNode = tg->getNode(*tSet.begin());
+			foreach(QString sID, sSet)
+			{
+				Structure::Node *sNode = sg->getNode(sID);
+				correspondTwoNodes(sNode, tNode);
+			}
+		}
+		// Many to many
+		else
+		{
+			qDebug() << "Many to Many correspondence happened. ";
+		}
+	}
+}
+

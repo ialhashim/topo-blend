@@ -768,7 +768,6 @@ void topoblend::findOne2OneCorrespondences()
 	if (corresponder())
 		corresponder()->findOneToOneCorrespondences();
 }
-// End of Correspondences
 
 
 void topoblend::findOne2ManyCorrespondences()
@@ -776,6 +775,60 @@ void topoblend::findOne2ManyCorrespondences()
 	if (corresponder())
 		corresponder()->findOneToManyCorrespondences();
 }
+
+
+void topoblend::testPoint2PointCorrespondences()
+{
+	// Create two graphs
+	Structure::Graph *sg = new Structure::Graph();
+	Structure::Graph *tg = new Structure::Graph();
+	Structure::Graph *newG = new Structure::Graph();
+
+	graphs.push_back(sg);
+	graphs.push_back(tg);
+	graphs.push_back(newG);
+
+	//// Create one sheet for each graph
+	//NURBSRectangle sheet1 = NURBSRectangle::createSheet(2,1, Vector3(0,0,0), Vector3(1,0,0), Vector3(0,1,0));
+	//Structure::Sheet *sSheet = new Structure::Sheet(sheet1, "sheet");
+	//sg->addNode(sSheet);
+
+	//NURBSRectangle sheet2 = NURBSRectangle::createSheet(2,1.5, Vector3(0,0,0), Vector3(1,0,0), Vector3(0,-1,0));
+	//Structure::Sheet *tSheet = new Structure::Sheet(sheet2, "sheet");
+	//tg->addNode(tSheet);
+
+	//Structure::Sheet *newSheet = new Structure::Sheet(*tSheet);
+	//newG->addNode(newSheet);
+
+	//// Realign two sheets
+	//if (corresponder())
+	//	corresponder()->correspondTwoSheets(sSheet, newSheet);
+
+	// Create one curve for each graph
+	NURBSCurve curve1 = NURBSCurve::createCurve(Vector3(0,-1,0), Vector3(0,1,0));
+	Structure::Curve *sCurve = new Structure::Curve(curve1, "curve");
+	sg->addNode(sCurve);
+
+	NURBSCurve curve2 = NURBSCurve::createCurve(Vector3(0.3, 0.6, 0), Vector3(-0.3, -1, 0));
+	Structure::Curve *tCurve = new Structure::Curve(curve2, "curve");
+	tg->addNode(tCurve);
+
+	Structure::Curve *newCurve = new Structure::Curve(*tCurve);
+	newG->addNode(newCurve);
+
+	if (corresponder())
+		corresponder()->correspondTwoCurves(sCurve, newCurve);
+
+	drawArea()->updateGL();
+}
+
+
+void topoblend::computeCorrespondences()
+{
+	if (corresponder())
+		corresponder()->computeCorrespondences();
+}
+
 
 // End of Correspondences
 
