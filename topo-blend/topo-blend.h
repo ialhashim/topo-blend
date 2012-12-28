@@ -7,6 +7,8 @@
 
 #include "StructureGraph.h"
 
+class GraphCorresponder;
+
 class topoblend : public SurfaceMeshModePlugin{
     Q_OBJECT
     Q_INTERFACES(ModePlugin)
@@ -33,6 +35,10 @@ private:
 	QVector< Vector3 > debugPoints,debugPoints2,debugPoints3;
 	QVector< QPair<Vector3,Vector3> > debugLines,debugLines2,debugLines3;
 
+	// Corresponder
+	GraphCorresponder *gcoor;
+	GraphCorresponder* corresponder();
+
 public slots:
 	void setSceneBounds();
 
@@ -53,7 +59,7 @@ public slots:
 	void doBlend();
 
 	// Correspondence
-	void visualizeFuzzyDistance(int sourceID);
+	void visualizePart2PartDistance(int sourceID);
 	void findOne2OneCorrespondences();
 	void findOne2ManyCorrespondences();
 	// End of Correspondence

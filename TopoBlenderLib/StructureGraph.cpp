@@ -67,6 +67,11 @@ Node *Graph::addNode(Node * n)
     if(found) return found;
 
     nodes.push_back(n);
+
+	// Add property : degree and id
+	n->property["degree"] = 0;
+	n->property["index"] = nodes.size() - 1;
+
     return n;
 }
 
@@ -123,6 +128,13 @@ Link Graph::addEdge(Node *n1, Node *n2, std::vector<Vec4d> coord1, std::vector<V
 
 	adjacency(nodes.indexOf(n1), nodes.indexOf(n2)) = 1 ;
 	adjacency(nodes.indexOf(n2), nodes.indexOf(n1)) = 1 ;
+
+	// Increase the degree for nodes
+	int degree = n1->property["degree"].toInt();
+	n1->property["degree"] = degree + 1;
+
+	degree = n2->property["degree"].toInt();
+	n2->property["degree"] = degree + 1;
 
 	return e;
 }
