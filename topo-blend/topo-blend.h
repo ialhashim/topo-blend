@@ -62,6 +62,8 @@ public slots:
 	void visualizePart2PartDistance(int sourceID);
 	void findOne2OneCorrespondences();
 	void findOne2ManyCorrespondences();
+	void testPoint2PointCorrespondences();
+	void computeCorrespondences();
 	// End of Correspondence
 signals:
 

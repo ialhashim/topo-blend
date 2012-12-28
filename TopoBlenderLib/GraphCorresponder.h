@@ -5,6 +5,8 @@
 
 #include <vector>
 
+typedef std::pair<std::set<QString>, std::set<QString>> SET2SET;
+
 class GraphCorresponder
 {
 public:
@@ -21,7 +23,6 @@ public:
 	void initializeMatrix(std::vector< std::vector<float> > & M);
 	void normalizeMatrix(std::vector< std::vector<float> > & M);
 
-
 	// Visualization
 	void visualizePart2PartDistance(int sourceID);
 
@@ -29,11 +30,17 @@ public:
 	bool minElementInMatrix(std::vector< std::vector<float> > &M, int &row, int &column);
 	void findOneToOneCorrespondences();
 	void findOneToManyCorrespondences();
+	void correspondTwoNodes(Structure::Node *sNode, Structure::Node *tNode);
 	void correspondTwoCurves(Structure::Curve *sCurve, Structure::Curve *tCurve);
 	void correspondTwoSheets(Structure::Sheet *sSheet, Structure::Sheet *tSheet);
+
+	// The main access
+	void computeCorrespondences();
+
+	// Result
+	std::vector<SET2SET> correspondences;
 
 private:
 	Structure::Graph *sg, *tg;
 	std::vector< std::vector<float> > disM;
 };
-

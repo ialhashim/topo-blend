@@ -227,6 +227,23 @@
         </property>
        </widget>
       </item>
+      <item row="5" column="0" colspan="2">
+       <widget class="QPushButton" name="p2pButton">
+        <property name="text">
+         <string>Test Point2Point Corr.</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="0" colspan="2">
+       <widget class="QPushButton" name="runButton">
+        <property name="styleSheet">
+         <string notr="true">font: 75 8pt &quot;MS Shell Dlg 2&quot;;</string>
+        </property>
+        <property name="text">
+         <string>Run</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
