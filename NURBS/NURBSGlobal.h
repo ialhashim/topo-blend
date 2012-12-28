@@ -8,9 +8,15 @@ using namespace SurfaceMeshTypes;
 #define MAX_REAL std::numeric_limits<SurfaceMeshTypes::Scalar>::max()
 #define REAL_ZERO_TOLERANCE 1e-08
 
+typedef std::vector< Vector3 > Array1D_Vector3;
 typedef std::vector< std::vector<Vector3> > Array2D_Vector3;
+typedef std::vector< Vec4d > Array1D_Vec4d;
 typedef std::vector< Scalar > Array1D_Real;
 typedef std::vector< Array1D_Real > Array2D_Real;
+
+Q_DECLARE_METATYPE(Array1D_Vector3)
+Q_DECLARE_METATYPE(Array2D_Vector3)
+Q_DECLARE_METATYPE(Array1D_Vec4d)
 
 typedef Scalar Real;
 
@@ -245,4 +251,25 @@ inline static bool sphereTest(Vec3d & p1, Vec3d & p2, double r1, double r2)
 	Vec3d relPos = p1 - p2;
 	double dist = relPos.x() * relPos.x() + relPos.y() * relPos.y() + relPos.z() * relPos.z();
 	return dist <= minDist * minDist;
+}
+
+inline static bool intersectRayTri(const std::vector<Vec3d> & tri, const Vec3d & rayOrigin, 
+	const Vec3d & rayDirection, Vec3d & intersectionPoint)
+{
+	double u, v, t;
+	Vec3d edge1 = tri[1] - tri[0];
+	Vec3d edge2 = tri[2] - tri[0];
+	Vec3d pvec = cross(rayDirection, edge2);
+	double det = dot(edge1, pvec);
+	if (det == 0) return false;
+	double invDet = 1 / det;
+	Vec3d tvec = rayOrigin - tri[0];
+	u = dot(tvec, pvec) * invDet;
+	if (u < 0 || u > 1) return false;
+	Vec3d qvec = cross(tvec, edge1);
+	v = dot(rayDirection, qvec) * invDet;
+	if (v < 0 || u + v > 1) return false;
+	t = dot(edge2, qvec) * invDet;
+	intersectionPoint = rayOrigin + (t * rayDirection);
+	return true;
 }

@@ -141,7 +141,7 @@ Vector3 & Curve::controlPoint( int idx )
 int Curve::controlPointIndexFromCoord( Vec4d coord )
 {
 	// Get point at these coordinates
-	Vector3 pos(0); curve.Get(coord[0], &pos, 0,0,0);
+	/*Vector3 pos(0); curve.Get(coord[0], &pos, 0,0,0);
 
 	int minIdx = -1;
 	double minDist = DBL_MAX;
@@ -153,9 +153,9 @@ int Curve::controlPointIndexFromCoord( Vec4d coord )
 			minDist = dist;
 			minIdx = i;
 		}
-	}
+	}*/
 
-	return minIdx;
+	return (curve.mCtrlPoint.size() - 1) * coord[0];
 }
 
 Vector3 & Curve::controlPointFromCoord( Vec4d coord )

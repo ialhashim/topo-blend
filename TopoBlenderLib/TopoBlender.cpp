@@ -72,7 +72,7 @@ void TopoBlender::bestPartialCorrespondence()
 }
 
 QList< ScalarLinksPair > TopoBlender::badCorrespondence(  QString activeNodeID, QString targetNodeID, 
-	QMap<Link*, Vec4d> & coord_active, QMap<Link*, Vec4d> & coord_target )
+	QMap< Link*, std::vector<Vec4d> > & coord_active, QMap< Link*, std::vector<Vec4d> > & coord_target )
 {
 	QMap<QPairLink, Scalar> dists;
 
@@ -87,7 +87,7 @@ QList< ScalarLinksPair > TopoBlender::badCorrespondence(  QString activeNodeID, 
 
 		foreach(Link * j, coord_target.keys())
 		{
-			double dist = (coord_active[i] - coord_target[j]).norm();
+			double dist = (coord_active[i].front() - coord_target[j].front()).norm();
 
 			if(dist < minDist)
 			{
@@ -106,11 +106,12 @@ Graph * TopoBlender::blend()
 {
 	// Initial steps
 	cleanup();
-	visualizeActiveGraph(QString("step%1").arg(stepCounter), "Initial graph");
 	originalGraphDistance = new GraphDistance(g1);
 
 	/// 1) Best partial correspondence
 	bestPartialCorrespondence();
+
+	visualizeActiveGraph(QString("step%1").arg(stepCounter), "Initial graph");
 
 	// Keep track of one-sided links
 	QMap< int, int > needLink;
@@ -137,7 +138,7 @@ Graph * TopoBlender::blend()
 		QString targetNodeID = n_active.str("correspond");
 		
 		// Get coordinates of all links of both
-		QMap<Link*, Vec4d> coord_active, coord_target;
+		QMap< Link*, std::vector<Vec4d> > coord_active, coord_target;
 		QList< ScalarLinksPair > corresp = badCorrespondence(activeNodeID, targetNodeID, coord_active, coord_target);
 
 		// Decide either remove links (when target has less links) or add links
@@ -213,10 +214,10 @@ Graph * TopoBlender::blend()
 				}
 			}
 
-			log += QString("Need to add links to node");
+			log += QString("Need to add links to node [%1]").arg(activeNodeID);
 		}
 
-		// Same links, need to check quality of these links
+		// Same links, need to check "quality" of these links
 		if(linkDiff == 0)
 		{
 			foreach(ScalarLinksPair sp, corresp)
@@ -276,7 +277,7 @@ Graph * TopoBlender::blend()
 
 			// Get coordinates on the corresponding target node
 			Structure::Link * link = target.getOriginalLink(n_target.str("original"), n_targetOther.str("original"));
-			Vec4d coordinate = link->getCoord(n_target.str("original"));
+			Vec4d coordinate = link->getCoord(n_target.str("original")).front();
 
 			// Get position on active
 			Vector3 linkPosition = active.mGraph->getNode(n_active.str("original"))->position(coordinate);
@@ -319,8 +320,8 @@ Graph * TopoBlender::blend()
 				movingLinks.push_back( edgeID );
 
 				// Handle new link coordinates
-				active.specialCoords[edgeID][index] = coordinate;
-				active.specialCoords[edgeID][closest.idx] = closestCoordinate;
+				active.specialCoords[edgeID][index] = std::vector<Vec4d>(1,coordinate);
+				active.specialCoords[edgeID][closest.idx] = std::vector<Vec4d>(1,closestCoordinate);
 				active.movable[edgeID] = closestIdx;
 
 				needLink[index]--;
@@ -375,8 +376,8 @@ Graph * TopoBlender::blend()
 				movingLinks.push_back( edgeID );
 
 				// Handle new link coordinates
-				active.specialCoords[edgeID][index] = coordinate;
-				active.specialCoords[edgeID][cloned.idx] = bestCoordinate;
+				active.specialCoords[edgeID][index] = std::vector<Vec4d>(1,coordinate);
+				active.specialCoords[edgeID][cloned.idx] = std::vector<Vec4d>(1,bestCoordinate);
 				active.movable[edgeID] = new_idx;
 
 				needLink[index]--;
@@ -418,11 +419,11 @@ Graph * TopoBlender::blend()
 
 			// Handle new link coordinates
 			Link * targetLink = target.mGraph->getEdge(targetNodeID, targetOtherID);
-			Vec4d otherCoordinate = targetLink->getCoord(targetOtherID);
-			Vec4d activeCoordinate = inverseCoord(active.firstSpecialCoord(active_idx)); // expected other end from before
+			Vec4d otherCoordinate = targetLink->getCoord(targetOtherID).front();
+			Vec4d activeCoordinate = inverseCoord(active.firstSpecialCoord(active_idx).front()); // expected other end from before
 			
-			active.specialCoords[edgeID][active_idx] = activeCoordinate;
-			active.specialCoords[edgeID][other_idx] = otherCoordinate;
+			active.specialCoords[edgeID][active_idx] = std::vector<Vec4d>(1,activeCoordinate);
+			active.specialCoords[edgeID][other_idx] = std::vector<Vec4d>(1,otherCoordinate);
 			active.movable[edgeID] = active_idx;
 			
 			needLink[other_idx]--;
@@ -476,33 +477,11 @@ Graph * TopoBlender::blend()
 			
 			if(missingNeighbors.size() == 1)
 			{
+				// Default parameter
+				double shrinkFactorCurve = 1e-5;
+
 				// CASE 1) Missing node branches out with no other connections
-
 				Link & l = *target.mGraph->getEdge(missingID, targetNodeID);
-				Vec4d coordOnTarget = l.getCoord(targetNodeID);
-
-				Vector3 linkPosition = active.mGraph->getNode(n_active.str("original"))->position(coordOnTarget);
-
-				double shrinkFactor = 1e-5;
-
-				// Create a single point node
-				if(target.nodeType(missing.idx) == Structure::CURVE){
-					Curve * targetcurve = (Curve*)target.mGraph->getNode(missingID);
-					NURBSCurve curveCopy = targetcurve->curve;
-
-					// Place curve
-					curveCopy.translate( -curveCopy.GetControlPoint(0) );
-					curveCopy.translate( linkPosition );
-
-					// Resize to baby size
-					curveCopy.scaleInPlace(shrinkFactor);
-
-					active.mGraph->addNode(new Structure::Curve(curveCopy, missingID));
-				}
-
-				// [TODO: code this]
-				if(target.nodeType(missing.idx) == Structure::SHEET){
-				}
 
 				// Add node to dynamic graph
 				SimpleNode & newNode = active.nodes[active.addNode(missingProperty)];
@@ -515,10 +494,49 @@ Graph * TopoBlender::blend()
 				int other_idx = active.nodeIndex("correspond", targetNodeID);
 				int edgeID = active.addEdge(active_idx, other_idx);
 
+				// Curve
+				if(target.nodeType(missing.idx) == Structure::CURVE)
+				{
+					Vec4d coordOnTarget = l.getCoord(targetNodeID).front();
+					Vector3 linkPosition = active.mGraph->getNode(n_active.str("original"))->position(coordOnTarget);
+					Curve * targetCurve = ((Curve*)target.mGraph->getNode(missingID));
+
+					int cpIDX = targetCurve->controlPointIndexFromCoord(l.getCoordOther(targetNodeID).front());
+
+					// Copy geometry from target curve
+					NURBSCurve curveCopy = targetCurve->curve;
+
+					// Place curve
+					curveCopy.translate( -targetCurve->position(l.getCoordOther(targetNodeID).front()) );
+					curveCopy.translate( linkPosition );
+
+					// Resize to baby size
+					curveCopy.scaleInPlace( shrinkFactorCurve, cpIDX );
+
+					// Add node to Structure Graph
+					active.mGraph->addNode(new Structure::Curve(curveCopy, missingID));
+
+					// Growing instructions
+					active.growingCurves[edgeID] = std::make_pair(active_idx, std::make_pair(cpIDX, 1.0 / shrinkFactorCurve));
+				}
+
+				// Sheet
+				if(target.nodeType(missing.idx) == Structure::SHEET)
+				{
+					Sheet * targetSheet = ((Sheet*)target.mGraph->getNode(missingID));
+					Sheet * sheet = (Sheet *)active.mGraph->addNode(new Structure::Sheet(targetSheet->surface, missingID));
+
+					Array2D_Vector3 deltas = sheet->foldTo( l.getCoord(missingID), true );
+
+					// Growing instructions
+					active.growingSheets[edgeID] = std::make_pair(active_idx, deltas);
+				}
+
+				// Copy coordinates from target's link
 				active.specialCoords[edgeID][active_idx] = l.getCoord(missingID);
 				active.specialCoords[edgeID][other_idx] = l.getCoordOther(missingID);
-				active.growingNodes[edgeID] = std::make_pair(active_idx, 1.0 / shrinkFactor);
 
+				// Mark as done
 				needLink[index]--;
 
 				// Log event
@@ -611,10 +629,10 @@ Graph * TopoBlender::blend()
 void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceGraph )
 {
 	// Create morph animation:
-	int NUM_STEPS = 10;
+	int NUM_STEPS = params["NUM_STEPS"].toInt();
 	int NUM_SMOOTH_ITR = 3;
 
-	std::vector< std::pair< Link, std::vector<Vector3> > > specialLinks;
+	std::vector< std::pair< Link, QVariant > > specialLinks;
 
 	// Create paths on structural geometry
 	foreach(Link link, graph->edges)
@@ -636,7 +654,8 @@ void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceG
 			gd.computeDistances(source, 0.05);
 			gd.distanceTo(destination, path);
 
-			specialLinks.push_back( std::make_pair(link,path) );
+			QVariant pathVar; pathVar.setValue(path);
+			specialLinks.push_back( std::make_pair(link, pathVar) );
 
 			// DEBUG:
 			debugLines.push_back(PairVector3(source, destination));
@@ -649,13 +668,21 @@ void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceG
 			QString growingNode = link.link_property["growing"].toString();
 
 			Node * n = link.getNode(growingNode);
+			QVariant growInfo;
 
 			if(n->type() == Structure::CURVE)
 			{
 				Curve * curve = (Curve *) n;
-
-				specialLinks.push_back( std::make_pair( link, curve->curve.mCtrlPoint) );
+				growInfo.setValue(curve->curve.mCtrlPoint);
 			}
+
+			if(n->type() == Structure::SHEET)
+			{
+				Sheet * sheet = (Sheet *) n;
+				growInfo = link.link_property["deltas"];
+			}
+
+			specialLinks.push_back( std::make_pair( link, growInfo) );
 		}
 	}
 	
@@ -670,7 +697,7 @@ void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceG
 
 			if(link.link_property.contains("movable"))
 			{
-				std::vector<Vector3> path = specialLinks[i].second;
+				std::vector<Vector3> path = specialLinks[i].second.value< Array1D_Vector3 >();
 				QString movableNode = link.link_property["movable"].toString();
 				Node * n = link.getNode(movableNode);
 
@@ -679,7 +706,7 @@ void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceG
 					Curve * curve = (Curve *) n;
 
 					// Pick up closest control point on curve
-					int cpIdx = curve->controlPointIndexFromCoord( link.getCoord(movableNode) );	
+					int cpIdx = curve->controlPointIndexFromCoord( link.getCoord(movableNode).front() );	
 
 					// Move the control point to location on path
 					int path_idx = stepTime * (path.size() - 1);
@@ -695,28 +722,45 @@ void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceG
 			if(link.link_property.contains("growing"))
 			{
 				QString growingNode = link.link_property["growing"].toString();
-				Scalar growFactor = link.link_property["growFactor"].toDouble();
-
-				std::vector<Vector3> ctrlPoints = specialLinks[i].second;
-				Vector3 anchor = ctrlPoints.front();
-
 				Node * n = link.getNode(growingNode);
 
 				if(n->type() == Structure::CURVE)
 				{
 					Curve * curve = (Curve *) n;
-					
+
+					Scalar growFactor = link.link_property["growFactor"].toDouble();
+					int growAnchor = link.link_property["growAnchor"].toInt();
+
+					std::vector<Vector3> ctrlPoints = specialLinks[i].second.value< Array1D_Vector3 >();
+					Vector3 anchor = ctrlPoints[growAnchor];
+
 					for(int j = 0; j < (int)ctrlPoints.size(); j++)
 						ctrlPoints[j] = ((ctrlPoints[j] - anchor) * (growFactor * stepTime)) + anchor;
 					
 					curve->curve.mCtrlPoint = ctrlPoints;
+				}
+
+				if(n->type() == Structure::SHEET)
+				{
+					Sheet * sheet = (Sheet *) n;
+
+					Array2D_Vector3 cpts = link.link_property["cpts"].value<Array2D_Vector3>();
+					Array2D_Vector3 deltas = link.link_property["deltas"].value<Array2D_Vector3>();
+
+					for(int u = 0; u < sheet->surface.mNumUCtrlPoints; u++)
+					{
+						for(int v = 0; v < sheet->surface.mNumVCtrlPoints; v++)
+						{
+							sheet->surface.mCtrlPoint[u][v] = cpts[u][v] + (deltas[u][v] * stepTime);
+						}
+					}
 				}
 			}
 		}
 
 		// Synthesize the geometry
 		SurfaceMeshModel meshStep;
-		graph->materialize(&meshStep, 1.0);
+		graph->materialize(&meshStep, params["materialize"].toDouble());
 		//DynamicVoxel::MeanCurvatureFlow(&meshStep, 0.05);
 		DynamicVoxel::LaplacianSmoothing(&meshStep);
 

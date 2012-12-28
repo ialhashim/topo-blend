@@ -94,7 +94,19 @@ Link Graph::addEdge(Node *n1, Node *n2)
 	if(n1->type() == SHEET && n2->type() == SHEET)
 	{
 		Sheet *s1 = (Sheet*) n1, *s2 = (Sheet*) n2;
-		s1->surface.intersect(s2->surface, 0.1, c1, c2);
+		double length = qMin(s1->bbox().size().length(), s2->bbox().size().length());
+		std::vector<Vec3d> pnts = s1->surface.intersect(s2->surface, 0.01 * length, c1, c2);
+		
+		// DEBUG:
+		//foreach(Vec3d p, pnts) debugPoints3.push_back(p);
+
+		// Fall back
+		if(c1.size() < 1)
+		{
+			c1.push_back(n1->approxCoordinates(intersectPoint));
+			c2.push_back(n2->approxCoordinates(intersectPoint));
+		}
+
 		edgeType = LINE_EDGE;
 	}
 	else
@@ -544,12 +556,12 @@ void Graph::materialize( SurfaceMeshModel * m, Scalar voxel_scaling )
 		// Sheet triangles
 		if(c == 3)
 		{
-			QBox3D triBox;
 			foreach(std::vector<Vector3> segment, parts)
 			{
+				QBox3D triBox;
 				foreach(Vector3 p, segment) triBox.unite(p + half_voxel);
+				vox.addBox( triBox.minimum(), triBox.maximum() );
 			}
-			vox.addBox( triBox.minimum(), triBox.maximum() );
 		}
 
 		qDebug() << "Node built [" << n->id << "] " << nodoe_timer.elapsed() << " ms";
@@ -605,7 +617,10 @@ Node *Graph::rootByValence()
 
 SurfaceMeshTypes::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 {
-	Scalar r = 0.1 * qMin(n1->bbox().size().length(), n2->bbox().size().length());
+	double s1 = n1->bbox().size().length();
+	double s2 = n2->bbox().size().length();
+
+	Scalar r = 0.1 * qMin(s1, s2);
 
 	std::vector< std::vector<Vector3> > parts1 = n1->discretized(r);
 	std::vector< std::vector<Vector3> > parts2 = n2->discretized(r);
@@ -711,15 +726,28 @@ int Graph::valence( Node * n )
 	return 0.5 * (adjacency.col(idx).sum() + adjacency.row(idx).sum());
 }
 
-Structure::Curve* Graph::getCurve( Link * l )
+Curve* Graph::getCurve( Link * l )
 {
 	Structure::Node *n1 = l->n1, *n2 = l->n2;
 	return (Structure::Curve *) ((n1->type() == Structure::CURVE) ? n1: n2);
 }
 
-QMap<Link*, Vec4d> Structure::Graph::linksCoords( QString nodeID )
+QVector<Link*> Graph::getEdges( QString nodeID )
 {
-	QMap<Link*, Vec4d> coords;
+	QVector<Link*> mylinks;
+
+	for(int i = 0; i < edges.size(); i++)
+	{
+		Link * l = &edges[i];
+		if(l->hasNode(nodeID)) mylinks.push_back(l);
+	}
+
+	return mylinks;
+}
+
+QMap<Link*, std::vector<Vec4d> > Graph::linksCoords( QString nodeID )
+{
+	QMap<Link*, std::vector<Vec4d>> coords;
 
 	for(int i = 0; i < edges.size(); i++)
 	{
@@ -746,7 +774,10 @@ QList<Link> Graph::furthermostEdges( QString nodeID )
 {
 	QMap<double, Link> sortedLinks;
 	foreach(Link l, nodeEdges(nodeID))
-		sortedLinks[l.getCoord(nodeID).norm()] = l;
+	{
+		foreach(Vec4d c, l.getCoord(nodeID))
+			sortedLinks[c.norm()] = l;
+	}
 
 	return sortedLinks.values();
 }

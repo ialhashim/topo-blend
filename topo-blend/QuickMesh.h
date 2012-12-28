@@ -59,9 +59,13 @@ public:
 		glDisable(GL_LIGHTING);
 	}
 
+	QVector3D center;
+	QVector3D bbmin;
+	QVector3D bbmax;
+
 public slots:
 
-	void load(QString fileame)
+	void load(QString fileame, bool isNormalize = true, bool isMoveCenter = true)
 	{
         isLoading = true;
 
@@ -74,7 +78,7 @@ public slots:
 		if(ext == "obj") loadOBJ(fileName);
 		if(ext == "off") loadOFF(fileName);
 
-		postProcess();
+		postProcess(isNormalize, isMoveCenter);
 
 		isLoading = false;
 	}
@@ -149,32 +153,36 @@ private:
 		}
 	}
 
-	void postProcess()
+	void postProcess(bool isNormalize, bool isMoveCenter)
 	{
 		// compute bounding box
-		QVector3D bbmin (1e-12, 1e-12, 1e-12);
-		QVector3D bbmax = -bbmin;
-		QVector3D center(0,0,0);
+		QVector3D bmin (FLT_MAX, FLT_MAX, FLT_MAX);
+		QVector3D bmax = -bmin;
 		foreach(const QVector3D v, verts)
 		{
-			if(v.x() < bbmin.x()) bbmin.setX(v.x());
-			if(v.y() < bbmin.y()) bbmin.setY(v.y());
-			if(v.z() < bbmin.z()) bbmin.setZ(v.z());
+			if(v.x() < bmin.x()) bmin.setX(v.x());
+			if(v.y() < bmin.y()) bmin.setY(v.y());
+			if(v.z() < bmin.z()) bmin.setZ(v.z());
 
-			if(v.x() > bbmax.x()) bbmax.setX(v.x());
-			if(v.y() > bbmax.y()) bbmax.setY(v.y());
-			if(v.z() > bbmax.z()) bbmax.setZ(v.z());
+			if(v.x() > bmax.x()) bmax.setX(v.x());
+			if(v.y() > bmax.y()) bmax.setY(v.y());
+			if(v.z() > bmax.z()) bmax.setZ(v.z());
 		}
+		bbmin = bmin;
+		bbmax = bmax;
 		center = (bbmin + bbmax) * 0.5;
 
 		// Normalize and move to center
 		QVector3D d = bbmax - bbmin;
 		double s = (d.x() > d.y())? d.x():d.y();
 		s = (s>d.z())? s: d.z();
+
 		for(int vi = 0; vi < verts.size(); vi++) 
-			verts[vi] = (verts[vi] - center) / s;
+		{
+			verts[vi] = (verts[vi] - (isMoveCenter ? center : QVector3D(0,0,0))) / (isNormalize ? s : 1.0);
+		}
 	}
-	
+
 	QVector< QVector3D > verts;
 	QVector< QVector<int> > tris;
 };

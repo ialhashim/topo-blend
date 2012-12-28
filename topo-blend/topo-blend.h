@@ -26,6 +26,8 @@ public:
 
 	bool keyPressEvent( QKeyEvent* event );
 
+	QMap<QString, QVariant> params;
+
 private:
     topo_blend_widget * widget;
 
