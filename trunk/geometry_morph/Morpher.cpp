@@ -70,12 +70,12 @@ void Morpher::generateInBetween(int numStep, int timeResolution, int angleResotu
 	//std::vector<std::vector<Vector3>> source_crossSections=crossSectionResampling(source_faces,source_curve,timeResolution,angleResotuion);
 	//std::vector<std::vector<Vector3>> target_crossSections=crossSectionResampling(target_faces,target_curve,timeResolution,angleResotuion);
 
-	std::vector<std::vector<Vector3>> souce_sampleDirections, target_sampleDirections;
+	Array2D_Vector3 souce_sampleDirections, target_sampleDirections;
 	std::vector<std::vector<double>> souce_radii, target_radii;
 
 	//transverse the graph nodes
 	//do cross section resampling to curve nodes
-	for(int i=0;i<source_graph.nodes.size();i++)
+/*	for(int i=0;i<source_graph.nodes.size();i++)
 	{
 		if(source_graph.nodes[i]->type()==Structure::CURVE&&target_graph.nodes[i]->type()==Structure::CURVE)
 			{
@@ -83,9 +83,9 @@ void Morpher::generateInBetween(int numStep, int timeResolution, int angleResotu
 				target_curve=NURBSCurve(target_graph.nodes[i]->controlPoints(),target_graph.nodes[i]->controlWeights());
 			}	
 	}
-
-	std::vector<std::vector<Vector3>> source_crossSections=crossSectionResampling2(source_faces,source_curve,timeResolution,angleResotuion,souce_sampleDirections,souce_radii);
-	std::vector<std::vector<Vector3>> target_crossSections=crossSectionResampling2(target_faces,target_curve,timeResolution,angleResotuion,target_sampleDirections,target_radii);
+	*/
+	Array2D_Vector3 source_crossSections=crossSectionResampling2(source_faces,source_curve,timeResolution,angleResotuion,souce_sampleDirections,souce_radii);
+	Array2D_Vector3 target_crossSections=crossSectionResampling2(target_faces,target_curve,timeResolution,angleResotuion,target_sampleDirections,target_radii);
 
 	align_sampleStartDirection(source_crossSections,target_crossSections,souce_sampleDirections,target_sampleDirections,souce_radii,target_radii);
 
@@ -147,10 +147,10 @@ void Morpher::linear_Interp_Corrd(std::vector<std::vector<Vector3>> source_cross
 		std::vector<std::vector<Vector3>> blend_crossSections;
 		double blend_time=step*1.0/numStep;
 
-		for(int i=0;i<source_crossSections.size();i++)
+		for(int i=0;i<(int)source_crossSections.size();i++)
 		{
 			std::vector<Vector3> cross_section;
-			for(int j=0;j<source_crossSections[0].size();j++)
+			for(int j=0;j<(int)source_crossSections[0].size();j++)
 			{
 				cross_section.push_back((1-blend_time)*source_crossSections[i][j]+blend_time*target_crossSections[i][j]);
 			}
@@ -237,7 +237,7 @@ std::vector<Vector3> Morpher::resampleCoutourPoints(std::vector<std::vector<Vect
 
 		sampleDirection=ROTATE_VEC(sampleDirection, sample_startDirection, rotate_angle, planeNormal);
 
-		for(int i=0;i<mesh_faces.size();i++)
+		for(int i=0;i<(int)mesh_faces.size();i++)
 		{
 			if(rayIntersectsTriangle(current_position,sampleDirection, mesh_faces[i],intersect_point,radius))
 				{
@@ -576,7 +576,7 @@ std::vector<Vector3> Morpher::resampleCoutourPoints2(std::vector<std::vector<Vec
 
 		sampleDirection=ROTATE_VEC(sampleDirection, sample_startDirection, rotate_angle, planeNormal);
 
-		for(int i=0;i<mesh_faces.size();i++)
+		for(int i=0;i<(int)mesh_faces.size();i++)
 		{
 			if(rayIntersectsTriangle(current_position,sampleDirection, mesh_faces[i],intersect_point,radius))
 			{
