@@ -1,10 +1,14 @@
 #include <set>
 #include <QFileSystemModel>
+#include <QDockWidget>
+#include <QApplication>
+#include <QMainWindow>
 
 #include "TopoBlender.h"
 using namespace Structure;
 
 #include "ExportDynamicGraph.h"
+#include "SchedulerWidget.h"
 
 // Temporary solution for output
 #include "surface_mesh/IO.h"
@@ -68,7 +72,7 @@ void TopoBlender::bestPartialCorrespondence()
 
 	active.flagNodes("state", SLEEP);
 	active.getNode( root->id )->set("correspond", targetRoot->id);
-	active.getNode( root->id )->set("state", ACTIVE);
+    active.getNode( root->id )->set("state", ACTIVE);
 }
 
 QList< ScalarLinksPair > TopoBlender::badCorrespondence(  QString activeNodeID, QString targetNodeID, 
@@ -677,8 +681,7 @@ void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceG
 			}
 
 			if(n->type() == Structure::SHEET)
-			{
-				Sheet * sheet = (Sheet *) n;
+            {
 				growInfo = link.link_property["deltas"];
 			}
 
@@ -793,13 +796,13 @@ void TopoBlender::drawDebug()
 	glEnable(GL_LIGHTING);
 }
 
-void Structure::TopoBlender::visualizeActiveGraph( QString caption, QString subcaption )
+void TopoBlender::visualizeActiveGraph( QString caption, QString subcaption )
 {
 	toGraphML(active, caption);
 	toGraphviz(active, caption, true, caption, subcaption);
 }
 
-void Structure::TopoBlender::cleanup()
+void TopoBlender::cleanup()
 {
 	// Reset step counter
 	stepCounter = 0;
@@ -811,4 +814,18 @@ void Structure::TopoBlender::cleanup()
 		if(f.endsWith(".png") || f.endsWith(".gv") || f.endsWith(".graphml")) 
 			directory.remove(f);
 	}
+}
+
+void TopoBlender::testScheduler()
+{
+	active = source;
+
+    Scheduler * scheduler = new Scheduler(this);
+    SchedulerWidget * sw = new SchedulerWidget( scheduler );
+
+	QDockWidget *dock = new QDockWidget("Scheduler");
+	dock->setWidget(sw);
+
+	QMainWindow * win = (QMainWindow *) qApp->activeWindow();
+	win->addDockWidget(Qt::BottomDockWidgetArea, dock);
 }

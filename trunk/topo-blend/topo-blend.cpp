@@ -24,7 +24,7 @@
 #include "surface_mesh/IO_off.cpp"
 
 // Temp
-Structure::TopoBlender * blender = NULL;
+TopoBlender * blender = NULL;
 
 topoblend::topoblend(){
 	widget = NULL;
@@ -61,7 +61,7 @@ void topoblend::decorate()
 		graphs[g]->draw();
 		glPopMatrix();
 
-		posX += deltaX * 2;
+        posX += deltaX;
 	}
 	
 	// 2D view
@@ -260,7 +260,7 @@ if (1)
 	chair5.addNode( new Structure::Sheet(backSheet, "BackSheet") );
 	chair5.addNode( new Structure::Curve(backLeft, "BackLeft") );
 	chair5.addNode( new Structure::Curve(backRight, "BackRight") );
-	chair5.addNode( new Structure::Sheet(seatSheetInv, "SeatSheet") );
+	chair5.addNode( new Structure::Sheet(seatSheet, "SeatSheet") );
 	chair5.addNode( new Structure::Curve(frontLegLeft, "FrontLegLeft") );
 	chair5.addNode( new Structure::Curve(frontLegRight, "FrontLegRight") );
 	chair5.addNode( new Structure::Curve(backLegLeft, "BackLegLeft") );
@@ -580,7 +580,7 @@ void topoblend::doBlend()
 	Structure::Graph * source = graphs.front();
 	Structure::Graph * target = graphs.back();
 
-	blender = new Structure::TopoBlender( source, target );
+    blender = new TopoBlender( source, target );
 
 	Structure::Graph * blendedGraph = blender->blend();
 
@@ -728,69 +728,27 @@ void topoblend::clearGraphs()
 
 void topoblend::currentExperiment()
 {
-	NURBSRectangle sheetA = NURBSRectangle::createSheet(1.75,2, Vector3(0,0.5,0));
-	NURBSRectangle sheetB = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
+    if (graphs.size() < 2)
+    {
+        qDebug() << "Please load at least two graphs.";
+        return;
+    }
 
-	sheetA.bend(-0.7);
-	sheetB.bend(0.2);
-	sheetB.bend(0.1,1);
+    Structure::Graph * source = graphs.front();
+    Structure::Graph * target = graphs.back();
 
-	Structure::Graph * graph = new Structure::Graph();
-	
-	Structure::Sheet * sheet0 = new Structure::Sheet( sheetA, "SheetA" );
-	Structure::Sheet * sheet1 = new Structure::Sheet( sheetB, "SheetB" );
+    blender = new TopoBlender( source, target );
 
-	// Create model
-	graph->addNode( sheet0 );
-	graph->addNode( sheet1 );
-	Structure::Link e = graph->addEdge( graph->getNode("SheetA"), graph->getNode("SheetB") );
+    blender->testScheduler();
 
-	LineSegments * vs = new LineSegments;
+    //Structure::Graph * blendedGraph = blender->blend();
 
-	Structure::Sheet * sheet = sheet0;
-	int idx = sheet == sheet0 ? 0 : 1;
-	std::vector< std::vector<Vec3d> > src = sheet->surface.mCtrlPoint;
-	std::vector< std::vector<Vec3d> > deltas = sheet->foldTo(e.coord[idx], false);
-
-	int NUM_STEPS = -1;
-
-	for(int x = 0; x <= NUM_STEPS; x++)
-	{
-		double t = (double)x / NUM_STEPS;
-
-		// Modify sheet
-		for(int u = 0; u < sheet->surface.mNumUCtrlPoints; u++)
-		{
-			for(int v = 0; v < sheet->surface.mNumVCtrlPoints; v++)
-			{
-				sheet->surface.mCtrlPoint[u][v] = src[u][v] - (t * deltas[u][v]);
-			}
-		}
-
-		// Synthesize the geometry
-		SurfaceMeshModel meshStep;
-		graph->materialize(&meshStep, 0.75);
-		//DynamicVoxel::MeanCurvatureFlow(&meshStep, 0.05);
-		DynamicVoxel::LaplacianSmoothing(&meshStep);
-
-		// Output this step to mesh file
-		QString seq_num; seq_num.sprintf("%02d", x);
-		QString fileName = QString("sheet_grow_%1.off").arg(seq_num);
-		meshStep.triangulate();
-		write_off(meshStep, qPrintable(fileName));
-	}
-
-	drawArea()->addRenderObject(vs);
-
-	// Test graph distance on a single node
-	//GraphDistance * gd = new GraphDistance( graph->nodes.front() );
-	//gd->computeDistances( Vector3(0,0.25,0) );
-	//graphs.back()->misc["distance"] = gd;
-
-	graphs.push_back( graph );
-	setSceneBounds();
-
-	qDebug() << "Done";
+    // Set options
+    //blender->params["NUM_STEPS"] = this->params["NUM_STEPS"];
+    //blender->params["materialize"] = this->params["materialize"];
+    //blender->materializeInBetween( blendedGraph, 0, source );
+    //graphs.push_back( blendedGraph );
+    //setSceneBounds();
 }
 
 Q_EXPORT_PLUGIN(topoblend)

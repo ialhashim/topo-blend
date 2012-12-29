@@ -18,6 +18,6 @@ SUBDIRS += geometry_morph
 SUBDIRS += topo-blend # Main UI for topo-blending
 
 # Dependecy map
-topo-blend.depends = NURBS DynamicVoxel
+topo-blend.depends = NURBS DynamicVoxel TopoBlenderLib
 nurbs_plugin.depends = NURBS
 dynamic_voxel.depends = DynamicVoxel

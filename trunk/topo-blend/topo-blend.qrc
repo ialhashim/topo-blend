@@ -11,5 +11,7 @@
         <file>images/render.png</file>
         <file>images/connect.png</file>
         <file>images/disconnect.png</file>
+        <file>images/leftArrow.png</file>
+        <file>images/rightArrow.png</file>
     </qresource>
 </RCC>
