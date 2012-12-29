@@ -31,7 +31,10 @@ HEADERS += StructureNode.h \
     DynamicGraphGlobal.h \
     GraphDistance.h \
     ExportDynamicGraph.h \
-    GraphCorresponder.h
+    GraphCorresponder.h \
+    Scheduler.h \
+    Task.h \
+    SchedulerWidget.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -40,5 +43,11 @@ SOURCES += StructureGraph.cpp \
     TopoBlender.cpp \
     DynamicGraph.cpp \
     GraphDistance.cpp \
-    GraphCorresponder.cpp
+    GraphCorresponder.cpp \
+    Scheduler.cpp \
+    Task.cpp \
+    SchedulerWidget.cpp
 	
+
+FORMS += \
+    SchedulerWidget.ui

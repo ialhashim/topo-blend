@@ -31,7 +31,7 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	this->connect(ui->animationButton, SIGNAL(clicked()), SLOT(renderViewer()));
 
 	// Main blending process
-	this->connect(ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()));
+    this->connect(ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()));
 
 	// Correspondence
 	topo_blend->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizePart2PartDistance(int)));
@@ -51,7 +51,7 @@ void topo_blend_widget::doBlend()
 {
 	tb->params["NUM_STEPS"] = ui->numSteps->value();
 	tb->params["materialize"] = ui->voxelSize->value();
-	tb->doBlend();
+    tb->doBlend();
 }
 
 void topo_blend_widget::renderViewer()
@@ -110,4 +110,3 @@ void topo_blend_widget::loadAnimationModel()
 
 	viewer->setFocus();
 }
-

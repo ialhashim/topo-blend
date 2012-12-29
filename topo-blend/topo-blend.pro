@@ -23,12 +23,12 @@ HEADERS += topo-blend.h \
     topo_blend_widget.h \
     graph_modify_dialog.h
 
-SOURCES += topo-blend.cpp \ 
-    topo_blend_widget.cpp \
-    graph_modify_dialog.cpp
+SOURCES +=  topo-blend.cpp \
+            topo_blend_widget.cpp \
+            graph_modify_dialog.cpp
 	
 RESOURCES += topo-blend.qrc
 
-FORMS += topo_blend_widget.ui \
-         animationWidget.ui \
-    graph_modify_dialog.ui
+FORMS +=    topo_blend_widget.ui \
+            animationWidget.ui \
+            graph_modify_dialog.ui

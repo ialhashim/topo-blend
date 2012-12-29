@@ -2,55 +2,55 @@
 
 #include <QObject>
 #include "DynamicGraph.h"
+#include "StructureGraph.h"
 #include "GraphDistance.h"
 
-namespace Structure{
-	typedef QPair<Node*,Node*> QPairNodes;
-	typedef QPair<Link*,Link*> QPairLink;
-	typedef QPair<Scalar, QPairLink> ScalarLinksPair;
+struct Structure::Graph;
 
-	struct Graph;
+class TopoBlender : public QObject
+{
+    Q_OBJECT
+public:
+    explicit TopoBlender(Structure::Graph * graph1, Structure::Graph * graph2, QObject *parent = 0);
 
-	class TopoBlender : public QObject
-	{
-		Q_OBJECT
-	public:
-		explicit TopoBlender(Graph * graph1, Graph * graph2, QObject *parent = 0);
+    Structure::Graph * g1;
+    Structure::Graph * g2;
 
-		Graph * g1;
-		Graph * g2;
+    GraphDistance * originalGraphDistance;
 
-		GraphDistance * originalGraphDistance;
+    DynamicGraph source;
+    DynamicGraph active;
+    DynamicGraph target;
 
-		DynamicGraph source;
-		DynamicGraph active;
-		DynamicGraph target;
+    QMap<QString, QVariant> params;
 
-		QMap<QString, QVariant> params;
+    QList< Structure::ScalarLinksPair > badCorrespondence( QString activeNodeID, QString targetNodeID,
+        QMap< Structure::Link*, std::vector<Vec4d> > & coord_active, QMap< Structure::Link*, std::vector<Vec4d> > & coord_target );
 
-		Graph * blend();
-		void materializeInBetween( Graph * graph, double t, Graph * sourceGraph );
+    // Logging
+    int stepCounter;
 
-		QList< ScalarLinksPair > badCorrespondence( QString activeNodeID, QString targetNodeID, 
-			QMap< Link*, std::vector<Vec4d> > & coord_active, QMap< Link*, std::vector<Vec4d> > & coord_target );
+public slots:
+    // Experiments
+    void bestPartialCorrespondence();
+    void testScheduler();
 
-		// Logging
-		int stepCounter;
-		void visualizeActiveGraph(QString caption, QString subcaption);
+    // Logging
+    void visualizeActiveGraph(QString caption, QString subcaption);
 
-		// Preprocessing
-		void cleanup();
+    // Preprocessing
+    void cleanup();
 
-	public slots:
-		void bestPartialCorrespondence();
+    // Blending
+    Structure::Graph * blend();
+    void materializeInBetween( Structure::Graph * graph, double t, Structure::Graph * sourceGraph );
 
-	public:
-		// DEBUG:
-		std::vector< Vector3 > debugPoints;
-		std::vector< PairVector3 > debugLines;
-		void drawDebug();
+public:
+    // DEBUG:
+    std::vector< Vector3 > debugPoints;
+    std::vector< PairVector3 > debugLines;
+    void drawDebug();
 
-	signals:
+signals:
 
-	};
-}
+};

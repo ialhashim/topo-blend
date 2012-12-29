@@ -1,14 +1,18 @@
 #pragma once
 
+#include <Eigen/Core>
+
 #include "StructureCurve.h"
 #include "StructureSheet.h"
 
 #include "DynamicVoxel.h"
 using namespace DynamicVoxelLib;
 
-#include <Eigen/Core>
-
 namespace Structure{
+
+typedef QPair<Node*,Node*> QPairNodes;
+typedef QPair<Link*,Link*> QPairLink;
+typedef QPair<Scalar, QPairLink> ScalarLinksPair;
 
 struct Graph
 {
