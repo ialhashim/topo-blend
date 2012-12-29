@@ -159,8 +159,8 @@ void geometry_morph::loadTargetGraph()
 void geometry_morph::doMorph()
 {
 	
-//	Morpher * morpher = new Morpher(sourceModel,targetModel,sourceCurve,targetCurve);
-	Morpher *morpher=new Morpher(sourceModel,targetModel,sourceGraph,targetGraph);
+	Morpher * morpher = new Morpher(sourceModel,targetModel,sourceCurve,targetCurve);
+//	Morpher *morpher=new Morpher(sourceModel,targetModel,sourceGraph,targetGraph);
 	
 	morpher->generateInBetween(10,15,20);
 
