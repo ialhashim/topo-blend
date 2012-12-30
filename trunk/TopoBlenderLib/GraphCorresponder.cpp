@@ -9,7 +9,64 @@ GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph
 {
 	this->sg = source;
 	this->tg = target;
+
+	sIsLandmark.resize(sg->nodes.size(), false);
+	tIsLandmark.resize(tg->nodes.size(), false);
 }
+
+
+void GraphCorresponder::addLandmarks( std::set<QString> sParts, std::set<QString> tParts )
+{
+	// Check if those parts are available
+	foreach(QString strID, sParts)
+	{
+		Structure::Node * node = sg->getNode(strID);
+		if (!node)
+		{
+			qDebug() << "Add landmarks: " << strID << " doesn't exist in the source graph.";
+			return;
+		}
+		int idx = node->property["index"].toInt();
+		if (sIsLandmark[idx])
+		{
+			qDebug() << "Add landmarks: " << strID << " in the source graph has already been corresponded.";
+			return;
+		}
+	}
+
+	foreach(QString strID, tParts)
+	{
+		Structure::Node * node = tg->getNode(strID);
+		if (!node)
+		{
+			qDebug() << "Add landmarks: " << strID << " doesn't exist in the target graph.";
+			return;
+		}
+		int idx = node->property["index"].toInt();
+		if (tIsLandmark[idx])
+		{
+			qDebug() << "Add landmarks: " << strID << " in the target graph has already been corresponded.";
+			return;
+		}
+	}
+
+	// Mark those parts
+	foreach(QString strID, sParts)
+	{
+		int idx = sg->getNode(strID)->property["index"].toInt();
+		sIsLandmark[idx] = true;
+	}
+
+	foreach(QString strID, tParts)
+	{
+		int idx = tg->getNode(strID)->property["index"].toInt();
+		tIsLandmark[idx] = true;
+	}
+
+	// Store correspondence
+	landmarks.push_back(std::make_pair(sParts, tParts));
+}
+
 
 float GraphCorresponder::supInfDistance( std::vector<Vector3> &A, std::vector<Vector3> &B )
 {
@@ -111,6 +168,22 @@ void GraphCorresponder::computeDistanceMatrix()
 			else
 				disM[i][j] = M1[i][j] + 0.5 * M2[i][j];
 		}
+	}
+
+	// Add landmarks
+	foreach (SET_PAIR set2set, landmarks)
+	{
+		// Convert strID to int id
+		std::set<int> sIDs, tIDs;
+		foreach (QString strID, set2set.first)
+			sIDs.insert(sg->getNode(strID)->property["index"].toInt());
+		foreach (QString strID, set2set.second)
+			tIDs.insert(tg->getNode(strID)->property["index"].toInt());
+
+		// Set distances to 0
+		foreach (int r, sIDs)
+			foreach (int c, tIDs)
+				disM[r][c] = 0;
 	}
 
 	normalizeMatrix(disM);
@@ -223,7 +296,6 @@ void GraphCorresponder::findOneToOneCorrespondences()
 	outF << "Source shape: " << sg->property["name"].toString().toStdString() << '\n';
 	outF << "Target shape: " << tg->property["name"].toString().toStdString() << "\n\n\n";
 
-	this->correspondences.clear();
 	int r, c;
 	while (minElementInMatrix(disMatrix, r, c))
 	{
@@ -267,13 +339,12 @@ void GraphCorresponder::findOneToManyCorrespondences()
 	outF << "Source shape: " << sg->property["name"].toString().toStdString() << '\n';
 	outF << "Target shape: " << tg->property["name"].toString().toStdString() << "\n\n\n";
 
-	this->correspondences.clear();
 	int r, c;
 	while (minElementInMatrix(disMatrix, r, c))
 	{
 		// source:r <-> target:c
 		// The threshold
-		float threshold  = disMatrix[r][c] * 0.9;
+		float threshold  = disMatrix[r][c] * 0.98;
 
 		// Search for "many" in source
 		std::vector<int> r_many;
@@ -614,7 +685,11 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 
 void GraphCorresponder::computeCorrespondences()
 {
+	// Landmarks
+	loadLandmarks();
+
 	// Part-to-Part correspondences
+	correspondences.clear();
 	findOneToOneCorrespondences();
 
 	// Adjust the frames for corresponded parts
@@ -650,5 +725,69 @@ void GraphCorresponder::computeCorrespondences()
 			qDebug() << "Many to Many correspondence happened. ";
 		}
 	}
+}
+
+void GraphCorresponder::saveLandmarks()
+{
+	QString sgName = sg->property["name"].toString().section('\\', -1).section('.', 0, 0);
+	QString tgName = tg->property["name"].toString().section('\\', -1).section('.', 0, 0);
+
+	QString filename = "landmarks_" + sgName + "_" + tgName + ".txt";
+
+	std::ofstream outF(filename.toStdString(), std::ios::out);
+
+	foreach (SET_PAIR set2set, landmarks)
+	{
+		outF << set2set.first.size() << '\t';;
+		foreach (QString strID, set2set.first)
+			outF << strID.toStdString() << '\t';
+		outF << '\n';
+
+		outF << set2set.second.size() << '\t';
+		foreach (QString strID, set2set.second)
+			outF << strID.toStdString() << '\t';
+		outF << "\n\n";
+	}
+
+	outF.close();
+}
+
+void GraphCorresponder::loadLandmarks()
+{
+	QString sgName = sg->property["name"].toString().section('\\', -1).section('.', 0, 0);
+	QString tgName = tg->property["name"].toString().section('\\', -1).section('.', 0, 0);
+
+	QString filename = "landmarks_" + sgName + "_" + tgName + ".txt";
+
+	std::ifstream inF(filename.toStdString(), std::ios::in);
+
+	landmarks.clear();
+	sIsLandmark.resize(sg->nodes.size(), false);
+	tIsLandmark.resize(tg->nodes.size(), false);
+
+	int n;
+	std::string strID;
+	while(!inF.eof())
+	{
+		std::set<QString> sParts, tParts;
+
+		inF >> n;
+		for (int i = 0; i < n; i++)
+		{
+			inF >> strID;
+			sParts.insert(QString(strID.c_str()));
+		}
+
+		inF >> n;
+		for (int i = 0; i < n; i++)
+		{
+			inF >> strID;
+			tParts.insert(QString(strID.c_str()));
+		}
+
+		this->addLandmarks(sParts, tParts);
+	}
+
+	inF.close();
 }
 

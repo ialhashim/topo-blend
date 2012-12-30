@@ -50,8 +50,9 @@ void topoblend::decorate()
 
 	if(graphs.size() > 1) 
 	{
-		posX = -drawArea()->sceneRadius();
-		deltaX = (drawArea()->sceneRadius() * 2.0) / (graphs.size()-1);
+		float r = drawArea()->sceneRadius();
+		posX = -r * (graphs.size() - 1) / 2;
+		deltaX = r;
 	}
 
 	for(int g = 0; g < (int) graphs.size(); g++)
