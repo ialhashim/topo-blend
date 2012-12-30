@@ -5,12 +5,19 @@
 
 #include <vector>
 
-typedef std::pair<std::set<QString>, std::set<QString>> SET2SET;
+typedef std::pair<std::set<QString>, std::set<QString>> SET_PAIR;
 
 class GraphCorresponder
 {
 public:
     GraphCorresponder(Structure::Graph *source, Structure::Graph *target);
+
+	// Landmarks
+	std::vector<SET_PAIR> landmarks;
+	std::vector<bool> sIsLandmark, tIsLandmark;
+	void addLandmarks(std::set<QString> sParts, std::set<QString> tParts);
+	void saveLandmarks();
+	void loadLandmarks();
 
 	// Hausdorff distance
 	float supInfDistance(std::vector<Vector3> &A, std::vector<Vector3> &B);
@@ -38,7 +45,7 @@ public:
 	void computeCorrespondences();
 
 	// Result
-	std::vector<SET2SET> correspondences;
+	std::vector<SET_PAIR> correspondences;
 
 private:
 	Structure::Graph *sg, *tg;
