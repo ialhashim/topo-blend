@@ -15,6 +15,7 @@
 #include "DynamicGraph.h"
 #include "GraphDistance.h"
 #include "TopoBlender.h"
+#include "Scheduler.h"
 
 // Graph Correspondence
 #include "GraphCorresponder.h"
@@ -87,7 +88,7 @@ void topoblend::decorate()
 	// DEBUG:
 	glDisable(GL_LIGHTING);
 
-	glClear( GL_DEPTH_BUFFER_BIT );
+	//glClear( GL_DEPTH_BUFFER_BIT );
 
 	// Points
 	glPointSize(10); glColor3d(1,0,0); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints) glVector3(v); glEnd();
@@ -581,17 +582,17 @@ void topoblend::doBlend()
 	Structure::Graph * source = graphs.front();
 	Structure::Graph * target = graphs.back();
 
-    blender = new TopoBlender( source, target );
+	Scheduler * scheduler = new Scheduler();
 
-	Structure::Graph * blendedGraph = blender->blend();
+    blender = new TopoBlender( source, target, scheduler );
+
+	//Structure::Graph * blendedGraph = blender->blend();
 
 	// Set options
-	blender->params["NUM_STEPS"] = this->params["NUM_STEPS"];
-	blender->params["materialize"] = this->params["materialize"];
-
-	blender->materializeInBetween( blendedGraph, 0, source );
-
-	graphs.push_back( blendedGraph );
+	//blender->params["NUM_STEPS"] = this->params["NUM_STEPS"];
+	//blender->params["materialize"] = this->params["materialize"];
+	//blender->materializeInBetween( blendedGraph, 0, source );
+	//graphs.push_back( blendedGraph );
 
 	setSceneBounds();
 }
@@ -729,19 +730,6 @@ void topoblend::clearGraphs()
 
 void topoblend::currentExperiment()
 {
-    if (graphs.size() < 2)
-    {
-        qDebug() << "Please load at least two graphs.";
-        return;
-    }
-
-    Structure::Graph * source = graphs.front();
-    Structure::Graph * target = graphs.back();
-
-    blender = new TopoBlender( source, target );
-
-    blender->testScheduler();
-
     //Structure::Graph * blendedGraph = blender->blend();
 
     // Set options

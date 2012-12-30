@@ -2,17 +2,19 @@
 #include "Task.h"
 #include <QGraphicsSceneMouseEvent>
 
-Task::Task(Structure::Node *assignedNode)
+Task::Task( Structure::Graph * graph, TaskType taskType )
 {
-	this->node = assignedNode;
+	// Task properties
+	this->active = graph;
+	this->type = taskType;
+	this->mycolor = TaskColors[taskType];
+	this->start = 0;
+	this->length = 120;
 
-    width = 120;
-    height = 17;
-
+	// Visual properties
+	width = length;
+	height = 17;
 	setFlags(ItemIsMovable | ItemIsSelectable | ItemSendsGeometryChanges);
-
-	mycolor = qRandomColor();
-
 	isResizing = false;
 }
 

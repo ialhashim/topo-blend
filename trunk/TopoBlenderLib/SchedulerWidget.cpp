@@ -9,10 +9,9 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
 	ui->timelineView->updateSceneRect(scheduler->sceneRect());
 
 	// Add nodes to list
-	foreach(QGraphicsItem * item, scheduler->items())
+	foreach(Task * t, scheduler->tasks)
 	{
-		Task * t = (Task*) item;
-		ui->nodesList->addItem(t->node->id);
+		ui->nodesList->addItem(t->property["nodeID"].toString());
 	}
 }
 

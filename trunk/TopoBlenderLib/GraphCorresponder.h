@@ -6,6 +6,7 @@
 #include <vector>
 
 typedef std::pair<std::set<QString>, std::set<QString>> SET_PAIR;
+Q_DECLARE_METATYPE(SET_PAIR);
 
 class GraphCorresponder
 {
@@ -41,10 +42,15 @@ public:
 	void correspondTwoCurves(Structure::Curve *sCurve, Structure::Curve *tCurve);
 	void correspondTwoSheets(Structure::Sheet *sSheet, Structure::Sheet *tSheet);
 
+	// Find non-corresponding nodes
+	std::vector<QString> nonCorresSource(); // to kill
+	std::vector<QString> nonCorresTarget(); // to grow
+
 	// The main access
 	void computeCorrespondences();
 
 	// Result
+	std::vector<bool> sIsCorresponded, tIsCorresponded;
 	std::vector<SET_PAIR> correspondences;
 
 private:

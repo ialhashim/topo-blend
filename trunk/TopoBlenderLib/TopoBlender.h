@@ -4,6 +4,9 @@
 #include "DynamicGraph.h"
 #include "StructureGraph.h"
 #include "GraphDistance.h"
+#include "GraphCorresponder.h"
+
+class Scheduler;
 
 struct Structure::Graph;
 
@@ -11,28 +14,23 @@ class TopoBlender : public QObject
 {
     Q_OBJECT
 public:
-    explicit TopoBlender(Structure::Graph * graph1, Structure::Graph * graph2, QObject *parent = 0);
+    explicit TopoBlender(Structure::Graph * graph1, Structure::Graph * graph2, Scheduler * useScheduler, QObject *parent = 0);
+    
+	Structure::Graph * sg;
+	Structure::Graph * active;
+    Structure::Graph * tg;
 
-    Structure::Graph * g1;
-    Structure::Graph * g2;
+	GraphCorresponder * gcoor;
 
-    GraphDistance * originalGraphDistance;
-
-    DynamicGraph source;
-    DynamicGraph active;
-    DynamicGraph target;
+	Scheduler * scheduler;
 
     QMap<QString, QVariant> params;
-
-    QList< Structure::ScalarLinksPair > badCorrespondence( QString activeNodeID, QString targetNodeID,
-        QMap< Structure::Link*, std::vector<Vec4d> > & coord_active, QMap< Structure::Link*, std::vector<Vec4d> > & coord_target );
 
     // Logging
     int stepCounter;
 
 public slots:
     // Experiments
-    void bestPartialCorrespondence();
     void testScheduler();
 
     // Logging

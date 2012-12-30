@@ -8,9 +8,11 @@ class Scheduler : public QGraphicsScene
     Q_OBJECT
 
 public:
-    Scheduler( TopoBlender * topoBlender );
+    Scheduler();
 
-    TopoBlender * tp;
+	QVector<Task*> tasks;
+
+	void schedule();
 
 protected:
 	void drawBackground ( QPainter * painter, const QRectF & rect );

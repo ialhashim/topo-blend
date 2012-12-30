@@ -34,9 +34,10 @@ struct Graph
 	
 	// Modifiers
     Node * addNode( Node * n );
+	Node * removeNode( QString nodeID );
+
     Link addEdge( Node * n1, Node * n2 );
 	Link addEdge(Node *n1, Node *n2, std::vector<Vec4d> coord1, std::vector<Vec4d> coord2, QString linkName);
-	
 	Link addEdge(QString n1_id, QString n2_id);
 	void removeEdge( Node * n1, Node * n2 );
 

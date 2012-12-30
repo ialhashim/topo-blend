@@ -1,22 +1,8 @@
 #include "Scheduler.h"
 
-Scheduler::Scheduler(TopoBlender *topoBlender) : tp(topoBlender)
+Scheduler::Scheduler()
 {
-	Task *current, *prev = NULL;
 
-	foreach(Structure::Node * node, topoBlender->active.mGraph->nodes)
-	{
-		// Create
-		current = new Task(node);
-
-		// Placement
-		if(prev) current->moveBy(prev->x() + prev->width,prev->y() + (prev->height));
-
-		// Add to scene
-		this->addItem( current );
-
-		prev = current;
-	}
 }
 
 void Scheduler::drawBackground( QPainter * painter, const QRectF & rect )
@@ -71,5 +57,24 @@ void Scheduler::drawForeground( QPainter * painter, const QRectF & rect )
 			int minorX = curX + (j * delta);
 			painter->drawLine(minorX, screenBottom, minorX, screenBottom - 5);
 		}
+	}
+}
+
+void Scheduler::schedule()
+{
+	Task *current, *prev = NULL;
+
+	foreach(Task * t, tasks)
+	{
+		// Create
+		current = t;
+
+		// Placement
+		if(prev) current->moveBy(prev->x() + prev->width,prev->y() + (prev->height));
+
+		// Add to scene
+		this->addItem( current );
+
+		prev = current;
 	}
 }

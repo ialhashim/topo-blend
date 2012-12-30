@@ -770,6 +770,19 @@ QVector<Link> Structure::Graph::nodeEdges( QString nodeID )
 	return nodeLinks;
 }
 
+Node * Structure::Graph::removeNode( QString nodeID )
+{
+	Structure::Node * n = getNode(nodeID);
+
+	foreach(Link * l, getEdges(nodeID)){
+		edges.remove(edges.indexOf(*l));
+	}
+
+	nodes.remove(nodes.indexOf(n));
+
+	return n;
+}
+
 QList<Link> Graph::furthermostEdges( QString nodeID )
 {
 	QMap<double, Link> sortedLinks;
