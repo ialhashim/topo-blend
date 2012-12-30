@@ -12,6 +12,9 @@ GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph
 
 	sIsLandmark.resize(sg->nodes.size(), false);
 	tIsLandmark.resize(tg->nodes.size(), false);
+
+	sIsCorresponded.resize(sg->nodes.size(), false);
+	tIsCorresponded.resize(tg->nodes.size(), false);
 }
 
 
@@ -686,11 +689,29 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 void GraphCorresponder::computeCorrespondences()
 {
 	// Landmarks
-	loadLandmarks();
+	//loadLandmarks();
 
 	// Part-to-Part correspondences
 	correspondences.clear();
 	findOneToOneCorrespondences();
+
+	// Mark the nodes
+	sIsCorresponded.resize(sg->nodes.size(), false);
+	tIsCorresponded.resize(tg->nodes.size(), false);
+	foreach (SET_PAIR set2set, correspondences)
+	{
+		foreach (QString sID, set2set.first)
+		{
+			int sid = sg->getNode(sID)->property["index"].toInt();
+			sIsCorresponded[sid] = true;
+		}
+
+		foreach (QString tID, set2set.second)
+		{
+			int tid = tg->getNode(tID)->property["index"].toInt();
+			tIsCorresponded[tid] = true;
+		}
+	}
 
 	// Adjust the frames for corresponded parts
 	// Then Point-to-Point correspondences can be easily retrieved via parameterized NURBS. 
@@ -726,6 +747,7 @@ void GraphCorresponder::computeCorrespondences()
 		}
 	}
 }
+
 
 void GraphCorresponder::saveLandmarks()
 {
@@ -791,3 +813,28 @@ void GraphCorresponder::loadLandmarks()
 	inF.close();
 }
 
+std::vector<QString> GraphCorresponder::nonCorresSource()
+{
+	std::vector<QString> nodes;
+	
+	for (int i = 0; i < (int)sIsCorresponded.size(); i++)
+	{
+		if (!sIsCorresponded[i])
+			nodes.push_back(sg->nodes[i]->id);
+	}
+
+	return nodes;
+}
+
+std::vector<QString> GraphCorresponder::nonCorresTarget()
+{
+	std::vector<QString> nodes;
+
+	for (int i = 0; i < (int) tIsCorresponded.size(); i++)
+	{
+		if (!tIsCorresponded[i])
+			nodes.push_back(tg->nodes[i]->id);
+	}
+
+	return nodes;
+}

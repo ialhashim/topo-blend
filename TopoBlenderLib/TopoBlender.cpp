@@ -8,109 +8,93 @@
 using namespace Structure;
 
 #include "ExportDynamicGraph.h"
+
+#include "Scheduler.h"
 #include "SchedulerWidget.h"
 
 // Temporary solution for output
 #include "surface_mesh/IO.h"
 
-TopoBlender::TopoBlender(Graph *graph1, Graph *graph2, QObject *parent) : QObject(parent)
+
+TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * targetGraph, Scheduler * useScheduler, QObject *parent ) : QObject(parent)
 {
-    g1 = graph1;
-    g2 = graph2;
+    sg = sourceGraph;
+    tg = targetGraph;
+	scheduler = useScheduler;
 
-	source = DynamicGraph(g1);
-	target = DynamicGraph(g2);
-}
+	active = new Structure::Graph(*sg);
+	
+	gcoor = new GraphCorresponder(sg, tg);
+	gcoor->computeCorrespondences();
 
-void TopoBlender::bestPartialCorrespondence()
-{
-	QMultiMap<Scalar, QPairNodes> scores;
-
-	/// 1) Compute scores for pairs
-	foreach(Node * i, g1->nodes)
+	// Generate shrinking tasks
+	foreach(QString nodeID, gcoor->nonCorresSource())
 	{
-		double areaI = i->area();
-		Vector3 centerI = i->center();
-
-		foreach(Node * j, g2->nodes)
-		{
-			// Disabled for now
-			if(i->type() != j->type()) continue;
-
-			double score = 0;
-
-			double areaJ = j->area();
-
-			// Score computation
-			score += abs( areaI - areaJ );
-			score += abs( (centerI - j->center()).norm() );
-			score += 1.0 / qMin(areaI, areaJ);
-			//score += abs( g1->valence(i) - g2->valence(j) );
-
-			scores.insert(score, qMakePair(i,j));
-		}
+		Task * task = new Task( active, Task::SHRINK );
+		task->property["nodeID"] = "Shrink:" + nodeID;
+		scheduler->tasks.push_back( task );
 	}
 
-	/// 2) Find pair with minimal score
-	QList<QPairNodes> minPairs;
-	double minScore = DBL_MAX;
-
-	foreach(double curScore, scores.keys())
+	// Generate growing tasks
+	foreach(QString nodeID, gcoor->nonCorresTarget())
 	{
-		if(curScore < minScore)
-		{
-			minScore = curScore;
-			minPairs = scores.values(minScore);
-		}
+		Task * task = new Task( active, Task::GROW );
+		task->property["nodeID"] = "Grow:" +nodeID;
+		scheduler->tasks.push_back( task );
 	}
 
-	/// 3) Assign "root" node as 'active'
-	Node * root = minPairs.first().first;
-	Node * targetRoot = minPairs.first().second;
 
-	active = DynamicGraph(g1);
-
-	active.flagNodes("state", SLEEP);
-	active.getNode( root->id )->set("correspond", targetRoot->id);
-    active.getNode( root->id )->set("state", ACTIVE);
-}
-
-QList< ScalarLinksPair > TopoBlender::badCorrespondence(  QString activeNodeID, QString targetNodeID, 
-	QMap< Link*, std::vector<Vec4d> > & coord_active, QMap< Link*, std::vector<Vec4d> > & coord_target )
-{
-	QMap<QPairLink, Scalar> dists;
-
-	coord_active = g1->linksCoords(activeNodeID);
-	coord_target = g2->linksCoords(targetNodeID);
-
-	// Compute pair-wise distances [active coords] <-> [target coords]
-	foreach(Link * i, coord_active.keys())
+	// Generate morphing tasks
+	// 1) Find non-corresponding edges, re-link
+	// 2) Generate task
+	foreach (SET_PAIR set2set, gcoor->correspondences)
 	{
-		double minDist = DBL_MAX;
-		Link * closestLink = NULL;
+		int sN = set2set.first.size();
+		int tN = set2set.second.size();
 
-		foreach(Link * j, coord_target.keys())
+		Task * task = NULL;
+		if (sN == 1 && tN > 1)
 		{
-			double dist = (coord_active[i].front() - coord_target[j].front()).norm();
-
-			if(dist < minDist)
-			{
-				minDist = dist;
-				closestLink = j;
-			}
+			// One to many : splitting
+			task = new Task( active, Task::SPLIT );
+			task->property["nodeID"] = "One-to-many";
+		}
+		
+		else if (sN > 1 && tN == 1)
+		{
+			// Many to one : merging
+			task = new Task( active, Task::MERGE );
+			task->property["nodeID"] = "Many-to-one";
 		}
 
-		dists[qMakePair(i, closestLink)] = minDist;
-	}
+		else if (sN == 1 && tN == 1)
+		{
+			// One to one : fix links
+			// Extract the "core", which nodes and edges are fully corresponded
+			task = new Task( active, Task::MORPH );
+			task->property["nodeID"] = "Morph!";
+		}
 
-	return sortQMapByValue(dists);
+		task->property["corr"].setValue(set2set);
+		scheduler->tasks.push_back( task );
+	}
+	 
+	scheduler->schedule();
+
+	// Show the scheduler window:
+	SchedulerWidget * sw = new SchedulerWidget( scheduler );
+	QDockWidget *dock = new QDockWidget("Scheduler");
+	dock->setWidget(sw);
+	QMainWindow * win = (QMainWindow *) qApp->activeWindow();
+	win->addDockWidget(Qt::BottomDockWidgetArea, dock);
 }
 
+/*
 Graph * TopoBlender::blend()
 {
 	// Initial steps
 	cleanup();
-	originalGraphDistance = new GraphDistance(g1);
+	originalGraphDistance = new GraphDistance(sg);
 
 	/// 1) Best partial correspondence
 	bestPartialCorrespondence();
@@ -629,6 +613,7 @@ Graph * TopoBlender::blend()
 
     return active.toStructureGraph();
 }
+*/
 
 void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceGraph )
 {
@@ -818,14 +803,10 @@ void TopoBlender::cleanup()
 
 void TopoBlender::testScheduler()
 {
-	active = source;
+	
+}
 
-    Scheduler * scheduler = new Scheduler(this);
-    SchedulerWidget * sw = new SchedulerWidget( scheduler );
-
-	QDockWidget *dock = new QDockWidget("Scheduler");
-	dock->setWidget(sw);
-
-	QMainWindow * win = (QMainWindow *) qApp->activeWindow();
-	win->addDockWidget(Qt::BottomDockWidgetArea, dock);
+Structure::Graph * TopoBlender::blend()
+{
+	return NULL;
 }
