@@ -158,6 +158,11 @@ std::vector < std::vector<Vector3> > NURBSCurve::toSegments( Scalar resolution )
 {
 	std::vector< std::vector<Vector3> > segments;
 
+	if((mCtrlPoint[0] - mCtrlPoint[1]).norm() < resolution){
+		segments.push_back(this->mCtrlPoint);
+		return segments;
+	}
+
 	Scalar curveLength = this->GetLength(0,1);
 
 	// For singular cases

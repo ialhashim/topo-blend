@@ -525,6 +525,25 @@ void NURBSRectangle::generateSurfacePoints( Scalar stepSize, std::vector< std::v
 		}
 	}
 }
+
+void NURBSRectangle::generateSurfacePointsCoords( Scalar stepSize, std::vector< std::vector<Vec4d> > & points )
+{
+	std::vector<Vector3> ctrlU = GetControlPointsU(0);
+	std::vector<Vector3> ctrlV = GetControlPointsV(0);
+
+	std::vector< std::vector<Vector3> > curveU = NURBSCurve(ctrlU, std::vector<Scalar>(ctrlU.size(), 1.0)).toSegments(stepSize);
+	std::vector< std::vector<Vector3> > curveV = NURBSCurve(ctrlV, std::vector<Scalar>(ctrlV.size(), 1.0)).toSegments(stepSize);
+
+	std::vector<Real> valU,valV;
+	uniformCoordinates(valU, valV, qMin(curveU.size(), curveV.size()));
+
+	points.resize(valU.size(), std::vector<Vec4d>(valV.size()));
+
+	for(int y = 0; y < (int)valV.size(); y++)
+		for(int x = 0; x < (int)valU.size(); x++)
+			points[x][y] = Vec4d(valU[x], valV[y], 0, 0);
+}
+
 //----------------------------------------------------------------------------
 
 Vec4d NURBSRectangle::timeAt( const Vector3 & pos )
@@ -827,8 +846,12 @@ std::vector<Vec3d> NURBSRectangle::intersect( NURBSRectangle & other, double res
 	if(samples.size() == 0)
 		return samples;
 
+	coordMe = timeAt(samples, threshold);
+	coordOther = other.timeAt(samples, threshold);
+	return samples;
+
 	// Quick dirty MST then get longest path
-	Graph<int, double> graph;
+	/*Graph<int, double> graph;
 	typedef std::pair<int,int> PairInts;
 	QMap< PairInts, double > edges; 
 	for(int i = 0; i < (int)samples.size(); i++){
@@ -863,7 +886,7 @@ std::vector<Vec3d> NURBSRectangle::intersect( NURBSRectangle & other, double res
 	coordMe = timeAt(samples, threshold);
 	coordOther = other.timeAt(samples, threshold);
 
-	return clusterdSamples;
+	return clusterdSamples;*/
 }
 
 std::vector< std::vector<Vector3> > NURBSRectangle::triangulateControlCage()
@@ -919,4 +942,11 @@ SurfaceMeshTypes::Vector3 NURBSRectangle::projectOnControl( Real u, Real v )
 		qDebug() << "No intersection at u = " << u << ", v = " << v;
 		return pos;
 	}
+}
+
+void NURBSRectangle::translate( const Vec3d & delta )
+{
+	for(int y = 0; y < (int)mCtrlPoint.size(); y++)
+		for(int x = 0; x < (int)mCtrlPoint[0].size(); x++)
+			mCtrlPoint[y][x] += delta;
 }

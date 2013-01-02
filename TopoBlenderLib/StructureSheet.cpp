@@ -12,7 +12,6 @@ Sheet::Sheet(const NURBSRectangle & sheet, QString sheetID, QColor color)
 	this->surface.quads.clear();
 
     this->id = sheetID;
-
     this->vis_property["color"] = color;
     this->vis_property["showControl"] = true;
 }
@@ -20,6 +19,9 @@ Sheet::Sheet(const NURBSRectangle & sheet, QString sheetID, QColor color)
 Node * Sheet::clone()
 {
 	Sheet * cloneSheet = new Sheet( this->surface, this->id );
+	cloneSheet->surface.quads.clear();
+	cloneSheet->property = this->property;
+	cloneSheet->vis_property = this->vis_property;
 	return cloneSheet;
 }
 
@@ -115,11 +117,16 @@ std::vector< std::vector<Vector3> > Sheet::discretized(Scalar resolution)
 	return surface.generateSurfaceTris( resolution );
 }
 
-std::vector< std::vector<Vector3> > Structure::Sheet::discretizedPoints( Scalar resolution )
+std::vector< std::vector<Vec4d> > Sheet::discretizedPoints( Scalar resolution )
 {
-	std::vector< std::vector<Vector3> > points;
-	surface.generateSurfacePoints(resolution, points);
-	return points;
+	std::vector< std::vector<Vec4d> > coords;
+	surface.generateSurfacePointsCoords(resolution, coords);
+	return coords;
+}
+
+void Sheet::moveBy( const Vec3d & delta )
+{
+	surface.translate( delta );
 }
 
 Vector3 & Sheet::controlPoint( int idx )

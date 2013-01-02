@@ -21,6 +21,12 @@ std::vector<Vec4d> Structure::Link::getCoordOther( QString nodeID )
 	return getCoord(otherNode(nodeID)->id);
 }
 
+Vec4d Structure::Link::getMiddleCoord( QString nodeID )
+{
+	std::vector<Vec4d> nodeCoords = getCoord(nodeID);
+	return nodeCoords[ nodeCoords.size() / 2 ];
+}
+
 Node * Link::otherNode( QString nodeID )
 {
 	if(n1->id == nodeID) return n2;
@@ -84,6 +90,11 @@ SurfaceMeshTypes::Vector3 Link::position( QString nodeID )
 	assert(n->id == nodeID);
 
 	Vector3 pos(0);
-	n->get(getCoord(nodeID).front(),pos);
+	n->get( getMiddleCoord(nodeID), pos);
 	return pos;
+}
+
+SurfaceMeshTypes::Vector3 Link::positionOther( QString nodeID )
+{
+	return position(otherNode(nodeID)->id);
 }

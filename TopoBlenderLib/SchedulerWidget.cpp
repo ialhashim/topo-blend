@@ -1,3 +1,4 @@
+#include "Task.h"
 #include "SchedulerWidget.h"
 #include "ui_SchedulerWidget.h"
 

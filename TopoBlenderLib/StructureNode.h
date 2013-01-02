@@ -12,9 +12,9 @@ struct Node
 
 	// Properties
 	QString id;
+	QMap< QString, QVariant > property;
     virtual QString type() = 0;
     virtual QBox3D bbox(double scaling = 1.0) = 0;
-    QMap< QString, QVariant > property;
 
 	bool hasProperty(QString propertyName) { return property.contains(propertyName); }
 
@@ -22,6 +22,9 @@ struct Node
 	virtual std::vector<Vector3> controlPoints() = 0;
 	virtual std::vector<Scalar> controlWeights() = 0;
 	virtual Vector3 & controlPoint(int idx) = 0;
+
+	// Modifiers
+	virtual void moveBy( const Vec3d & delta ) = 0;
 
 	// Coordinates
 	virtual void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() ) = 0;
@@ -35,7 +38,14 @@ struct Node
 	inline Vec4d maxCoord(){ return Vec4d(1.0); }
 
 	virtual std::vector< std::vector<Vector3> > discretized(Scalar resolution) = 0;
-	virtual std::vector< std::vector<Vector3> > discretizedPoints(Scalar resolution) = 0;
+	virtual std::vector< std::vector<Vec4d> > discretizedPoints(Scalar resolution) = 0;
+	std::vector< std::vector<Vector3> > getPoints( const std::vector< std::vector<Vec4d> > & coords ){
+		std::vector< std::vector<Vector3> > pnts(coords.size(), std::vector<Vector3>(coords.front().size(), Vector3(0)));
+		for(int i = 0; i < (int)coords.size(); i++)
+			for(int j = 0; j < (int)coords.front().size(); j++)
+				pnts[i][j] = position( coords[i][j] );
+		return pnts;
+	}
 
 	// Geometric properties
 	virtual Scalar area() = 0;

@@ -5,7 +5,7 @@
 
 #include <vector>
 
-typedef std::pair<std::set<QString>, std::set<QString>> SET_PAIR;
+typedef std::pair< std::set<QString>, std::set<QString> > SET_PAIR;
 Q_DECLARE_METATYPE(SET_PAIR);
 
 class GraphCorresponder

@@ -3,6 +3,7 @@
 #include "Dijkstra.h"
 
 typedef std::map< int, std::pair<int,double> > CloseMap;
+typedef QPair<QString,Vec4d> NodeCoord;
 
 struct GraphDistanceNode{
 	Vector3 pos;
@@ -23,9 +24,11 @@ public:
 	void prepareNodes( Scalar resolution, const std::vector<Vector3> & startingPoints, 
 		CloseMap & closestStart, QVector<Structure::Node *> nodes );
 
-	void computeDistances( Vector3 startingPoint, double resolution = 0.25 );
-	void computeDistances( std::vector<Vector3> startingPoints, double resolution = 0.25 );
-	double distanceTo( Vector3 point, std::vector<Vector3> & path = std::vector<Vector3>() );
+	void computeDistances( Vector3 startingPoint, double resolution = -1 );
+	void computeDistances( std::vector<Vector3> startingPoints, double resolution = -1 );
+
+	double pathTo( Vector3 point, std::vector<Vector3> & path = std::vector<Vector3>() );	
+	double pathCoordTo( Vector3 point, QVector< QPair<QString, Vec4d> > & path );
 	Structure::Node * closestNeighbourNode( Vector3 to, double resolution = 0.25 );
 	void clear();
 
@@ -40,6 +43,7 @@ public:
 	std::map< Structure::Node *, std::pair<int,int> > nodeCount;
 
 	std::vector<Vector3> allPoints;
+	QVector< QPair<QString,Vec4d> > allCoords;
 	std::vector<double> dists;
 	std::vector<Structure::Node *> correspond;
 	std::set< std::pair<int,int> > jumpPoints;

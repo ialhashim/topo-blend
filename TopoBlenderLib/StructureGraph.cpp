@@ -1,6 +1,7 @@
 #include <QFile>
 #include <QElapsedTimer>
 #include <QDomElement>
+#include <QStack>
 
 #include "StructureGraph.h"
 using namespace Structure;
@@ -33,9 +34,7 @@ Graph::Graph( const Graph & other )
 	{
 		Node * n1 = this->getNode(edg.n1->id);
 		Node * n2 = this->getNode(edg.n2->id);
-
-		Link e( n1, n2, edg.coord[0], edg.coord[1], "none", linkName(n1, n2) );
-		this->edges.push_back(e);
+		this->addEdge(n1, n2, edg.coord[0], edg.coord[1], edg.id);
 	}
 
 	property = other.property;
@@ -95,7 +94,7 @@ Link Graph::addEdge(Node *n1, Node *n2)
 	{
 		Sheet *s1 = (Sheet*) n1, *s2 = (Sheet*) n2;
 		double length = qMin(s1->bbox().size().length(), s2->bbox().size().length());
-		std::vector<Vec3d> pnts = s1->surface.intersect(s2->surface, 0.01 * length, c1, c2);
+		std::vector<Vec3d> pnts = s1->surface.intersect(s2->surface, 0.025 * length, c1, c2);
 		
 		// DEBUG:
 		//foreach(Vec3d p, pnts) debugPoints3.push_back(p);
@@ -132,7 +131,10 @@ Link Graph::addEdge(Node *n1, Node *n2, std::vector<Vec4d> coord1, std::vector<V
 	n1 = addNode(n1);
 	n2 = addNode(n2);
 
-	Link e( n1, n2, coord1, coord2, "none", linkName );
+	QString edgeType = POINT_EDGE;
+	if(n1->type() == SHEET && n2->type() == SHEET) edgeType = LINE_EDGE;
+
+	Link e( n1, n2, coord1, coord2, edgeType, linkName );
 	edges.push_back(e);
 
 	// Add to adjacency list
@@ -176,6 +178,11 @@ void Graph::removeEdge( Node * n1, Node * n2 )
 QString Graph::linkName(Node *n1, Node *n2)
 {
     return QString("%1 : %2").arg(n1->id).arg(n2->id);
+}
+
+QString Graph::linkName( QString n1_id, QString n2_id )
+{
+	return linkName(getNode(n1_id),getNode(n2_id));
 }
 
 Node *Graph::getNode(QString nodeID)
@@ -223,14 +230,14 @@ void Graph::draw()
 			foreach(Vector3 p, s->surface.debugPoints)	glVector3(p);
 			glEnd();
 
-			glBegin(GL_TRIANGLES);
+			//glBegin(GL_TRIANGLES);
 			//foreach(std::vector<Vector3> tri, s->surface.generateSurfaceTris(0.4))
 			//{
 			//	glColor3d(1,0,0); glVector3(tri[0]);
 			//	glColor3d(0,1,0); glVector3(tri[1]);
 			//	glColor3d(0,0,1); glVector3(tri[2]);
 			//}
-			glEnd();
+			//glEnd();
 		}
     }
 
@@ -250,7 +257,6 @@ void Graph::draw()
 	glBegin(GL_POINTS); foreach(Vector3 p, debugPoints3) glVector3(p); glEnd();
 	glEnable(GL_LIGHTING);
 
-
 	// Materialized
 	glBegin(GL_QUADS);
 	foreach(QuadFace f, cached_mesh.faces)
@@ -262,7 +268,6 @@ void Graph::draw()
 		glVector3(cached_mesh.points[f[3]]);
 	}
 	glEnd();
-
 
 	glDisable(GL_LIGHTING);
 	glPointSize(15);
@@ -350,7 +355,7 @@ void Graph::draw2D(int width, int height)
 	glEnable(GL_LIGHTING);
 }
 
-void Graph::saveToFile( QString fileName )
+void Graph::saveToFile( QString fileName ) const
 {
 	if(nodes.size() < 1) return;
 
@@ -793,4 +798,46 @@ QList<Link> Graph::furthermostEdges( QString nodeID )
 	}
 
 	return sortedLinks.values();
+}
+
+bool Structure::Graph::isCutNode( QString nodeID )
+{
+	QSet<Link*> isDeleted;
+
+	QMap<QString, bool> visitedNodes;
+	QStack<QString> nodesToVisit;
+
+	foreach(Link * l, getEdges(nodeID))
+	{
+		if(nodesToVisit.size() == 0) 
+			nodesToVisit.push(l->otherNode(nodeID)->id);
+		isDeleted.insert(l);
+	}
+
+	// Visit all nodes without going through a deleted edge
+	while(! nodesToVisit.isEmpty() )
+	{
+		QString id = nodesToVisit.pop();
+		visitedNodes[id] = true;
+
+		foreach(Link * l, getEdges(id))
+		{
+			if(isDeleted.contains(l)) continue;
+
+			QString adjID = l->otherNode(id)->id;
+
+			if( !visitedNodes.contains(adjID) && !nodesToVisit.contains(adjID))
+				nodesToVisit.push(adjID);
+		}
+	}
+
+	if(visitedNodes.size() != nodes.size() - 1)
+		return true;
+	else
+		return false;
+}
+
+Vector3 Graph::position( QString nodeID, Vec4d coord )
+{
+	return getNode(nodeID)->position(coord);
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include <QElapsedTimer>
 #include <set>
 
 #include "SurfaceMeshModel.h"
@@ -6,17 +7,20 @@
 using namespace SurfaceMeshTypes;
 
 #define MAX_REAL std::numeric_limits<SurfaceMeshTypes::Scalar>::max()
-#define REAL_ZERO_TOLERANCE 1e-08
+#define TimeTolerance 1e-5
+#define REAL_ZERO_TOLERANCE TimeTolerance
 
 typedef std::vector< Vector3 > Array1D_Vector3;
 typedef std::vector< std::vector<Vector3> > Array2D_Vector3;
 typedef std::vector< Vec4d > Array1D_Vec4d;
+typedef std::vector< std::vector<Vec4d> > Array2D_Vec4d;
 typedef std::vector< Scalar > Array1D_Real;
 typedef std::vector< Array1D_Real > Array2D_Real;
 
 Q_DECLARE_METATYPE(Array1D_Vector3)
 Q_DECLARE_METATYPE(Array2D_Vector3)
 Q_DECLARE_METATYPE(Array1D_Vec4d)
+Q_DECLARE_METATYPE(Array2D_Vec4d)
 
 typedef Scalar Real;
 
@@ -272,4 +276,26 @@ inline static bool intersectRayTri(const std::vector<Vec3d> & tri, const Vec3d &
 	t = dot(edge2, qvec) * invDet;
 	intersectionPoint = rayOrigin + (t * rayDirection);
 	return true;
+}
+
+/// Utility functions
+inline static Array2D_Vector3 inverseVectors3(Array2D_Vector3 vectors)
+{
+	Array2D_Vector3 result = vectors;
+
+	for(int i = 0; i < (int)result.size(); i++)
+		for(int j = 0; j < (int)result.front().size(); j++)
+			result[i][j] *= -1;
+
+	return result;
+}
+
+inline static Array1D_Vector3 inverseVectors3(Array1D_Vector3 vectors)
+{
+	Array1D_Vector3 result = vectors;
+
+	for(int i = 0; i < (int)result.size(); i++)
+			result[i] *= -1;
+
+	return result;
 }

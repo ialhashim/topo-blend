@@ -25,6 +25,7 @@ struct Link
 
 	std::vector<Vec4d> getCoord(QString nodeID);
 	std::vector<Vec4d> getCoordOther(QString nodeID);
+	Vec4d getMiddleCoord(QString nodeID);
 	Node * getNode(QString nodeID);
 	Node * otherNode(QString nodeID);
 
@@ -45,6 +46,7 @@ struct Link
 	bool hasNode(QString nodeID);
 	bool hasNodeProperty(QString propertyName, QVariant propertyValue);
 	Vector3 position(QString nodeID);
+	Vector3 positionOther(QString nodeID);
 
 	// Visualization
     void draw();
@@ -55,3 +57,5 @@ struct Link
 };
 
 }
+
+Q_DECLARE_METATYPE(Structure::Link)
