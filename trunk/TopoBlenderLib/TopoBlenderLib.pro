@@ -34,7 +34,8 @@ HEADERS += StructureNode.h \
     GraphCorresponder.h \
     Scheduler.h \
     Task.h \
-    SchedulerWidget.h
+    SchedulerWidget.h \
+    FFD.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -46,7 +47,8 @@ SOURCES += StructureGraph.cpp \
     GraphCorresponder.cpp \
     Scheduler.cpp \
     Task.cpp \
-    SchedulerWidget.cpp
+    SchedulerWidget.cpp \
+    FFD.cpp
 	
 
 FORMS += \

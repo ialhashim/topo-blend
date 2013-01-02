@@ -1,3 +1,4 @@
+#include "Task.h"
 #include "Scheduler.h"
 
 Scheduler::Scheduler()
@@ -24,8 +25,8 @@ void Scheduler::drawForeground( QPainter * painter, const QRectF & rect )
 
 	// Draw ruler
 	int rulerHeight = 25;
-	int screenRight = x + rect.width();
 	int screenBottom = y + rect.height();
+	painter->fillRect(x, screenBottom - rulerHeight, rect.width(), rulerHeight, QColor(64,64,64));
 
 	// Draw yellow line
 	int yellowLineHeight = 2;
@@ -77,4 +78,18 @@ void Scheduler::schedule()
 
 		prev = current;
 	}
+}
+
+void Scheduler::executeAll()
+{
+	foreach(Task * t, tasks)
+	{
+		t->execute();
+	}
+}
+
+void Scheduler::drawDebug()
+{
+	foreach(Task * t, tasks)
+		t->drawDebug();
 }

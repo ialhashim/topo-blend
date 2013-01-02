@@ -6,14 +6,15 @@ Curve::Curve(const NURBSCurve & newCurve, QString newID, QColor color)
 {
     this->curve = newCurve;
     this->id = newID;
-
     this->vis_property["color"] = color;
-    this->vis_property["showControl"] = false;
+    this->vis_property["showControl"] = true;
 }
 
 Node * Curve::clone()
 {
 	Curve * cloneCurve = new Curve( this->curve, this->id );
+	cloneCurve->property = this->property;
+	cloneCurve->vis_property = this->vis_property;
 	return cloneCurve;
 }
 
@@ -85,24 +86,34 @@ std::vector< std::vector<Vector3> > Curve::discretized(Scalar resolution)
 	return curve.toSegments( resolution );
 }
 
-std::vector< std::vector<Vector3> > Structure::Curve::discretizedPoints( Scalar resolution )
+std::vector< std::vector<Vec4d> > Curve::discretizedPoints( Scalar resolution )
 {
-	std::vector< std::vector<Vector3> > result;
+	std::vector< std::vector<Vec4d> > result;
 
 	Scalar curveLength = curve.GetLength(0,1);
 
+	if((curve.mCtrlPoint[0] - curve.mCtrlPoint[1]).norm() < resolution){
+		result.push_back( std::vector<Vec4d>( 1, Vec4d(0,0,0,0) ) );
+		return result;
+	}
+
 	// For singular cases
 	if(curveLength < resolution){
-		result.push_back(curve.mCtrlPoint);
+		result.push_back( std::vector<Vec4d>( 1, Vec4d(0,0,0,0) ) );
 		return result;
 	}
 
 	int np = 1 + (curveLength / resolution);
-	std::vector<Vector3> pts;
+	std::vector<Scalar> ptsTimes;
 
-	curve.SubdivideByLength(np, pts);
+	curve.SubdivideByLengthTime(np, ptsTimes);
 
-	result.push_back(pts);
+	std::vector<Vec4d> resultTimes;
+	result.push_back( resultTimes );
+
+	foreach(Scalar t, ptsTimes)
+		result.back().push_back(Vec4d(t,0,0,0));
+
 	return result;
 }
 
@@ -133,6 +144,27 @@ void Structure::Curve::laplacianSmoothControls( int num_iterations, std::set<int
 	}
 }
 
+void Structure::Curve::moveBy( const Vec3d & delta )
+{
+	curve.translate( delta );
+}
+
+std::vector<Vec3d> Structure::Curve::foldTo( Vec4d & foldPoint, bool isApply)
+{
+	int cpIDX = controlPointIndexFromCoord(foldPoint);
+	Vector3 cp = curve.mCtrlPoint[cpIDX];
+
+	std::vector<Vec3d> deltas;
+
+	for(int i = 0; i < curve.mNumCtrlPoints; i++)
+	{
+		deltas.push_back(curve.mCtrlPoint[i] - cp);
+		if( isApply ) curve.mCtrlPoint[i] -= deltas.back();
+	}
+
+	return deltas;
+}
+
 Vector3 & Curve::controlPoint( int idx )
 {
 	return curve.mCtrlPoint[idx];
@@ -140,21 +172,6 @@ Vector3 & Curve::controlPoint( int idx )
 
 int Curve::controlPointIndexFromCoord( Vec4d coord )
 {
-	// Get point at these coordinates
-	/*Vector3 pos(0); curve.Get(coord[0], &pos, 0,0,0);
-
-	int minIdx = -1;
-	double minDist = DBL_MAX;
-
-	for(int i = 0; i < (int) curve.mCtrlPoint.size(); i++){
-		Vector3 & cp = curve.mCtrlPoint[i];
-		double dist = (pos - cp).norm();
-		if(dist < minDist){
-			minDist = dist;
-			minIdx = i;
-		}
-	}*/
-
 	return (curve.mCtrlPoint.size() - 1) * coord[0];
 }
 

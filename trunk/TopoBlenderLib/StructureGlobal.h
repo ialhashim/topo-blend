@@ -34,3 +34,16 @@ static inline std::vector<Vec4d> inverseCoords(const std::vector<Vec4d>& fromCoo
 	return invertedCoords; 
 }
 
+static inline double signedAngle(const Vector3 &a, const Vector3 &b, const Vector3 &axis)
+{
+	double cosAngle = dot(a.normalized(), b.normalized());
+	double angle = acos( qRanged(-1.0, cosAngle, 1.0) );
+	Vector3 c = cross(a, b);
+	if (dot(c, axis) < 0) return -angle;
+	return angle;
+}
+
+static inline Vec3d rotatedVec(const Vec3d & v, double theta, const Vec3d & axis)
+{
+	return (v * cos(theta) + cross(axis, v) * sin(theta) + axis * dot(axis, v) * (1 - cos(theta)));
+}

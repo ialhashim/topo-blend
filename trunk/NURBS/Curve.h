@@ -38,11 +38,12 @@ public:
     Real GetTorsion (Real t) ;
 
     // Inverse mapping of s = Length(t) given by t = Length^{-1}(s).
-    virtual Real GetTime (Real length, int iterations = 32, Real tolerance = (Real)1e-06)  = 0;
+    virtual Real GetTime (Real length, int iterations = 32, Real tolerance = (Real)TimeTolerance)  = 0;
 
     // Subdivision.
     void SubdivideByTime (int numPoints, std::vector<Vector3> & points) ;
     void SubdivideByLength (int numPoints, std::vector<Vector3> & points) ;
+	void SubdivideByLengthTime (int numPoints, std::vector<Real> & times);
 
 protected:
     // Curve parameter is t where tmin <= t <= tmax.

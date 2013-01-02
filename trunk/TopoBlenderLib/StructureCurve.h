@@ -27,8 +27,12 @@ struct Curve : public Node
 	int controlPointIndexFromCoord( Vec4d coord );
 	void laplacianSmoothControls( int num_iterations, std::set<int> anchored = std::set<int>() );
 
+	// Modifiers
+	void moveBy( const Vec3d & delta );
+	std::vector<Vec3d> foldTo( Vec4d & foldPoint, bool isApply = false );
+
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
-	std::vector< std::vector<Vector3> > discretizedPoints(Scalar resolution);
+	std::vector< std::vector<Vec4d> > discretizedPoints(Scalar resolution);
 
 	// Coordinates
 	void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() );

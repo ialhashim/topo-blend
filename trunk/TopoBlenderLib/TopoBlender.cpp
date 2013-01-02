@@ -9,12 +9,12 @@ using namespace Structure;
 
 #include "ExportDynamicGraph.h"
 
+#include "Task.h"
 #include "Scheduler.h"
 #include "SchedulerWidget.h"
 
 // Temporary solution for output
 #include "surface_mesh/IO.h"
-
 
 TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * targetGraph, Scheduler * useScheduler, QObject *parent ) : QObject(parent)
 {
@@ -22,66 +22,120 @@ TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * tar
     tg = targetGraph;
 	scheduler = useScheduler;
 
-	active = new Structure::Graph(*sg);
-	
+	/// STEP 1) Compute correspondences and align mis-aligned nodes
 	gcoor = new GraphCorresponder(sg, tg);
 	gcoor->computeCorrespondences();
 
-	// Generate shrinking tasks
+	/// STEP 2) Create the magic active graph and generate tasks
+	active = new Structure::Graph(*sg);
+
+	// Shrink extra source nodes
 	foreach(QString nodeID, gcoor->nonCorresSource())
 	{
-		Task * task = new Task( active, Task::SHRINK );
-		task->property["nodeID"] = "Shrink:" + nodeID;
+		Task * task = new Task( active, tg, Task::SHRINK, scheduler->tasks.size() );
+		task->property["nodeID"] = nodeID;
 		scheduler->tasks.push_back( task );
 	}
 
-	// Generate growing tasks
-	foreach(QString nodeID, gcoor->nonCorresTarget())
-	{
-		Task * task = new Task( active, Task::GROW );
-		task->property["nodeID"] = "Grow:" +nodeID;
-		scheduler->tasks.push_back( task );
-	}
-
-
-	// Generate morphing tasks
-	// 1) Find non-corresponding edges, re-link
-	// 2) Generate task
+	// Morph corresponded nodes
 	foreach (SET_PAIR set2set, gcoor->correspondences)
 	{
-		int sN = set2set.first.size();
-		int tN = set2set.second.size();
+		std::set<QString> sNodes = set2set.first;
+		std::set<QString> tNodes = set2set.second;
+
+		int sN = sNodes.size();
+		int tN = tNodes.size();
 
 		Task * task = NULL;
-		if (sN == 1 && tN > 1)
+		Structure::Node * snode = sg->getNode(*sNodes.begin());
+		Structure::Node * tnode = tg->getNode(*tNodes.begin());
+
+		// One to One
+		snode->property["correspond"] = tnode->id;
+		tnode->property["correspond"] = snode->id;
+		task = new Task( active, tg, Task::MORPH, scheduler->tasks.size() );
+		task->property["nodeID"] = snode->id;
+		scheduler->tasks.push_back(task);
+
+		if (tN > 1)
 		{
-			// One to many : splitting
-			task = new Task( active, Task::SPLIT );
-			task->property["nodeID"] = "One-to-many";
+			tNodes.erase(tNodes.begin());
+
+			// One to remaining of many : splitting
+			foreach(QString tnodeID, tNodes)
+			{
+				Structure::Node * clonedNode = snode->clone();
+				clonedNode->id += ":cloned";
+				clonedNode->property["correspond"] = tnodeID;
+				tg->getNode(tnodeID)->property["correspond"] = clonedNode->id;
+
+				// Graph edit
+				active->addNode( clonedNode );
+				
+				task = new Task( active, tg, Task::SPLIT, scheduler->tasks.size() );
+				task->property["nodeID"] = clonedNode->id;
+				scheduler->tasks.push_back(task);
+			}
 		}
 		
-		else if (sN > 1 && tN == 1)
+		if (sN > 1)
 		{
-			// Many to one : merging
-			task = new Task( active, Task::MERGE );
-			task->property["nodeID"] = "Many-to-one";
-		}
+			sNodes.erase(sNodes.begin());
 
-		else if (sN == 1 && tN == 1)
-		{
-			// One to one : fix links
-			// Extract the "core", which nodes and edges are fully corresponded
-			task = new Task( active, Task::MORPH );
-			task->property["nodeID"] = "Morph!";
-		}
+			// Remaining of many to One: merging
+			foreach(QString snodeID, sNodes)
+			{
+				Structure::Node *clonedNode = tnode->clone();
+				clonedNode->id += ":cloned";
+				active->getNode(snodeID)->property["correspond"] = clonedNode->id;
+				clonedNode->property["correspond"] = snodeID;
 
-		task->property["corr"].setValue(set2set);
-		scheduler->tasks.push_back( task );
+				// Graph edit
+				tg->addNode(clonedNode);
+
+				task = new Task( active, tg, Task::MERGE, scheduler->tasks.size() );
+				task->property["nodeID"] = snodeID;
+				scheduler->tasks.push_back(task);
+			}
+		}
 	}
-	 
+
+	// Grow missing target nodes
+	foreach(QString nodeID, gcoor->nonCorresTarget())
+	{
+		// Clone and correspond
+		Structure::Node * missingNode = tg->getNode(nodeID)->clone();
+		missingNode->id += ":TG";
+		missingNode->property["correspond"] = nodeID;
+		tg->getNode(nodeID)->property["correspond"] = missingNode->id;
+
+		// Graph edit
+		active->addNode( missingNode );
+
+		Task * task = new Task( active, tg, Task::GROW, scheduler->tasks.size() );
+		task->property["nodeID"] = missingNode->id;
+		scheduler->tasks.push_back(task);
+	}
+
+	// Add missing edges from target graph
+	foreach (Structure::Link l, tg->edges)
+	{
+		Structure::Node * n1 = active->getNode(l.n1->property["correspond"].toString());
+		Structure::Node * n2 = active->getNode(l.n2->property["correspond"].toString());
+
+		if(active->getEdge(n1->id,n2->id) == NULL)
+		{
+			active->addEdge( n1, n2, l.coord[0], l.coord[1], active->linkName(n1,n2) );
+		}
+	}
+
+	/// STEP 3) Order and schedule the tasks
 	scheduler->schedule();
 
-	// Show the scheduler window:
+	/// STEP 4) Execute the tasks
+	scheduler->executeAll();
+
+	// TEST: Show the scheduler window:
 	SchedulerWidget * sw = new SchedulerWidget( scheduler );
 	QDockWidget *dock = new QDockWidget("Scheduler");
 	dock->setWidget(sw);
@@ -617,6 +671,7 @@ Graph * TopoBlender::blend()
 
 void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceGraph )
 {
+	/*
 	// Create morph animation:
 	int NUM_STEPS = params["NUM_STEPS"].toInt();
 	int NUM_SMOOTH_ITR = 3;
@@ -758,6 +813,7 @@ void TopoBlender::materializeInBetween( Graph * graph, double t, Graph * sourceG
 		meshStep.triangulate();
 		write_off(meshStep, qPrintable(fileName));
 	}
+	*/
 }
 
 void TopoBlender::drawDebug()
@@ -779,6 +835,8 @@ void TopoBlender::drawDebug()
 	glEnd();
 
 	glEnable(GL_LIGHTING);
+
+	if(scheduler) scheduler->drawDebug();
 }
 
 void TopoBlender::visualizeActiveGraph( QString caption, QString subcaption )

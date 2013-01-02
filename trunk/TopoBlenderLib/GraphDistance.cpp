@@ -3,7 +3,7 @@ using namespace Structure;
 
 GraphDistance::GraphDistance(Structure::Graph *graph)
 {
-    this->g = new Structure::Graph(*graph);
+    this->g = graph;
 	this->isReady = false;
 	this->globalID = 0;
 }
@@ -25,23 +25,33 @@ void GraphDistance::prepareNodes( Scalar resolution, const std::vector<Vector3> 
 	// Setup control points adjacency lists
 	foreach(Node * node, nodes)
 	{
-		int i = 0;
+		int idx = 0;
 
 		nodesMap[node] = std::vector<GraphDistanceNode>();
 		samplePoints[node] = std::vector<Vector3>();
 
 		std::vector<Vector3> pointList;
-		std::vector< std::vector<Vector3> > discretization = node->discretizedPoints( resolution );
+		std::vector<Vec4d> coordList;
+
+		Array2D_Vec4d coords = node->discretizedPoints( resolution );
+
+		Array2D_Vector3 discretization = node->getPoints( coords );
 		nodeCount[node] = std::make_pair(discretization.size(), discretization.front().size());
 
-		foreach(std::vector<Vector3> pts, discretization){
-			foreach(Vector3 p, pts){
-				pointList.push_back(p);
+		for(int i = 0; i < (int)discretization.size(); i++)
+		{
+			for(int j = 0; j < (int)discretization.front().size(); j++)
+			{
+				pointList.push_back( discretization[i][j] );
+				coordList.push_back( coords[i][j] );
 			}
 		}
 
-		foreach(Vector3 p, pointList)
+		for(int i = 0; i < (int)pointList.size(); i++)
 		{
+			Vector3 p = pointList[i];
+			Vec4d c = coordList[i];
+
 			// Check if its close to a start
 			for(int s = 0; s < (int)startingPoints.size(); s++)
 			{
@@ -52,9 +62,10 @@ void GraphDistance::prepareNodes( Scalar resolution, const std::vector<Vector3> 
 
 			samplePoints[node].push_back(p);
 			allPoints.push_back(p);
+			allCoords.push_back( qMakePair(node->id, c) );
 			adjacency_list.push_back( std::vector<neighbor>() );
 			correspond.push_back(node);
-			nodesMap[node].push_back( GraphDistanceNode(p, node, i++, globalID++) );
+			nodesMap[node].push_back( GraphDistanceNode(p, node, idx++, globalID++) );
 		}
 	}
 
@@ -119,10 +130,20 @@ void GraphDistance::prepareNodes( Scalar resolution, const std::vector<Vector3> 
 	}
 }
 
+void GraphDistance::computeDistances( Vector3 startingPoint, double resolution )
+{
+	std::vector<Vector3> pnts;
+	pnts.push_back(startingPoint);
+	computeDistances(pnts, resolution);
+}
+
 void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, double resolution )
 {
 	this->isReady = false;
 	clear();
+
+	if(resolution < 0) 
+		resolution = g->bbox().size().length() * 0.01;
 
 	CloseMap closestStart;
 	foreach(Vector3 p, startingPoints) 
@@ -170,6 +191,7 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	int start_point = globalID;
 	adjacency_list.push_back(std::vector<neighbor>());
 	allPoints.push_back(Vector3(0));
+	allCoords.push_back( qMakePair(QString("NULL)"), Vec4d(0)) );
 	correspond.push_back(NULL);
 
 	// Last element's adjacency list contains links to all starting points
@@ -192,14 +214,7 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	isReady = true;
 }
 
-void GraphDistance::computeDistances( Vector3 startingPoint, double resolution )
-{
-	std::vector<Vector3> pnts;
-	pnts.push_back(startingPoint);
-	computeDistances(pnts, resolution);
-}
-
-double GraphDistance::distanceTo( Vector3 point, std::vector<Vector3> & path )
+double GraphDistance::pathTo( Vector3 point, std::vector<Vector3> & path )
 {
 	// Find closest destination point
 	int closest = 0;
@@ -223,6 +238,34 @@ double GraphDistance::distanceTo( Vector3 point, std::vector<Vector3> & path )
 	path.erase( path.begin() );
 	std::reverse(path.begin(), path.end());
 	
+	// Return distance
+	return dists[closest];
+}
+
+double GraphDistance::pathCoordTo( Vector3 point, QVector< QPair<QString, Vec4d> > & path )
+{
+	// Find closest destination point
+	int closest = 0;
+	double minDist = DBL_MAX;
+
+	for(int i = 0; i < (int)allPoints.size(); i++)
+	{
+		double dist = (point - allPoints[i]).norm();
+		if(dist < minDist){
+			minDist = dist;
+			closest = i;
+		}
+	}
+
+	// Retrieve path 
+	std::list<vertex_t> shortestPath = DijkstraGetShortestPathTo(closest, previous);
+	foreach(vertex_t v, shortestPath) 
+		path.push_back( allCoords[v] );
+
+	// Remove first node and reverse order
+	path.erase( path.begin() );
+	std::reverse(path.begin(), path.end());
+
 	// Return distance
 	return dists[closest];
 }

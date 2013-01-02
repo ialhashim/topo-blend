@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QGraphicsScene>
-#include "Task.h"
+class Task;
 
 class Scheduler : public QGraphicsScene
 {
@@ -11,8 +11,11 @@ public:
     Scheduler();
 
 	QVector<Task*> tasks;
-
+	
 	void schedule();
+	void executeAll();
+
+	void drawDebug();
 
 protected:
 	void drawBackground ( QPainter * painter, const QRectF & rect );

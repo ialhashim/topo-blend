@@ -46,28 +46,8 @@ void topoblend::create()
 
 void topoblend::decorate()
 {
-	// 3D visualization
-	float posX = 0, posY = 0, deltaX = 0;
-
-	if(graphs.size() > 1) 
-	{
-		float r = drawArea()->sceneRadius();
-		posX = -r * (graphs.size() - 1) / 2;
-		deltaX = r;
-	}
-
-	for(int g = 0; g < (int) graphs.size(); g++)
-	{
-		glPushMatrix();
-		glTranslatef(posX, posY, 0);
-		graphs[g]->draw();
-		glPopMatrix();
-
-        posX += deltaX;
-	}
-	
 	// 2D view
-	//glDisable(GL_LIGHTING);
+	glDisable(GL_LIGHTING);
 	for(int g = 0; g < (int) graphs.size(); g++)
 	{
 		if(graphs[g]->edges.size() < 2) continue;
@@ -104,10 +84,32 @@ void topoblend::decorate()
 
 	glEnable(GL_LIGHTING);
 
-	if(blender) blender->drawDebug();
-
 	glColor3d(1,1,1);
 	drawArea()->drawText(40,40, "TopoBlend mode.");
+
+	if(blender) blender->drawDebug();
+
+	// 3D visualization
+	glEnable(GL_LIGHTING);
+
+	float posX = 0, posY = 0, deltaX = 0;
+
+	if(graphs.size() > 1) 
+	{
+		float r = drawArea()->sceneRadius();
+		posX = -r * (graphs.size() - 1) / 2;
+		deltaX = r;
+	}
+
+	for(int g = 0; g < (int) graphs.size(); g++)
+	{
+		glPushMatrix();
+		glTranslatef(posX, posY, 0);
+		graphs[g]->draw();
+		glPopMatrix();
+
+		posX += deltaX;
+	}
 }
 
 void topoblend::generateChairModels()
@@ -540,7 +542,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		std::vector<Vector3> starts;
 		starts.push_back(Vector3(1,-0.5,2.5));
 		starts.push_back(Vector3(-1,-0.5,2.5));
-		gd->computeDistances(starts,0.1);
+		gd->computeDistances(starts, g->bbox().size().length() * 0.01);
 
 		g->misc["distance"] = gd;
 
@@ -585,6 +587,7 @@ void topoblend::doBlend()
 	Scheduler * scheduler = new Scheduler();
 
     blender = new TopoBlender( source, target, scheduler );
+	//graphs.push_back( blender->active );
 
 	//Structure::Graph * blendedGraph = blender->blend();
 
@@ -730,6 +733,30 @@ void topoblend::clearGraphs()
 
 void topoblend::currentExperiment()
 {
+	NURBSRectangle sheetA = NURBSRectangle::createSheet(1.75,2, Vector3(0,0.25,0));
+	NURBSRectangle sheetB = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
+
+	sheetA.bend(-0.7);
+	sheetB.bend(0.2);
+	sheetB.bend(0.1,1);
+
+	Structure::Graph * graph = new Structure::Graph();
+
+	graph->addNode( new Structure::Sheet( sheetA, "SheetA" ) );
+	graph->addNode( new Structure::Sheet( sheetB, "SheetB" ) );
+
+	graph->addEdge( graph->getNode("SheetA"), graph->getNode("SheetB") );
+
+	graphs.push_back( graph );
+	setSceneBounds();
+
+	// Test graph distance on a single node
+	//GraphDistance * gd = new GraphDistance( graph->nodes.front() );
+	//gd->computeDistances( Vector3(0,0.25,0) );
+	//graphs.back()->misc["distance"] = gd;
+
+	qDebug() << "Done";
+
     //Structure::Graph * blendedGraph = blender->blend();
 
     // Set options

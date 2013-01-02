@@ -21,13 +21,14 @@ struct Sheet : public Node
 	std::vector<int> controlCount();
 	std::vector<Vector3> controlPoints();
 	std::vector<Scalar> controlWeights();
-
 	Vector3 & controlPoint(int idx);
 
-	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
-	std::vector< std::vector<Vector3> > discretizedPoints(Scalar resolution);
-
+	// Modifiers
+	void moveBy( const Vec3d & delta );
 	std::vector< std::vector<Vec3d> > Sheet::foldTo( const std::vector<Vec4d> & curve, bool isApply = false );
+
+	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
+	std::vector< std::vector<Vec4d> > discretizedPoints(Scalar resolution);
 
 	// Coordinates
 	void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() );

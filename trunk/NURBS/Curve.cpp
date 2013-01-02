@@ -166,3 +166,19 @@ void Curve::SubdivideByLength (int numPoints, std::vector<Vector3> & points)
         points[i] = GetPosition(t);
     }
 }
+
+void Curve::SubdivideByLengthTime (int numPoints, std::vector<Real> & times)
+{
+	assert(numPoints >= 2);
+	times.resize(numPoints);
+
+	Real delta = GetTotalLength()/(numPoints - 1);
+
+	for (int i = 0; i < numPoints; ++i)
+	{
+		Real length = delta*i;
+		Real t = GetTime(length);
+		times[i] = t;
+	}
+}
+

@@ -693,7 +693,8 @@ void GraphCorresponder::computeCorrespondences()
 
 	// Part-to-Part correspondences
 	correspondences.clear();
-	findOneToOneCorrespondences();
+	//findOneToOneCorrespondences();
+	findOneToManyCorrespondences();
 
 	// Mark the nodes
 	sIsCorresponded.resize(sg->nodes.size(), false);

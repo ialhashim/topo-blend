@@ -93,6 +93,7 @@ public:
 	std::vector< std::vector<Vector3> > generateSurfaceTris( Real resolution );
 	void generateSurfacePoints( Scalar stepSize, std::vector< std::vector<Vector3> > & points, 
 		std::vector<Real> & valU = std::vector<Real>(), std::vector<Real> & valV = std::vector<Real>());
+	void generateSurfacePointsCoords( Scalar stepSize, std::vector< std::vector<Vec4d> > & points);
 
 	// Control cage / network
 	std::vector< std::vector<Vector3> > triangulateControlCage();
@@ -105,6 +106,7 @@ public:
 
 	// Modifiers
 	void bend( Scalar amount, int bendDirection = 0 );
+	void translate( const Vec3d & delta );
 
 	// Intersection
 	std::vector<Vec3d> NURBSRectangle::intersect( NURBSRectangle & other, double resolution, 
