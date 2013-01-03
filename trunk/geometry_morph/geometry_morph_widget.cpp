@@ -14,12 +14,11 @@ geometry_morph_widget::geometry_morph_widget(geometry_morph * geo_morph, QWidget
 	geo_morph->connect(ui->button1, SIGNAL(clicked()), SLOT(loadSourceModel()));
 	geo_morph->connect(ui->button2, SIGNAL(clicked()), SLOT(loadTargetModel()));
 
-	geo_morph->connect(ui->button3, SIGNAL(clicked()), SLOT(loadSourceCurve()));
-	geo_morph->connect(ui->button4, SIGNAL(clicked()), SLOT(loadTargetCurve()));
+	geo_morph->connect(ui->button3, SIGNAL(clicked()), SLOT(loadSourceGraph()));
+	geo_morph->connect(ui->button4, SIGNAL(clicked()), SLOT(loadTargetGraph()));
 	geo_morph->connect(ui->button5, SIGNAL(clicked()), SLOT(doMorph()));
 
-	geo_morph->connect(ui->button7, SIGNAL(clicked()), SLOT(loadSourceGraph()));
-	geo_morph->connect(ui->button8, SIGNAL(clicked()), SLOT(loadTargetGraph()));
+
 
 }
 

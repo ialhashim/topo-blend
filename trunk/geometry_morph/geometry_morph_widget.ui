@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>247</width>
-    <height>374</height>
+    <height>283</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -48,26 +48,12 @@
         <item row="1" column="0">
          <widget class="QPushButton" name="button3">
           <property name="text">
-           <string>Load  source curve</string>
+           <string>Load source graph</string>
           </property>
          </widget>
         </item>
         <item row="1" column="1">
          <widget class="QPushButton" name="button4">
-          <property name="text">
-           <string>Load target curve</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="0">
-         <widget class="QPushButton" name="button7">
-          <property name="text">
-           <string>Load source graph</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QPushButton" name="button8">
           <property name="text">
            <string>Load target graph</string>
           </property>
@@ -88,22 +74,6 @@
        <widget class="QPushButton" name="button5">
         <property name="text">
          <string>Do Morph</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox_3">
-     <property name="title">
-      <string>Animation options</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_4">
-      <item>
-       <widget class="QPushButton" name="button6">
-        <property name="text">
-         <string>Animation</string>
         </property>
        </widget>
       </item>
