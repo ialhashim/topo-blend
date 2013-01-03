@@ -35,10 +35,14 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 
 	// Correspondence
 	topo_blend->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizePart2PartDistance(int)));
+
+	topo_blend->connect(ui->landmarksButton, SIGNAL(clicked()), SLOT(setupLandmarks()));
+
 	topo_blend->connect(ui->one2oneButton, SIGNAL(clicked()), SLOT(findOne2OneCorrespondences()));
 	topo_blend->connect(ui->one2manyButton, SIGNAL(clicked()), SLOT(findOne2ManyCorrespondences()));
-	topo_blend->connect(ui->p2pButton, SIGNAL(clicked()), SLOT(testPoint2PointCorrespondences()));
 	topo_blend->connect(ui->runButton, SIGNAL(clicked()), SLOT(computeCorrespondences()));
+
+	topo_blend->connect(ui->p2pButton, SIGNAL(clicked()), SLOT(testPoint2PointCorrespondences()));
 	// End of Correspondence
 }
 
