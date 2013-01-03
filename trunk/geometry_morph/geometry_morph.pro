@@ -19,10 +19,12 @@ INCLUDEPATH += ../TopoBlenderLib
 
 SOURCES +=	geometry_morph.cpp \
 			geometry_morph_widget.cpp \
-			Morpher.cpp
+			Morpher.cpp \
+			Octree.cpp
 
 HEADERS  += geometry_morph.h \
 			geometry_morph_widget.h \
-			Morpher.h
+			Morpher.h \
+			Octree.h
 
 FORMS    += geometry_morph_widget.ui
