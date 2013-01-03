@@ -1,0 +1,427 @@
+#pragma once
+
+/* AABB-triangle overlap test code                      */
+/* by Tomas Akenine-Möller                              */
+#define X 0
+#define Y 1
+#define Z 2
+
+#define FINDMINMAX(x0,x1,x2,min,max) \
+	min = max = x0;   \
+	if(x1<min) min=x1;\
+	if(x1>max) max=x1;\
+	if(x2<min) min=x2;\
+	if(x2>max) max=x2;
+
+static inline int planeBoxOverlap(const Vec3d& normal, const Vec3d& vert, const Vec3d& maxbox)
+{
+	Vec3d vmin,vmax;
+	for(int q=X; q<=Z; q++){
+		double v = vert[q];					
+		if(normal[q] > 0.0){
+			vmin[q]=-maxbox[q] - v;
+			vmax[q]= maxbox[q] - v;
+		}
+		else{
+			vmin[q]= maxbox[q] - v;
+			vmax[q]=-maxbox[q] - v;
+		}
+	}
+	if(dot(normal , vmin) > 0.0) return 0;
+	if(dot(normal , vmax) >= 0.0) return 1;
+
+	return 0;
+}
+
+/*======================== X-tests ========================*/
+#define AXISTEST_X01(a, b, fa, fb)			   \
+	p0 = a*v0[Y] - b*v0[Z];			       	   \
+	p2 = a*v2[Y] - b*v2[Z];			       	   \
+	if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} \
+	rad = fa * boxhalfsize[Y] + fb * boxhalfsize[Z];   \
+	if(min>rad || max<-rad) return 0;
+#define AXISTEST_X2(a, b, fa, fb)			   \
+	p0 = a*v0[Y] - b*v0[Z];			           \
+	p1 = a*v1[Y] - b*v1[Z];			       	   \
+	if(p0<p1) {min=p0; max=p1;} else {min=p1; max=p0;} \
+	rad = fa * boxhalfsize[Y] + fb * boxhalfsize[Z];   \
+	if(min>rad || max<-rad) return 0;
+/*======================== Y-tests ========================*/
+#define AXISTEST_Y02(a, b, fa, fb)			   \
+	p0 = -a*v0[X] + b*v0[Z];		      	   \
+	p2 = -a*v2[X] + b*v2[Z];	       	       	   \
+	if(p0<p2) {min=p0; max=p2;} else {min=p2; max=p0;} \
+	rad = fa * boxhalfsize[X] + fb * boxhalfsize[Z];   \
+	if(min>rad || max<-rad) return 0;
+#define AXISTEST_Y1(a, b, fa, fb)			   \
+	p0 = -a*v0[X] + b*v0[Z];		      	   \
+	p1 = -a*v1[X] + b*v1[Z];	     	       	   \
+	if(p0<p1) {min=p0; max=p1;} else {min=p1; max=p0;} \
+	rad = fa * boxhalfsize[X] + fb * boxhalfsize[Z];   \
+	if(min>rad || max<-rad) return 0;
+/*======================== Z-tests ========================*/
+#define AXISTEST_Z12(a, b, fa, fb)			   \
+	p1 = a*v1[X] - b*v1[Y];			           \
+	p2 = a*v2[X] - b*v2[Y];			       	   \
+	if(p2<p1) {min=p2; max=p1;} else {min=p1; max=p2;} \
+	rad = fa * boxhalfsize[X] + fb * boxhalfsize[Y];   \
+	if(min>rad || max<-rad) return 0;
+#define AXISTEST_Z0(a, b, fa, fb)			   \
+	p0 = a*v0[X] - b*v0[Y];				   \
+	p1 = a*v1[X] - b*v1[Y];			           \
+	if(p0<p1) {min=p0; max=p1;} else {min=p1; max=p0;} \
+	rad = fa * boxhalfsize[X] + fb * boxhalfsize[Y];   \
+	if(min>rad || max<-rad) return 0;
+
+#undef X
+#undef Y
+#undef Z
+
+struct Ray
+{
+	Vec3d origin;
+	Vec3d direction;
+	int index;
+
+	Ray(const Vec3d & Origin = Vec3d(), const Vec3d & Direction = Vec3d(), int Index = -1) : origin(Origin), index(Index){
+		direction = Direction / Direction.norm();
+	}
+
+	inline Ray inverse() const { return Ray(origin, -direction); } 
+
+	Ray& operator= (const Ray& other){
+		this->origin = other.origin;
+		this->direction = other.direction;
+		this->index = other.index;
+
+		return *this;
+	}
+};
+
+class BoundingBox
+{
+
+public:
+	Vec3d center;
+	Vec3d vmax, vmin;
+	double xExtent, yExtent, zExtent;
+
+	BoundingBox()
+	{
+		this->center = Vec3d(0,0,0);
+
+		this->xExtent = 0;
+		this->yExtent = 0;
+		this->zExtent = 0;
+	}
+
+	BoundingBox( const Vec3d& c, double x, double y, double z )
+	{
+		this->center = c;
+
+		this->xExtent = x;
+		this->yExtent = y;
+		this->zExtent = z;
+
+		Vec3d corner(x/2, y/2, z/2);
+
+		vmin = center - corner;
+		vmax = center + corner;
+	}
+
+	BoundingBox& operator=( const BoundingBox& other )
+	{
+		this->center = other.center;
+
+		this->xExtent = other.xExtent;
+		this->yExtent = other.yExtent;
+		this->zExtent = other.zExtent;
+
+		this->vmax = other.vmax;
+		this->vmin = other.vmin;
+
+		return *this;
+	}
+
+	void computeFromTris( const std::vector< std::vector<Vec3d> > & tris )
+	{
+		vmin = Vec3d(DBL_MAX, DBL_MAX, DBL_MAX);
+		vmax = Vec3d(-DBL_MAX, -DBL_MAX, -DBL_MAX);
+
+		double minx = 0, miny = 0, minz = 0;
+		double maxx = 0, maxy = 0, maxz = 0;
+
+		minx = maxx = tris[0][0].x();
+		miny = maxy = tris[0][1].y();
+		minz = maxz = tris[0][2].z();
+
+		for (int i = 0; i < (int)tris.size(); i++)
+		{
+			for(int v = 0; v < 3; v++)
+			{
+				Vec3d vec = tris[i][v];
+
+				if (vec.x() < minx) minx = vec.x();
+				if (vec.x() > maxx) maxx = vec.x();
+				if (vec.y() < miny) miny = vec.y();
+				if (vec.y() > maxy) maxy = vec.y();
+				if (vec.z() < minz) minz = vec.z();
+				if (vec.z() > maxz) maxz = vec.z();
+			}
+		}
+
+		vmax = Vec3d(maxx, maxy, maxz);
+		vmin = Vec3d(minx, miny, minz);
+
+		this->center = (vmin + vmax) / 2.0;
+
+		this->xExtent = abs(vmax.x() - center.x());
+		this->yExtent = abs(vmax.y() - center.y());
+		this->zExtent = abs(vmax.z() - center.z());
+	}
+
+	BoundingBox( const Vec3d& fromMin, const Vec3d& toMax )
+	{
+		vmin = fromMin;
+		vmax = toMax;
+
+		this->center = (vmin + vmax) / 2.0;
+
+		this->xExtent = abs(vmax.x() - center.x());
+		this->yExtent = abs(vmax.y() - center.y());
+		this->zExtent = abs(vmax.z() - center.z());
+	}
+
+	std::vector<Vec3d> getCorners()
+	{
+		std::vector<Vec3d> corners;
+
+		Vec3d x = (Vec3d(1,0,0) * xExtent);
+		Vec3d y = (Vec3d(0,1,0) * yExtent);
+		Vec3d z = (Vec3d(0,0,1) * zExtent);
+
+		Vec3d c = center + x + y + z;
+
+		corners.push_back(c);
+		corners.push_back(c - (x*2));
+		corners.push_back(c - (y*2));
+		corners.push_back(c - (x*2) - (y*2));
+
+		corners.push_back(corners[0] - (z*2));
+		corners.push_back(corners[1] - (z*2));
+		corners.push_back(corners[2] - (z*2));
+		corners.push_back(corners[3] - (z*2));
+
+		return corners;
+	}
+
+	bool intersects( const Ray& ray ) const
+	{
+		double rhs;
+		double fWdU[3];
+		double fAWdU[3];
+		double fDdU[3];
+		double fADdU[3];
+		double fAWxDdU[3];
+
+		Vec3d UNIT_X(1.0, 0.0, 0.0);
+		Vec3d UNIT_Y(0.0, 1.0, 0.0);
+		Vec3d UNIT_Z(0.0, 0.0, 1.0);
+
+		Vec3d diff = ray.origin - center;
+		Vec3d wCrossD = cross(ray.direction , diff);
+
+		fWdU[0] = dot(ray.direction , UNIT_X);
+		fAWdU[0] = abs(fWdU[0]);
+		fDdU[0] = dot(diff , UNIT_X);
+		fADdU[0] = abs(fDdU[0]);
+		if (fADdU[0] > xExtent && fDdU[0] * fWdU[0] >= 0.0)		return false;
+
+		fWdU[1] = dot(ray.direction , UNIT_Y);
+		fAWdU[1] = abs(fWdU[1]);
+		fDdU[1] = dot(diff , UNIT_Y);
+		fADdU[1] = abs(fDdU[1]);
+		if (fADdU[1] > yExtent && fDdU[1] * fWdU[1] >= 0.0)		return false;
+
+		fWdU[2] = dot(ray.direction , UNIT_Z);
+		fAWdU[2] = abs(fWdU[2]);
+		fDdU[2] = dot(diff , UNIT_Z);
+		fADdU[2] = abs(fDdU[2]);
+		if (fADdU[2] > zExtent && fDdU[2] * fWdU[2] >= 0.0)		return false;
+
+		fAWxDdU[0] = abs(dot(wCrossD , UNIT_X));
+		rhs = yExtent , fAWdU[2] + zExtent * fAWdU[1];
+		if (fAWxDdU[0] > rhs)		return false;
+
+		fAWxDdU[1] = abs(dot(wCrossD , UNIT_Y));
+		rhs = xExtent * fAWdU[2] + zExtent * fAWdU[0];
+		if (fAWxDdU[1] > rhs)		return false;
+
+		fAWxDdU[2] = abs(dot(wCrossD , UNIT_Z));
+		rhs = xExtent * fAWdU[1] + yExtent * fAWdU[0];
+		if (fAWxDdU[2] > rhs)		return false;
+
+		return true;
+	}
+
+	/* AABB-triangle overlap test code                      */
+	/* by Tomas Akenine-Möller                              */
+	bool containsTriangle( const Vec3d& tv0, const Vec3d& tv1, const Vec3d& tv2 ) const
+	{
+		Vec3d boxcenter(center);
+		Vec3d boxhalfsize(xExtent, yExtent, zExtent);
+
+		int X = 0, Y = 1, Z = 2;
+
+		/*    use separating axis theorem to test overlap between triangle and box */
+		/*    need to test for overlap in these directions: */
+		/*    1) the {x,y,z}-directions (actually, since we use the AABB of the triangle */
+		/*       we do not even need to test these) */
+		/*    2) normal of the triangle */
+		/*    3) crossproduct(edge from tri, {x,y,z}-directin) */
+		/*       this gives 3x3=9 more tests */
+		Vec3d v0,v1,v2;
+		double min,max,p0,p1,p2,rad,fex,fey,fez;
+		Vec3d normal,e0,e1,e2;
+
+		/* This is the fastest branch on Sun */
+		/* move everything so that the box center is in (0,0,0) */
+		v0=tv0-boxcenter;
+		v1=tv1-boxcenter;
+		v2=tv2-boxcenter;
+		
+		/* compute triangle edges */
+		e0=v1-v0;      /* tri edge 0 */
+		e1=v2-v1;      /* tri edge 1 */
+		e2=v0-v2;      /* tri edge 2 */
+		
+		/* Bullet 3:  */
+		/*  test the 9 tests first (this was faster) */
+		fex = fabsf(e0[X]);
+		fey = fabsf(e0[Y]);
+		fez = fabsf(e0[Z]);
+		AXISTEST_X01(e0[Z], e0[Y], fez, fey);
+		AXISTEST_Y02(e0[Z], e0[X], fez, fex);
+		AXISTEST_Z12(e0[Y], e0[X], fey, fex);
+		fex = fabsf(e1[X]);
+		fey = fabsf(e1[Y]);
+		fez = fabsf(e1[Z]);
+		AXISTEST_X01(e1[Z], e1[Y], fez, fey);
+		AXISTEST_Y02(e1[Z], e1[X], fez, fex);
+		AXISTEST_Z0(e1[Y], e1[X], fey, fex);
+		fex = fabsf(e2[X]);
+		fey = fabsf(e2[Y]);
+		fez = fabsf(e2[Z]);
+		AXISTEST_X2(e2[Z], e2[Y], fez, fey);
+		AXISTEST_Y1(e2[Z], e2[X], fez, fex);
+		AXISTEST_Z12(e2[Y], e2[X], fey, fex);
+		
+		/* Bullet 1: */
+		/*  first test overlap in the {x,y,z}-directions */
+		/*  find min, max of the triangle each direction, and test for overlap in */
+		/*  that direction -- this is equivalent to testing a minimal AABB around */
+		/*  the triangle against the AABB */
+		/* test in X-direction */
+		FINDMINMAX(v0[X],v1[X],v2[X],min,max);
+		if(min>boxhalfsize[X] || max<-boxhalfsize[X]) return 0;
+		/* test in Y-direction */
+		FINDMINMAX(v0[Y],v1[Y],v2[Y],min,max);
+		if(min>boxhalfsize[Y] || max<-boxhalfsize[Y]) return 0;
+		/* test in Z-direction */
+		FINDMINMAX(v0[Z],v1[Z],v2[Z],min,max);
+		if(min>boxhalfsize[Z] || max<-boxhalfsize[Z]) return 0;
+		
+		/* Bullet 2: */
+		/*  test if the box intersects the plane of the triangle */
+		/*  compute plane equation of triangle: normal*x+d=0 */
+		normal = cross(e0, e1);
+
+		if(!planeBoxOverlap(normal,v0,boxhalfsize)) return 0;
+		return 1;   /* box and triangle overlaps */
+	}
+
+	bool intersectsBoundingBox( const BoundingBox& bb ) const
+	{
+		if (center.x() + xExtent < bb.center.x() - bb.xExtent || center.x() - xExtent > bb.center.x() + bb.xExtent)
+			return false;
+		else if (center.y() + yExtent < bb.center.y() - bb.yExtent || center.y() - yExtent > bb.center.y() + bb.yExtent)
+			return false;
+		else if (center.z() + zExtent < bb.center.z() - bb.zExtent || center.z() - zExtent > bb.center.z() + bb.zExtent)
+			return false;
+		else
+			return true;
+	}
+
+	bool intersectsSphere( const Vec3d& sphere_center, double radius )
+	{
+		if (abs(center.x() - sphere_center.x()) < radius + xExtent
+			&& abs(center.y() - sphere_center.y()) < radius + yExtent
+			&& abs(center.z() - sphere_center.z()) < radius + zExtent)
+			return true;
+
+		return false;
+	}
+
+	bool contains( const Vec3d& point ) const
+	{
+		return abs(center.x() - point.x()) < xExtent
+			&& abs(center.y() - point.y()) < yExtent
+			&& abs(center.z() - point.z()) < zExtent;
+	}
+
+	Vec3d Center()
+	{
+		return center;
+	}
+
+	void Offset( double s )
+	{
+		Offset( Vec3d(s,s,s));
+	}
+
+	void Offset( Vec3d delta )
+	{
+		*this = BoundingBox(vmin - delta, vmax + delta);
+	}
+
+	double Diag()
+	{
+		return (vmin - vmax).norm();
+	}
+};
+
+struct HitResult{
+	bool hit;
+	double distance;
+
+	double u;
+	double v;
+	int index;
+
+	HitResult(bool isHit = false, double hitDistance = DBL_MAX) : hit(isHit), distance(hitDistance)
+	{
+		u = -1.0;
+		v = -1.0;
+		index = -1;
+	}
+
+	HitResult(const HitResult& other)
+	{
+		this->hit = other.hit;
+		this->distance = other.distance;
+		this->u = other.u;
+		this->v = other.v;
+		this->index = other.index;
+	}
+
+	HitResult& operator= (const HitResult& other)
+	{
+		this->hit = other.hit;
+		this->distance = other.distance;
+		this->u = other.u;
+		this->v = other.v;
+		this->index = other.index;
+
+		return *this;
+	}
+};
