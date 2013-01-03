@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>246</width>
-    <height>582</height>
+    <height>701</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -229,9 +229,33 @@
    <item>
     <widget class="QGroupBox" name="groupBox_3">
      <property name="title">
-      <string>Correspondence</string>
+      <string>Graph Correspondences</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
+      <item row="2" column="0" colspan="2">
+       <widget class="QPushButton" name="landmarksButton">
+        <property name="text">
+         <string>Landmarks</string>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="0" colspan="2">
+       <widget class="QLabel" name="label_9">
+        <property name="text">
+         <string>Experiments</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="0" colspan="2">
+       <widget class="QPushButton" name="runButton">
+        <property name="styleSheet">
+         <string notr="true">font: 75 8pt &quot;MS Shell Dlg 2&quot;;</string>
+        </property>
+        <property name="text">
+         <string>Auto</string>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
@@ -249,10 +273,10 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="0" colspan="2">
+      <item row="5" column="0">
        <widget class="QPushButton" name="one2oneButton">
         <property name="text">
-         <string>One-to-One Corr.</string>
+         <string>One-to-One</string>
         </property>
        </widget>
       </item>
@@ -263,27 +287,24 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0" colspan="2">
-       <widget class="QPushButton" name="one2manyButton">
-        <property name="text">
-         <string>One-to-Many Corr.</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0" colspan="2">
+      <item row="9" column="0" colspan="2">
        <widget class="QPushButton" name="p2pButton">
         <property name="text">
          <string>Test Point2Point Corr.</string>
         </property>
        </widget>
       </item>
-      <item row="6" column="0" colspan="2">
-       <widget class="QPushButton" name="runButton">
-        <property name="styleSheet">
-         <string notr="true">font: 75 8pt &quot;MS Shell Dlg 2&quot;;</string>
-        </property>
+      <item row="5" column="1">
+       <widget class="QPushButton" name="one2manyButton">
         <property name="text">
-         <string>Run</string>
+         <string>One-to-Many</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="2">
+       <widget class="QLabel" name="label_7">
+        <property name="text">
+         <string>Compute</string>
         </property>
        </widget>
       </item>

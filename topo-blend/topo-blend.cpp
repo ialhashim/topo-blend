@@ -10,6 +10,7 @@
 #include "interfaces/ModePluginDockWidget.h"
 #include "../CustomDrawObjects.h"
 #include "graph_modify_dialog.h"
+#include "landmarks_dialog.h"
 
 // Graph manipulations
 #include "DynamicGraph.h"
@@ -642,6 +643,18 @@ void topoblend::findOne2OneCorrespondences()
 }
 
 
+
+void topoblend::setupLandmarks()
+{
+	if (corresponder())
+	{
+		LandmarksDialog dialog(this);
+		dialog.exec();
+	}
+}
+
+
+
 void topoblend::findOne2ManyCorrespondences()
 {
 	if (corresponder())
@@ -765,6 +778,11 @@ void topoblend::currentExperiment()
     //blender->materializeInBetween( blendedGraph, 0, source );
     //graphs.push_back( blendedGraph );
     //setSceneBounds();
+}
+
+void topoblend::updateDrawArea()
+{
+	drawArea()->updateGL();
 }
 
 Q_EXPORT_PLUGIN(topoblend)

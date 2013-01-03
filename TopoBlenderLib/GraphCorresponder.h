@@ -17,8 +17,9 @@ public:
 	std::vector<SET_PAIR> landmarks;
 	std::vector<bool> sIsLandmark, tIsLandmark;
 	void addLandmarks(std::set<QString> sParts, std::set<QString> tParts);
-	void saveLandmarks();
-	void loadLandmarks();
+	void removeLandmark(int i);
+	void saveLandmarks(QString filename);
+	void loadLandmarks(QString filename);
 
 	// Hausdorff distance
 	float supInfDistance(std::vector<Vector3> &A, std::vector<Vector3> &B);
@@ -53,7 +54,11 @@ public:
 	std::vector<bool> sIsCorresponded, tIsCorresponded;
 	std::vector<SET_PAIR> correspondences;
 
-private:
+	// Helper functions
+	QString sgName();
+	QString tgName();
+
+public:
 	Structure::Graph *sg, *tg;
 	std::vector< std::vector<float> > disM;
 };

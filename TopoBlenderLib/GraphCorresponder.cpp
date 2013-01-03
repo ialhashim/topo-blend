@@ -70,6 +70,29 @@ void GraphCorresponder::addLandmarks( std::set<QString> sParts, std::set<QString
 	landmarks.push_back(std::make_pair(sParts, tParts));
 }
 
+void GraphCorresponder::removeLandmark( int i )
+{
+	if (i >= landmarks.size()) return;
+
+	SET_PAIR set2set = landmarks[i];
+
+	// Update isLandmark
+	foreach(QString strID, set2set.first)
+	{
+		int idx = sg->getNode(strID)->property["index"].toInt();
+		sIsLandmark[idx] = false;
+	}
+
+	foreach(QString strID, set2set.second)
+	{
+		int idx = tg->getNode(strID)->property["index"].toInt();
+		tIsLandmark[idx] = false;
+	}
+
+	// Erase
+	landmarks.erase(landmarks.begin() + i);
+}
+
 
 float GraphCorresponder::supInfDistance( std::vector<Vector3> &A, std::vector<Vector3> &B )
 {
@@ -688,9 +711,6 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 
 void GraphCorresponder::computeCorrespondences()
 {
-	// Landmarks
-	//loadLandmarks();
-
 	// Part-to-Part correspondences
 	correspondences.clear();
 	//findOneToOneCorrespondences();
@@ -750,14 +770,11 @@ void GraphCorresponder::computeCorrespondences()
 }
 
 
-void GraphCorresponder::saveLandmarks()
+void GraphCorresponder::saveLandmarks(QString filename)
 {
-	QString sgName = sg->property["name"].toString().section('\\', -1).section('.', 0, 0);
-	QString tgName = tg->property["name"].toString().section('\\', -1).section('.', 0, 0);
-
-	QString filename = "landmarks_" + sgName + "_" + tgName + ".txt";
-
 	std::ofstream outF(filename.toStdString(), std::ios::out);
+
+	outF << landmarks.size() << "\n\n";
 
 	foreach (SET_PAIR set2set, landmarks)
 	{
@@ -775,34 +792,34 @@ void GraphCorresponder::saveLandmarks()
 	outF.close();
 }
 
-void GraphCorresponder::loadLandmarks()
+void GraphCorresponder::loadLandmarks(QString filename)
 {
-	QString sgName = sg->property["name"].toString().section('\\', -1).section('.', 0, 0);
-	QString tgName = tg->property["name"].toString().section('\\', -1).section('.', 0, 0);
-
-	QString filename = "landmarks_" + sgName + "_" + tgName + ".txt";
-
 	std::ifstream inF(filename.toStdString(), std::ios::in);
 
 	landmarks.clear();
+	sIsLandmark.clear();
+	tIsLandmark.clear();
 	sIsLandmark.resize(sg->nodes.size(), false);
 	tIsLandmark.resize(tg->nodes.size(), false);
 
-	int n;
-	std::string strID;
-	while(!inF.eof())
+	int nbCorr;
+	inF >> nbCorr;
+
+	for (int i = 0; i < nbCorr; i++)
 	{
+		int n;
+		std::string strID;
 		std::set<QString> sParts, tParts;
 
 		inF >> n;
-		for (int i = 0; i < n; i++)
+		for (int j = 0; j < n; j++)
 		{
 			inF >> strID;
 			sParts.insert(QString(strID.c_str()));
 		}
 
 		inF >> n;
-		for (int i = 0; i < n; i++)
+		for (int j = 0; j < n; j++)
 		{
 			inF >> strID;
 			tParts.insert(QString(strID.c_str()));
@@ -838,4 +855,14 @@ std::vector<QString> GraphCorresponder::nonCorresTarget()
 	}
 
 	return nodes;
+}
+
+QString GraphCorresponder::sgName()
+{
+	return sg->property["name"].toString().section('\\', -1).section('.', 0, 0);
+}
+
+QString GraphCorresponder::tgName()
+{
+	return tg->property["name"].toString().section('\\', -1).section('.', 0, 0);
 }
