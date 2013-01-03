@@ -22,6 +22,7 @@ struct Node
 	virtual std::vector<Vector3> controlPoints() = 0;
 	virtual std::vector<Scalar> controlWeights() = 0;
 	virtual Vector3 & controlPoint(int idx) = 0;
+	virtual void setControlPoints(const std::vector<Vector3> & newPositions) = 0;
 
 	// Modifiers
 	virtual void moveBy( const Vec3d & delta ) = 0;

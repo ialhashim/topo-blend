@@ -128,7 +128,7 @@ Vec3d FFD::outputPoint( int idx )
 std::vector<Vec3d> FFD::outputPoints()
 {
 	std::vector<Vec3d> deformedPoints;
-	for(int i = 0; i < mesh->n_vertices(); i++)
+    for(int i = 0; i < (int)mesh->n_vertices(); i++)
 		deformedPoints.push_back( outputPoint(i) );
 	return deformedPoints;
 }

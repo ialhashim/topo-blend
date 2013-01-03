@@ -36,6 +36,7 @@ private:
 	// DEBUG:
 	QVector< Vector3 > debugPoints,debugPoints2,debugPoints3;
 	QVector< QPair<Vector3,Vector3> > debugLines,debugLines2,debugLines3;
+	Vector3VertexProperty points;
 
 public:
 	// Corresponder
@@ -63,6 +64,9 @@ public slots:
 
 	// Main blend process
 	void doBlend();
+
+	// Experiments
+	void experimentSlot();
 
 	// Correspondence
 	void visualizePart2PartDistance(int sourceID);

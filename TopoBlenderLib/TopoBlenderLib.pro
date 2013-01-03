@@ -35,7 +35,8 @@ HEADERS += StructureNode.h \
     Scheduler.h \
     Task.h \
     SchedulerWidget.h \
-    FFD.h
+    FFD.h \
+    ARAPCurveDeformer.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -48,7 +49,8 @@ SOURCES += StructureGraph.cpp \
     Scheduler.cpp \
     Task.cpp \
     SchedulerWidget.cpp \
-    FFD.cpp
+    FFD.cpp \
+    ARAPCurveDeformer.cpp
 	
 
 FORMS += \

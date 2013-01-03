@@ -165,6 +165,11 @@ std::vector<Vec3d> Structure::Curve::foldTo( Vec4d & foldPoint, bool isApply)
 	return deltas;
 }
 
+void Structure::Curve::setControlPoints( const std::vector<Vector3> & newPositions )
+{
+	curve.mCtrlPoint = newPositions;
+}
+
 Vector3 & Curve::controlPoint( int idx )
 {
 	return curve.mCtrlPoint[idx];
