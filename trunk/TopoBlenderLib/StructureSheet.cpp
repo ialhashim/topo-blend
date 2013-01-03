@@ -71,6 +71,15 @@ std::vector<Vector3> Sheet::controlPoints()
 	return cpoints;
 }
 
+void Sheet::setControlPoints( const std::vector<Vector3> & newPositions )
+{
+	int i = 0;
+
+	for(int u = 0; u < surface.mNumUCtrlPoints; u++)
+		for(int v = 0; v < surface.mNumVCtrlPoints; v++)
+			surface.mCtrlPoint[u][v] = newPositions[i++];
+}
+
 std::vector<Scalar> Sheet::controlWeights()
 {
 	std::vector<Scalar> cpoints;

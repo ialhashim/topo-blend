@@ -22,6 +22,7 @@ struct Sheet : public Node
 	std::vector<Vector3> controlPoints();
 	std::vector<Scalar> controlWeights();
 	Vector3 & controlPoint(int idx);
+	void setControlPoints(const std::vector<Vector3> & newPositions);
 
 	// Modifiers
 	void moveBy( const Vec3d & delta );

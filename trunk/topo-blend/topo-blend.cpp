@@ -28,6 +28,11 @@
 // Temp
 TopoBlender * blender = NULL;
 
+#include "ARAPCurveDeformer.h"
+ARAPCurveDeformer * deformer = NULL;
+#include "ARAPCurveHandle.h"
+ARAPCurveHandle * handle = NULL;
+
 topoblend::topoblend(){
 	widget = NULL;
 	gcoor = NULL;
@@ -42,6 +47,8 @@ void topoblend::create()
 		dockwidget->setWidget(widget);
 		dockwidget->setWindowTitle(widget->windowTitle());
 		mainWindow()->addDockWidget(Qt::RightDockWidgetArea,dockwidget);
+
+		points = mesh()->vertex_property<Vector3>("v:point");
 	}
 }
 
@@ -110,6 +117,11 @@ void topoblend::decorate()
 		glPopMatrix();
 
 		posX += deltaX;
+	}
+
+	if(deformer)
+	{
+
 	}
 }
 
@@ -569,9 +581,41 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		used = true;
 	}
 
+	if(event->key() == Qt::Key_O)
+	{
+		if(graphs.size() < 1) return true;
+
+		Structure::Node * n = graphs.front()->nodes.front();
+		std::vector<Vec3d> orgCtrlPnts = n->controlPoints();
+
+		deformer = new ARAPCurveDeformer( orgCtrlPnts, orgCtrlPnts.size() * 0.25 );
+
+		deformer->SetAnchor( orgCtrlPnts.size() - 1 );		// Last point as anchor
+		deformer->UpdateControl( 0, orgCtrlPnts.front());	// First point moves
+
+		qDebug() << "Curve deformation performed!"; 
+
+		handle = new ARAPCurveHandle(orgCtrlPnts.front(), 0.0);
+		drawArea()->setManipulatedFrame( handle );
+		this->connect(handle, SIGNAL(manipulated()), SLOT(experimentSlot()));
+
+		used = true;
+	}
+
 	drawArea()->updateGL();
 
 	return used;
+}
+
+void topoblend::experimentSlot()
+{
+	Structure::Node * n = graphs.front()->nodes.front();
+
+	qglviewer::Vec v = handle->position();
+	deformer->points[0] = Vec3d(v[0],v[1],v[2]);
+
+	deformer->Deform(3);
+	n->setControlPoints( deformer->points );
 }
 
 void topoblend::doBlend()

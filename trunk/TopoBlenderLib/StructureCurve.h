@@ -25,6 +25,7 @@ struct Curve : public Node
 	Vector3 & controlPoint( int idx );
 	Vector3 & controlPointFromCoord( Vec4d coord );
 	int controlPointIndexFromCoord( Vec4d coord );
+	void setControlPoints(const std::vector<Vector3> & newPositions);
 	void laplacianSmoothControls( int num_iterations, std::set<int> anchored = std::set<int>() );
 
 	// Modifiers
