@@ -246,16 +246,40 @@ void GraphCorresponder::computeOrientationDiffMatrix( std::vector< std::vector<f
 					Structure::Curve *curve2 = (Structure::Curve *) tg->nodes[j];
 					std::vector<Vector3> ctrlPnts1 = curve1->controlPoints();
 					std::vector<Vector3> ctrlPnts2 = curve2->controlPoints();
+
 					vec1 = ctrlPnts1.front() - ctrlPnts1.back();
 					vec2 = ctrlPnts2.front() - ctrlPnts2.back();
 				}
 				else
 				{
-					Structure::Sheet *sheet1 = (Structure::Sheet *) sg->nodes[i];
-					Structure::Sheet *sheet2 = (Structure::Sheet *) tg->nodes[j];
+					Structure::Sheet *sSheet = (Structure::Sheet *) sg->nodes[i];
+					Structure::Sheet *tSheet = (Structure::Sheet *) tg->nodes[j];
+					Array2D_Vector3 sCtrlPoint = sSheet->surface.mCtrlPoint;
+					Array2D_Vector3 tCtrlPoint = tSheet->surface.mCtrlPoint;
+					Vector3 scenter = sSheet->center();
+					Vector3 tcenter = tSheet->center();
+
+					// Get the extreme points.
+					Vector3 s00 = sCtrlPoint.front().front();
+					Vector3 s01 = sCtrlPoint.front().back();
+					Vector3 s10 = sCtrlPoint.back().front();
+					Vector3 sU = s10 - s00;
+					Vector3 sV = s01 - s00;
+
+					Vector3 t00 = tCtrlPoint.front().front();
+					Vector3 t01 = tCtrlPoint.front().back();
+					Vector3 t10 = tCtrlPoint.back().front();
+					Vector3 tU = t10 - t00;
+					Vector3 tV = t01 - t00;
+
+					// Normals
+					vec1 = cross(sU, sV);
+					vec2 = cross(tU, tV);
 				}
 
-				
+				vec1.normalize();
+				vec2.normalize();
+				M[i][j] = 1.0 - abs(dot(vec1, vec2));
 			}
 		}
 	}
@@ -276,7 +300,7 @@ void GraphCorresponder::computeDistanceMatrix()
 	computeOrientationDiffMatrix(oM);
 
 	// Combine
-	initializeMatrix<float>(disM, INVALID_VALUE);
+	disM = hM;
 	int sN = sg->nodes.size();
 	int tN = tg->nodes.size();
 	for(int i = 0; i < sN; i++) {
@@ -284,7 +308,7 @@ void GraphCorresponder::computeDistanceMatrix()
 		{
 			if (validM[i][j])
 			{
-				disM[i][j] = sM[i][j];
+				disM[i][j] += sM[i][j] + oM[i][j];
 			}
 		}
 	}
@@ -353,7 +377,7 @@ void GraphCorresponder::visualizePart2PartDistance( int sourceID )
 		if (disM[sourceID][j] == INVALID_VALUE)
 			value = 0;
 		else
-			value = (1 - disM[sourceID][j]) / 4 + 0.75;
+			value = 1 - disM[sourceID][j];
 		tNode->vis_property["color"] = qtJetColorMap(value);
 		tNode->vis_property["showControl"] = false;
 	}
@@ -399,7 +423,7 @@ void GraphCorresponder::computePartToPartCorrespondences()
 	int sN = sg->nodes.size();
 	int tN = tg->nodes.size();
 	float tolerance = 0.05f;
-	float threshold = 1.1f;
+	float threshold = 0.3f;
 
 	int r, c;
 	float minValue;

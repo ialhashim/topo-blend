@@ -55,14 +55,14 @@ void topoblend::decorate()
 {
 	// 2D view
 	glDisable(GL_LIGHTING);
-	for(int g = 0; g < (int) graphs.size(); g++)
-	{
-		if(graphs[g]->edges.size() < 2) continue;
+	//for(int g = 0; g < (int) graphs.size(); g++)
+	//{
+	//	if(graphs[g]->edges.size() < 2) continue;
 
-		drawArea()->startScreenCoordinatesSystem();
-		graphs[g]->draw2D(150,150);
-		drawArea()->stopScreenCoordinatesSystem();
-	}
+	//	drawArea()->startScreenCoordinatesSystem();
+	//	graphs[g]->draw2D(150,150);
+	//	drawArea()->stopScreenCoordinatesSystem();
+	//}
 
 	// DEBUG distance:
 	for(int g = 0; g < (int) graphs.size(); g++){
