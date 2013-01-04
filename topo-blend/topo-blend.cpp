@@ -10,7 +10,6 @@
 #include "interfaces/ModePluginDockWidget.h"
 #include "../CustomDrawObjects.h"
 #include "graph_modify_dialog.h"
-#include "landmarks_dialog.h"
 
 // Graph manipulations
 #include "DynamicGraph.h"
@@ -30,8 +29,8 @@ TopoBlender * blender = NULL;
 
 #include "ARAPCurveDeformer.h"
 ARAPCurveDeformer * deformer = NULL;
-#include "ARAPCurveHandle.h"
-ARAPCurveHandle * handle = NULL;
+//#include "ARAPCurveHandle.h"
+//ARAPCurveHandle * handle = NULL;
 
 topoblend::topoblend(){
 	widget = NULL;
@@ -581,26 +580,26 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		used = true;
 	}
 
-	if(event->key() == Qt::Key_O)
-	{
-		if(graphs.size() < 1) return true;
+	//if(event->key() == Qt::Key_O)
+	//{
+	//	if(graphs.size() < 1) return true;
 
-		Structure::Node * n = graphs.front()->nodes.front();
-		std::vector<Vec3d> orgCtrlPnts = n->controlPoints();
+	//	Structure::Node * n = graphs.front()->nodes.front();
+	//	std::vector<Vec3d> orgCtrlPnts = n->controlPoints();
 
-		deformer = new ARAPCurveDeformer( orgCtrlPnts, orgCtrlPnts.size() * 0.25 );
+	//	deformer = new ARAPCurveDeformer( orgCtrlPnts, orgCtrlPnts.size() * 0.25 );
 
-		deformer->SetAnchor( orgCtrlPnts.size() - 1 );		// Last point as anchor
-		deformer->UpdateControl( 0, orgCtrlPnts.front());	// First point moves
+	//	deformer->SetAnchor( orgCtrlPnts.size() - 1 );		// Last point as anchor
+	//	deformer->UpdateControl( 0, orgCtrlPnts.front());	// First point moves
 
-		qDebug() << "Curve deformation performed!"; 
+	//	qDebug() << "Curve deformation performed!"; 
 
-		handle = new ARAPCurveHandle(orgCtrlPnts.front(), 0.0);
-		drawArea()->setManipulatedFrame( handle );
-		this->connect(handle, SIGNAL(manipulated()), SLOT(experimentSlot()));
+	//	handle = new ARAPCurveHandle(orgCtrlPnts.front(), 0.0);
+	//	drawArea()->setManipulatedFrame( handle );
+	//	this->connect(handle, SIGNAL(manipulated()), SLOT(experimentSlot()));
 
-		used = true;
-	}
+	//	used = true;
+	//}
 
 	drawArea()->updateGL();
 
@@ -609,13 +608,13 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 void topoblend::experimentSlot()
 {
-	Structure::Node * n = graphs.front()->nodes.front();
+	//Structure::Node * n = graphs.front()->nodes.front();
 
-	qglviewer::Vec v = handle->position();
-	deformer->points[0] = Vec3d(v[0],v[1],v[2]);
+	//qglviewer::Vec v = handle->position();
+	//deformer->points[0] = Vec3d(v[0],v[1],v[2]);
 
-	deformer->Deform(3);
-	n->setControlPoints( deformer->points );
+	//deformer->Deform(3);
+	//n->setControlPoints( deformer->points );
 }
 
 void topoblend::doBlend()
@@ -650,7 +649,56 @@ void topoblend::experiment1()
 
 }
 
-// Correspondence
+void topoblend::clearGraphs()
+{
+	qDeleteAll(graphs);
+	graphs.clear();
+	drawArea()->updateGL();
+
+	delete gcoor;
+	gcoor = NULL;
+}
+
+void topoblend::currentExperiment()
+{
+	NURBSRectangle sheetA = NURBSRectangle::createSheet(1.75,2, Vector3(0,0.25,0));
+	NURBSRectangle sheetB = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
+
+	sheetA.bend(-0.7);
+	sheetB.bend(0.2);
+	sheetB.bend(0.1,1);
+
+	Structure::Graph * graph = new Structure::Graph();
+
+	graph->addNode( new Structure::Sheet( sheetA, "SheetA" ) );
+	graph->addNode( new Structure::Sheet( sheetB, "SheetB" ) );
+
+	graph->addEdge( graph->getNode("SheetA"), graph->getNode("SheetB") );
+
+	graphs.push_back( graph );
+	setSceneBounds();
+
+	// Test graph distance on a single node
+	//GraphDistance * gd = new GraphDistance( graph->nodes.front() );
+	//gd->computeDistances( Vector3(0,0.25,0) );
+	//graphs.back()->misc["distance"] = gd;
+
+	qDebug() << "Done";
+
+    //Structure::Graph * blendedGraph = blender->blend();
+
+    // Set options
+    //blender->params["NUM_STEPS"] = this->params["NUM_STEPS"];
+    //blender->params["materialize"] = this->params["materialize"];
+    //blender->materializeInBetween( blendedGraph, 0, source );
+    //graphs.push_back( blendedGraph );
+    //setSceneBounds();
+}
+
+void topoblend::updateDrawArea()
+{
+	drawArea()->updateGL();
+}
 
 GraphCorresponder* topoblend::corresponder()
 {
@@ -669,40 +717,6 @@ GraphCorresponder* topoblend::corresponder()
 	}
 
 	return gcoor;
-}
-
-
-void topoblend::visualizePart2PartDistance(int sourceID)
-{
-	if (corresponder())
-		corresponder()->visualizePart2PartDistance(sourceID);
-
-	drawArea()->updateGL();
-}
-
-void topoblend::findOne2OneCorrespondences()
-{
-	if (corresponder())
-		corresponder()->findOneToOneCorrespondences();
-}
-
-
-
-void topoblend::setupLandmarks()
-{
-	if (corresponder())
-	{
-		LandmarksDialog dialog(this);
-		dialog.exec();
-	}
-}
-
-
-
-void topoblend::findOne2ManyCorrespondences()
-{
-	if (corresponder())
-		corresponder()->findOneToManyCorrespondences();
 }
 
 
@@ -767,66 +781,5 @@ void topoblend::testPoint2PointCorrespondences()
 	drawArea()->updateGL();
 }
 
-
-void topoblend::computeCorrespondences()
-{
-	if (corresponder())
-		corresponder()->computeCorrespondences();
-}
-
-
-// End of Correspondences
-
-
-void topoblend::clearGraphs()
-{
-	qDeleteAll(graphs);
-	graphs.clear();
-	drawArea()->updateGL();
-
-	delete gcoor;
-	gcoor = NULL;
-}
-
-void topoblend::currentExperiment()
-{
-	NURBSRectangle sheetA = NURBSRectangle::createSheet(1.75,2, Vector3(0,0.25,0));
-	NURBSRectangle sheetB = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
-
-	sheetA.bend(-0.7);
-	sheetB.bend(0.2);
-	sheetB.bend(0.1,1);
-
-	Structure::Graph * graph = new Structure::Graph();
-
-	graph->addNode( new Structure::Sheet( sheetA, "SheetA" ) );
-	graph->addNode( new Structure::Sheet( sheetB, "SheetB" ) );
-
-	graph->addEdge( graph->getNode("SheetA"), graph->getNode("SheetB") );
-
-	graphs.push_back( graph );
-	setSceneBounds();
-
-	// Test graph distance on a single node
-	//GraphDistance * gd = new GraphDistance( graph->nodes.front() );
-	//gd->computeDistances( Vector3(0,0.25,0) );
-	//graphs.back()->misc["distance"] = gd;
-
-	qDebug() << "Done";
-
-    //Structure::Graph * blendedGraph = blender->blend();
-
-    // Set options
-    //blender->params["NUM_STEPS"] = this->params["NUM_STEPS"];
-    //blender->params["materialize"] = this->params["materialize"];
-    //blender->materializeInBetween( blendedGraph, 0, source );
-    //graphs.push_back( blendedGraph );
-    //setSceneBounds();
-}
-
-void topoblend::updateDrawArea()
-{
-	drawArea()->updateGL();
-}
 
 Q_EXPORT_PLUGIN(topoblend)

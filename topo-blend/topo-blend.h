@@ -37,14 +37,12 @@ private:
 	QVector< Vector3 > debugPoints,debugPoints2,debugPoints3;
 	QVector< QPair<Vector3,Vector3> > debugLines,debugLines2,debugLines3;
 	Vector3VertexProperty points;
-
-public:
+	
 	// Corresponder
 	GraphCorresponder *gcoor;
-	GraphCorresponder* corresponder();
 
-	// View update
-	void updateDrawArea();
+public:
+	GraphCorresponder* corresponder();
 
 public slots:
 	void setSceneBounds();
@@ -68,17 +66,9 @@ public slots:
 	// Experiments
 	void experimentSlot();
 
-	// Correspondence
-	void visualizePart2PartDistance(int sourceID);
-
-	void setupLandmarks();
-
-	void findOne2OneCorrespondences();
-	void findOne2ManyCorrespondences();
-	void computeCorrespondences();
-
+	// Update
+	void updateDrawArea();
 	void testPoint2PointCorrespondences();
-	// End of Correspondence
 signals:
 
 };

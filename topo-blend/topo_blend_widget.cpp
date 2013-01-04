@@ -2,6 +2,7 @@
 #include "topo_blend_widget.h"
 #include "ui_topo_blend_widget.h"
 #include "ui_animationWidget.h"
+#include "landmarks_dialog.h"
 
 #include "QuickMesh.h"
 #include "QuickViewer.h"
@@ -34,16 +35,7 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
     this->connect(ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()));
 
 	// Correspondence
-	topo_blend->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizePart2PartDistance(int)));
-
-	topo_blend->connect(ui->landmarksButton, SIGNAL(clicked()), SLOT(setupLandmarks()));
-
-	topo_blend->connect(ui->one2oneButton, SIGNAL(clicked()), SLOT(findOne2OneCorrespondences()));
-	topo_blend->connect(ui->one2manyButton, SIGNAL(clicked()), SLOT(findOne2ManyCorrespondences()));
-	topo_blend->connect(ui->runButton, SIGNAL(clicked()), SLOT(computeCorrespondences()));
-
-	topo_blend->connect(ui->p2pButton, SIGNAL(clicked()), SLOT(testPoint2PointCorrespondences()));
-	// End of Correspondence
+	this->connect(ui->computeCorrButton, SIGNAL(clicked()), SLOT(loadCorrespondenceModel()));
 }
 
 topo_blend_widget::~topo_blend_widget()
@@ -113,4 +105,13 @@ void topo_blend_widget::loadAnimationModel()
 	viewer->showEntireScene();
 
 	viewer->setFocus();
+}
+
+void topo_blend_widget::loadCorrespondenceModel()
+{
+	if (tb->corresponder())
+	{
+		LandmarksDialog dialog(tb);
+		dialog.exec();
+	}
 }
