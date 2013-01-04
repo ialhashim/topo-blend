@@ -38,10 +38,10 @@ TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * tar
 	}
 
 	// Morph corresponded nodes
-	foreach (SET_PAIR set2set, gcoor->correspondences)
+	foreach (VECTOR_PAIR vec2vec, gcoor->correspondences)
 	{
-		std::set<QString> sNodes = set2set.first;
-		std::set<QString> tNodes = set2set.second;
+		std::vector<QString> sNodes = vec2vec.first;
+		std::vector<QString> tNodes = vec2vec.second;
 
 		int sN = sNodes.size();
 		int tN = tNodes.size();

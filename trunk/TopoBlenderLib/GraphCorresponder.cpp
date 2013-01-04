@@ -18,7 +18,7 @@ GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph
 }
 
 
-void GraphCorresponder::addLandmarks( std::set<QString> sParts, std::set<QString> tParts )
+void GraphCorresponder::addLandmarks( std::vector<QString> sParts, std::vector<QString> tParts )
 {
 	// Check if those parts are available
 	foreach(QString strID, sParts)
@@ -70,27 +70,66 @@ void GraphCorresponder::addLandmarks( std::set<QString> sParts, std::set<QString
 	landmarks.push_back(std::make_pair(sParts, tParts));
 }
 
-void GraphCorresponder::removeLandmark( int i )
+
+void GraphCorresponder::removeLandmarks( int pos, int n )
 {
-	if (i >= landmarks.size()) return;
+	if (pos + n > (int)landmarks.size()) return;
 
-	SET_PAIR set2set = landmarks[i];
-
-	// Update isLandmark
-	foreach(QString strID, set2set.first)
+	for (int i = pos; i < pos + n; i++)
 	{
-		int idx = sg->getNode(strID)->property["index"].toInt();
-		sIsLandmark[idx] = false;
-	}
+		VECTOR_PAIR vector2vector = landmarks[i];
 
-	foreach(QString strID, set2set.second)
-	{
-		int idx = tg->getNode(strID)->property["index"].toInt();
-		tIsLandmark[idx] = false;
+		// Update isLandmark
+		foreach(QString strID, vector2vector.first)
+		{
+			int idx = sg->getNode(strID)->property["index"].toInt();
+			sIsLandmark[idx] = false;
+		}
+
+		foreach(QString strID, vector2vector.second)
+		{
+			int idx = tg->getNode(strID)->property["index"].toInt();
+			tIsLandmark[idx] = false;
+		}
 	}
 
 	// Erase
-	landmarks.erase(landmarks.begin() + i);
+	landmarks.erase(landmarks.begin() + pos, landmarks.begin() + pos + n);
+}
+
+
+
+void GraphCorresponder::computeValidationMatrix()
+{
+	initializeMatrix<bool>(validM, true);
+
+	int sN = sg->nodes.size();
+	int tN = tg->nodes.size();
+
+	// Types
+	for(int i = 0; i < sN; i++){
+		for (int j = 0; j < tN; j++)
+		{
+			if (sg->nodes[i]->type() != tg->nodes[j]->type())
+				validM[i][j] = false;
+		}
+	}
+
+	// Landmarks
+	foreach (VECTOR_PAIR vector2vector, landmarks)
+	{
+		// Convert strID to int id
+		std::set<int> sIDs, tIDs;
+		foreach (QString strID, vector2vector.first)
+			sIDs.insert(sg->getNode(strID)->property["index"].toInt());
+		foreach (QString strID, vector2vector.second)
+			tIDs.insert(tg->getNode(strID)->property["index"].toInt());
+
+		// Set distances to invalid value
+		foreach (int r, sIDs)
+			foreach (int c, tIDs)
+			validM[r][c] = false;
+	}
 }
 
 
@@ -126,8 +165,7 @@ float GraphCorresponder::HausdorffDistance( std::vector<Vector3> &A, std::vector
 
 void GraphCorresponder::computeHausdorffDistanceMatrix( std::vector< std::vector<float> > & M )
 {
-	// Init
-	initializeMatrix(M);
+	initializeMatrix<float>(M, INVALID_VALUE);
 
 	// The control points of each node in the target graph
 	std::vector< std::vector<Vector3> > targetControlPointsArray;
@@ -142,8 +180,11 @@ void GraphCorresponder::computeHausdorffDistanceMatrix( std::vector< std::vector
 		std::vector<Vector3> sPoints = sg->nodes[i]->controlPoints();
 		for (int j = 0; j < tN; j++)
 		{
-			std::vector<Vector3> &tPoints = targetControlPointsArray[j];
-			M[i][j] = HausdorffDistance(sPoints, tPoints);
+			if (validM[i][j])
+			{
+				std::vector<Vector3> &tPoints = targetControlPointsArray[j];
+				M[i][j] = HausdorffDistance(sPoints, tPoints);
+			}
 		}
 	}
 
@@ -151,22 +192,71 @@ void GraphCorresponder::computeHausdorffDistanceMatrix( std::vector< std::vector
 }
 
 
-void GraphCorresponder::computeDegreeDifferenceMatrix( std::vector< std::vector<float> > & M )
-{
-	// Init
-	initializeMatrix(M);
 
-	// Difference on Degrees
+void GraphCorresponder::computeSizeDiffMatrix( std::vector< std::vector<float> > & M )
+{
+	initializeMatrix<float>(M, INVALID_VALUE);
+
 	int sN = sg->nodes.size();
 	int tN = tg->nodes.size();
-	for(int i = 0; i < sN; i++)
-	{
-		int sDegree = sg->nodes[i]->property["degree"].toInt();
+	for(int i = 0; i < sN; i++){
 		for (int j = 0; j < tN; j++)
 		{
-			int tDegree = tg->nodes[j]->property["degree"].toInt();
+			if (validM[i][j])
+			{
+				float diff;
+				if (sg->nodes[i]->type() == Structure::CURVE)
+				{
+					Structure::Curve *curve1 = (Structure::Curve *) sg->nodes[i];
+					Structure::Curve *curve2 = (Structure::Curve *) tg->nodes[j];
+					diff = curve1->curve.GetLength(0, 1) - curve2->curve.GetLength(0, 1);
+				}
+				else
+				{
+					Structure::Sheet *sheet1 = (Structure::Sheet *) sg->nodes[i];
+					Structure::Sheet *sheet2 = (Structure::Sheet *) tg->nodes[j];
+					diff = sheet1->area() - sheet2->area();
+				}
 
-			M[i][j] = abs(sDegree - tDegree);
+				M[i][j] = fabsf(diff);
+			}
+		}
+	}
+
+	normalizeMatrix(M);
+}
+
+
+
+void GraphCorresponder::computeOrientationDiffMatrix( std::vector< std::vector<float> > & M )
+{
+	initializeMatrix<float>(M, INVALID_VALUE);
+
+	int sN = sg->nodes.size();
+	int tN = tg->nodes.size();
+	for(int i = 0; i < sN; i++){
+		for (int j = 0; j < tN; j++)
+		{
+			if (validM[i][j])
+			{
+				Vector3 vec1, vec2;
+				if (sg->nodes[i]->type() == Structure::CURVE)
+				{
+					Structure::Curve *curve1 = (Structure::Curve *) sg->nodes[i];
+					Structure::Curve *curve2 = (Structure::Curve *) tg->nodes[j];
+					std::vector<Vector3> ctrlPnts1 = curve1->controlPoints();
+					std::vector<Vector3> ctrlPnts2 = curve2->controlPoints();
+					vec1 = ctrlPnts1.front() - ctrlPnts1.back();
+					vec2 = ctrlPnts2.front() - ctrlPnts2.back();
+				}
+				else
+				{
+					Structure::Sheet *sheet1 = (Structure::Sheet *) sg->nodes[i];
+					Structure::Sheet *sheet2 = (Structure::Sheet *) tg->nodes[j];
+				}
+
+				
+			}
 		}
 	}
 
@@ -176,51 +266,39 @@ void GraphCorresponder::computeDegreeDifferenceMatrix( std::vector< std::vector<
 
 void GraphCorresponder::computeDistanceMatrix()
 {
-	// Init
-	initializeMatrix(disM);
+	// Validation matrix
+	computeValidationMatrix();
 
-	// All measure matrices
-	std::vector< std::vector<float> > M1, M2;
-	computeHausdorffDistanceMatrix(M1);
-	computeDegreeDifferenceMatrix(M2);
+	// Distance matrices
+	std::vector< std::vector<float> > hM, sM, oM;
+	computeHausdorffDistanceMatrix(hM);
+	computeSizeDiffMatrix(sM);
+	computeOrientationDiffMatrix(oM);
 
-	// Merge different measures
+	// Combine
+	initializeMatrix<float>(disM, INVALID_VALUE);
 	int sN = sg->nodes.size();
 	int tN = tg->nodes.size();
-	for(int i = 0; i < sN; i++){
-		for (int j = 0; j < tN; j++){
-			if (sg->nodes[i]->type() != tg->nodes[j]->type())
-				disM[i][j] = INVALID_VALUE;
-			else
-				disM[i][j] = M1[i][j] + 0.5 * M2[i][j];
+	for(int i = 0; i < sN; i++) {
+		for (int j = 0; j < tN; j++)
+		{
+			if (validM[i][j])
+			{
+				disM[i][j] = sM[i][j];
+			}
 		}
-	}
-
-	// Add landmarks
-	foreach (SET_PAIR set2set, landmarks)
-	{
-		// Convert strID to int id
-		std::set<int> sIDs, tIDs;
-		foreach (QString strID, set2set.first)
-			sIDs.insert(sg->getNode(strID)->property["index"].toInt());
-		foreach (QString strID, set2set.second)
-			tIDs.insert(tg->getNode(strID)->property["index"].toInt());
-
-		// Set distances to 0
-		foreach (int r, sIDs)
-			foreach (int c, tIDs)
-				disM[r][c] = 0;
 	}
 
 	normalizeMatrix(disM);
 }
 
-
-void GraphCorresponder::initializeMatrix(std::vector< std::vector<float> > & M)
+template <class Type>
+void GraphCorresponder::initializeMatrix(std::vector< std::vector<Type> > & M, Type value)
 {
 	int sN = sg->nodes.size();
 	int tN = tg->nodes.size();
-	std::vector<float> tmp(tN, INVALID_VALUE);
+	std::vector<Type> tmp(tN, value);
+	M.clear();
 	M.resize(sN, tmp);
 }
 
@@ -282,7 +360,8 @@ void GraphCorresponder::visualizePart2PartDistance( int sourceID )
 }
 
 
-bool GraphCorresponder::minElementInMatrix( std::vector< std::vector<float> > &M, int &row, int &column )
+
+bool GraphCorresponder::minElementInMatrix( std::vector< std::vector<float> > &M, int &row, int &column, float &minValue )
 {
 	if (M.size() == 0 || M[0].size() == 0)
 	{
@@ -290,7 +369,7 @@ bool GraphCorresponder::minElementInMatrix( std::vector< std::vector<float> > &M
 		return false;
 	}
 
-	float minValue = FLT_MAX;
+	minValue = FLT_MAX;
 	for (int i = 0; i < (int)M.size(); i++){
 		for (int j = 0; j < (int)M[0].size(); j++)
 		{
@@ -306,172 +385,100 @@ bool GraphCorresponder::minElementInMatrix( std::vector< std::vector<float> > &M
 	return minValue != FLT_MAX;
 }
 
-void GraphCorresponder::findOneToOneCorrespondences()
+void GraphCorresponder::computePartToPartCorrespondences()
 {
-	if (disM.empty()) 
-		computeDistanceMatrix();
+	// Clear
+	correspondences.clear();
+	corrScores.clear();
 
-	// Copy the disM
+	// Distance matrix
+	if (disM.empty()) computeDistanceMatrix();
 	std::vector< std::vector<float> > disMatrix = disM;
 
+	// Parameters
 	int sN = sg->nodes.size();
 	int tN = tg->nodes.size();
-	
-	std::ofstream outF("correspondences_one2one.txt", std::ios::out);
-
-	outF << "Source shape: " << sg->property["name"].toString().toStdString() << '\n';
-	outF << "Target shape: " << tg->property["name"].toString().toStdString() << "\n\n\n";
+	float tolerance = 0.05f;
+	float threshold = 1.1f;
 
 	int r, c;
-	while (minElementInMatrix(disMatrix, r, c))
+	float minValue;
+	while (minElementInMatrix(disMatrix, r, c, minValue))
 	{
-		// To-Do: check the consistency
+		if (minValue > threshold) break;
 
 		// source:r <-> target:c
-		QString sr =  sg->nodes[r]->id;
-		QString tc =  tg->nodes[c]->id;
-
-		std::set<QString> sSet, tSet;
-		sSet.insert(sr);
-		tSet.insert(tc);
-		this->correspondences.push_back(std::make_pair(sSet, tSet));
-
-		// Write into the file
-		outF << sr.toStdString() << '\t' << tc.toStdString() << '\n';
-
-		// Remove scores of r and c
-		for (int i = 0; i < sN; i++) // Column c
-			disMatrix[i][c] = INVALID_VALUE;
-		for (int j = 0; j < tN; j++) // Row r
-			disMatrix[r][j] = INVALID_VALUE;
-	}
-
-	outF.close();
-}
-
-void GraphCorresponder::findOneToManyCorrespondences()
-{
-	if (disM.empty()) 
-		computeDistanceMatrix();
-
-	// Copy the disM
-	std::vector< std::vector<float> > disMatrix = disM;
-
-	int sN = sg->nodes.size();
-	int tN = tg->nodes.size();
-
-	std::ofstream outF("correspondences_one2many.txt", std::ios::out);
-
-	outF << "Source shape: " << sg->property["name"].toString().toStdString() << '\n';
-	outF << "Target shape: " << tg->property["name"].toString().toStdString() << "\n\n\n";
-
-	int r, c;
-	while (minElementInMatrix(disMatrix, r, c))
-	{
-		// source:r <-> target:c
-		// The threshold
-		float threshold  = disMatrix[r][c] * 0.98;
+		float upperBound = disMatrix[r][c] + tolerance;
 
 		// Search for "many" in source
 		std::vector<int> r_many;
+		std::vector<float> r_scores;
 		for (int ri = 0; ri < sN; ri++)
 		{
 			if (ri == r || disMatrix[ri][c] == INVALID_VALUE)
 				continue;
 
 			// ri is close to c
-			if (disMatrix[ri][c] >= threshold) 
+			if (disMatrix[ri][c] <= upperBound) 
 			{
-				bool verified = true;
-
-				// c is the best choice for ri
-				for(int cj = 0; cj < tN; cj++)
-				{
-					if (disMatrix[ri][cj] == INVALID_VALUE || cj == c)
-						continue;
-
-					if (disMatrix[ri][cj] < disMatrix[ri][c])
-					{
-						verified = false;
-						break;
-					}
-				}
-
-				if (verified)
-					r_many.push_back(ri);
+				r_scores.push_back(disMatrix[ri][c]);
+				r_many.push_back(ri);
 			}
 		}
 
 		// Search for "many" in target
 		std::vector<int> c_many;
+		std::vector<float> c_scores;
 		for (int ci = 0; ci < tN; ci++)
 		{
 			if (ci == c || disMatrix[r][ci] == INVALID_VALUE)	
 				continue;
 
 			// ci is close to r
-			if (disMatrix[r][ci] >= threshold) 
+			if (disMatrix[r][ci] < upperBound) 
 			{
-				bool verified = true;
-
-				// r is the best choice for ci
-				for (int rj = 0; rj < sN; rj++)
-				{
-					if (disMatrix[rj][ci] == INVALID_VALUE || rj == r)
-						continue;
-
-					if (disMatrix[rj][ci] < disMatrix[r][ci])
-					{
-						verified = false;
-						break;
-					}
-				}
-
-				if (verified)
-					c_many.push_back(ci);
+				c_scores.push_back(disMatrix[r][ci]);
+				c_many.push_back(ci);
 			}
 		}
 
 		// Results
-		std::set<QString> sSet, tSet;
-		sSet.insert(sg->nodes[r]->id);
-		tSet.insert(tg->nodes[c]->id);
+		std::vector<QString> sVector, tVector;
+		sVector.push_back(sg->nodes[r]->id);
+		tVector.push_back(tg->nodes[c]->id);
+		std::vector<float> scores;
+		scores.push_back(minValue);
 
 		if (c_many.size() > r_many.size()) // r <-> {c_i}
 		{
-			outF << sg->nodes[r]->id.toStdString() << "\t:\t"
-				 << tg->nodes[c]->id.toStdString() << '\t';
-			
 			foreach(int ci, c_many)
 			{
-				tSet.insert(tg->nodes[ci]->id);
-
-				outF << tg->nodes[ci]->id.toStdString() << '\t';
+				tVector.push_back(tg->nodes[ci]->id);
 
 				for (int i = 0; i < sN; i++) // Column c
 					disMatrix[i][ci] = INVALID_VALUE;
 			}
 
-			outF << '\n';
+			scores.insert(scores.end(), c_scores.begin(), c_scores.end());
 		}
 		else // {r_i} <-> c
 		{
 			foreach(int ri, r_many)
 			{
-				sSet.insert(sg->nodes[ri]->id);
-
-				outF << sg->nodes[ri]->id.toStdString() << '\t';
+				sVector.push_back(sg->nodes[ri]->id);
 
 				for (int j = 0; j < tN; j++) // Row r
 					disMatrix[ri][j] = INVALID_VALUE;
 			}
 
-			outF << sg->nodes[r]->id.toStdString() << "\t:\t"
-				 << tg->nodes[c]->id.toStdString() << '\n';
+			scores.insert(scores.end(), r_scores.begin(), r_scores.end());
 		}
 
+		
+
 		// Save results
-		this->correspondences.push_back(std::make_pair(sSet, tSet));
+		this->correspondences.push_back(std::make_pair(sVector, tVector));
+		this->corrScores.push_back(scores);
 		
 		// Remove r and c in the disMatrix
 		for (int i = 0; i < sN; i++) // Column c
@@ -479,8 +486,6 @@ void GraphCorresponder::findOneToManyCorrespondences()
 		for (int j = 0; j < tN; j++) // Row r
 			disMatrix[r][j] = INVALID_VALUE;
 	}
-
-	outF.close();
 }
 
 
@@ -711,23 +716,21 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 
 void GraphCorresponder::computeCorrespondences()
 {
-	// Part-to-Part correspondences
-	correspondences.clear();
-	//findOneToOneCorrespondences();
-	findOneToManyCorrespondences();
+	// Part to Part correspondence
+	computePartToPartCorrespondences();
 
 	// Mark the nodes
 	sIsCorresponded.resize(sg->nodes.size(), false);
 	tIsCorresponded.resize(tg->nodes.size(), false);
-	foreach (SET_PAIR set2set, correspondences)
+	foreach (VECTOR_PAIR vector2vector, correspondences)
 	{
-		foreach (QString sID, set2set.first)
+		foreach (QString sID, vector2vector.first)
 		{
 			int sid = sg->getNode(sID)->property["index"].toInt();
 			sIsCorresponded[sid] = true;
 		}
 
-		foreach (QString tID, set2set.second)
+		foreach (QString tID, vector2vector.second)
 		{
 			int tid = tg->getNode(tID)->property["index"].toInt();
 			tIsCorresponded[tid] = true;
@@ -738,24 +741,24 @@ void GraphCorresponder::computeCorrespondences()
 	// Then Point-to-Point correspondences can be easily retrieved via parameterized NURBS. 
 	for (int i = 0; i < (int)correspondences.size(); i++)
 	{
-		std::set<QString> &sSet = correspondences[i].first;
-		std::set<QString> &tSet = correspondences[i].second;
+		std::vector<QString> &sVector = correspondences[i].first;
+		std::vector<QString> &tVector = correspondences[i].second;
 
 		// One to many
-		if (sSet.size() == 1)
+		if (sVector.size() == 1)
 		{
-			Structure::Node *sNode = sg->getNode(*sSet.begin());
-			foreach(QString tID, tSet)
+			Structure::Node *sNode = sg->getNode(*sVector.begin());
+			foreach(QString tID, tVector)
 			{
 				Structure::Node *tNode = tg->getNode(tID);
 				correspondTwoNodes(sNode, tNode);
 			}
 		}
 		// Many to one
-		else if (tSet.size() == 1)
+		else if (tVector.size() == 1)
 		{
-			Structure::Node *tNode = tg->getNode(*tSet.begin());
-			foreach(QString sID, sSet)
+			Structure::Node *tNode = tg->getNode(*tVector.begin());
+			foreach(QString sID, sVector)
 			{
 				Structure::Node *sNode = sg->getNode(sID);
 				correspondTwoNodes(sNode, tNode);
@@ -776,15 +779,15 @@ void GraphCorresponder::saveLandmarks(QString filename)
 
 	outF << landmarks.size() << "\n\n";
 
-	foreach (SET_PAIR set2set, landmarks)
+	foreach (VECTOR_PAIR vector2vector, landmarks)
 	{
-		outF << set2set.first.size() << '\t';;
-		foreach (QString strID, set2set.first)
+		outF << vector2vector.first.size() << '\t';;
+		foreach (QString strID, vector2vector.first)
 			outF << strID.toStdString() << '\t';
 		outF << '\n';
 
-		outF << set2set.second.size() << '\t';
-		foreach (QString strID, set2set.second)
+		outF << vector2vector.second.size() << '\t';
+		foreach (QString strID, vector2vector.second)
 			outF << strID.toStdString() << '\t';
 		outF << "\n\n";
 	}
@@ -809,20 +812,20 @@ void GraphCorresponder::loadLandmarks(QString filename)
 	{
 		int n;
 		std::string strID;
-		std::set<QString> sParts, tParts;
+		std::vector<QString> sParts, tParts;
 
 		inF >> n;
 		for (int j = 0; j < n; j++)
 		{
 			inF >> strID;
-			sParts.insert(QString(strID.c_str()));
+			sParts.push_back(QString(strID.c_str()));
 		}
 
 		inF >> n;
 		for (int j = 0; j < n; j++)
 		{
 			inF >> strID;
-			tParts.insert(QString(strID.c_str()));
+			tParts.push_back(QString(strID.c_str()));
 		}
 
 		this->addLandmarks(sParts, tParts);
@@ -865,4 +868,18 @@ QString GraphCorresponder::sgName()
 QString GraphCorresponder::tgName()
 {
 	return tg->property["name"].toString().section('\\', -1).section('.', 0, 0);
+}
+
+void GraphCorresponder::saveCorrespondences( QString filename )
+{
+
+	std::ofstream outF("correspondences_one2one.txt", std::ios::out);
+
+	outF << "Source shape: " << sg->property["name"].toString().toStdString() << '\n';
+	outF << "Target shape: " << tg->property["name"].toString().toStdString() << "\n\n\n";
+}
+
+void GraphCorresponder::LoadCorrespondences( QString filename )
+{
+
 }
