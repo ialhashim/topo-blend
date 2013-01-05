@@ -82,9 +82,11 @@ struct Ray
 	Vec3d origin;
 	Vec3d direction;
 	int index;
+	double thickness;
 
-	Ray(const Vec3d & Origin = Vec3d(), const Vec3d & Direction = Vec3d(), int Index = -1) : origin(Origin), index(Index){
-		direction = Direction / Direction.norm();
+	Ray(const Vec3d & Origin = Vec3d(), const Vec3d & Direction = Vec3d(), double Thickness = 0.0, int Index = -1) : origin(Origin), index(Index){
+		direction = Direction.normalized();
+		thickness = Thickness;
 	}
 
 	inline Ray inverse() const { return Ray(origin, -direction); } 
@@ -93,6 +95,7 @@ struct Ray
 		this->origin = other.origin;
 		this->direction = other.direction;
 		this->index = other.index;
+		this->thickness = other.thickness;
 
 		return *this;
 	}
@@ -123,7 +126,7 @@ public:
 		this->yExtent = y;
 		this->zExtent = z;
 
-		Vec3d corner(x/2, y/2, z/2);
+		Vec3d corner(x, y, z);
 
 		vmin = center - corner;
 		vmax = center + corner;
@@ -146,7 +149,7 @@ public:
 	void computeFromTris( const std::vector< std::vector<Vec3d> > & tris )
 	{
 		vmin = Vec3d(DBL_MAX, DBL_MAX, DBL_MAX);
-		vmax = Vec3d(-DBL_MAX, -DBL_MAX, -DBL_MAX);
+		vmax = -vmin;
 
 		double minx = 0, miny = 0, minz = 0;
 		double maxx = 0, maxy = 0, maxz = 0;
@@ -180,18 +183,6 @@ public:
 		this->zExtent = abs(vmax.z() - center.z());
 	}
 
-	BoundingBox( const Vec3d& fromMin, const Vec3d& toMax )
-	{
-		vmin = fromMin;
-		vmax = toMax;
-
-		this->center = (vmin + vmax) / 2.0;
-
-		this->xExtent = abs(vmax.x() - center.x());
-		this->yExtent = abs(vmax.y() - center.y());
-		this->zExtent = abs(vmax.z() - center.z());
-	}
-
 	std::vector<Vec3d> getCorners()
 	{
 		std::vector<Vec3d> corners;
@@ -215,7 +206,87 @@ public:
 		return corners;
 	}
 
-	bool intersects( const Ray& ray ) const
+	bool intersects( const Ray& ray )
+	{
+		// r.dir is unit direction vector of ray
+		Vec3d dirfrac;
+		dirfrac.x() = 1.0f / ray.direction.x();
+		dirfrac.y() = 1.0f / ray.direction.y();
+		dirfrac.z() = 1.0f / ray.direction.z();
+
+		double overlap = ray.thickness;
+		Vec3d minv = vmin + ((vmin - center).normalized() * overlap);
+		Vec3d maxv = vmax + ((vmax - center).normalized() * overlap);
+
+		// lb is the corner of AABB with minimal coordinates - left bottom, rt is maximal corner
+		// ray.origin is origin of ray
+		float t1 = (minv.x() - ray.origin.x())*dirfrac.x();
+		float t2 = (maxv.x() - ray.origin.x())*dirfrac.x();
+		float t3 = (minv.y() - ray.origin.y())*dirfrac.y();
+		float t4 = (maxv.y() - ray.origin.y())*dirfrac.y();
+		float t5 = (minv.z() - ray.origin.z())*dirfrac.z();
+		float t6 = (maxv.z() - ray.origin.z())*dirfrac.z();
+
+		float tmin = qMax(qMax(qMin(t1, t2), qMin(t3, t4)), qMin(t5, t6));
+		float tmax = qMin(qMin(qMax(t1, t2), qMax(t3, t4)), qMax(t5, t6));
+
+		double t = 0;
+
+		// if tmax < 0, ray (line) is intersecting AABB, but whole AABB is behing us
+		if (tmax < 0)
+		{
+			t = tmax;
+			return false;
+		}
+
+		// if tmin > tmax, ray doesn't intersect AABB
+		if (tmin > tmax)
+		{
+			t = tmax;
+			return false;
+		}
+
+		t = tmin;
+		return true;
+	}
+
+	bool intersectsWorking( const Ray& ray )
+	{
+		Vec3d T_1, T_2; // vectors to hold the T-values for every direction
+		double t_near = -DBL_MAX; // maximums defined in float.h
+		double t_far = DBL_MAX;
+
+		//vmin = center - Vec3d(xExtent);
+		//vmax = center + Vec3d(xExtent);
+
+		for (int i = 0; i < 3; i++){ //we test slabs in every direction
+			if (ray.direction[i] == 0){ // ray parallel to planes in this direction
+				if ((ray.origin[i] < vmin[i]) || (ray.origin[i] > vmax[i])) {
+					return false; // parallel AND outside box : no intersection possible
+				}
+			} else { // ray not parallel to planes in this direction
+				T_1[i] = (vmin[i] - ray.origin[i]) / ray.direction[i];
+				T_2[i] = (vmax[i] - ray.origin[i]) / ray.direction[i];
+
+				if(T_1[i] > T_2[i]){ // we want T_1 to hold values for intersection with near plane
+					std::swap(T_1,T_2);
+				}
+				if (T_1[i] > t_near){
+					t_near = T_1[i];
+				}
+				if (T_2[i] < t_far){
+					t_far = T_2[i];
+				}
+				if( (t_near > t_far) || (t_far < 0) ){
+					return false;
+				}
+			}
+		}
+		double tnear = t_near, tfar = t_far; // put return values in place
+		return true; // if we made it here, there was an intersection - YAY
+	}
+
+	bool intersectsOld( const Ray& ray ) const
 	{
 		double rhs;
 		double fWdU[3];
@@ -372,16 +443,6 @@ public:
 	Vec3d Center()
 	{
 		return center;
-	}
-
-	void Offset( double s )
-	{
-		Offset( Vec3d(s,s,s));
-	}
-
-	void Offset( Vec3d delta )
-	{
-		*this = BoundingBox(vmin - delta, vmax + delta);
 	}
 
 	double Diag()

@@ -13,10 +13,14 @@
 //#include "DynamicGraph.h"
 
 #include "Morpher.h"
-
+Morpher *morpher = NULL;
 
 #define RESOLUTION 0.1
 
+// Test
+#include "Octree.h"
+Octree * octree = NULL;
+Ray ray(Vec3d(0),Vec3d(1,1,1));
 
 geometry_morph::geometry_morph(){
 	widget = NULL;
@@ -41,6 +45,46 @@ void geometry_morph::create()
 void geometry_morph::decorate()
 {
 	//targetGraph.draw();
+
+	if(octree)
+	{
+		HitResult res;
+		octree->intersectRay(ray, ray.thickness, false);
+
+		octree->draw(0,1,0,1);
+
+
+		// Draw ray
+
+		glDisable(GL_LIGHTING);
+
+		glLineWidth(10);
+		glColor3d(1,1,1);
+		glBegin(GL_LINES);
+		glVector3(ray.origin);
+		glVector3((ray.origin + ray.direction * 100));
+		glEnd();
+
+		glEnable(GL_LIGHTING);
+	}
+
+	if(morpher)
+	{
+		if(morpher->source_octree) morpher->source_octree->draw(0,1,0,1);
+		
+		glDisable(GL_LIGHTING);
+		glPointSize(15);
+		glBegin(GL_POINTS);
+
+		glColor3d(1,0,0);
+		foreach(Vec3d p, morpher->debugPoints)	glVector3(p);
+
+		glColor3d(0,1,0);
+		foreach(Vec3d p, morpher->debugPoints2)	glVector3(p);
+
+		glEnd();
+		glEnable(GL_LIGHTING);
+	}
 }
 
 /*
@@ -158,13 +202,74 @@ void geometry_morph::loadTargetGraph()
 
 void geometry_morph::doMorph()
 {
-	
-//	Morpher * morpher = new Morpher(sourceModel,targetModel,sourceCurve,targetCurve);
-	Morpher *morpher=new Morpher(sourceModel,targetModel,sourceGraph,targetGraph);
-	
-	morpher->generateInBetween(10,10,10,10,10, 6);
 
+	//DEBUG:
+	sourceModel = new SurfaceMeshModel("source.off","source");
+	targetModel = new SurfaceMeshModel("target.off","target");
+	sourceModel->updateBoundingBox();
+	targetModel->updateBoundingBox();
+
+	// Curve
+	//sourceModel->read("C:/Users/rui/Desktop/StarlabPackage/cuboid7.off");
+	//targetModel->read("C:/Users/rui/Desktop/StarlabPackage/cylinder13.off");
+	//sourceGraph.loadFromFile("C:/Users/rui/Desktop/StarlabPackage/graph_cuboid7.xml");
+	//targetGraph.loadFromFile("C:/Users/rui/Desktop/StarlabPackage/graph_cylinder13.xml");
+
+	//// Sheet
+	sourceModel->read("C:/Users/rui/Desktop/StarlabPackage/sheet1.off");
+	targetModel->read("C:/Users/rui/Desktop/StarlabPackage/sheet2.off");
+	sourceGraph.loadFromFile("C:/Users/rui/Desktop/StarlabPackage/graph_sheet1.xml");
+	targetGraph.loadFromFile("C:/Users/rui/Desktop/StarlabPackage/graph_sheet2.xml");
+
+	QElapsedTimer timer; timer.start();
+
+	qDebug() << "Started 'generateInBetween'..";
+	morpher = new Morpher(sourceModel,targetModel,sourceGraph,targetGraph);
+	double t1=timer.elapsed();
+
+	morpher->generateInBetween(10,10,10,10,10, 6);
+	double t2=timer.elapsed();
+
+	qDebug() << QString("Morpher Constructor =%1 ms Resampling = %2 ms").arg(t1).arg(t2-t1);
+	qDebug() << QString("Total =%1 ms").arg(t2);
+
+	mainWindow()->setStatusBarMessage(QString("Total time = %1").arg(t2));
+
+	//document()->addModel(sourceModel);
 }
 
+bool geometry_morph::keyPressEvent( QKeyEvent* event )
+{
+	bool used = false;
+
+	if(event->key() == Qt::Key_E)
+	{	
+		std::vector<Surface_mesh::Face> allTris;
+		foreach(Face f, mesh()->faces()) allTris.push_back(f);
+
+		int numTrisPerNode =	15;
+
+		octree = new Octree(numTrisPerNode, mesh());
+		octree->initBuild(allTris, numTrisPerNode);
+
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_R)
+	{	
+		ray.thickness += 0.5;
+		used = true;
+		drawArea()->updateGL();
+	}
+
+	if(event->key() == Qt::Key_W)
+	{	
+		ray.thickness -= 0.5;
+		used = true;
+		drawArea()->updateGL();
+	}
+
+	return used;
+}
 
 Q_EXPORT_PLUGIN(geometry_morph)

@@ -1,5 +1,6 @@
 #include "qgl.h"
 #include "Octree.h"
+#include <stack>
 
 Octree::Octree( int triPerNode, Surface_mesh * useMesh )
 {
@@ -42,6 +43,8 @@ void Octree::initBuild( std::vector<Surface_mesh::Face>& tris, int triPerNode )
 	// Transform and scale to node's coordinates
 	double largeSize = qMax(bb.xExtent, qMax(bb.yExtent, bb.zExtent));
 
+	largeSize *= 1.1;
+
 	// Define our bounding box
 	this->boundingBox = BoundingBox(bb.center, largeSize, largeSize, largeSize);
 
@@ -66,15 +69,15 @@ void Octree::initBuild( std::vector<Surface_mesh::Face>& tris, int triPerNode )
 
 void Octree::newNode( int depth, double x, double y, double z )
 {
-	double extent = boundingBox.xExtent / 2.0;
+	double newExtent = boundingBox.xExtent / 2.0;
 
 	Vec3d center;
 
-	center.x() = boundingBox.center.x() + (extent * x);
-	center.y() = boundingBox.center.y() + (extent * y);
-	center.z() = boundingBox.center.z() + (extent * z);
+	center.x() = boundingBox.center.x() + (newExtent * x);
+	center.y() = boundingBox.center.y() + (newExtent * y);
+	center.z() = boundingBox.center.z() + (newExtent * z);
 
-	BoundingBox bb(center, extent, extent, extent);
+	BoundingBox bb(center, newExtent, newExtent, newExtent);
 
 	// Add child
 	children.push_back(Octree());
@@ -126,7 +129,7 @@ void Octree::build( int depth )
 {
 	if ((int)triangleData.size() > this->trianglePerNode)
 	{
-		if(depth < 7)
+		if(depth < 8)
 		{
 			// Subdivide to 8 nodes
 			newNode(depth, -1, -1, -1);
@@ -179,15 +182,19 @@ void Octree::DrawBox(const Vec3d& center, float width, float length, float heigh
 
 void Octree::draw( double r, double g, double b, double lineWidth )
 {
-	foreach(Octree * iset, selectedChildren){
-		iset->draw(1,0,0,lineWidth + 3);
+	if(root() == this)
+	{
+		foreach(Octree * iset, selectedChildren){
+			//iset->draw(1,0,0,lineWidth + 3);
+			BoundingBox bb = iset->boundingBox;
+			DrawBox(bb.center, bb.xExtent, bb.yExtent, bb.zExtent,1,0,0, lineWidth + 2);
+		}
 	}
 
 	DrawBox(boundingBox.center, boundingBox.xExtent, boundingBox.yExtent, boundingBox.zExtent,r,g,b, lineWidth);
 
 	for (std::vector<Octree>::iterator child = children.begin();  child != children.end(); child++)
 		child->draw(r,g,b, lineWidth);
-
 }
 
 IndexSet Octree::intersectPoint( const Vec3d& point )
@@ -214,7 +221,7 @@ void Octree::intersectRecursivePoint( const Vec3d& point, IndexSet& tris )
 
 bool Octree::intersectHit( IndexSet& tris )
 {
-	if(this->children.size() > 0)
+	if( this->children.size() > 0 )
 		return false;
 
 	for(std::vector<Surface_mesh::Face>::iterator it = triangleData.begin(); it != triangleData.end(); it++)
@@ -223,46 +230,87 @@ bool Octree::intersectHit( IndexSet& tris )
 		tris.insert( face.idx() );
 	}
 
-	root()->selectedChildren.push_back(this);
+	// Debug:
+	//root()->selectedChildren.push_back(this);
 
 	return true;
 }
 
-IndexSet Octree::intersectRay( const Ray& ray, bool isFullTest)
+QSet<int> Octree::intersectRay( Ray ray, double rayThickness, bool isFullTest)
 {
-	selectedChildren.clear();
+	QSet<int> tris;
 
-	IndexSet tris;
+	ray.thickness = rayThickness;
 
-	if (boundingBox.intersects(ray)) 
-		intersectRecursiveRay(ray, tris);
+	//DEBUG:
+	this->selectedChildren.clear();
 
-	if(isFullTest)
+	if ( this->boundingBox.intersects(ray) ) 
 	{
-		IndexSet exactSet;
+		std::stack<Octree*> s;
+		s.push( this );
 
-		foreach(int i, tris)
+		while( !s.empty() )
 		{
-			HitResult hitRes;
-			intersectionTest(Surface_mesh::Face(i), ray, hitRes, false);
-			if(hitRes.hit) exactSet.insert(i);
+			Octree * curTree = s.top();
+			s.pop();
+
+			if(curTree->children.size() == 0)
+			{
+				for(std::vector<Surface_mesh::Face>::iterator it = curTree->triangleData.begin(); it != curTree->triangleData.end(); it++)
+				{
+					Surface_mesh::Face face = *it;
+					tris.insert( face.idx() );
+				}
+
+				// Debug:
+				root()->selectedChildren.push_back(curTree);
+			}
+
+			// Do following if child size > 0
+			for (std::vector<Octree>::iterator child = curTree->children.begin();  child != curTree->children.end(); child++)
+			{
+				if ( child->boundingBox.intersects(ray) )
+				{
+					s.push( &(*child) );
+				}
+			}
 		}
 
-		return exactSet;
+		if(isFullTest)
+		{
+			QSet<int> exactSet;
+			foreach(int i, tris)
+			{
+				HitResult hitRes;
+				intersectionTest(Surface_mesh::Face(i), ray, hitRes, false);
+				if(hitRes.hit) exactSet.insert(i);
+			}
+			return exactSet;
+		}
 	}
 
 	return tris;
 }
 
-
 void Octree::intersectRecursiveRay( const Ray& ray, IndexSet& tris )
 {
-	if (intersectHit(tris))
-		return;
+	if(children.size() == 0)
+	{
+		for(std::vector<Surface_mesh::Face>::iterator it = triangleData.begin(); it != triangleData.end(); it++)
+		{
+			Surface_mesh::Face face = *it;
+			tris.insert( face.idx() );
+		}
 
+		// Debug:
+		//root()->selectedChildren.push_back(this);
+	}
+
+	// Do following if child size > 0
 	for (std::vector<Octree>::iterator child = children.begin();  child != children.end(); child++)
 	{
-		if (child->boundingBox.intersects(ray))
+		if ( child->boundingBox.intersects(ray) )
 		{
 			child->intersectRecursiveRay(ray, tris);
 		}
@@ -291,49 +339,6 @@ void Octree::intersectRecursiveSphere( const Vec3d& sphere_center, double radius
 	}
 }
 
-IndexSet Octree::intersectRaySphere( const Ray& ray, const Vec3d& sphere_center, double radius )
-{
-	IndexSet tris;
-
-	intersectRayBoth(ray, tris);
-
-	// Grow sphere until we intersect ?
-	//while(!boundingBox.intersectsSphere(sphere_center, radius))
-	//	radius *= 1.25f;
-
-	if(boundingBox.intersectsSphere(sphere_center, radius))
-		intersectRecursiveSphere(sphere_center, radius, tris);
-
-	return tris;
-}
-
-void Octree::intersectRayBoth( const Ray& ray, IndexSet & tris )
-{
-	std::stack<Octree*> trees;
-
-	Ray inverseRay(ray.inverse());
-
-	if (boundingBox.intersects(ray) || boundingBox.intersects(inverseRay))
-		trees.push(this);
-	else
-		return;
-
-	while(!trees.empty())
-	{
-		Octree * t = trees.top(); trees.pop();
-
-		if (!t->intersectHit(tris))
-		{
-			for (std::vector<Octree>::iterator child = t->children.begin(); child != t->children.end(); child++)
-			{
-				if (child->boundingBox.intersects(ray) || child->boundingBox.intersects(inverseRay))
-				{
-					trees.push(&(*child));
-				}
-			}
-		}
-	}
-}
 
 bool Octree::testIntersectHit( const Ray& ray, HitResult & hitRes )
 {
@@ -350,34 +355,6 @@ bool Octree::testIntersectHit( const Ray& ray, HitResult & hitRes )
 	}
 
 	return false;
-}
-
-void Octree::testIntersectRayBoth( const Ray& ray, HitResult & hitRes )
-{
-	std::stack<Octree*> trees;
-
-	Ray inverseRay = ray.inverse();
-
-	if (boundingBox.intersects(ray) || boundingBox.intersects(inverseRay))
-		trees.push(this);
-
-	while(!trees.empty())
-	{
-		Octree * t = trees.top(); trees.pop();
-
-		if (t->testIntersectHit(ray, hitRes))
-		{
-			return;
-		}
-		else
-		{
-			for (std::vector<Octree>::iterator child = t->children.begin(); child != t->children.end(); child++)
-			{
-				if (child->boundingBox.intersects(ray) || child->boundingBox.intersects(inverseRay))
-					trees.push(&(*child));
-			}
-		}
-	}
 }
 
 Octree * Octree::root()
@@ -397,6 +374,37 @@ std::vector<Vec3d> Octree::triPoints(Surface_mesh::Face f)
 }
 
 void Octree::intersectionTest( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack )
+{
+	std::vector<Vec3d> vert = triPoints(f);
+	res.hit = false;
+	res.distance = DBL_MAX;
+
+	Vec3d v0 = vert[0];
+	Vec3d v1 = vert[1];
+	Vec3d v2 = vert[2];
+
+
+	float EPSILON = 1e-8;
+	Vec3d edge1 = v1 - v0;
+	Vec3d edge2 = v2 - v0;
+	Vec3d pvec = cross(ray.direction, edge2);
+	float det = dot(edge1, pvec);
+	if (det > -EPSILON && det < EPSILON) return;
+	float invDet = 1 / det;
+	Vec3d tvec = ray.origin - v0;
+	double u = dot(tvec, pvec) * invDet;
+	if (u < 0 || u > 1) return;
+	Vec3d qvec = cross(tvec, edge1);
+	double v = dot(ray.direction, qvec) * invDet;
+	if (v < 0 || u + v > 1) return;
+
+
+	// Got intersection
+	res.distance = dot(edge2, qvec) * invDet;
+	res.hit = true;
+}
+
+void Octree::intersectionTestOld( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack )
 {
 	res.hit = false;
 	res.distance = DBL_MAX;
@@ -459,6 +467,73 @@ void Octree::intersectionTest( Surface_mesh::Face f, const Ray & ray, HitResult 
 	res.v = triangleV;
 
 	res.index = f.idx();
+}
+
+#define VEC_FROM_POINTS(a,b,c) \
+	(a)[0] = (b)[0] - (c)[0];	\
+	(a)[1] = (b)[1] - (c)[1];	\
+	(a)[2] = (b)[2] - (c)[2];
+
+void Octree::my_intersectionTest( Surface_mesh::Face ff, const Ray & ray, HitResult & res, bool allowBack )
+{
+	std::vector<Vec3d> vert = triPoints(ff);
+	res.hit = false;
+	res.distance = DBL_MAX;
+
+	Vec3d e1,e2,h,s,q;
+	float a,f,u,v,t;
+	Vec3d v0=vert[0];
+	Vec3d v1=vert[1];
+	Vec3d v2=vert[2];
+
+	Vec3d origin=ray.origin;
+	Vec3d direction=ray.direction;
+
+	VEC_FROM_POINTS(e1,v1,v0);
+	VEC_FROM_POINTS(e2,v2,v0);
+
+
+	//crossProduct(h,direction,e2);
+	h=cross(direction,e2);
+	a = dot(e1,h);
+
+	if (a > -0.00001 && a < 0.00001)
+		return;
+
+	f = 1/a;
+	VEC_FROM_POINTS(s,origin,v0);
+	u = f * (dot(s,h));
+
+	if (u < 0.0 || u > 1.0)
+		return;
+
+	q=cross(s,e1);
+	v = f * dot(direction,q);
+
+	if (v < 0.0 || u + v > 1.0)
+		return;
+
+	// at this stage we can compute t to find out where
+	// the intersection point is on the line
+	t = f *dot(e2,q);
+
+	if (t > 1e-6) // ray intersection
+	{
+		//intesect_point[0]=origin[0]+t*direction[0];
+		//intesect_point[1]=origin[1]+t*direction[1];
+		//intesect_point[2]=origin[2]+t*direction[2];
+
+		//		intesect_point[0]=origin[0]+(1-u-v)*v0[0]+u*v1[0]+v*v2[0];
+		//		intesect_point[1]=origin[1]+(1-u-v)*v0[1]+u*v1[1]+v*v2[1];
+		//		intesect_point[2]=origin[2]+(1-u-v)*v0[2]+u*v1[2]+v*v2[2];
+
+		res.distance=t*dot(direction,direction);
+		res.hit=true;
+		return;
+	}
+	else // this means that there is a line intersection
+		// but not a ray intersection
+		return;
 }
 
 //Surface_mesh::Face* Octree::findClosestTri( const Ray & ray, IndexSet & tris, Mesh * mesh, HitResult & hitRes )

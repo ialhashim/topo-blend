@@ -24,6 +24,8 @@ public:
 
 	void decorate();
 
+	bool keyPressEvent( QKeyEvent* event );
+
 	public slots:
 		void setSceneBounds();
 		

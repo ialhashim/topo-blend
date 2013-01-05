@@ -9,6 +9,10 @@
 	(a)[1] = (b)[1] - (c)[1];	\
 	(a)[2] = (b)[2] - (c)[2];
 
+#define USE_OCTREE 0
+
+int missCount = 0;
+
 Morpher::Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2, Graph graph1, Graph graph2,	QObject *parent)
 	: QObject(parent)
 {
@@ -19,7 +23,8 @@ Morpher::Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2, Graph graph1,
 	target_graph=graph2;
 
 	get_faces(source_mesh, target_mesh, source_faces, target_faces);
-	buildOctree(source_mesh,target_mesh,source_octree,target_octree,50);
+
+	buildOctree(source_mesh,target_mesh,source_octree,target_octree, 20);
 }
 
 Morpher::~Morpher()
@@ -54,15 +59,21 @@ void Morpher::get_faces(SurfaceMeshModel *source_mesh, SurfaceMeshModel *target_
 
 void Morpher::buildOctree(SurfaceMeshModel *source_mesh, SurfaceMeshModel *target_mesh, Octree* &source_octree, Octree* &target_octree, int numTrisPerNode/* =50 */)
 {
-	std::vector<Surface_mesh::Face> allTris1, allTris2;
-	foreach(Face f, source_mesh->faces()) allTris1.push_back(f);
-	foreach(Face f, target_mesh->faces()) allTris2.push_back(f);
+	source_octree = NULL;
+	target_octree = NULL;
 
-	source_octree = new Octree(numTrisPerNode, source_mesh);
-	target_octree=new Octree(numTrisPerNode, target_mesh);
+	if(USE_OCTREE)
+	{
+		std::vector<Surface_mesh::Face> allTris1, allTris2;
+		foreach(Face f, source_mesh->faces()) allTris1.push_back(f);
+		foreach(Face f, target_mesh->faces()) allTris2.push_back(f);
 
-	source_octree->initBuild(allTris1, numTrisPerNode);
-	target_octree->initBuild(allTris2, numTrisPerNode);
+		source_octree = new Octree(numTrisPerNode, source_mesh);
+		target_octree=new Octree(numTrisPerNode, target_mesh);
+
+		source_octree->initBuild(allTris1, numTrisPerNode);
+		target_octree->initBuild(allTris2, numTrisPerNode);
+	}
 }
 
 void Morpher::generateInBetween(int numStep, int uResolution, int vResolution, int timeResolution, int thetaResolution, int phiResolution)
@@ -71,9 +82,8 @@ void Morpher::generateInBetween(int numStep, int uResolution, int vResolution, i
 	SurfaceMeshModel resampledTargetMesh;
 	std::vector<Vertex> vertices_idx;
 	std::vector<Vertex> source_verticesIdx, target_verticesIdx;
-	
+
 	Array2D_Vector3 souce_sampleDirections, target_sampleDirections;
-	std::vector<std::vector<double>> souce_radii, target_radii;
 	NURBSCurve source_curve, target_curve;
 	NURBSRectangle source_sheet, target_sheet;
 
@@ -123,6 +133,7 @@ void Morpher::generateInBetween(int numStep, int uResolution, int vResolution, i
 				resampledTargetMesh.add_face(face_vertex_idx);
 			}
 
+
 			Vector3 source_pos, sourceTangent, sourceBinormal, sourceNormal;
 			Vector3 target_pos, targetTangent, targetBinormal, targetNormal;
 
@@ -146,14 +157,16 @@ void Morpher::generateInBetween(int numStep, int uResolution, int vResolution, i
 			// the theta in the cylinder represents the phi in the sphere
 			thetaRange=2*M_PI;
 			phiRange=M_PI/2;
-			
+
 			Array2D_Vector3 source_endResamplings1=sphereResampling(source_faces,source_pos, sourceNormal, -sourceTangent,
 				(int)phiResolution*phiRange/(M_PI), (int)thetaResolution*thetaRange/(2*M_PI), phiRange, thetaRange, source_octree);
 			Array2D_Vector3 target_endResamplings1=sphereResampling(target_faces,target_pos, targetNormal, -targetTangent,
 				(int)phiResolution*phiRange/(M_PI), (int)thetaResolution*thetaRange/(2*M_PI), phiRange, thetaRange, target_octree);
 
+
 			addEndFaces(source_endResamplings1, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
 			addEndFaces(target_endResamplings1, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
+
 
 			// t=1
 			source_pos=source_curve.GetPosition(1);
@@ -178,61 +191,53 @@ void Morpher::generateInBetween(int numStep, int uResolution, int vResolution, i
 
 			addEndFaces(source_endResamplings2, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
 			addEndFaces(target_endResamplings2, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
-			
 
 			resampledSourceMesh.write("resampled_source.off");
 			resampledTargetMesh.write("resampled_target.off");
 
-			linear_Interp_Corrd2(resampledSourceMesh,resampledTargetMesh, numStep);
+			linear_Interp_Corrd(resampledSourceMesh,resampledTargetMesh, numStep);
 		}
 
 		if(source_graph.nodes[i]->type()==Structure::SHEET&&target_graph.nodes[i]->type()==Structure::SHEET)
 		{
-
 			Sheet* sourceSheet=(Sheet*) source_graph.nodes[i];
 			Sheet* targetSheet=(Sheet*) target_graph.nodes[i];
 			source_sheet=sourceSheet->surface;
 			target_sheet=targetSheet->surface;
 
+			QElapsedTimer resamplingTimer; resamplingTimer.start();
+
 			std::vector<Array2D_Vector3> resampledSoucePlane=planeResamping(source_faces,source_sheet,uResolution,vResolution, source_octree);
 			std::vector<Array2D_Vector3> resampledTargetPlane=planeResamping(target_faces,target_sheet,uResolution,vResolution, target_octree);
-
 
 			addPlaneFaces(resampledSoucePlane, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
 			addPlaneFaces(resampledTargetPlane, resampledTargetMesh,target_verticesIdx, target_verticesIdx.size());
 
-			// sampling using the sheet boundaries, counter-clockwise
-			// curve1: transverse u while v=0
-			std::vector<Vector3> source_ctrlPoints1=source_sheet.GetControlPointsU(0);
-			std::vector<Real> source_ctrlWeights1(source_ctrlPoints1.size(), 1.0);
-			std::vector<Vector3> target_ctrlPoints1=target_sheet.GetControlPointsU(0);
-			std::vector<Real> target_ctrlWeights1(target_ctrlPoints1.size(), 1.0);
-			NURBSCurve source_curve1=NURBSCurve(source_ctrlPoints1, source_ctrlWeights1, 3, false, true);
-			NURBSCurve target_curve1=NURBSCurve(target_ctrlPoints1, target_ctrlWeights1, 3, false, true);
 
+			double t1=resamplingTimer.elapsed();
+			qDebug() << QString("Plane resampling =%1 ms").arg(t1);
+
+			QElapsedTimer cylinderTimer; cylinderTimer.start();
+			// Boundary curve initialization
 			Vector3 initialSourceDirection, initialTargetDirection;
 			double thetaRange=M_PI;
 			double phiRange=M_PI/2;
 
 			Vector3 position, sheetNormal, tangentU, tangentV;
-			// set the initial theta sampling direction as the curve normal
-            source_sheet.GetFrame(0,0,position, tangentU, tangentV, sheetNormal);
+			//	 set the initial theta sampling direction as the curve normal
+			source_sheet.GetFrame(0,0,position, tangentU, tangentV, sheetNormal);
 			initialSourceDirection=sheetNormal;
 
 			target_sheet.GetFrame(0,0,position, tangentU, tangentV, sheetNormal);
 			initialTargetDirection=sheetNormal;
 			assert(dot(initialSourceDirection,initialTargetDirection)>0.5);
 
-
-			Array2D_Vector3 source_crossSections1=cylinderResampling(source_faces,source_curve1,initialSourceDirection,
-				uResolution,(int)thetaResolution*thetaRange/(2*M_PI),thetaRange, source_octree, true);
-			Array2D_Vector3 target_crossSections1=cylinderResampling(target_faces,target_curve1,initialTargetDirection,
-				uResolution,(int)thetaResolution*thetaRange/(2*M_PI), thetaRange, target_octree, true);
-
-			addCylinderFaces(source_crossSections1, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
-			addCylinderFaces(target_crossSections1, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
-
-			// curve2: transverse v while u=uResolution
+			std::vector<Vector3> source_ctrlPoints1=source_sheet.GetControlPointsU(0);
+			std::vector<Real> source_ctrlWeights1(source_ctrlPoints1.size(), 1.0);
+			std::vector<Vector3> target_ctrlPoints1=target_sheet.GetControlPointsU(0);
+			std::vector<Real> target_ctrlWeights1(target_ctrlPoints1.size(), 1.0);
+			NURBSCurve source_curve1=NURBSCurve(source_ctrlPoints1, source_ctrlWeights1, 3, false, true);
+			NURBSCurve target_curve1=NURBSCurve(target_ctrlPoints1, target_ctrlWeights1, 3, false, true);
 
 			std::vector<Vector3> source_ctrlPoints2=source_sheet.GetControlPointsV(source_sheet.mNumVCtrlPoints-1);
 			std::vector<Real> source_ctrlWeights2(source_ctrlPoints2.size(), 1.0);
@@ -241,15 +246,6 @@ void Morpher::generateInBetween(int numStep, int uResolution, int vResolution, i
 			NURBSCurve source_curve2=NURBSCurve(source_ctrlPoints2, source_ctrlWeights2, 3, false, true);
 			NURBSCurve target_curve2=NURBSCurve(target_ctrlPoints2, target_ctrlWeights2, 3, false, true);
 
-			Array2D_Vector3 source_crossSections2=cylinderResampling(source_faces,source_curve2,initialSourceDirection,
-				vResolution,(int)thetaResolution*thetaRange/(2*M_PI),thetaRange, source_octree, true);
-			Array2D_Vector3 target_crossSections2=cylinderResampling(target_faces,target_curve2,initialTargetDirection,
-				vResolution,(int)thetaResolution*thetaRange/(2*M_PI), thetaRange, target_octree, true);
-
-			addCylinderFaces(source_crossSections2, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
-			addCylinderFaces(target_crossSections2, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
-
-			// curve3: transverse u while v=vResolution
 			std::vector<Vector3> source_ctrlPoints3=source_sheet.GetControlPointsU(source_sheet.mNumUCtrlPoints-1);
 			std::vector<Real> source_ctrlWeights3(source_ctrlPoints3.size(), 1.0);
 			std::vector<Vector3> target_ctrlPoints3=target_sheet.GetControlPointsU(source_sheet.mNumUCtrlPoints-1);
@@ -257,33 +253,64 @@ void Morpher::generateInBetween(int numStep, int uResolution, int vResolution, i
 			NURBSCurve source_curve3=NURBSCurve(source_ctrlPoints3, source_ctrlWeights3, 3, false, true);
 			NURBSCurve target_curve3=NURBSCurve(target_ctrlPoints3, target_ctrlWeights3, 3, false, true);
 
-			initialSourceDirection=-sheetNormal;
-			initialTargetDirection=-sheetNormal;
-			Array2D_Vector3 source_crossSections3=cylinderResampling(source_faces,source_curve3,initialSourceDirection,
-				uResolution,(int)thetaResolution*thetaRange/(2*M_PI),thetaRange, source_octree,true);
-			Array2D_Vector3 target_crossSections3=cylinderResampling(target_faces,target_curve3,initialTargetDirection,
-				uResolution,(int)thetaResolution*thetaRange/(2*M_PI), thetaRange,target_octree,true);
-
-			addCylinderFaces(source_crossSections3, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
-			addCylinderFaces(target_crossSections3, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
-
-			// curve4: transverse v while u=0
 			std::vector<Vector3> source_ctrlPoints4=source_sheet.GetControlPointsV();
 			std::vector<Real> source_ctrlWeights4(source_ctrlPoints4.size(), 1.0);
 			std::vector<Vector3> target_ctrlPoints4=target_sheet.GetControlPointsV();
 			std::vector<Real> target_ctrlWeights4(target_ctrlPoints4.size(), 1.0);
 			NURBSCurve source_curve4=NURBSCurve(source_ctrlPoints4, source_ctrlWeights4, 3, false, true);
 			NURBSCurve target_curve4=NURBSCurve(target_ctrlPoints4, target_ctrlWeights4, 3, false, true);
+			
+			double ct1=cylinderTimer.elapsed();
+			qDebug() << "	"<<QString("boundary cylinder initialization =%1ms").arg(ct1);
 
-			initialSourceDirection=-sheetNormal;
+			// Start cylinder sampling at the boundaries
+			// sampling using the sheet boundaries, counter-clockwise
+			// curve1: transverse u while v=0
+			Array2D_Vector3 source_crossSections1=cylinderResampling(source_faces,source_curve1,initialSourceDirection,
+				uResolution,(int)thetaResolution*thetaRange/(2*M_PI),thetaRange, source_octree, true);
+			Array2D_Vector3 target_crossSections1=cylinderResampling(target_faces,target_curve1,initialTargetDirection,
+				uResolution,(int)thetaResolution*thetaRange/(2*M_PI), thetaRange, target_octree, true);
+
+			// curve2: transverse v while u=uResolution
+			Array2D_Vector3 source_crossSections2=cylinderResampling(source_faces,source_curve2,initialSourceDirection,
+				vResolution,(int)thetaResolution*thetaRange/(2*M_PI),thetaRange, source_octree, true);
+			Array2D_Vector3 target_crossSections2=cylinderResampling(target_faces,target_curve2,initialTargetDirection,
+				vResolution,(int)thetaResolution*thetaRange/(2*M_PI), thetaRange, target_octree, true);
+
+			// curve3: transverse u while v=vResolution
+			initialSourceDirection= -sheetNormal;
 			initialTargetDirection=-sheetNormal;
+			Array2D_Vector3 source_crossSections3=cylinderResampling(source_faces,source_curve3,initialSourceDirection,
+				uResolution,(int)thetaResolution*thetaRange/(2*M_PI),thetaRange, source_octree,true);
+			Array2D_Vector3 target_crossSections3=cylinderResampling(target_faces,target_curve3,initialTargetDirection,
+				uResolution,(int)thetaResolution*thetaRange/(2*M_PI), thetaRange,target_octree,true);
+
+			// curve4: transverse v while u=0
+			initialSourceDirection=-sheetNormal;
+			initialTargetDirection= -sheetNormal;
 			Array2D_Vector3 source_crossSections4=cylinderResampling(source_faces,source_curve4,initialSourceDirection,
 				vResolution,(int)thetaResolution*thetaRange/(2*M_PI),thetaRange,source_octree,true);
 			Array2D_Vector3 target_crossSections4=cylinderResampling(target_faces,target_curve4,initialTargetDirection,
 				vResolution,(int)thetaResolution*thetaRange/(2*M_PI), thetaRange,target_octree,true);
+			
+			double ct2=cylinderTimer.elapsed();
 
+			// add faces to the mesh
+			addCylinderFaces(source_crossSections1, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
+			addCylinderFaces(source_crossSections2, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
+			addCylinderFaces(source_crossSections3, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
 			addCylinderFaces(source_crossSections4, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
+
+			addCylinderFaces(target_crossSections1, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
+			addCylinderFaces(target_crossSections2, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
+			addCylinderFaces(target_crossSections3, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
 			addCylinderFaces(target_crossSections4, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
+
+			double ct3=cylinderTimer.elapsed();
+			qDebug() << "	"<<QString("cylinder resampling =%1 ms add face = %2ms").arg(ct2-ct1).arg(ct3-ct2);
+
+			double t2=resamplingTimer.elapsed();
+			qDebug() << QString("Boundary cylinder resampling =%1 ms").arg(t2-t1);
 
 			// corner1: u=0, v=0
 			source_sheet.GetFrame(0,0,position, tangentU, tangentV, sheetNormal);
@@ -301,7 +328,7 @@ void Morpher::generateInBetween(int numStep, int uResolution, int vResolution, i
 			source_sheet.GetFrame(1,0,position, tangentU, tangentV, sheetNormal);
 			Array2D_Vector3 source_cornerResamplings2=sphereResampling(source_faces,position,tangentU,sheetNormal,
 				(int)thetaResolution*thetaRange/(2*M_PI),(int)phiResolution*phiRange/(2*M_PI), thetaRange, phiRange, source_octree);
-			
+
 			target_sheet.GetFrame(1,0,position, tangentU, tangentV, sheetNormal);
 			Array2D_Vector3 target_cornerResamplings2=sphereResampling(target_faces,position,tangentU,sheetNormal,
 				(int)thetaResolution*thetaRange/(2*M_PI),(int)phiResolution*phiRange/(2*M_PI), thetaRange, phiRange, target_octree);
@@ -332,16 +359,21 @@ void Morpher::generateInBetween(int numStep, int uResolution, int vResolution, i
 
 			addCornerFaces(source_cornerResamplings4, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
 			addCornerFaces(target_cornerResamplings4, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
-	
+
+			double t3=resamplingTimer.elapsed();
+			qDebug() << QString("Corner resampling =%1 ms").arg(t3-t2);
+
 			resampledSourceMesh.write("resampled_source.off");
 			resampledTargetMesh.write("resampled_target.off");
 
-			linear_Interp_Corrd2(resampledSourceMesh,resampledTargetMesh, numStep);
+			linear_Interp_Corrd(resampledSourceMesh,resampledTargetMesh, numStep);
 		}
 	}
+
+	qDebug() << "Miss count = " << missCount;
 }
 
-void Morpher::linear_Interp_Corrd2(SurfaceMeshModel &source, SurfaceMeshModel &target, int numStep)
+void Morpher::linear_Interp_Corrd(SurfaceMeshModel &source, SurfaceMeshModel &target, int numStep)
 {
 	Vector3VertexProperty source_points = source.vertex_property<Vector3>(VPOINT);
 	Vector3VertexProperty target_points = target.vertex_property<Vector3>(VPOINT);
@@ -355,27 +387,27 @@ void Morpher::linear_Interp_Corrd2(SurfaceMeshModel &source, SurfaceMeshModel &t
 
 		foreach(Face f, source.faces() )
 		{
-			 Surface_mesh::Vertex_around_face_circulator vfit = source.vertices(f);
-			 std::vector<Vertex> face_vertices;
-			 face_vertices.push_back(vfit);
-			 face_vertices.push_back(++vfit);
-			 face_vertices.push_back(++vfit);
-			 face_vertices.push_back(++vfit);
+			Surface_mesh::Vertex_around_face_circulator vfit = source.vertices(f);
+			std::vector<Vertex> face_vertices;
+			face_vertices.push_back(vfit);
+			face_vertices.push_back(++vfit);
+			face_vertices.push_back(++vfit);
+			face_vertices.push_back(++vfit);
 
-			 blend.add_face(face_vertices);
+			blend.add_face(face_vertices);
 		}
 
 		blend.triangulate();
 		QString seq_num; seq_num.sprintf("%02d", step);
 		blend.write(QString("blend%1.off").arg(seq_num).toStdString());
 	}
-	
+
 }
 
 // for a true cylinder (close, thetaSamplings=theResolution), and sampling direction computed as the binormal each time
 // status: octree work
 // current: using octree
-std::vector<Vector3> Morpher::resampleCoutourPoints(Array2D_Vector3 mesh_faces, NURBSCurve pathCurve,
+std::vector<Vector3> Morpher::resampleCoutourPointsCylinder(Array2D_Vector3 mesh_faces, NURBSCurve pathCurve,
 	double curr_t, int thetaResolution,double thetaRange, Vector3 &previous_startDirection, Octree* octree)
 {
 	double delta_theta=thetaRange/thetaResolution;
@@ -416,24 +448,23 @@ std::vector<Vector3> Morpher::resampleCoutourPoints(Array2D_Vector3 mesh_faces, 
 		double rotate_theta=i*delta_theta;
 
 		sampleDirection=ROTATE_VEC(sampleDirection, sample_startDirection, rotate_theta, curveTanget);
-/*
-		for(int i=0;i<(int)mesh_faces.size();i++)
+
+		if(USE_OCTREE)
 		{
-			if(rayIntersectsTriangle(current_position,sampleDirection, mesh_faces[i],intersect_point,radius))
+			intersections.push_back( intersectionPoint( Ray(current_position,sampleDirection), octree ) );
+		}
+		else
+		{
+			// Full test of all triangles
+			for(int i=0;i<(int)mesh_faces.size();i++)
 			{
-				intersections.push_back(intersect_point);
-				break;
+				if(rayIntersectsTriangle(current_position,sampleDirection, mesh_faces[i],intersect_point,radius))
+				{
+					intersections.push_back(intersect_point);
+					break;
+				}
 			}
 		}
-		*/
-		// using octree
-		IndexSet results = octree->intersectRay( Ray( current_position, sampleDirection ) );
-		foreach(int i, results)
-			if(rayIntersectsTriangle(current_position,sampleDirection, mesh_faces[i],intersect_point,radius))
-			{
-				intersections.push_back(intersect_point);
-				break;
-			}
 	}
 
 	return intersections;
@@ -442,7 +473,7 @@ std::vector<Vector3> Morpher::resampleCoutourPoints(Array2D_Vector3 mesh_faces, 
 // cylinder sampling for plane (open, thetaSamplings=theResolution+1), and sampling direction fixed as the sheet normal
 // status: only all faces work
 // current: using all faces
-std::vector<Vector3> Morpher::resampleCoutourPoints3(Array2D_Vector3 mesh_faces, NURBSCurve pathCurve,
+std::vector<Vector3> Morpher::resampleCoutourPointsPlane(Array2D_Vector3 mesh_faces, NURBSCurve pathCurve,
 	double curr_t, int thetaResolution, double thetaRange, Vector3 fixed_startDirection, Octree* octree)
 {
 	double delta_theta=thetaRange/thetaResolution;
@@ -469,30 +500,22 @@ std::vector<Vector3> Morpher::resampleCoutourPoints3(Array2D_Vector3 mesh_faces,
 
 		Vector3 sampleDirection=ROTATE_VEC(sampleDirection, fixed_startDirection, rotate_theta, curveTanget);
 
-		///////-------------------/////////////////
-		// test for all faces
-		for(int i=0;i<(int)mesh_faces.size();i++)
+		if (USE_OCTREE)
 		{
-			if(rayIntersectsTriangle(current_position,sampleDirection, mesh_faces[i],intersect_point,radius))
+			intersections.push_back( intersectionPoint( Ray(current_position,sampleDirection), octree ) );
+		}
+		else
+		{
+			// test for all faces
+			for(int i=0;i<(int)mesh_faces.size();i++)
 			{
-				intersections.push_back(intersect_point);
-				break;
+				if(rayIntersectsTriangle(current_position,sampleDirection, mesh_faces[i],intersect_point,radius))
+				{
+					intersections.push_back(intersect_point);
+					break;
+				}
 			}
 		}
-		///////-------------------/////////////////
-		
-		// using octree
-		///////-------------------/////////////////
-	/*	
-		IndexSet results = octree->intersectRay( Ray( current_position, sampleDirection ) );
-		foreach(int i, results)
-			if(rayIntersectsTriangle(current_position,sampleDirection, mesh_faces[i],intersect_point,radius))
-			{
-				intersections.push_back(intersect_point);
-				break;
-			}
-		*/
-		///////-------------------/////////////////
 	}
 
 	return intersections;
@@ -552,9 +575,9 @@ bool Morpher::rayIntersectsTriangle(Vector3 origin, Vector3 direction, std::vect
 		intesect_point[1]=origin[1]+t*direction[1];
 		intesect_point[2]=origin[2]+t*direction[2];
 
-//		intesect_point[0]=origin[0]+(1-u-v)*v0[0]+u*v1[0]+v*v2[0];
-//		intesect_point[1]=origin[1]+(1-u-v)*v0[1]+u*v1[1]+v*v2[1];
-//		intesect_point[2]=origin[2]+(1-u-v)*v0[2]+u*v1[2]+v*v2[2];
+		//		intesect_point[0]=origin[0]+(1-u-v)*v0[0]+u*v1[0]+v*v2[0];
+		//		intesect_point[1]=origin[1]+(1-u-v)*v0[1]+u*v1[1]+v*v2[1];
+		//		intesect_point[2]=origin[2]+(1-u-v)*v0[2]+u*v1[2]+v*v2[2];
 
 		radius=t*dot(direction,direction);
 		return(true);
@@ -563,6 +586,14 @@ bool Morpher::rayIntersectsTriangle(Vector3 origin, Vector3 direction, std::vect
 		// but not a ray intersection
 		return (false);
 
+}
+
+void Morpher::buildFaces(SurfaceMeshModel *mesh)
+{
+	foreach(std::vector<SurfaceMeshModel::Vertex> face, facesToBuild)
+	{
+		mesh->add_face(face);
+	}
 }
 
 // add faces to SurfaceMesh
@@ -581,40 +612,40 @@ void Morpher::addPlaneFaces(std::vector<Array2D_Vector3> resampledPlane, Surface
 		}
 	}
 
-		// add upside faces
-		for (int curr_v= 0; curr_v<vNum-1;curr_v++)
+	// add upside faces
+	for (int curr_v= 0; curr_v<vNum-1;curr_v++)
+	{
+		for(int curr_u=0; curr_u<uNum-1; curr_u++)
 		{
-			for(int curr_u=0; curr_u<uNum-1; curr_u++)
-			{
-				std::vector<Vertex> face_vertex_idx;
-				face_vertex_idx.push_back(vertices_idx[curr_v*uNum+curr_u]);
-				face_vertex_idx.push_back(vertices_idx[curr_v*uNum+curr_u+1]);
-				face_vertex_idx.push_back(vertices_idx[(curr_v+1)*uNum+curr_u+1]);
-				face_vertex_idx.push_back(vertices_idx[(curr_v+1)*uNum+curr_u]);
+			std::vector<Vertex> face_vertex_idx;
+			face_vertex_idx.push_back(vertices_idx[curr_v*uNum+curr_u]);
+			face_vertex_idx.push_back(vertices_idx[curr_v*uNum+curr_u+1]);
+			face_vertex_idx.push_back(vertices_idx[(curr_v+1)*uNum+curr_u+1]);
+			face_vertex_idx.push_back(vertices_idx[(curr_v+1)*uNum+curr_u]);
 
-				mesh.add_face(face_vertex_idx);
-			}
+			mesh.add_face(face_vertex_idx);
 		}
+	}
 
-		// add downside faces
-		for (int curr_v= 0; curr_v<vNum-1;curr_v++)
+	// add downside faces
+	for (int curr_v= 0; curr_v<vNum-1;curr_v++)
+	{
+		for(int curr_u=0; curr_u<uNum-1; curr_u++)
 		{
-			for(int curr_u=0; curr_u<uNum-1; curr_u++)
-			{
-				int idxBase=uNum*vNum;
-				std::vector<Vertex> face_vertex_idx;
-				face_vertex_idx.push_back(vertices_idx[curr_v*uNum+curr_u+idxBase]);
-				face_vertex_idx.push_back(vertices_idx[(curr_v+1)*uNum+curr_u+idxBase]);
-				face_vertex_idx.push_back(vertices_idx[(curr_v+1)*uNum+curr_u+1+idxBase]);
-				face_vertex_idx.push_back(vertices_idx[curr_v*uNum+curr_u+1+idxBase]);
+			int idxBase=uNum*vNum;
+			std::vector<Vertex> face_vertex_idx;
+			face_vertex_idx.push_back(vertices_idx[curr_v*uNum+curr_u+idxBase]);
+			face_vertex_idx.push_back(vertices_idx[(curr_v+1)*uNum+curr_u+idxBase]);
+			face_vertex_idx.push_back(vertices_idx[(curr_v+1)*uNum+curr_u+1+idxBase]);
+			face_vertex_idx.push_back(vertices_idx[curr_v*uNum+curr_u+1+idxBase]);
 
-				mesh.add_face(face_vertex_idx);
-			}
+			mesh.add_face(face_vertex_idx);
 		}
-	
+	}
+
 }
 
-void Morpher::addCylinderFaces(Array2D_Vector3 crossSecssions, SurfaceMeshModel &mesh, std::vector<Vertex> &vertices_idx, int idxBase)
+ void Morpher::addCylinderFaces(Array2D_Vector3 crossSecssions, SurfaceMeshModel &mesh, std::vector<Vertex> &vertices_idx, int idxBase)
 {
 	int tNum=crossSecssions.size();
 	int thetaNum=crossSecssions[0].size();
@@ -723,42 +754,56 @@ std::vector<Array2D_Vector3> Morpher::planeResamping(Array2D_Vector3 mesh_faces,
 
 	for(int v_idx=0;v_idx<=vResolution;v_idx++)
 	{
-		Vector3 sheetPoint, intersectPoint;
+		Vector3 sheetPoint;
 		Vector3 uDirection, vDirection, sheetNormal;
-		double dist;
-		
+
 		Array1D_Vector3 upIntersections, downIntersections;
 
 		for(int u_idx=0;u_idx<=uResolution;u_idx++)
 		{
 
-				sheet.GetFrame(u_idx*delta_u, v_idx*delta_v, sheetPoint, uDirection, vDirection, sheetNormal);
+			sheet.GetFrame(u_idx*delta_u, v_idx*delta_v, sheetPoint, uDirection, vDirection, sheetNormal);
 
-				IndexSet results1 = octree->intersectRay( Ray( sheetPoint, sheetNormal ) );
-				foreach(int i, results1)
-					if(rayIntersectsTriangle(sheetPoint,sheetNormal, mesh_faces[i],intersectPoint,dist))
-					{
-						upIntersections.push_back(intersectPoint);
+			if (USE_OCTREE)
+			{
+				// Up
+				upIntersections.push_back( intersectionPoint( Ray(sheetPoint,sheetNormal), octree ) );
+
+				// Down
+				downIntersections.push_back( intersectionPoint( Ray(sheetPoint,-sheetNormal), octree ) );
+			}
+			else
+			{
+				Vec3d intersect_point;
+				double radius = 0;
+
+				// test for all faces
+				for(int i=0;i<(int)mesh_faces.size();i++)
+				{
+					if(rayIntersectsTriangle(sheetPoint,sheetNormal, mesh_faces[i],intersect_point,radius))	{
+						upIntersections.push_back(intersect_point);
 						break;
 					}
+				}
 
-				IndexSet results2 = octree->intersectRay( Ray( sheetPoint, -sheetNormal ) );
-				foreach(int i, results2)
-					if(rayIntersectsTriangle(sheetPoint,-sheetNormal, mesh_faces[i],intersectPoint,dist))
-					{
-						downIntersections.push_back(intersectPoint);
+				for(int i=0;i<(int)mesh_faces.size();i++)
+				{
+					if(rayIntersectsTriangle(sheetPoint,-sheetNormal, mesh_faces[i],intersect_point,radius)){
+						downIntersections.push_back(intersect_point);
 						break;
-					}				
+					}
+				}
+			}
 		}
-
 		upsidePlane.push_back(upIntersections);
 		downsidePlane.push_back(downIntersections);
 	}
+
+
 	resampledPlane.push_back(upsidePlane);
 	resampledPlane.push_back(downsidePlane);
-	
-	return resampledPlane;
 
+	return resampledPlane;
 }
 
 Array2D_Vector3 Morpher::cylinderResampling(Array2D_Vector3 mesh_faces, NURBSCurve pathCurve, Vector3 initialDirection,
@@ -776,12 +821,12 @@ Array2D_Vector3 Morpher::cylinderResampling(Array2D_Vector3 mesh_faces, NURBSCur
 		// cylinder sampling for plane (open, thetaSamplings=theResolution+1), and sampling direction fixed as the sheet normal
 		// status: only all faces work now
 		if(SheetBoundary)
-		cross_section=resampleCoutourPoints3(mesh_faces,pathCurve,i*delta_t,thetaResolution, thetaRange, initialDirection, octree);
+			cross_section=resampleCoutourPointsPlane(mesh_faces,pathCurve,i*delta_t,thetaResolution, thetaRange, initialDirection, octree);
 
 		// for a true cylinder (close, thetaSamplings=theResolution), and sampling direction computed as the binormal each time
 		// status: octree work now
 		else
-		cross_section=resampleCoutourPoints(mesh_faces,pathCurve,i*delta_t,thetaResolution, thetaRange, initialDirection, octree);
+			cross_section=resampleCoutourPointsCylinder(mesh_faces,pathCurve,i*delta_t,thetaResolution, thetaRange, initialDirection, octree);
 
 		crossSections.push_back(cross_section);
 	}
@@ -794,11 +839,11 @@ Array2D_Vector3 Morpher::cylinderResampling(Array2D_Vector3 mesh_faces, NURBSCur
 // status: only all faces work 
 // current: using all faces
 Array2D_Vector3 Morpher::sphereResampling(Array2D_Vector3 mesh_faces, Vector3 endPoint, 
-Vector3 thetaAxis, Vector3 phiAxis, 
-int thetaResolution, int phiResolution, 
-double thetaRange, double phiRange, Octree *octree)
+	Vector3 thetaAxis, Vector3 phiAxis, 
+	int thetaResolution, int phiResolution, 
+	double thetaRange, double phiRange, Octree *octree)
 {
-	
+
 	Array2D_Vector3 sphereResamplings;
 
 	double delta_phi=phiRange/phiResolution;
@@ -832,37 +877,53 @@ double thetaRange, double phiRange, Octree *octree)
 		for (int curr_phi=0; curr_phi<phiResolution; curr_phi++)
 		{
 			double rotate_phi= curr_phi*delta_phi;
-			
+
 			sampleDirection=ROTATE_VEC(sampleDirection, startDirection, rotate_phi, phiAxis);
-			
-			// test for all faces
-			
-			for(int i=0;i<(int)mesh_faces.size();i++)
+
+			if( USE_OCTREE )
 			{
-				if(rayIntersectsTriangle(endPoint,sampleDirection, mesh_faces[i],intersect_point,radius))
+				phiResamplings.push_back( intersectionPoint( Ray(endPoint,sampleDirection), octree ) );
+			}
+			else
+			{
+				// test for all faces
+				for(int i=0;i<(int)mesh_faces.size();i++)
 				{
-					phiResamplings.push_back(intersect_point);
-					break;
+					if(rayIntersectsTriangle(endPoint,sampleDirection, mesh_faces[i],intersect_point,radius))
+					{
+						phiResamplings.push_back(intersect_point);
+						break;
+					}
 				}
 			}
-
-			// using octree
-		///////-------------------/////////////////
-			/*
-			IndexSet results = octree->intersectRay( Ray( endPoint, sampleDirection ) );
-			foreach(int i, results)
-				if(rayIntersectsTriangle(endPoint,sampleDirection, mesh_faces[i],intersect_point,radius))
-				{
-					phiResamplings.push_back(intersect_point);
-					break;
-				}
-				*/
-			///////-------------------/////////////////
-			
-				
 		}
+
 		sphereResamplings.push_back(phiResamplings);
 	}
 
 	return sphereResamplings;
+}
+
+Vec3d Morpher::intersectionPoint( Ray ray, Octree * useTree )
+{
+
+	HitResult res;
+	Vec3d isetpoint(0);
+
+	QSet<int> results = useTree->intersectRay( ray, ray.thickness, false );
+
+	foreach(int i, results)
+	{
+		useTree->intersectionTestOld(SurfaceMeshModel::Face(i), ray, res);
+
+		if(res.hit)
+		{
+			isetpoint = ray.origin + (ray.direction * res.distance);
+			return isetpoint;
+		}
+	}
+
+	assert(res.hit == true);
+
+	return isetpoint;
 }
