@@ -20,16 +20,16 @@ explicit	Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2,
 	~Morpher();
 
 	void get_faces(SurfaceMeshModel *source_mesh, SurfaceMeshModel *target_mesh, Array2D_Vector3 &source_faces, Array2D_Vector3 &target_faces);
-	void buildOctree(SurfaceMeshModel *source_mesh, SurfaceMeshModel *target_mesh, Octree * &source_octree, Octree*  &target_octree, int numTrisPerNode=50);
+	void buildOctree(SurfaceMeshModel *source_mesh, SurfaceMeshModel *target_mesh, Octree * &source_octree, Octree*  &target_octree, int numTrisPerNode);
 
 
 	void generateInBetween(int numStep, int uResolution=10, int vResolution=10, int timeResolution=10, int thetaResolution=10, int phiResolution=6);
 
 	// cylinder resampling
-	std::vector<Vector3> resampleCoutourPoints(Array2D_Vector3 mesh_faces, NURBSCurve pathCurve,
+	std::vector<Vector3> resampleCoutourPointsCylinder(Array2D_Vector3 mesh_faces, NURBSCurve pathCurve,
 		double curr_t, int thetaResolution, double thetaRange, Vector3 &previous_startDirection, Octree* octree);
 
-	std::vector<Vector3> resampleCoutourPoints3(Array2D_Vector3 mesh_faces, NURBSCurve pathCurve,
+	std::vector<Vector3> resampleCoutourPointsPlane(Array2D_Vector3 mesh_faces, NURBSCurve pathCurve,
 		double curr_t, int thetaResolution, double thetaRange, Vector3 fixed_startDirection, Octree* octree);
 
 	Array2D_Vector3 cylinderResampling(Array2D_Vector3 mesh_faces, NURBSCurve pathCurve, Vector3 initialDirection,
@@ -55,7 +55,7 @@ explicit	Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2,
 	void addEndFaces(Array2D_Vector3 resampledSphere, SurfaceMeshModel &mesh, std::vector<Vertex> &vertices_idx, int idxBase);
 
 	// blending options
-	void linear_Interp_Corrd2(SurfaceMeshModel &source, SurfaceMeshModel &target, int numStep);
+	void linear_Interp_Corrd(SurfaceMeshModel &source, SurfaceMeshModel &target, int numStep);
 	
 	
 	SurfaceMeshModel *source_mesh;
@@ -71,6 +71,13 @@ explicit	Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2,
 
 	Octree* source_octree; 
 	Octree* target_octree;
+
+	std::vector< std::vector<SurfaceMeshModel::Vertex> > facesToBuild;
+	void buildFaces(SurfaceMeshModel *mesh);
+
+	Vec3d intersectionPoint( Ray ray, Octree * useTree );
+
+	std::vector<Vec3d> debugPoints,debugPoints2;
 
 private:
 	

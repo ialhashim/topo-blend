@@ -5,6 +5,7 @@
 #include <stack>
 #include <vector>
 #include <list>
+#include <QSet>
 
 #include "surface_mesh/Surface_mesh.h"
 #include "BoundingBox.h"
@@ -14,7 +15,7 @@ typedef IndexSet::iterator IndexSetIter;
 
 class Octree
 {
-private:
+public:
 	std::vector<Octree> children;
 	std::vector<Surface_mesh::Face> triangleData;
 	Surface_mesh * mesh;
@@ -41,20 +42,18 @@ public:
 	IndexSet intersectPoint(const Vec3d& point);
 	void intersectRecursivePoint(const Vec3d& point, IndexSet& tris);
 
-	IndexSet intersectRay(const Ray& ray, bool isFullTest = true);
+	QSet<int> intersectRay(Ray ray, double rayThickness = 0.0, bool isFullTest = false);
 	void intersectRecursiveRay(const Ray& ray, IndexSet& tris);
 
 	IndexSet intersectSphere(const Vec3d& sphere_center, double radius);
 	void intersectRecursiveSphere(const Vec3d& sphere_center, double radius, IndexSet& tris);
 
-	IndexSet intersectRaySphere(const Ray& ray, const Vec3d& sphere_center, double radius);
-	void intersectRayBoth(const Ray& ray, IndexSet & tris);
-
     /* Perform intersection tests  */
 	bool testIntersectHit(const Ray& ray, HitResult & hitRes);
-	void testIntersectRayBoth(const Ray& ray, HitResult & hitRes);
 
-	void intersectionTest( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack = true );
+	void intersectionTest( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack = false );
+	void intersectionTestOld( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack = false );
+	void my_intersectionTest(Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack = false);
 
 	Octree * parent;
 	Octree * root();
