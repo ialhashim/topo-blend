@@ -151,8 +151,8 @@ TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * tar
 		Structure::Link * tLink = tg->getEdge(t_n1, t_n2);
 		if(!tLink) continue;
 		
-		sLink->property["n1_finalCoord"].setValue( tLink->getCoord(t_n1) );
-		sLink->property["n2_finalCoord"].setValue( tLink->getCoord(t_n2) );
+		sLink->property["finalCoord_n1"].setValue( qMakePair(sLink->n1->id, tLink->getCoord(t_n1)) );
+		sLink->property["finalCoord_n2"].setValue( qMakePair(sLink->n2->id, tLink->getCoord(t_n2)) );
 	}
 	
 	// Output all graphs visualized

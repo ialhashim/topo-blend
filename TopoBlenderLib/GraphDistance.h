@@ -3,7 +3,6 @@
 #include "Dijkstra.h"
 
 typedef std::map< int, std::pair<int,double> > CloseMap;
-typedef QPair<QString,Vec4d> NodeCoord;
 
 struct GraphDistanceNode{
 	Vector3 pos;

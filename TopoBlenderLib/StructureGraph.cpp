@@ -57,6 +57,8 @@ QBox3D Graph::bbox()
         box.unite( n->bbox().maximum() );
     }
 
+	box.transform(QMatrix4x4() * 1.25);
+
     return box;
 }
 
