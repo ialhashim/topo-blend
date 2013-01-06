@@ -18,7 +18,7 @@ struct Graph
 {
 	// Properties
     QVector<Node*> nodes;
-    QVector<Link> edges;
+    QVector<Link*> edges;
     QBox3D bbox();
     QMap< QString, QVariant > property;
 	Eigen::MatrixXd adjacency;
@@ -36,9 +36,9 @@ struct Graph
     Node * addNode( Node * n );
 	Node * removeNode( QString nodeID );
 
-    Link addEdge( Node * n1, Node * n2 );
-	Link addEdge(Node *n1, Node *n2, std::vector<Vec4d> coord1, std::vector<Vec4d> coord2, QString linkName);
-	Link addEdge(QString n1_id, QString n2_id);
+    Link * addEdge( Node * n1, Node * n2 );
+	Link * addEdge( Node *n1, Node *n2, std::vector<Vec4d> coord1, std::vector<Vec4d> coord2, QString linkName = "" );
+	Link * addEdge( QString n1_id, QString n2_id );
 	void removeEdge( Node * n1, Node * n2 );
 
 	QString linkName( QString n1_id, QString n2_id );
@@ -51,9 +51,10 @@ struct Graph
 	Curve* getCurve(Link * l);
 	QVector<Link*> getEdges( QString nodeID );
 	QMap< Link*, std::vector<Vec4d> > linksCoords( QString nodeID );
-	QVector<Link> nodeEdges( QString nodeID );
-	QList<Link> furthermostEdges( QString nodeID );
+	QVector<Link*> nodeEdges( QString nodeID );
+	QList<Link*> furthermostEdges( QString nodeID );
 	Vector3 position( QString nodeID, Vec4d coord );
+	void replaceCoords( QString nodeA, QString nodeB, std::vector<Vec4d> coordA, std::vector<Vec4d> coordB );
 	
 	// Input / Output
 	void saveToFile(QString fileName) const;

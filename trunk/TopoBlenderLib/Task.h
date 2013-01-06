@@ -30,9 +30,6 @@ public:
 	void prepareMorph();
 	void executeMorph();
 
-	void prepareSplitMerge();
-	void executeSplitMerege();
-
 	Structure::Node * node();
 
 	// Task properties
@@ -51,6 +48,7 @@ public:
 	void setLength(int newLength);
 	void reset();
 	bool stillWorking();
+	int scaledTime();
 
 	// Visual properties
 	int width;

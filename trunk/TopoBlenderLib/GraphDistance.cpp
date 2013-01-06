@@ -152,33 +152,33 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	prepareNodes(resolution, startingPoints, closestStart, g->nodes);
 
 	// Connect between nodes
-	foreach(Link e, g->edges)
+	foreach(Link * e, g->edges)
 	{
-		int gid1 = nodesMap[e.n1].front().gid;
-		int gid2 = nodesMap[e.n2].front().gid;
+		int gid1 = nodesMap[e->n1].front().gid;
+		int gid2 = nodesMap[e->n2].front().gid;
 
 		// Get positions
-		Vector3 pos1(0),pos2(0);
+		Vector3 pos1(0), pos2(0);
 
-		for(int c = 0; c < (int)e.coord[0].size(); c++)
+		for(int c = 0; c < (int)e->coord[0].size(); c++)
 		{
-			e.n1->get(e.coord[0][c], pos1);
-			e.n2->get(e.coord[1][c], pos2);
+			e->n1->get(e->coord[0][c], pos1);
+			e->n2->get(e->coord[1][c], pos2);
 
 			QMap<double,int> dists1, dists2;
 
 			// Find closest on node 1
-			for(int i = 0; i < (int)samplePoints[e.n1].size(); i++) 
-				dists1[(pos1-samplePoints[e.n1][i]).norm()] = i;
+			for(int i = 0; i < (int)samplePoints[e->n1].size(); i++) 
+				dists1[(pos1-samplePoints[e->n1][i]).norm()] = i;
 			int id1 = dists1.values().first();
 
 			// Find closest on node 2
-			for(int i = 0; i < (int)samplePoints[e.n2].size(); i++) 
-				dists2[(pos2-samplePoints[e.n2][i]).norm()] = i;
+			for(int i = 0; i < (int)samplePoints[e->n2].size(); i++) 
+				dists2[(pos2-samplePoints[e->n2][i]).norm()] = i;
 			int id2 = dists2.values().first();
 
 			// Connect them
-			double weight = (samplePoints[e.n1][id1] - samplePoints[e.n2][id2]).norm();
+			double weight = (samplePoints[e->n1][id1] - samplePoints[e->n2][id2]).norm();
 			adjacency_list[gid1 + id1].push_back(neighbor(gid2 + id2, weight));
 			adjacency_list[gid2 + id2].push_back(neighbor(gid1 + id1, weight));
 

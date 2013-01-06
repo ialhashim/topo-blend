@@ -2,6 +2,8 @@
 
 #include "StructureGlobal.h"
 
+typedef Array1D_Vec4d LinkCoords;
+
 namespace Structure{
 
 struct Node;
@@ -17,9 +19,9 @@ struct Link
 	Node *n1, *n2;	
 	QString id;
 	QString type;
-    QMap< QString, QVariant > link_property;
+    QMap< QString, QVariant > property;
 
-	std::vector<Vec4d> coord[2];
+	LinkCoords coord[2];
 
 	void Link::setCoord( QString nodeID, std::vector<Vec4d> newCoord );
 
@@ -30,7 +32,7 @@ struct Link
 	Node * otherNode(QString nodeID);
 
 	// Constructors
-    Link(Node * node1, Node * node2, std::vector<Vec4d> coord_n1, std::vector<Vec4d> coord_n2, QString link_type, QString ID)
+    Link(Node * node1, Node * node2, LinkCoords coord_n1, LinkCoords coord_n2, QString link_type, QString ID)
 	{
 		this->n1 = node1;
 		this->n2 = node2;
@@ -58,4 +60,4 @@ struct Link
 
 }
 
-Q_DECLARE_METATYPE(Structure::Link)
+Q_DECLARE_METATYPE(Structure::Link*)

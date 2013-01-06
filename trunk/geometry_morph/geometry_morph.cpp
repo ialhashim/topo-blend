@@ -216,10 +216,10 @@ void geometry_morph::doMorph()
 	//targetGraph.loadFromFile("C:/Users/rui/Desktop/StarlabPackage/graph_cylinder13.xml");
 
 	//// Sheet
-	sourceModel->read("C:/Users/rui/Desktop/StarlabPackage/sheet1.off");
-	targetModel->read("C:/Users/rui/Desktop/StarlabPackage/sheet2.off");
-	sourceGraph.loadFromFile("C:/Users/rui/Desktop/StarlabPackage/graph_sheet1.xml");
-	targetGraph.loadFromFile("C:/Users/rui/Desktop/StarlabPackage/graph_sheet2.xml");
+    sourceModel->read("sheet1.off");
+    targetModel->read("sheet2.off");
+    sourceGraph.loadFromFile("graph_sheet1.xml");
+    targetGraph.loadFromFile("graph_sheet2.xml");
 
 	QElapsedTimer timer; timer.start();
 
@@ -227,7 +227,7 @@ void geometry_morph::doMorph()
 	morpher = new Morpher(sourceModel,targetModel,sourceGraph,targetGraph);
 	double t1=timer.elapsed();
 
-	morpher->generateInBetween(10,10,10,10,10, 6);
+    morpher->generateInBetween(3,60,60,0,80,80);
 	double t2=timer.elapsed();
 
 	qDebug() << QString("Morpher Constructor =%1 ms Resampling = %2 ms").arg(t1).arg(t2-t1);

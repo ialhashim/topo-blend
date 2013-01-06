@@ -1,11 +1,15 @@
 #include "Scheduler.h"
 #include "Task.h"
-#include "FFD.h"
+#include "ARAPCurveDeformer.h"
 #include <QGraphicsSceneMouseEvent>
 
 typedef std::vector< std::pair<double,double> > VectorPairDouble;
 Q_DECLARE_METATYPE(Vector3);
+Q_DECLARE_METATYPE(Vec4d);
 Q_DECLARE_METATYPE(VectorPairDouble);
+Q_DECLARE_METATYPE(ARAPCurveDeformer*);
+
+int globalCount = 0;
 
 Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, TaskType taskType, int ID )
 {
@@ -149,6 +153,11 @@ void Task::drawDebug()
 	glEnable(GL_LIGHTING);
 }
 
+int Task::scaledTime()
+{
+	return length / 20;
+}
+
 void Task::execute()
 {
 	switch(type)
@@ -160,9 +169,6 @@ void Task::execute()
 		break;
 	case SPLIT:
 	case MERGE:
-		prepareSplitMerge();
-		executeSplitMerege();
-		break;
 	case MORPH:
 		prepareMorph();
 		executeMorph();
@@ -233,7 +239,7 @@ void Task::executeGrowShrink()
 	Structure::Node * n = node();
 	QVector<Structure::Link*> edges = active->getEdges(n->id);
 
-	int stretchedLength = length / 20;
+	int stretchedLength = scaledTime();
 
 	for(int i = 0; i < stretchedLength; i++)
 	{
@@ -275,12 +281,167 @@ void Task::executeGrowShrink()
 
 void Task::prepareMorph()
 {
-	this->isReady = true;
+	isReady = true;
+
+	QVector<Structure::Link*> edges = active->getEdges(node()->id);
+
+	// 1) SINGLE edge
+	if(edges.size() == 1)
+	{
+		if(node()->type() == Structure::CURVE)
+		{
+		}
+
+		if(node()->type() == Structure::SHEET)
+		{
+		}
+	}
+
+	// 2) TWO edges
+	if(edges.size() == 2)
+	{
+		if(node()->type() == Structure::CURVE)
+		{
+			Structure::Curve* structure_curve = ((Structure::Curve*)node());
+
+			// We will get two "handles" from furthest edges
+			QList<Structure::Link*> farEdges = active->furthermostEdges( node()->id );
+
+			property["linkA"].setValue( farEdges.first() );
+			property["linkB"].setValue( farEdges.last() );
+
+			property["cpidxA"].setValue( structure_curve->controlPointIndexFromCoord( farEdges.first()->getCoord(node()->id).front() ) );
+			property["cpidxB"].setValue( structure_curve->controlPointIndexFromCoord( farEdges.last()->getCoord(node()->id).front() ) );
+
+			std::vector<Vec3d> ctrlPoints = structure_curve->curve.mCtrlPoint;
+			property["deformer"].setValue( new ARAPCurveDeformer(ctrlPoints, ctrlPoints.size() * 0.25) );
+		}
+	}
+
+	// 3) More than two edges
+
 }
 
 void Task::executeMorph()
 {
 	if(!isReady) return;
+
+	Structure::Node * n = node();
+	QVector<Structure::Link*> edges = active->getEdges(n->id);
+
+	int stretchedLength = scaledTime();
+
+	int arapIterations = 10;
+
+	// 1) SINGLE edge
+	if(edges.size() == 1)
+	{
+		if(n->type() == Structure::CURVE)
+		{
+
+		}
+
+		if(n->type() == Structure::SHEET)
+		{
+
+		}
+	}
+
+	// 2) TWO edges
+	if(edges.size() == 2)
+	{
+		// Curve case:
+		if(n->type() == Structure::CURVE)
+		{
+			Structure::Curve* structure_curve = ((Structure::Curve*)n);
+
+			Structure::Link * linkA = property["linkA"].value<Structure::Link*>();
+			Structure::Link * linkB = property["linkB"].value<Structure::Link*>();
+
+			ARAPCurveDeformer * deformer = property["deformer"].value<ARAPCurveDeformer*>();
+
+			int cpidxA = property["cpidxA"].toInt();
+			int cpidxB = property["cpidxB"].toInt();
+
+			Array1D_Vec4d coordOtherA = (linkA->n1->id == n->id) ? 
+				linkA->property["n2_newCoord"].value<Array1D_Vec4d>() 
+				: linkA->property["n1_newCoord"].value<Array1D_Vec4d>();
+
+			Array1D_Vec4d coordOtherB = (linkB->n1->id == n->id) ? 
+				linkB->property["n2_newCoord"].value<Array1D_Vec4d>() 
+				: linkB->property["n1_newCoord"].value<Array1D_Vec4d>();
+
+			GraphDistance graphDist(active);
+
+			QVector< NodeCoord > pathA;
+			graphDist.computeDistances( linkA->otherNode(n->id)->position(coordOtherA.front()) );
+			graphDist.pathCoordTo( linkA->position(n->id), pathA);
+
+			QVector< NodeCoord > pathB;
+			graphDist.computeDistances( linkB->otherNode(n->id)->position(coordOtherB.front()) );
+			graphDist.pathCoordTo( linkB->position(n->id), pathB );
+
+			for(int i = 0; i < stretchedLength; i++)
+			{
+				double t = (double)i / (stretchedLength - 1);
+
+				int idxA = t * (pathA.size() - 1);
+				int idxB = t * (pathB.size() - 1);
+
+				// Move point A to next step
+				if(pathA.size() > 2)
+				{
+					NodeCoord stepA = pathA[idxA];
+					deformer->ClearAll();
+					deformer->setControl(cpidxA);
+					deformer->SetAnchor(cpidxB);
+					deformer->MakeReady();
+
+					Vec3d newPosA = active->position(stepA.first, stepA.second);
+					deformer->UpdateControl(cpidxA, newPosA);
+					deformer->Deform( arapIterations );
+					structure_curve->setControlPoints( deformer->points );
+
+					debugPoints.push_back(newPosA);
+				}
+
+				// Move point B to next step
+				if(pathB.size() > 2)
+				{
+					NodeCoord stepB = pathB[idxB];
+					deformer->ClearAll();
+					deformer->setControl(cpidxB);
+					deformer->SetAnchor(cpidxA);
+					deformer->MakeReady();
+
+					Vec3d newPosB = active->position(stepB.first, stepB.second);
+					deformer->UpdateControl(cpidxB, newPosB);
+					deformer->Deform( arapIterations );
+					structure_curve->setControlPoints( deformer->points );
+
+					debugPoints2.push_back(newPosB);
+				}
+
+				QString fileName = QString("test_%1_Task%2_MorphCurve.xml").arg(globalCount++).arg(taskID);
+				active->saveToFile(fileName);
+			}
+
+			// Update to new coordinates
+			linkA->coord[0] = linkA->property["n1_newCoord"].value<Array1D_Vec4d>();
+			linkA->coord[1] = linkA->property["n2_newCoord"].value<Array1D_Vec4d>();
+
+			linkB->coord[0] = linkB->property["n1_newCoord"].value<Array1D_Vec4d>();
+			linkB->coord[1] = linkB->property["n2_newCoord"].value<Array1D_Vec4d>();
+		}
+
+		// Sheet case:
+		if(n->type() == Structure::SHEET)
+		{
+
+		}
+	}
+
+	// 3) More than two edges
 }
 
 Structure::Node * Task::node()
@@ -297,122 +458,4 @@ void Task::reset()
 {
 	isReady = false;
 	current = start;
-}
-
-void Task::prepareSplitMerge()
-{
-	isReady = true;
-
-	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = active->getEdges(n->id);
-
-	if(edges.size() > 1)
-	{
-		if(node()->type() == Structure::CURVE)
-		{
-			Structure::Curve* structure_curve = ((Structure::Curve*)n);
-
-			// We will get two "handles" from furthest edges
-			QList<Structure::Link> farEdges = active->furthermostEdges( n->id );
-			Structure::Link linkA = farEdges.first();
-			Structure::Link linkB = farEdges.last();
-
-			Vec3d posA = linkA.position(n->id);
-			Vec3d posB = linkB.position(n->id);
-			Vec3d d = posB - posA;
-			Vec3d midPoint = 0.5 * (posA + posB);
-			Vec3d normal = structure_curve->curve.GetNormal(0.5).normalized();
-
-			VectorPairDouble params;
-
-			for(int i = 0; i < (int) structure_curve->curve.mCtrlPoint.size(); i++)
-			{
-				Vec3d & cp = structure_curve->curve.mCtrlPoint[i];
-				Vec3d delta = cp - midPoint;
-
-				double angle = -signedAngle(d.normalized(), delta.normalized(), cross(d.normalized(), delta.normalized()));
-				double dist = delta.norm();
-
-				params.push_back(std::make_pair(dist,angle));
-			}
-
-			property["normal"].setValue(normal);
-			property["wire"].setValue(params);
-			property["linkA"].setValue(linkA);
-			property["linkB"].setValue(linkB);
-		}
-	}
-}
-
-void Task::executeSplitMerege()
-{
-	if(!isReady) return;
-
-	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = active->getEdges(n->id);
-
-	int stretchedLength = length / 20;
-
-	active->saveToFile("zBefore.xml");
-
-	if(edges.size() > 1)
-	{
-		if(n->type() == Structure::CURVE)
-		{
-			Structure::Curve* structure_curve = ((Structure::Curve*)n);
-
-			GraphDistance graphDist(active);
-
-			Structure::Link linkA = property["linkA"].value<Structure::Link>();
-			Structure::Link linkB = property["linkB"].value<Structure::Link>();
-
-			Vec3d from[2] = { linkA.positionOther(n->id), linkB.positionOther(n->id) };
-			Vec3d to[2] = { linkA.position(n->id), linkB.position(n->id) };
-
-			QVector< NodeCoord > pathA;
-			graphDist.computeDistances( from[0] );
-			graphDist.pathCoordTo(to[0], pathA);
-
-			QVector< NodeCoord > pathB;
-			graphDist.computeDistances( from[1] );
-			graphDist.pathCoordTo(to[1], pathB);
-
-			if(type == MERGE)
-			{
-				//std::reverse(pathA.begin(),pathA.end());
-				//std::reverse(pathB.begin(),pathB.end());
-			}
-
-			VectorPairDouble params = property["wire"].value<VectorPairDouble>();
-			Vector3 normal = property["normal"].value<Vector3>();
-
-			for(int i = 0; i < stretchedLength; i++)
-			{
-				double t = (double)i / (stretchedLength - 1);
-
-				int idxA = t * (pathA.size() - 1);
-				int idxB = t * (pathB.size() - 1);
-
-				// Reconstruct curve
-				Vec3d posA = active->position(pathA[idxA].first, pathA[idxA].second);
-				Vec3d posB = active->position(pathB[idxB].first, pathB[idxB].second);
-				Vec3d d = posB - posA;
-				Vec3d midPoint = 0.5 * (posA + posB);
-
-				debugPoints.push_back(posA);
-				debugPoints2.push_back(posB);
-
-				for(int c = 0; c < (int) structure_curve->curve.mCtrlPoint.size(); c++)
-				{
-					double dist = params[c].first;
-					double angle = params[c].second;
-					structure_curve->curve.mCtrlPoint[c] = midPoint + (dist * rotatedVec(d.normalized(), angle, 
-						cross(d.normalized(), (structure_curve->curve.mCtrlPoint[c]-midPoint).normalized())));
-				}
-
-				QString fileName = QString("test_splitCurve_%1_%2.xml").arg(taskID).arg(i);
-				active->saveToFile(fileName);
-			}
-		}
-	}
 }

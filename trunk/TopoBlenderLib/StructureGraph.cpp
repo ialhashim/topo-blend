@@ -30,11 +30,11 @@ Graph::Graph( const Graph & other )
 		this->addNode(n->clone());
 	}
 
-	foreach(Link edg, other.edges)
+	foreach(Link * e, other.edges)
 	{
-		Node * n1 = this->getNode(edg.n1->id);
-		Node * n2 = this->getNode(edg.n2->id);
-		this->addEdge(n1, n2, edg.coord[0], edg.coord[1], edg.id);
+		Node * n1 = this->getNode(e->n1->id);
+		Node * n2 = this->getNode(e->n2->id);
+		this->addEdge(n1, n2, e->coord[0], e->coord[1], e->id);
 	}
 
 	property = other.property;
@@ -74,12 +74,12 @@ Node *Graph::addNode(Node * n)
     return n;
 }
 
-Link Graph::addEdge(QString n1_id, QString n2_id)
+Link * Graph::addEdge(QString n1_id, QString n2_id)
 {
 	return addEdge(getNode(n1_id), getNode(n2_id));
 }
 
-Link Graph::addEdge(Node *n1, Node *n2)
+Link * Graph::addEdge(Node *n1, Node *n2)
 {
     n1 = addNode(n1);
     n2 = addNode(n2);
@@ -114,7 +114,7 @@ Link Graph::addEdge(Node *n1, Node *n2)
 		c2.push_back(n2->approxCoordinates(intersectPoint));
 	}
 
-    Link e( n1, n2, c1, c2, edgeType, linkName(n1, n2) );
+    Link * e = new Link( n1, n2, c1, c2, edgeType, linkName(n1, n2) );
     edges.push_back(e);
 
 	// Add to adjacency list
@@ -126,15 +126,17 @@ Link Graph::addEdge(Node *n1, Node *n2)
     return e;
 }
 
-Link Graph::addEdge(Node *n1, Node *n2, std::vector<Vec4d> coord1, std::vector<Vec4d> coord2, QString linkName)
+Link * Graph::addEdge(Node *n1, Node *n2, std::vector<Vec4d> coord1, std::vector<Vec4d> coord2, QString linkName)
 {
 	n1 = addNode(n1);
 	n2 = addNode(n2);
 
+	if(linkName.isEmpty()) linkName = this->linkName(n1,n2);
+
 	QString edgeType = POINT_EDGE;
 	if(n1->type() == SHEET && n2->type() == SHEET) edgeType = LINE_EDGE;
 
-	Link e( n1, n2, coord1, coord2, edgeType, linkName );
+	Link * e = new Link( n1, n2, coord1, coord2, edgeType, linkName );
 	edges.push_back(e);
 
 	// Add to adjacency list
@@ -159,9 +161,9 @@ void Graph::removeEdge( Node * n1, Node * n2 )
 
 	for(int i = 0; i < (int)edges.size(); i++)
 	{
-		Link & e = edges[i];
+		Link * e = edges[i];
 
-		if((e.n1 == n1 && e.n2 == n2) || (e.n2 == n1 && e.n1 == n2)){
+		if((e->n1 == n1 && e->n2 == n2) || (e->n2 == n1 && e->n1 == n2)){
 			edge_idx = i;
 			break;
 		}
@@ -200,13 +202,13 @@ Link *Graph::getEdge(QString id1, QString id2)
 {
 	for(int i = 0; i < (int)edges.size(); i++)
 	{
-		Link & e = edges[i];
+		Link * e = edges[i];
 
-		QString nid1 = e.n1->id;
-		QString nid2 = e.n2->id;
+		QString nid1 = e->n1->id;
+		QString nid2 = e->n2->id;
 
 		if( (nid1 == id1 && nid2 == id2) || (nid1 == id2 && nid2 == id1))
-			return &e;
+			return e;
 	}
 	
 	return NULL;
@@ -241,9 +243,9 @@ void Graph::draw()
 		}
     }
 
-    foreach(Link e, edges)
+    foreach(Link * e, edges)
     {
-        e.draw();
+        e->draw();
     }
 
 	glDisable(GL_LIGHTING);
@@ -319,10 +321,10 @@ void Graph::draw2D(int width, int height)
 
 	// Draw edges:
 	glColorQt(QColor(0,0,0));
-	foreach(Link e, edges)
+	foreach(Link * e, edges)
 	{
-		Vector3 c1 = node_centers[nmap.key(e.n1)];
-		Vector3 c2 = node_centers[nmap.key(e.n2)];
+		Vector3 c1 = node_centers[nmap.key(e->n1)];
+		Vector3 c2 = node_centers[nmap.key(e->n2)];
 		drawLine(Vec2i(c1.x(), c1.y()), Vec2i(c2.x(), c2.y()), 1);
 	}
 
@@ -395,18 +397,18 @@ void Graph::saveToFile( QString fileName ) const
 	}
 
 	// Save edges
-	foreach(Link e, edges)
+	foreach(Link * e, edges)
 	{
 		out << "<edge>\n";
-		out << QString("\t<id>%1</id>\n").arg(e.id);
-		out << QString("\t<type>%1</type>\n\n").arg(e.type);
-		out << QString("\t<n>%1</n>\n").arg(e.n1->id);
-		out << QString("\t<n>%1</n>\n").arg(e.n2->id);
+		out << QString("\t<id>%1</id>\n").arg(e->id);
+		out << QString("\t<type>%1</type>\n\n").arg(e->type);
+		out << QString("\t<n>%1</n>\n").arg(e->n1->id);
+		out << QString("\t<n>%1</n>\n").arg(e->n2->id);
 
 		for(int k = 0; k < 2; k++)
 		{
 			out << "\t<coord>\n";
-			foreach(Vec4d c, e.coord[k])
+			foreach(Vec4d c, e->coord[k])
 				out << "\t\t<uv>" << c[0] << " " << c[1] << " " << c[2] << " " << c[3] << "</uv>\n";
 			out << "\t</coord>\n";
 		}
@@ -743,8 +745,8 @@ QVector<Link*> Graph::getEdges( QString nodeID )
 
 	for(int i = 0; i < edges.size(); i++)
 	{
-		Link * l = &edges[i];
-		if(l->hasNode(nodeID)) mylinks.push_back(l);
+		Link * l = edges[i];
+		if( l->hasNode(nodeID) ) mylinks.push_back(l);
 	}
 
 	return mylinks;
@@ -756,7 +758,7 @@ QMap<Link*, std::vector<Vec4d> > Graph::linksCoords( QString nodeID )
 
 	for(int i = 0; i < edges.size(); i++)
 	{
-		Link * l = &edges[i];
+		Link * l = edges[i];
 		if(!l->hasNode(nodeID)) continue;
 
 		coords[l] = l->getCoord(nodeID);
@@ -765,11 +767,11 @@ QMap<Link*, std::vector<Vec4d> > Graph::linksCoords( QString nodeID )
 	return coords;
 }
 
-QVector<Link> Structure::Graph::nodeEdges( QString nodeID )
+QVector<Link*> Structure::Graph::nodeEdges( QString nodeID )
 {
-	QVector<Link> nodeLinks;
+	QVector<Link*> nodeLinks;
 	
-	foreach(Link e, edges) if(e.hasNode(nodeID)) 
+	foreach(Link * e, edges) if(e->hasNode(nodeID)) 
 		nodeLinks.push_back(e);
 
 	return nodeLinks;
@@ -779,8 +781,8 @@ Node * Structure::Graph::removeNode( QString nodeID )
 {
 	Structure::Node * n = getNode(nodeID);
 
-	foreach(Link * l, getEdges(nodeID)){
-		edges.remove(edges.indexOf(*l));
+	foreach(Link * e, getEdges(nodeID)){
+		edges.remove(edges.indexOf(e));
 	}
 
 	nodes.remove(nodes.indexOf(n));
@@ -788,13 +790,13 @@ Node * Structure::Graph::removeNode( QString nodeID )
 	return n;
 }
 
-QList<Link> Graph::furthermostEdges( QString nodeID )
+QList<Link*> Graph::furthermostEdges( QString nodeID )
 {
-	QMap<double, Link> sortedLinks;
-	foreach(Link l, nodeEdges(nodeID))
+	QMap<double, Link*> sortedLinks;
+	foreach(Link * e, nodeEdges(nodeID))
 	{
-		foreach(Vec4d c, l.getCoord(nodeID))
-			sortedLinks[c.norm()] = l;
+		foreach(Vec4d c, e->getCoord(nodeID))
+			sortedLinks[c.norm()] = e;
 	}
 
 	return sortedLinks.values();
@@ -835,6 +837,17 @@ bool Structure::Graph::isCutNode( QString nodeID )
 		return true;
 	else
 		return false;
+}
+
+void Graph::replaceCoords( QString nodeA, QString nodeB, std::vector<Vec4d> coordA, std::vector<Vec4d> coordB )
+{
+	// Get shared link
+	Link * sharedLink = getEdge(nodeA, nodeB);
+
+	if(!sharedLink) return;
+
+	sharedLink->setCoord(nodeA, coordA);
+	sharedLink->setCoord(nodeB, coordB);
 }
 
 Vector3 Graph::position( QString nodeID, Vec4d coord )

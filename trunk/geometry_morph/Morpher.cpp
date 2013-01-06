@@ -9,7 +9,7 @@
 	(a)[1] = (b)[1] - (c)[1];	\
 	(a)[2] = (b)[2] - (c)[2];
 
-#define USE_OCTREE 0
+#define USE_OCTREE 1
 
 int missCount = 0;
 

@@ -51,10 +51,13 @@ public:
         isAnchorPoint[v] = true;
     }
 
+	void setControl(int v){
+		isControlPoint[v] = true;
+		isSolverReady = false;
+	}
+
     void UpdateControl( int v, const Vec3d & newPos ){
-        isControlPoint[v] = true;
         points[v] = newPos;
-        isSolverReady = false;
     }
 
     void ClearAnchors(){
@@ -75,4 +78,8 @@ public:
 
 		wij_weight.resize(nVerts);
     }
+
+	void MakeReady(){
+		this->Deform(2);
+	}
 };
