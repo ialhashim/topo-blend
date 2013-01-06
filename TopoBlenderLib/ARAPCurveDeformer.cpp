@@ -12,6 +12,8 @@ ARAPCurveDeformer::ARAPCurveDeformer( std::vector<Vec3d> curvePoints, int sizeNe
 	this->neighborhoodSize = qMax(1, sizeNeighborhood);
 
 	ClearAll();
+
+	ComputeCotWeights();
 }
 
 void ARAPCurveDeformer::ComputeCotWeights()
@@ -41,7 +43,6 @@ void ARAPCurveDeformer::ComputeCotWeights()
 }
 
 void ARAPCurveDeformer::BuildAndFactor(){
-    ComputeCotWeights();
 
     // Initialize
     xyz.clear();		xyz.resize(3, VectorXd::Zero(nVerts));		// Store new vertex positions

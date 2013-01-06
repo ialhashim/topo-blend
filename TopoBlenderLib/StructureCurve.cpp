@@ -117,7 +117,7 @@ std::vector< std::vector<Vec4d> > Curve::discretizedPoints( Scalar resolution )
 	return result;
 }
 
-void Structure::Curve::laplacianSmoothControls( int num_iterations, std::set<int> anchored )
+void Curve::laplacianSmoothControls( int num_iterations, std::set<int> anchored )
 {
 	std::vector<Vector3> & cpnts = curve.mCtrlPoint;
 
@@ -144,12 +144,12 @@ void Structure::Curve::laplacianSmoothControls( int num_iterations, std::set<int
 	}
 }
 
-void Structure::Curve::moveBy( const Vec3d & delta )
+void Curve::moveBy( const Vec3d & delta )
 {
 	curve.translate( delta );
 }
 
-std::vector<Vec3d> Structure::Curve::foldTo( Vec4d & foldPoint, bool isApply)
+std::vector<Vec3d> Curve::foldTo( Vec4d & foldPoint, bool isApply)
 {
 	int cpIDX = controlPointIndexFromCoord(foldPoint);
 	Vector3 cp = curve.mCtrlPoint[cpIDX];
@@ -165,7 +165,7 @@ std::vector<Vec3d> Structure::Curve::foldTo( Vec4d & foldPoint, bool isApply)
 	return deltas;
 }
 
-void Structure::Curve::setControlPoints( const std::vector<Vector3> & newPositions )
+void Curve::setControlPoints( const std::vector<Vector3> & newPositions )
 {
 	curve.mCtrlPoint = newPositions;
 }

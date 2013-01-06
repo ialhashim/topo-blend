@@ -16,7 +16,7 @@ struct GraphDistanceNode{
 class GraphDistance
 {
 public:
-    GraphDistance(Structure::Graph * graph);
+    GraphDistance(Structure::Graph * graph, QVector<QString> exclude_nodes = QVector<QString>());
 	GraphDistance(Structure::Node * n);
 
 	int globalID;
@@ -47,9 +47,14 @@ public:
 	std::vector<double> dists;
 	std::vector<Structure::Node *> correspond;
 	std::set< std::pair<int,int> > jumpPoints;
+	QVector<QString> excludeNodes;
 
 	bool isReady;
 
 	// DEBUG:
 	void draw();
 };
+
+static inline QVector<QString> SingleNode(const QString & nodeID){
+	return QVector<QString>(1, nodeID);
+}

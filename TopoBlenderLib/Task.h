@@ -9,6 +9,8 @@ static QColor TaskColors[] = { QColor(255,97,121),  QColor(107,255,135),
 	QColor(255,219,88), QColor(255,165,107) , QColor(104,126,255),
 	QColor(242,5,135), QColor(113,53,242), QColor(138,109,242), QColor(3,166,60), QColor(242,203,5)};
 
+static QString TaskNames[] = { "SHRINK", "MORPH", "MERGE", "SPLIT", "GROW" };
+
 class Task : public QGraphicsItem
 {
 public:
@@ -31,6 +33,9 @@ public:
 	void executeMorph();
 
 	Structure::Node * node();
+
+	// Helper functions
+	void setupCurveDeformer(Structure::Curve* curve, Structure::Link* linkA, Structure::Link* linkB);
 
 	// Task properties
 	TaskType type;
