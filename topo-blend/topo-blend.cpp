@@ -29,8 +29,8 @@ TopoBlender * blender = NULL;
 
 #include "ARAPCurveDeformer.h"
 ARAPCurveDeformer * deformer = NULL;
-//#include "ARAPCurveHandle.h"
-//ARAPCurveHandle * handle = NULL;
+#include "ARAPCurveHandle.h"
+ARAPCurveHandle * handle = NULL;
 
 topoblend::topoblend(){
 	widget = NULL;
@@ -580,26 +580,26 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		used = true;
 	}
 
-	//if(event->key() == Qt::Key_O)
-	//{
-	//	if(graphs.size() < 1) return true;
+	if(event->key() == Qt::Key_O)
+	{
+		if(graphs.size() < 1) return true;
 
-	//	Structure::Node * n = graphs.front()->nodes.front();
-	//	std::vector<Vec3d> orgCtrlPnts = n->controlPoints();
+		Structure::Node * n = graphs.front()->nodes.front();
+		std::vector<Vec3d> orgCtrlPnts = n->controlPoints();
 
-	//	deformer = new ARAPCurveDeformer( orgCtrlPnts, orgCtrlPnts.size() * 0.25 );
+		deformer = new ARAPCurveDeformer( orgCtrlPnts, orgCtrlPnts.size() * 0.25 );
 
-	//	deformer->SetAnchor( orgCtrlPnts.size() - 1 );		// Last point as anchor
-	//	deformer->UpdateControl( 0, orgCtrlPnts.front());	// First point moves
+		deformer->SetAnchor( orgCtrlPnts.size() - 1 );		// Last point as anchor
+		deformer->UpdateControl( 0, orgCtrlPnts.front());	// First point moves
 
-	//	qDebug() << "Curve deformation performed!"; 
+		qDebug() << "Curve deformation performed!"; 
 
-	//	handle = new ARAPCurveHandle(orgCtrlPnts.front(), 0.0);
-	//	drawArea()->setManipulatedFrame( handle );
-	//	this->connect(handle, SIGNAL(manipulated()), SLOT(experimentSlot()));
+		handle = new ARAPCurveHandle(orgCtrlPnts.front(), 0.0);
+		drawArea()->setManipulatedFrame( handle );
+		this->connect(handle, SIGNAL(manipulated()), SLOT(experimentSlot()));
 
-	//	used = true;
-	//}
+		used = true;
+	}
 
 	drawArea()->updateGL();
 
@@ -608,13 +608,13 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 void topoblend::experimentSlot()
 {
-	//Structure::Node * n = graphs.front()->nodes.front();
+	Structure::Node * n = graphs.front()->nodes.front();
 
-	//qglviewer::Vec v = handle->position();
-	//deformer->points[0] = Vec3d(v[0],v[1],v[2]);
+	qglviewer::Vec v = handle->position();
+	deformer->points[0] = Vec3d(v[0],v[1],v[2]);
 
-	//deformer->Deform(3);
-	//n->setControlPoints( deformer->points );
+	deformer->Deform(3);
+	n->setControlPoints( deformer->points );
 }
 
 void topoblend::doBlend()

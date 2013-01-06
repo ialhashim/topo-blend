@@ -13,8 +13,8 @@ DynamicGraph::DynamicGraph(Structure::Graph *fromGraph)
         addNode( SingleProperty("original", n->id) );
 
     // Add edges
-    foreach(Structure::Link e, mGraph->edges)
-        addEdge( nodeIndex("original", e.n1->id), nodeIndex("original", e.n2->id) );
+    foreach(Structure::Link * e, mGraph->edges)
+        addEdge( nodeIndex("original", e->n1->id), nodeIndex("original", e->n2->id) );
 }
 
 DynamicGraph DynamicGraph::clone()
@@ -293,33 +293,33 @@ Structure::Graph * DynamicGraph::toStructureGraph()
 			toEdge->setCoord(id1, specialCoords[edgeIndex][e.n[0]]);
 			toEdge->setCoord(id2, specialCoords[edgeIndex][e.n[1]]);
 
-			toEdge->link_property["special"] = true;
+			toEdge->property["special"] = true;
 		}
 		
 		// Track movable nodes
 		if( movable.contains(edgeIndex) )
 		{
 			QString movableNode = nodeMap[movable[edgeIndex]];
-			toEdge->link_property["movable"] = movableNode;
+			toEdge->property["movable"] = movableNode;
 		}
 
 		if( growingCurves.contains(edgeIndex) )
 		{
-			toEdge->link_property["growing"] = nodeMap[growingCurves[edgeIndex].first];
-			toEdge->link_property["growAnchor"] = growingCurves[edgeIndex].second.first;
-			toEdge->link_property["growFactor"] = growingCurves[edgeIndex].second.second;
+			toEdge->property["growing"] = nodeMap[growingCurves[edgeIndex].first];
+			toEdge->property["growAnchor"] = growingCurves[edgeIndex].second.first;
+			toEdge->property["growFactor"] = growingCurves[edgeIndex].second.second;
 		}
 
 		if( growingSheets.contains(edgeIndex) )
 		{
 			QString growingNodeID = nodeMap[growingSheets[edgeIndex].first];
-			toEdge->link_property["growing"] = growingNodeID;
+			toEdge->property["growing"] = growingNodeID;
 
 			QVariant val; val.setValue(growingSheets[edgeIndex].second);
-			toEdge->link_property["deltas"] = val;
+			toEdge->property["deltas"] = val;
 
 			QVariant cpts; cpts.setValue(((Structure::Sheet*)toEdge->getNode(growingNodeID))->surface.mCtrlPoint);
-			toEdge->link_property["cpts"] = cpts;
+			toEdge->property["cpts"] = cpts;
 		}
 	}
 

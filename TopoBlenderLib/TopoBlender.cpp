@@ -47,7 +47,7 @@ TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * tar
 		int tN = tNodes.size();
 
 		Task * task = NULL;
-		Structure::Node * snode = sg->getNode(*sNodes.begin());
+		Structure::Node * snode = active->getNode(*sNodes.begin());
 		Structure::Node * tnode = tg->getNode(*tNodes.begin());
 
 		// One to One
@@ -85,13 +85,21 @@ TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * tar
 			// Remaining of many to One: merging
 			foreach(QString snodeID, sNodes)
 			{
-				Structure::Node *clonedNode = tnode->clone();
-				clonedNode->id += ":cloned";
-				active->getNode(snodeID)->property["correspond"] = clonedNode->id;
-				clonedNode->property["correspond"] = snodeID;
+				Structure::Node *mergedNode = tnode->clone();
+				mergedNode->id += ":merged";
+				active->getNode(snodeID)->property["correspond"] = mergedNode->id;
+				mergedNode->property["correspond"] = snodeID;
 
-				// Graph edit
-				tg->addNode(clonedNode);
+				// Graph edit - nodes
+				tg->addNode(mergedNode);
+				
+				// Graph edit - edges
+				foreach( Structure::Link * link, tg->getEdges(tnode->id) )
+				{
+					LinkCoords c1 = link->getCoord(tnode->id);
+					LinkCoords c2 = link->getCoordOther(tnode->id);
+					tg->addEdge( mergedNode, link->otherNode(tnode->id), c1, c2 );
+				}
 
 				task = new Task( active, tg, Task::MERGE, scheduler->tasks.size() );
 				task->property["nodeID"] = snodeID;
@@ -118,16 +126,34 @@ TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * tar
 	}
 
 	// Add missing edges from target graph
-	foreach (Structure::Link l, tg->edges)
+	foreach (Structure::Link * e, tg->edges)
 	{
-		Structure::Node * n1 = active->getNode(l.n1->property["correspond"].toString());
-		Structure::Node * n2 = active->getNode(l.n2->property["correspond"].toString());
+		Structure::Node * n1 = active->getNode(e->n1->property["correspond"].toString());
+		Structure::Node * n2 = active->getNode(e->n2->property["correspond"].toString());
 
 		if(active->getEdge(n1->id,n2->id) == NULL)
 		{
-			active->addEdge( n1, n2, l.coord[0], l.coord[1], active->linkName(n1,n2) );
+			active->addEdge( n1, n2, e->coord[0], e->coord[1], active->linkName(n1,n2) );
 		}
 	}
+
+	// Modify edges coordinates for morphing
+	foreach(Structure::Link * sLink, active->edges)
+	{
+		QString t_n1 = sLink->n1->property["correspond"].toString();
+		QString t_n2 = sLink->n2->property["correspond"].toString();
+
+		Structure::Link * tLink = tg->getEdge(t_n1, t_n2);
+		
+		sLink->property["n1_newCoord"].setValue( tLink->getCoord(t_n1) );
+		sLink->property["n2_newCoord"].setValue( tLink->getCoord(t_n2) );
+	}
+	
+	// Output all graphs visualized
+	toGraphviz(DynamicGraph(sg), "out_1_srcGraph", true, "", "Source");
+	toGraphviz(DynamicGraph(active), "out_2_activeGraph", true, "", "Active");
+	toGraphviz(DynamicGraph(tg), "out_3_tgtGraph", true, "", "Target[modified]");
+	tg->saveToFile("out_4_target.xml");
 
 	/// STEP 3) Order and schedule the tasks
 	scheduler->schedule();
