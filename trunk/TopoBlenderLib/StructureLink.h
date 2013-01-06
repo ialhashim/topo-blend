@@ -3,6 +3,8 @@
 #include "StructureGlobal.h"
 
 typedef Array1D_Vec4d LinkCoords;
+typedef QPair< QString,Vec4d > NodeCoord;
+typedef QPair< QString,LinkCoords > NodeCoords;
 
 namespace Structure{
 
@@ -23,7 +25,8 @@ struct Link
 
 	LinkCoords coord[2];
 
-	void Link::setCoord( QString nodeID, std::vector<Vec4d> newCoord );
+	void setCoord( QString nodeID, std::vector<Vec4d> newCoord );
+	void setCoordOther( QString nodeID, std::vector<Vec4d> newCoord );
 
 	std::vector<Vec4d> getCoord(QString nodeID);
 	std::vector<Vec4d> getCoordOther(QString nodeID);
@@ -61,3 +64,5 @@ struct Link
 }
 
 Q_DECLARE_METATYPE(Structure::Link*)
+Q_DECLARE_METATYPE(NodeCoord)
+Q_DECLARE_METATYPE(NodeCoords)

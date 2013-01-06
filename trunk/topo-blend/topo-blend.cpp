@@ -105,7 +105,7 @@ void topoblend::decorate()
 	{
 		float r = drawArea()->sceneRadius();
 		posX = -r * (graphs.size() - 1) / 2;
-		deltaX = r;
+		deltaX = r * 1.25;
 	}
 
 	for(int g = 0; g < (int) graphs.size(); g++)
@@ -455,7 +455,7 @@ void topoblend::setSceneBounds()
 	for(int i = 0; i < (int)graphs.size(); i++)
 		bigbox.unite( graphs[i]->bbox() );
 
-	bigbox.transform(QMatrix4x4() * 2);
+	bigbox.transform(QMatrix4x4() * 3);
 
 	Vector3 a = bigbox.minimum();
 	Vector3 b = bigbox.maximum();
@@ -653,6 +653,9 @@ void topoblend::clearGraphs()
 {
 	qDeleteAll(graphs);
 	graphs.clear();
+
+	blender = NULL;
+
 	drawArea()->updateGL();
 
 	delete gcoor;

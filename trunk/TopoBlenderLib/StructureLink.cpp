@@ -9,6 +9,12 @@ void Link::setCoord( QString nodeID, std::vector<Vec4d> newCoord )
 	if(n2->id == nodeID) coord[1] = newCoord;
 }
 
+void Link::setCoordOther( QString nodeID, std::vector<Vec4d> newCoord )
+{
+	if(n1->id == nodeID) coord[1] = newCoord;
+	if(n2->id == nodeID) coord[0] = newCoord;
+}
+
 std::vector<Vec4d> Link::getCoord( QString nodeID )
 {
 	if(n1->id == nodeID) return coord[0];

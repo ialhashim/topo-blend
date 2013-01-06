@@ -266,8 +266,12 @@ void Task::prepareGrowShrink()
 
 				property["seedPoint"].setValue( midPoint );
 
-				linkA->property["n1_finalCoord"].setValue( linkA->getCoord(n->id) );
-				linkB->property["n2_finalCoord"].setValue( linkB->getCoord(n->id) );
+				// Morph operation need these
+				linkA->property["finalCoord_n1"].setValue( qMakePair(linkA->n1->id, linkA->getCoord(linkA->n1->id)) );
+				linkA->property["finalCoord_n2"].setValue( qMakePair(linkA->n2->id, linkA->getCoord(linkA->n2->id)) );
+				
+				linkB->property["finalCoord_n1"].setValue( qMakePair(linkB->n1->id, linkB->getCoord(linkB->n1->id)) );
+				linkB->property["finalCoord_n2"].setValue( qMakePair(linkB->n2->id, linkB->getCoord(linkB->n2->id)) );
 			}
 		}
 
@@ -426,22 +430,23 @@ void Task::executeMorph()
 
 			ARAPCurveDeformer * deformer = property["deformer"].value<ARAPCurveDeformer*>();
 
-			Array1D_Vec4d coordOtherA = (linkA->n1->id == n->id) ? 
-				linkA->property["n2_finalCoord"].value<Array1D_Vec4d>() 
-				: linkA->property["n1_finalCoord"].value<Array1D_Vec4d>();
+			// Retrieve final coordinates
+			NodeCoords coordA = linkA->property["finalCoord_n1"].value<NodeCoords>();
+			NodeCoords coordOtherA = linkA->property["finalCoord_n2"].value<NodeCoords>();
+			if(coordA.first != n->id) std::swap(coordA, coordOtherA);
 
-			Array1D_Vec4d coordOtherB = (linkB->n1->id == n->id) ? 
-				linkB->property["n2_finalCoord"].value<Array1D_Vec4d>() 
-				: linkB->property["n1_finalCoord"].value<Array1D_Vec4d>();
+			NodeCoords coordB = linkB->property["finalCoord_n1"].value<NodeCoords>();
+			NodeCoords coordOtherB = linkB->property["finalCoord_n2"].value<NodeCoords>();
+			if(coordB.first != n->id) std::swap(coordB, coordOtherB);
 
 			GraphDistance graphDist(active);
 
 			QVector< NodeCoord > pathA;
-			graphDist.computeDistances( linkA->otherNode(n->id)->position(coordOtherA.front()) );
+			graphDist.computeDistances( linkA->otherNode(n->id)->position(coordOtherA.second.front()) );
 			graphDist.pathCoordTo( linkA->position(n->id), pathA);
 
 			QVector< NodeCoord > pathB;
-			graphDist.computeDistances( linkB->otherNode(n->id)->position(coordOtherB.front()) );
+			graphDist.computeDistances( linkB->otherNode(n->id)->position(coordOtherB.second.front()) );
 			graphDist.pathCoordTo( linkB->position(n->id), pathB );
 
 			for(int i = 0; i < stretchedLength; i++)
@@ -485,16 +490,19 @@ void Task::executeMorph()
 					debugPoints2.push_back(newPosB);
 				}
 
-				QString fileName = QString("test_%1_Task%2_MorphCurve.xml").arg(globalCount++).arg(taskID);
-				active->saveToFile(fileName);
+				if(pathA.size() > 2 || pathB.size() > 2)
+				{
+					QString fileName = QString("test_%1_Task%2_MorphCurve.xml").arg(globalCount++).arg(taskID);
+					active->saveToFile(fileName);
+				}
 			}
 
-			// Update to new coordinates
-			linkA->coord[0] = linkA->property["n1_finalCoord"].value<Array1D_Vec4d>();
-			linkA->coord[1] = linkA->property["n2_finalCoord"].value<Array1D_Vec4d>();
+			// Apply final coordinates
+			linkA->setCoord(n->id, coordA.second);
+			linkA->setCoordOther(n->id, coordOtherA.second);
 
-			linkB->coord[0] = linkB->property["n1_finalCoord"].value<Array1D_Vec4d>();
-			linkB->coord[1] = linkB->property["n2_finalCoord"].value<Array1D_Vec4d>();
+			linkB->setCoord(n->id, coordB.second);
+			linkB->setCoordOther(n->id, coordOtherB.second);
 		}
 
 		// Sheet case:
