@@ -1,9 +1,10 @@
 #include "GraphDistance.h"
 using namespace Structure;
 
-GraphDistance::GraphDistance(Structure::Graph *graph)
+GraphDistance::GraphDistance( Structure::Graph * graph, QVector<QString> exclude_nodes )
 {
     this->g = graph;
+	this->excludeNodes = exclude_nodes;
 	this->isReady = false;
 	this->globalID = 0;
 }
@@ -25,6 +26,8 @@ void GraphDistance::prepareNodes( Scalar resolution, const std::vector<Vector3> 
 	// Setup control points adjacency lists
 	foreach(Node * node, nodes)
 	{
+		if(excludeNodes.contains(node->id)) continue;
+
 		int idx = 0;
 
 		nodesMap[node] = std::vector<GraphDistanceNode>();
@@ -72,6 +75,8 @@ void GraphDistance::prepareNodes( Scalar resolution, const std::vector<Vector3> 
 	// Compute neighbors and distances at each node
 	foreach(Node * node, nodes)
 	{			
+		if(excludeNodes.contains(node->id)) continue;
+
 		int gid = nodesMap[node].front().gid;
 
 		if(node->type() == Structure::CURVE)
@@ -154,6 +159,8 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	// Connect between nodes
 	foreach(Link * e, g->edges)
 	{
+		if(excludeNodes.contains(e->n1->id) || excludeNodes.contains(e->n2->id)) continue;
+
 		int gid1 = nodesMap[e->n1].front().gid;
 		int gid2 = nodesMap[e->n2].front().gid;
 

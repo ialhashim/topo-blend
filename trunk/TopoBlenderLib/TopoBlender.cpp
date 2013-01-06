@@ -32,6 +32,7 @@ TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * tar
 	// Shrink extra source nodes
 	foreach(QString nodeID, gcoor->nonCorresSource())
 	{
+		// Generate task
 		Task * task = new Task( active, tg, Task::SHRINK, scheduler->tasks.size() );
 		task->property["nodeID"] = nodeID;
 		scheduler->tasks.push_back( task );
@@ -69,12 +70,13 @@ TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * tar
 				clonedNode->property["correspond"] = tnodeID;
 				tg->getNode(tnodeID)->property["correspond"] = clonedNode->id;
 
-				// Graph edit
-				active->addNode( clonedNode );
-				
+				// Generate task
 				task = new Task( active, tg, Task::SPLIT, scheduler->tasks.size() );
 				task->property["nodeID"] = clonedNode->id;
 				scheduler->tasks.push_back(task);
+
+				// Graph edit
+				active->addNode( clonedNode );
 			}
 		}
 		
@@ -90,9 +92,14 @@ TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * tar
 				active->getNode(snodeID)->property["correspond"] = mergedNode->id;
 				mergedNode->property["correspond"] = snodeID;
 
+				// Generate task
+				task = new Task( active, tg, Task::MERGE, scheduler->tasks.size() );
+				task->property["nodeID"] = snodeID;
+				scheduler->tasks.push_back(task);
+
 				// Graph edit - nodes
 				tg->addNode(mergedNode);
-				
+
 				// Graph edit - edges
 				foreach( Structure::Link * link, tg->getEdges(tnode->id) )
 				{
@@ -100,10 +107,6 @@ TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * tar
 					LinkCoords c2 = link->getCoordOther(tnode->id);
 					tg->addEdge( mergedNode, link->otherNode(tnode->id), c1, c2 );
 				}
-
-				task = new Task( active, tg, Task::MERGE, scheduler->tasks.size() );
-				task->property["nodeID"] = snodeID;
-				scheduler->tasks.push_back(task);
 			}
 		}
 	}
@@ -117,12 +120,14 @@ TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * tar
 		missingNode->property["correspond"] = nodeID;
 		tg->getNode(nodeID)->property["correspond"] = missingNode->id;
 
-		// Graph edit
-		active->addNode( missingNode );
-
+		// Generate task
 		Task * task = new Task( active, tg, Task::GROW, scheduler->tasks.size() );
+
 		task->property["nodeID"] = missingNode->id;
 		scheduler->tasks.push_back(task);
+
+		// Graph edit
+		active->addNode( missingNode );
 	}
 
 	// Add missing edges from target graph
@@ -144,9 +149,10 @@ TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * tar
 		QString t_n2 = sLink->n2->property["correspond"].toString();
 
 		Structure::Link * tLink = tg->getEdge(t_n1, t_n2);
+		if(!tLink) continue;
 		
-		sLink->property["n1_newCoord"].setValue( tLink->getCoord(t_n1) );
-		sLink->property["n2_newCoord"].setValue( tLink->getCoord(t_n2) );
+		sLink->property["n1_finalCoord"].setValue( tLink->getCoord(t_n1) );
+		sLink->property["n2_finalCoord"].setValue( tLink->getCoord(t_n2) );
 	}
 	
 	// Output all graphs visualized
