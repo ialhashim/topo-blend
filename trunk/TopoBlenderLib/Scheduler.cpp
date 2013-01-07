@@ -3,12 +3,16 @@
 
 Scheduler::Scheduler()
 {
-
+	rulerHeight = 25;
 }
 
 void Scheduler::drawBackground( QPainter * painter, const QRectF & rect )
 {
 	QGraphicsScene::drawBackground(painter,rect);
+
+	int x = rect.x();
+	int y = rect.y();
+	int screenBottom = y + rect.height();
 
 	// Draw tracks
 	for(int i = 0; i < (int)items().size() * 1.25; i++)
@@ -16,6 +20,10 @@ void Scheduler::drawBackground( QPainter * painter, const QRectF & rect )
 		int y = i * 17;
 		painter->fillRect(-10, y, 4000, 16, QColor(80,80,80));
 	}
+
+	// Draw current time indicator
+	int ctime = slider->currentTime();
+	painter->fillRect(ctime, 0, 1, screenBottom, QColor(0,0,0,128));
 }
 
 void Scheduler::drawForeground( QPainter * painter, const QRectF & rect )
@@ -24,7 +32,6 @@ void Scheduler::drawForeground( QPainter * painter, const QRectF & rect )
 	int y = rect.y();
 
 	// Draw ruler
-	int rulerHeight = 25;
 	int screenBottom = y + rect.height();
 	painter->fillRect(x, screenBottom - rulerHeight, rect.width(), rulerHeight, QColor(64,64,64));
 
@@ -59,6 +66,11 @@ void Scheduler::drawForeground( QPainter * painter, const QRectF & rect )
 			painter->drawLine(minorX, screenBottom, minorX, screenBottom - 5);
 		}
 	}
+
+	slider->forceY(screenBottom - rulerHeight - 10);
+	slider->setY(slider->myY);
+	painter->translate(slider->pos());
+	slider->paint(painter, 0, 0);
 }
 
 void Scheduler::schedule()
@@ -72,12 +84,20 @@ void Scheduler::schedule()
 
 		// Placement
 		if(prev) current->moveBy(prev->x() + prev->width,prev->y() + (prev->height));
+		current->currentTime = current->x();
+		current->start = current->x();
 
 		// Add to scene
 		this->addItem( current );
 
 		prev = current;
 	}
+
+	slider = new TimelineSlider;
+	slider->reset();
+	this->connect(slider, SIGNAL(timeChanged(int)), SLOT(timeChanged(int)));
+
+    this->addItem( slider );
 }
 
 void Scheduler::executeAll()
@@ -85,11 +105,35 @@ void Scheduler::executeAll()
 	foreach(Task * t, tasks)
 	{
 		t->execute();
+
+		// Collect resulting graphs
+		allGraphs << t->outGraphs;
 	}
+
+	slider->enable();
 }
 
 void Scheduler::drawDebug()
 {
 	foreach(Task * t, tasks)
 		t->drawDebug();
+}
+
+int Scheduler::totalExecutionTime()
+{
+	int endTime = 0;
+
+	foreach(Task * t, tasks)
+		endTime = qMax(endTime, t->endTime());
+
+	return endTime;
+}
+
+void Scheduler::timeChanged( int newTime )
+{
+	int idx = allGraphs.size() * (double(newTime) / totalExecutionTime());
+
+	idx = qRanged(0, idx, allGraphs.size() - 1);
+
+	emit( activeGraphChanged(allGraphs[idx]) );
 }

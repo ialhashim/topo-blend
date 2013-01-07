@@ -17,5 +17,6 @@
         <file>images/uparrow.png</file>
         <file>images/cross-red.png</file>
         <file>images/update.png</file>
+        <file>images/tick.png</file>
     </qresource>
 </RCC>

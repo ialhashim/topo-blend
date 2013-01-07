@@ -26,6 +26,7 @@
 
 // Temp
 TopoBlender * blender = NULL;
+Scheduler * scheduler = NULL;
 
 #include "ARAPCurveDeformer.h"
 ARAPCurveDeformer * deformer = NULL;
@@ -630,9 +631,13 @@ void topoblend::doBlend()
 	Structure::Graph * source = graphs.front();
 	Structure::Graph * target = graphs.back();
 
-	Scheduler * scheduler = new Scheduler();
+	if(scheduler) scheduler->disconnect(this);
 
-    blender = new TopoBlender( source, target, scheduler );
+	scheduler = new Scheduler();
+
+    blender = new TopoBlender( source, target, corresponder(), scheduler );
+
+	this->connect(scheduler, SIGNAL(activeGraphChanged( Structure::Graph* )), SLOT(updateActiveGraph( Structure::Graph* )));
 	//graphs.push_back( blender->active );
 
 	//Structure::Graph * blendedGraph = blender->blend();
@@ -786,5 +791,11 @@ void topoblend::testPoint2PointCorrespondences()
 	drawArea()->updateGL();
 }
 
+void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
+{
+	graphs.clear();
+	this->graphs.push_back(newActiveGraph);
+	drawArea()->updateGL();
+}
 
 Q_EXPORT_PLUGIN(topoblend)

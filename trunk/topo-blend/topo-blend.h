@@ -70,6 +70,9 @@ public slots:
 	// Update
 	void updateDrawArea();
 	void testPoint2PointCorrespondences();
+
+	// Show graphs
+	void updateActiveGraph(Structure::Graph *);
 signals:
 
 };

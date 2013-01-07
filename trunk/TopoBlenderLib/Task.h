@@ -43,10 +43,13 @@ public:
 	Structure::Graph *active, *target;
 	QMap<QString, QVariant> property;
 
+	// Save execution output
+	QVector<Structure::Graph *> outGraphs;
+
 	// Time related
 	double start;
 	double length;
-	double current;
+	double currentTime;
 	bool isReady;
 	int taskID;
 
@@ -54,6 +57,7 @@ public:
 	void reset();
 	bool stillWorking();
 	int scaledTime();
+	int endTime();
 
 	// Visual properties
 	int width;

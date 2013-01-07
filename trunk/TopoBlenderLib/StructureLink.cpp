@@ -3,6 +3,17 @@
 
 using namespace Structure;
 
+Link::Link( Node * node1, Node * node2, LinkCoords coord_n1, LinkCoords coord_n2, QString link_type, QString ID )
+{
+	this->n1 = node1;
+	this->n2 = node2;
+	this->type = link_type;
+	this->id = ID;
+
+	this->coord[0] = coord_n1;
+	this->coord[1] = coord_n2;
+}
+
 void Link::setCoord( QString nodeID, std::vector<Vec4d> newCoord )
 {
 	if(n1->id == nodeID) coord[0] = newCoord;
@@ -22,15 +33,31 @@ std::vector<Vec4d> Link::getCoord( QString nodeID )
 	return std::vector<Vec4d>();
 }
 
-std::vector<Vec4d> Structure::Link::getCoordOther( QString nodeID )
+std::vector<Vec4d> Link::getCoordOther( QString nodeID )
 {
 	return getCoord(otherNode(nodeID)->id);
 }
 
-Vec4d Structure::Link::getMiddleCoord( QString nodeID )
+Vec4d Link::getMiddleCoord( QString nodeID )
 {
 	std::vector<Vec4d> nodeCoords = getCoord(nodeID);
 	return nodeCoords[ nodeCoords.size() / 2 ];
+}
+
+void Link::replace(QString oldNodeID, Node *newNode, std::vector<Vec4d> newCoord)
+{
+	if(n1->id == oldNodeID){
+		n1 = newNode;
+		coord[0] = newCoord;
+	}
+
+	if(n2->id == oldNodeID){
+		n2 = newNode;
+		coord[1] = newCoord;
+	}
+
+	// Change my ID
+	id = id.replace(oldNodeID, newNode->id);
 }
 
 Node * Link::otherNode( QString nodeID )

@@ -16,15 +16,15 @@ using namespace Structure;
 // Temporary solution for output
 #include "surface_mesh/IO.h"
 
-TopoBlender::TopoBlender( Structure::Graph * sourceGraph, Structure::Graph * targetGraph, Scheduler * useScheduler, QObject *parent ) : QObject(parent)
+TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent ) : QObject(parent)
 {
-    sg = sourceGraph;
-    tg = targetGraph;
+    sg = graph1;
+    tg = graph2;
 	scheduler = useScheduler;
 
 	/// STEP 1) Compute correspondences and align mis-aligned nodes
-	gcoor = new GraphCorresponder(sg, tg);
-	gcoor->computeCorrespondences();
+	this->gcoor = useCorresponder;
+	this->gcoor->computeCorrespondences();
 
 	/// STEP 2) Create the magic active graph and generate tasks
 	active = new Structure::Graph(*sg);
