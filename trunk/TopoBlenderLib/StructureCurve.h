@@ -30,7 +30,8 @@ struct Curve : public Node
 
 	// Modifiers
 	void moveBy( const Vec3d & delta );
-	void scale(Scalar scaleFactor);
+	void scale( Scalar scaleFactor );
+	void rotate( double angle, Vector3 axis );
 	std::vector<Vec3d> foldTo( Vec4d & foldPoint, bool isApply = false );
 
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);

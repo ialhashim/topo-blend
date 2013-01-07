@@ -12,6 +12,7 @@ using namespace Structure;
 Graph::Graph()
 {
 	property["embeded2D"] = false;
+	property["showAABB"] = false;
 }
 
 Graph::Graph( QString fileName )
@@ -19,8 +20,9 @@ Graph::Graph( QString fileName )
 	property["embeded2D"] = false;
 
 	loadFromFile( fileName );
-
 	property["name"] = fileName;
+
+	property["showAABB"] = false;
 	moveBottomCenterToOrigin();
 	normalize();
 }
@@ -282,6 +284,54 @@ void Graph::draw()
 	foreach(Vector3 p, cached_mesh.debug) glVector3(p);
 	glEnd();
 	glEnable(GL_LIGHTING);
+
+	// AABB
+	if (property["showAABB"].toBool())
+	{
+		if (!property.contains("AABB"))
+			property["AABB"].setValue(bbox());
+		QBox3D aabb = property["AABB"].value<QBox3D>();
+		QVector3D qc = aabb.center();
+		QVector3D diagonal = aabb.maximum() - aabb.minimum();
+
+		double width = diagonal.x()/2;
+		double length = diagonal.y()/2;
+		double height = diagonal.z()/2;
+
+		Vec3d center(qc.x(), qc.y(), qc.z());
+		Vec3d  c1, c2, c3, c4;
+		Vec3d  bc1, bc2, bc3, bc4;
+
+		c1 = Vec3d (width, length, height) + center;
+		c2 = Vec3d (-width, length, height) + center;
+		c3 = Vec3d (-width, -length, height) + center;
+		c4 = Vec3d (width, -length, height) + center;
+
+		bc1 = Vec3d (width, length, -height) + center;
+		bc2 = Vec3d (-width, length, -height) + center;
+		bc3 = Vec3d (-width, -length, -height) + center;
+		bc4 = Vec3d (width, -length, -height) + center;
+
+		glDisable(GL_LIGHTING);
+		glLineWidth(1.0f);
+
+		glBegin(GL_LINES);
+		glVertex3dv(c1);glVertex3dv(bc1);
+		glVertex3dv(c2);glVertex3dv(bc2);
+		glVertex3dv(c3);glVertex3dv(bc3);
+		glVertex3dv(c4);glVertex3dv(bc4);
+		glVertex3dv(c1);glVertex3dv(c2);
+		glVertex3dv(c3);glVertex3dv(c4);
+		glVertex3dv(c1);glVertex3dv(c4);
+		glVertex3dv(c2);glVertex3dv(c3);
+		glVertex3dv(bc1);glVertex3dv(bc2);
+		glVertex3dv(bc3);glVertex3dv(bc4);
+		glVertex3dv(bc1);glVertex3dv(bc4);
+		glVertex3dv(bc2);glVertex3dv(bc3);
+		glEnd();
+
+		glEnable(GL_LIGHTING);
+	}
 }
 
 void Graph::draw2D(int width, int height)
@@ -771,7 +821,7 @@ QMap<Link*, std::vector<Vec4d> > Graph::linksCoords( QString nodeID )
 	return coords;
 }
 
-QVector<Link*> Structure::Graph::nodeEdges( QString nodeID )
+QVector<Link*> Graph::nodeEdges( QString nodeID )
 {
 	QVector<Link*> nodeLinks;
 	
@@ -781,7 +831,7 @@ QVector<Link*> Structure::Graph::nodeEdges( QString nodeID )
 	return nodeLinks;
 }
 
-Node * Structure::Graph::removeNode( QString nodeID )
+Node * Graph::removeNode( QString nodeID )
 {
 	Structure::Node * n = getNode(nodeID);
 
@@ -806,7 +856,7 @@ QList<Link*> Graph::furthermostEdges( QString nodeID )
 	return sortedLinks.values();
 }
 
-bool Structure::Graph::isCutNode( QString nodeID )
+bool Graph::isCutNode( QString nodeID )
 {
 	QSet<Link*> isDeleted;
 
@@ -859,7 +909,7 @@ Vector3 Graph::position( QString nodeID, Vec4d coord )
 	return getNode(nodeID)->position(coord);
 }
 
-void Structure::Graph::moveBottomCenterToOrigin()
+void Graph::moveBottomCenterToOrigin()
 {
 	QBox3D aabb = bbox();
 	double height = aabb.maximum().z() - aabb.minimum().z();
@@ -872,7 +922,7 @@ void Structure::Graph::moveBottomCenterToOrigin()
 	property["AABB"].setValue(bbox());
 }
 
-void Structure::Graph::normalize()
+void Graph::normalize()
 {
 	// Normalize the height to be 1
 	QBox3D aabb = bbox();
@@ -884,4 +934,10 @@ void Structure::Graph::normalize()
 
 	// Update the bounding box
 	property["AABB"].setValue(bbox());
+}
+
+void Graph::rotate( double angle, Vector3 axis )
+{
+	foreach (Structure::Node * node, nodes)
+		node->rotate(angle, axis);
 }

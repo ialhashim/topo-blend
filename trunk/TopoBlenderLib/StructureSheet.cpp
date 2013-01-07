@@ -239,7 +239,20 @@ std::vector< std::vector<Vec3d> > Sheet::foldTo( const std::vector<Vec4d> & curv
 	return deltas;
 }
 
-void Structure::Sheet::scale( Scalar scaleFactor )
+void Sheet::scale( Scalar scaleFactor )
 {
 	this->surface.scale(scaleFactor);
+}
+
+void Sheet::rotate( double angle, Vector3 axis )
+{
+	angle *= 3.14159265358979 /180; 
+
+	Array2D_Vector3 &mCtrlPoint = this->surface.mCtrlPoint;
+
+	for(int y = 0; y < (int)mCtrlPoint.size(); y++)
+		for(int x = 0; x < (int)mCtrlPoint[0].size(); x++)
+			mCtrlPoint[y][x]  = rotatedVec(mCtrlPoint[y][x], angle, axis);
+
+	this->surface.quads.clear();
 }

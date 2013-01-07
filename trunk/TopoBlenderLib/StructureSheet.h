@@ -26,7 +26,8 @@ struct Sheet : public Node
 
 	// Modifiers
 	void moveBy( const Vec3d & delta );
-	void scale(Scalar scaleFactor);
+	void scale( Scalar scaleFactor );
+	void rotate( double angle, Vector3 axis );
 	std::vector< std::vector<Vec3d> > Sheet::foldTo( const std::vector<Vec4d> & curve, bool isApply = false );
 
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
