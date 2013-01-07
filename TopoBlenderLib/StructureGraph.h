@@ -77,6 +77,7 @@ struct Graph
 	// Modifier
 	void moveBottomCenterToOrigin();
 	void normalize();
+	void rotate(double angle, Vector3 axis);
 
 	// DEBUG:
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;

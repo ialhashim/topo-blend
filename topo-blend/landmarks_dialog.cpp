@@ -44,6 +44,10 @@ LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QD
 	this->connect(ui->loadButton, SIGNAL(clicked()), SLOT(loadLandmarks()));
 	this->connect(ui->saveButton, SIGNAL(clicked()), SLOT(saveLandmarks()));
 
+	/// Alignment
+	this->connect(ui->showAABB, SIGNAL(stateChanged(int)), SLOT(showAABB(int)));
+	this->connect(ui->rotateButton, SIGNAL(clicked()), SLOT(rotateGraph()));
+
 
 	/// Correspondences
 	this->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizePart2PartDistance(int)));
@@ -393,4 +397,27 @@ void LandmarksDialog::computeCorrespondences()
 {
 	gcorr->computeCorrespondences();
 	updateCorrTab();
+}
+
+void LandmarksDialog::rotateGraph()
+{
+	double angle = ui->angleAroundZ->value();
+
+	Structure::Graph *g = tp->getGraph(ui->graphID->value());
+	if (g)
+	{
+		// Rotate the target graph
+		g->rotate(angle, Vector3(0, 0, 1));
+
+		// Update the scene
+		tp->updateDrawArea();
+	}
+}
+
+void LandmarksDialog::showAABB(int state)
+{
+	foreach (Structure::Graph *g, tp->graphs)
+		g->property["showAABB"] = (state == 2);
+
+	tp->updateDrawArea();
 }

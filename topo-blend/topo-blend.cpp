@@ -791,11 +791,19 @@ void topoblend::testPoint2PointCorrespondences()
 	drawArea()->updateGL();
 }
 
+Structure::Graph * topoblend::getGraph(int id)
+{
+	if (id >= 0 && id < graphs.size())
+		return graphs[id];
+	else
+		return NULL;
+}
 void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 {
 	graphs.clear();
 	this->graphs.push_back(newActiveGraph);
 	drawArea()->updateGL();
 }
+
 
 Q_EXPORT_PLUGIN(topoblend)

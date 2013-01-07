@@ -28,7 +28,7 @@ public:
 
 	QMap<QString, QVariant> params;
 
-private:
+public:
     topo_blend_widget * widget;
 
     QVector<Structure::Graph*> graphs;
@@ -44,7 +44,7 @@ public:
 	// Corresponder
 	GraphCorresponder *gcoor;
 	GraphCorresponder* corresponder();
-
+	Structure::Graph * getGraph(int id);
 public slots:
 	void setSceneBounds();
 

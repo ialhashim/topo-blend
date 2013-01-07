@@ -175,6 +175,17 @@ void Structure::Curve::scale( Scalar scaleFactor )
 	this->curve.scale(scaleFactor);
 }
 
+void Curve::rotate( double angle, Vector3 axis )
+{
+	angle *= 3.14159265358979 /180; 
+
+	std::vector<Vector3> &mCtrlPoint = this->curve.mCtrlPoint;
+
+	for(int i = 0; i < (int)mCtrlPoint.size(); i++)
+		mCtrlPoint[i] = rotatedVec(mCtrlPoint[i], angle, axis);
+}
+
+
 Vector3 & Curve::controlPoint( int idx )
 {
 	return curve.mCtrlPoint[idx];

@@ -51,11 +51,14 @@ public slots:
 	void saveLandmarks();
 	void loadLandmarks();
 
+	// Alignment
+	void showAABB(int state);
+	void rotateGraph();
+
 	// Correspondences
+	void reload();
 	void visualizePart2PartDistance(int id);
 	void computeCorrespondences();
-
-	void reload();
 };
 
 #endif // LANDMARKS_DIALOG_H

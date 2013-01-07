@@ -308,7 +308,7 @@ void GraphCorresponder::computeDistanceMatrix()
 		{
 			if (validM[i][j])
 			{
-				disM[i][j] += sM[i][j] + oM[i][j];
+				disM[i][j] += 2 * sM[i][j] + 0.5 * oM[i][j];
 			}
 		}
 	}
@@ -425,7 +425,7 @@ void GraphCorresponder::computePartToPartCorrespondences()
 	int sN = sg->nodes.size();
 	int tN = tg->nodes.size();
 	float tolerance = 0.05f;
-	float threshold = 0.3f;
+	float threshold = 1.1f;
 
 	int r, c;
 	float minValue;
