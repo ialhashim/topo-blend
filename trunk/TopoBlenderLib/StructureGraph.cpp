@@ -21,6 +21,8 @@ Graph::Graph( QString fileName )
 	loadFromFile( fileName );
 
 	property["name"] = fileName;
+	moveBottomCenterToOrigin();
+	normalize();
 }
 
 Graph::Graph( const Graph & other )
@@ -855,4 +857,31 @@ void Graph::replaceCoords( QString nodeA, QString nodeB, std::vector<Vec4d> coor
 Vector3 Graph::position( QString nodeID, Vec4d coord )
 {
 	return getNode(nodeID)->position(coord);
+}
+
+void Structure::Graph::moveBottomCenterToOrigin()
+{
+	QBox3D aabb = bbox();
+	double height = aabb.maximum().z() - aabb.minimum().z();
+	Vec3d bottom_center(aabb.center().x(), aabb.center().y(), aabb.center().z() - height/2);
+
+	foreach (Structure::Node * node, nodes)
+		node->moveBy( -bottom_center );
+
+	// Update the bounding box
+	property["AABB"].setValue(bbox());
+}
+
+void Structure::Graph::normalize()
+{
+	// Normalize the height to be 1
+	QBox3D aabb = bbox();
+	double height = aabb.maximum().z() - aabb.minimum().z();
+	double scaleFactor = 1.0 / height;
+
+	foreach (Structure::Node * node, nodes)
+		node->scale(scaleFactor);
+
+	// Update the bounding box
+	property["AABB"].setValue(bbox());
 }

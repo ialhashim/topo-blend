@@ -170,6 +170,11 @@ void Curve::setControlPoints( const std::vector<Vector3> & newPositions )
 	curve.mCtrlPoint = newPositions;
 }
 
+void Structure::Curve::scale( Scalar scaleFactor )
+{
+	this->curve.scale(scaleFactor);
+}
+
 Vector3 & Curve::controlPoint( int idx )
 {
 	return curve.mCtrlPoint[idx];

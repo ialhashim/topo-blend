@@ -74,6 +74,10 @@ struct Graph
     Node * rootByValence();
 	bool isCutNode(QString nodeID);
 
+	// Modifier
+	void moveBottomCenterToOrigin();
+	void normalize();
+
 	// DEBUG:
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
 	void printAdjacency();

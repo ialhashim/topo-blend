@@ -38,10 +38,11 @@ private:
 	QVector< QPair<Vector3,Vector3> > debugLines,debugLines2,debugLines3;
 	Vector3VertexProperty points;
 	
+public:
+	bool layout;
+
 	// Corresponder
 	GraphCorresponder *gcoor;
-
-public:
 	GraphCorresponder* corresponder();
 
 public slots:
