@@ -14,7 +14,7 @@ class TopoBlender : public QObject
 {
     Q_OBJECT
 public:
-    explicit TopoBlender(Structure::Graph * graph1, Structure::Graph * graph2, Scheduler * useScheduler, QObject *parent = 0);
+    explicit TopoBlender(Structure::Graph * graph1, Structure::Graph * graph2, GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent = 0);
     
 	Structure::Graph * sg;
 	Structure::Graph * active;

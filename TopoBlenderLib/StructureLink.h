@@ -34,17 +34,11 @@ struct Link
 	Node * getNode(QString nodeID);
 	Node * otherNode(QString nodeID);
 
-	// Constructors
-    Link(Node * node1, Node * node2, LinkCoords coord_n1, LinkCoords coord_n2, QString link_type, QString ID)
-	{
-		this->n1 = node1;
-		this->n2 = node2;
-		this->type = link_type;
-        this->id = ID;
+	// Modify
+	void replace(QString oldNodeID, Node *newNode, std::vector<Vec4d> newCoord);
 
-		this->coord[0] = coord_n1;
-		this->coord[1] = coord_n2;
-	}
+	// Constructors
+    Link(Node * node1, Node * node2, LinkCoords coord_n1, LinkCoords coord_n2, QString link_type, QString ID);
 	Link(){	n1 = n2 = NULL; }
 	
 	// Accessors

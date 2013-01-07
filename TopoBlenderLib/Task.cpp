@@ -22,7 +22,7 @@ Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, Task
 	this->mycolor = TaskColors[taskType];
 	this->start = 0;
 	this->length = 120;
-	this->current = start;
+	this->currentTime = start;
 	this->isReady = false;
 
 	// Visual properties
@@ -68,6 +68,8 @@ QVariant Task::itemChange( GraphicsItemChange change, const QVariant & value )
 
 		newPos.setX(qMax(0.0,newPos.x()));
 		newPos.setY(this->y());
+
+		this->start = this->x();
 
 		return newPos;
 	}
@@ -155,11 +157,13 @@ void Task::drawDebug()
 
 int Task::scaledTime()
 {
-	return length / 20;
+	return length / 10;
 }
 
 void Task::execute()
 {
+	currentTime = start;
+
 	switch(type)
 	{
 	case GROW:
@@ -263,13 +267,17 @@ void Task::prepareGrowShrink()
 					structure_curve->moveBy( midPoint - structure_curve->position(Vec4d(0.5)) );
 					deformer->points = structure_curve->curve.mCtrlPoint;
 				}
-
-				property["seedPoint"].setValue( midPoint );
+				
+				if(type == SHRINK)
+				{
+					linkA->replace( linkA->otherNode(n->id)->id, active->getNode(midPointCoord.first), Array1D_Vec4d(1, midPointCoord.second));
+					linkB->replace( linkB->otherNode(n->id)->id, active->getNode(midPointCoord.first), Array1D_Vec4d(1, midPointCoord.second));
+				}
 
 				// Morph operation need these
 				linkA->property["finalCoord_n1"].setValue( qMakePair(linkA->n1->id, linkA->getCoord(linkA->n1->id)) );
 				linkA->property["finalCoord_n2"].setValue( qMakePair(linkA->n2->id, linkA->getCoord(linkA->n2->id)) );
-				
+
 				linkB->property["finalCoord_n1"].setValue( qMakePair(linkB->n1->id, linkB->getCoord(linkB->n1->id)) );
 				linkB->property["finalCoord_n2"].setValue( qMakePair(linkB->n2->id, linkB->getCoord(linkB->n2->id)) );
 			}
@@ -309,7 +317,8 @@ void Task::executeGrowShrink()
 				for(int u = 0; u < structure_curve->curve.mNumCtrlPoints; u++)
 					structure_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);
 
-				active->saveToFile(QString("test_growCurve_0%1.xml").arg(i));
+				//active->saveToFile(QString("test_growCurve_0%1.xml").arg(i));
+				outGraphs.push_back( new Structure::Graph(*active) );
 			}
 		}
 
@@ -329,7 +338,8 @@ void Task::executeGrowShrink()
 					for(int v = 0; v < structure_sheet->surface.mNumVCtrlPoints; v++)
 						structure_sheet->surface.mCtrlPoint[u][v] = cpts[u][v] + (deltas[u][v] * t);
 
-				active->saveToFile(QString("test_growSheet_%1.xml").arg(i));
+				//active->saveToFile(QString("test_growSheet_%1.xml").arg(i));
+				outGraphs.push_back( new Structure::Graph(*active) );
 			}
 		}
 	}
@@ -340,10 +350,7 @@ void Task::executeGrowShrink()
 		{
 			Structure::Curve* structure_curve = ((Structure::Curve*)n);
 
-			if(type == GROW)
-			{
-				executeMorph();
-			}
+			executeMorph();
 		}
 
 		if(node()->type() == Structure::SHEET)
@@ -439,15 +446,15 @@ void Task::executeMorph()
 			NodeCoords coordOtherB = linkB->property["finalCoord_n2"].value<NodeCoords>();
 			if(coordB.first != n->id) std::swap(coordB, coordOtherB);
 
-			GraphDistance graphDist(active);
-
+			GraphDistance graphDistA(active, SingleNode(n->id));
 			QVector< NodeCoord > pathA;
-			graphDist.computeDistances( linkA->otherNode(n->id)->position(coordOtherA.second.front()) );
-			graphDist.pathCoordTo( linkA->position(n->id), pathA);
+			graphDistA.computeDistances( linkA->otherNode(n->id)->position(coordOtherA.second.front()) );
+			graphDistA.pathCoordTo( linkA->position(n->id), pathA);
 
+			GraphDistance graphDistB(active, SingleNode(n->id));
 			QVector< NodeCoord > pathB;
-			graphDist.computeDistances( linkB->otherNode(n->id)->position(coordOtherB.second.front()) );
-			graphDist.pathCoordTo( linkB->position(n->id), pathB );
+			graphDistB.computeDistances( linkB->otherNode(n->id)->position(coordOtherB.second.front()) );
+			graphDistB.pathCoordTo( linkB->position(n->id), pathB );
 
 			for(int i = 0; i < stretchedLength; i++)
 			{
@@ -492,8 +499,10 @@ void Task::executeMorph()
 
 				if(pathA.size() > 2 || pathB.size() > 2)
 				{
-					QString fileName = QString("test_%1_Task%2_MorphCurve.xml").arg(globalCount++).arg(taskID);
-					active->saveToFile(fileName);
+					//QString fileName = QString("test_%1_Task%2_MorphCurve.xml").arg(globalCount++).arg(taskID);
+					//active->saveToFile(fileName);
+
+					outGraphs.push_back( new Structure::Graph(*active) );
 				}
 			}
 
@@ -515,22 +524,6 @@ void Task::executeMorph()
 	// 3) More than two edges
 }
 
-Structure::Node * Task::node()
-{
-	return active->getNode(this->property["nodeID"].toString());
-}
-
-bool Task::stillWorking()
-{
-	return current >= start + length;
-}
-
-void Task::reset()
-{
-	isReady = false;
-	current = start;
-}
-
 void Task::setupCurveDeformer( Structure::Curve* curve, Structure::Link* linkA, Structure::Link* linkB )
 {
 	property["linkA"].setValue( linkA );
@@ -541,4 +534,25 @@ void Task::setupCurveDeformer( Structure::Curve* curve, Structure::Link* linkA, 
 
 	std::vector<Vec3d> ctrlPoints = curve->curve.mCtrlPoint;
 	property["deformer"].setValue( new ARAPCurveDeformer(ctrlPoints, ctrlPoints.size() * 0.25) );
+}
+
+Structure::Node * Task::node()
+{
+	return active->getNode(this->property["nodeID"].toString());
+}
+
+bool Task::stillWorking()
+{
+	return currentTime >= start + length;
+}
+
+void Task::reset()
+{
+	isReady = false;
+	currentTime = start;
+}
+
+int Task::endTime()
+{
+	return start + length;
 }
