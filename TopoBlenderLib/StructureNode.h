@@ -26,6 +26,7 @@ struct Node
 
 	// Modifiers
 	virtual void moveBy( const Vec3d & delta ) = 0;
+	virtual void scale(Scalar scaleFactor) = 0;
 
 	// Coordinates
 	virtual void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() ) = 0;

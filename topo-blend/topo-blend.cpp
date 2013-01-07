@@ -35,6 +35,7 @@ ARAPCurveHandle * handle = NULL;
 topoblend::topoblend(){
 	widget = NULL;
 	gcoor = NULL;
+	layout = true;
 }
 
 void topoblend::create()
@@ -54,7 +55,7 @@ void topoblend::create()
 void topoblend::decorate()
 {
 	// 2D view
-	glDisable(GL_LIGHTING);
+	//glDisable(GL_LIGHTING);
 	//for(int g = 0; g < (int) graphs.size(); g++)
 	//{
 	//	if(graphs[g]->edges.size() < 2) continue;
@@ -99,7 +100,8 @@ void topoblend::decorate()
 	// 3D visualization
 	glEnable(GL_LIGHTING);
 
-	float posX = 0, posY = 0, deltaX = 0;
+	double deltaX = layout ? drawArea()->sceneRadius() : 0;
+	double posX = - deltaX * (graphs.size() - 1) / 2;
 
 	if(graphs.size() > 1) 
 	{
@@ -111,7 +113,7 @@ void topoblend::decorate()
 	for(int g = 0; g < (int) graphs.size(); g++)
 	{
 		glPushMatrix();
-		glTranslatef(posX, posY, 0);
+		glTranslatef(posX, 0, 0);
 		graphs[g]->draw();
 		glPopMatrix();
 
@@ -163,7 +165,7 @@ void topoblend::generateChairModels()
 	NURBSCurve swivel2Branch3 = NURBSCurve::createCurve(Vector3(0,1,-0.5), Vector3(1,0,-2));
 	NURBSCurve swivel2Branch4 = NURBSCurve::createCurve(Vector3(0,1,-0.5), Vector3(-1,0,-2));
 
-if (1)
+if (0)
 {
 	// Chair 1
 	chair1.addNode( new Structure::Sheet(backSheet, "BackSheet") );
@@ -314,7 +316,7 @@ if (1)
 	chair3.saveToFile("chair3.xml");
 	chair4.saveToFile("chair4.xml");
 	chair5.saveToFile("chair5.xml");
-}
+
 	// Swivel Chair 1
 	swivel_chair1.addNode( new Structure::Sheet(backSheet, "BackSheet") );
 	swivel_chair1.addNode( new Structure::Curve(backLeft, "BackLeft") );
@@ -363,7 +365,7 @@ if (1)
 	// Save to file
 	swivel_chair1.saveToFile("swivelChair1.xml");
 	swivel_chair2.saveToFile("swivelChair2.xml");
-
+}
 	//graphs.push_back(chair1);
 	//graphs.push_back(chair2);
 

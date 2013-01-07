@@ -107,6 +107,7 @@ public:
 	// Modifiers
 	void bend( Scalar amount, int bendDirection = 0 );
 	void translate( const Vec3d & delta );
+	void scale(Scalar scaleFactor);
 
 	// Intersection
 	std::vector<Vec3d> NURBSRectangle::intersect( NURBSRectangle & other, double resolution, 

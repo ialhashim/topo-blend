@@ -950,3 +950,10 @@ void NURBSRectangle::translate( const Vec3d & delta )
 		for(int x = 0; x < (int)mCtrlPoint[0].size(); x++)
 			mCtrlPoint[y][x] += delta;
 }
+
+void NURBSRectangle::scale( Scalar scaleFactor )
+{
+	for(int y = 0; y < (int)mCtrlPoint.size(); y++)
+		for(int x = 0; x < (int)mCtrlPoint[0].size(); x++)
+			mCtrlPoint[y][x] *= scaleFactor;
+}

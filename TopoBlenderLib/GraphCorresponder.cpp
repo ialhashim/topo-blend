@@ -347,7 +347,9 @@ void GraphCorresponder::normalizeMatrix(std::vector< std::vector<float> > & M)
 		for (int j = 0; j < tN; j++)
 		{
 			if (M[i][j] != INVALID_VALUE)
+			{
 				M[i][j] /= maxDis;
+			}
 		}
 	}
 }

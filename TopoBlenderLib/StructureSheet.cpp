@@ -238,3 +238,8 @@ std::vector< std::vector<Vec3d> > Sheet::foldTo( const std::vector<Vec4d> & curv
 
 	return deltas;
 }
+
+void Structure::Sheet::scale( Scalar scaleFactor )
+{
+	this->surface.scale(scaleFactor);
+}

@@ -319,13 +319,14 @@ void LandmarksDialog::updateCorrTableWidget()
 			for (int j = 0; j < (int)vec2vec.second.size(); j++, rowID++)
 			{
 				QString tID = vec2vec.second[j];
+				QString score = QString::number(scores[j], 'f', 4);
 
 				// Add row if need
 				if (rowID >= ui->corrTable->rowCount())	ui->corrTable->insertRow(rowID);
 
 				ui->corrTable->setItem(rowID, 0, new QTableWidgetItem(sID));
 				ui->corrTable->setItem(rowID, 1, new QTableWidgetItem(tID));
-				ui->corrTable->setItem(rowID, 2, new QTableWidgetItem(QString::number(scores[j])));
+				ui->corrTable->setItem(rowID, 2, new QTableWidgetItem(score));
 			}
 		}
 		// Many to one
@@ -335,12 +336,13 @@ void LandmarksDialog::updateCorrTableWidget()
 			for (int j = 0; j < (int)vec2vec.first.size(); j++, rowID++)
 			{
 				QString sID = vec2vec.first[j];
+				QString score = QString::number(scores[j], 'f', 4);
 
 				// Add row if need
 				if (rowID >= ui->corrTable->rowCount())	ui->corrTable->insertRow(rowID);
 				ui->corrTable->setItem(rowID, 0, new QTableWidgetItem(sID));
 				ui->corrTable->setItem(rowID, 1, new QTableWidgetItem(tID));
-				ui->corrTable->setItem(rowID, 2, new QTableWidgetItem(QString::number(scores[j])));
+				ui->corrTable->setItem(rowID, 2, new QTableWidgetItem(score));
 			}
 		}
 	}
@@ -351,8 +353,6 @@ void LandmarksDialog::updateCorrTableWidget()
 		for (int i = nRows - 1; i > rowID - 1; i--)
 			ui->corrTable->removeRow(i);
 	}
-
-	ui->corrTable->resizeColumnsToContents();
 }
 
 void LandmarksDialog::updateCorrTab()
