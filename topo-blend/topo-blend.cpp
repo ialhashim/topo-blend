@@ -50,6 +50,8 @@ void topoblend::create()
 		mainWindow()->addDockWidget(Qt::RightDockWidgetArea,dockwidget);
 
 		points = mesh()->vertex_property<Vector3>("v:point");
+
+		loadModel();
 	}
 }
 

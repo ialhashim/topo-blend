@@ -40,6 +40,7 @@ struct Graph
 	Link * addEdge( Node *n1, Node *n2, std::vector<Vec4d> coord1, std::vector<Vec4d> coord2, QString linkName = "" );
 	Link * addEdge( QString n1_id, QString n2_id );
 	void removeEdge( Node * n1, Node * n2 );
+	void removeEdge( QString n1_id, QString n2_id );
 
 	QString linkName( QString n1_id, QString n2_id );
     QString linkName( Node * n1, Node * n2 );

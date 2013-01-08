@@ -14,9 +14,28 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
 	{
 		ui->nodesList->addItem(t->property["nodeID"].toString());
 	}
+
+	scheduler->connect( ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()) );
+
+	connect( scheduler, SIGNAL(progressChanged(int)), ui->progressBar, SLOT(setValue(int)) );
+
+	this->connect( scheduler, SIGNAL(progressStarted()), SLOT(progressStarted()) );
+	this->connect( scheduler, SIGNAL(progressDone()), SLOT(progressDone()) );
+
+	ui->progressBar->setVisible(false);
 }
 
 SchedulerWidget::~SchedulerWidget()
 {
     delete ui;
+}
+
+void SchedulerWidget::progressStarted()
+{
+	ui->progressBar->setVisible(true);
+}
+
+void SchedulerWidget::progressDone()
+{
+	ui->progressBar->setVisible(false);
 }

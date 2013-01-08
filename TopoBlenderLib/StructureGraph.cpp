@@ -23,8 +23,8 @@ Graph::Graph( QString fileName )
 	property["name"] = fileName;
 
 	property["showAABB"] = false;
-	moveBottomCenterToOrigin();
-	normalize();
+//	moveBottomCenterToOrigin();
+//	normalize();
 }
 
 Graph::Graph( const Graph & other )
@@ -940,4 +940,9 @@ void Graph::rotate( double angle, Vector3 axis )
 {
 	foreach (Structure::Node * node, nodes)
 		node->rotate(angle, axis);
+}
+
+void Structure::Graph::removeEdge( QString n1_id, QString n2_id )
+{
+	removeEdge( getNode(n1_id),getNode(n2_id) );
 }
