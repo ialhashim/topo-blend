@@ -1,3 +1,4 @@
+#include <QApplication>
 #include "Task.h"
 #include "Scheduler.h"
 
@@ -93,24 +94,48 @@ void Scheduler::schedule()
 		prev = current;
 	}
 
+	// Order and group here:
+
+
+	// Prepare all tasks:
+	foreach(Task * t, tasks)
+	{
+		t->prepare();
+	}
+
+	// Time-line slider
 	slider = new TimelineSlider;
 	slider->reset();
-	this->connect(slider, SIGNAL(timeChanged(int)), SLOT(timeChanged(int)));
-
+	this->connect( slider, SIGNAL(timeChanged(int)), SLOT(timeChanged(int)) );
     this->addItem( slider );
 }
 
 void Scheduler::executeAll()
 {
-	foreach(Task * t, tasks)
+	qApp->setOverrideCursor(Qt::WaitCursor);
+
+	emit( progressStarted() );
+
+	// Execute all tasks
+	for(int i = 0; i < tasks.size(); i++)
 	{
+		Task * t = tasks[i];
+
 		t->execute();
 
 		// Collect resulting graphs
 		allGraphs << t->outGraphs;
+
+		// UI:
+		int percent = (double(i) / (tasks.size() - 1)) * 100;
+		emit( progressChanged(percent) );
 	}
 
 	slider->enable();
+
+	emit( progressDone() );
+
+	qApp->restoreOverrideCursor();
 }
 
 void Scheduler::drawDebug()
@@ -136,4 +161,9 @@ void Scheduler::timeChanged( int newTime )
 	idx = qRanged(0, idx, allGraphs.size() - 1);
 
 	emit( activeGraphChanged(allGraphs[idx]) );
+}
+
+void Scheduler::doBlend()
+{
+	emit( startBlend() );
 }

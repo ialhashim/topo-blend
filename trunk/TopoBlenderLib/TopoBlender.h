@@ -19,9 +19,7 @@ public:
 	Structure::Graph * sg;
 	Structure::Graph * active;
     Structure::Graph * tg;
-
 	GraphCorresponder * gcoor;
-
 	Scheduler * scheduler;
 
     QMap<QString, QVariant> params;
@@ -30,21 +28,10 @@ public:
     int stepCounter;
 
 public slots:
-    // Experiments
-    void testScheduler();
+	void executeBlend();
 
-    // Logging
-    void visualizeActiveGraph(QString caption, QString subcaption);
-
-    // Preprocessing
-    void cleanup();
-
-    // Blending
-    Structure::Graph * blend();
-    void materializeInBetween( Structure::Graph * graph, double t, Structure::Graph * sourceGraph );
-
+// DEBUG:
 public:
-    // DEBUG:
     std::vector< Vector3 > debugPoints;
     std::vector< PairVector3 > debugLines;
     void drawDebug();

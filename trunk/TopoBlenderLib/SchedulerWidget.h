@@ -19,5 +19,8 @@ public:
 
 private:
     Ui::SchedulerWidget *ui;
-};
 
+public slots:
+	void progressStarted();
+	void progressDone();
+};

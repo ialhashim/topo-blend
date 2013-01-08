@@ -23,22 +23,28 @@ public:
 	void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
 	void mousePressEvent(QGraphicsSceneMouseEvent * event);
 	void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
-
-	void execute();
-
+		
+	// Prepare stage
+	void prepare();
 	void prepareGrowShrink();
-	void executeGrowShrink();
-
 	void prepareMorph();
+
+	// Execution stage
+	void execute();
+	void executeGrowShrink();
 	void executeMorph();
 
 	Structure::Node * node();
+
+	QVector<Structure::Link *> getGoodEdges();
+	QList<Structure::Link*> furthermostGoodEdges();
 
 	// Helper functions
 	void setupCurveDeformer(Structure::Curve* curve, Structure::Link* linkA, Structure::Link* linkB);
 
 	// Task properties
 	TaskType type;
+	int arapIterations;
 
 	Structure::Graph *active, *target;
 	QMap<QString, QVariant> property;
@@ -53,6 +59,7 @@ public:
 	bool isReady;
 	int taskID;
 
+	void setStart(int newStart);
 	void setLength(int newLength);
 	void reset();
 	bool stillWorking();

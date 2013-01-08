@@ -127,8 +127,12 @@ void GraphCorresponder::computeValidationMatrix()
 
 		// Set distances to invalid value
 		foreach (int r, sIDs)
-			foreach (int c, tIDs)
-			validM[r][c] = false;
+			for (int c = 0; c < (int)tg->nodes.size(); c++)
+				validM[r][c] = false;
+
+		foreach (int c, tIDs)
+			for (int r = 0; r < (int)sg->nodes.size(); r++)
+				validM[r][c] = false;
 	}
 }
 
@@ -424,7 +428,7 @@ void GraphCorresponder::computePartToPartCorrespondences()
 	// Parameters
 	int sN = sg->nodes.size();
 	int tN = tg->nodes.size();
-	float tolerance = 0.05f;
+	float tolerance = 0.04f;
 	float threshold = 1.1f;
 
 	int r, c;
@@ -744,6 +748,15 @@ void GraphCorresponder::computeCorrespondences()
 {
 	// Part to Part correspondence
 	computePartToPartCorrespondences();
+
+	// Add the landmarks as correspondences too
+	std::vector<float> fake_score(1, -1);
+	foreach(VECTOR_PAIR landmark, landmarks)
+	{
+		correspondences.push_back(landmark);
+		corrScores.push_back(fake_score);
+	}
+
 
 	// Mark the nodes
 	sIsCorresponded.resize(sg->nodes.size(), false);

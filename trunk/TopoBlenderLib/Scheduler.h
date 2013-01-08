@@ -36,7 +36,13 @@ protected:
 
 public slots:
 	void timeChanged(int newTime);
+	void doBlend();
 
 signals:
 	void activeGraphChanged( Structure::Graph* );
+	void startBlend();
+
+	void progressStarted();
+	void progressChanged(int);
+	void progressDone();
 };

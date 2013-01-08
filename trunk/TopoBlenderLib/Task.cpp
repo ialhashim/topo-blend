@@ -25,6 +25,8 @@ Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, Task
 	this->currentTime = start;
 	this->isReady = false;
 
+	this->arapIterations = 4;
+
 	// Visual properties
 	width = length;
 	height = 17;
@@ -69,7 +71,7 @@ QVariant Task::itemChange( GraphicsItemChange change, const QVariant & value )
 		newPos.setX(qMax(0.0,newPos.x()));
 		newPos.setY(this->y());
 
-		this->start = this->x();
+		setStart(newPos.x());
 
 		return newPos;
 	}
@@ -160,7 +162,7 @@ int Task::scaledTime()
 	return length / 10;
 }
 
-void Task::execute()
+void Task::prepare()
 {
 	currentTime = start;
 
@@ -169,12 +171,32 @@ void Task::execute()
 	case GROW:
 	case SHRINK:
 		prepareGrowShrink();
-		executeGrowShrink();
 		break;
 	case SPLIT:
 	case MERGE:
 	case MORPH:
 		prepareMorph();
+		break;
+	}
+}
+
+void Task::execute()
+{	
+	currentTime = start;
+
+	// Fill with start graph
+	outGraphs.resize(scaledTime());
+	for(int i = 0; i < scaledTime(); i++) outGraphs[i] = new Structure::Graph(*active);
+
+	switch(type)
+	{
+	case GROW:
+	case SHRINK:
+		executeGrowShrink();
+		break;
+	case SPLIT:
+	case MERGE:
+	case MORPH:
 		executeMorph();
 		break;
 	}
@@ -183,7 +205,45 @@ void Task::execute()
 void Task::prepareGrowShrink()
 {
 	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = active->getEdges(n->id);
+	QVector<Structure::Link*> edges = getGoodEdges();
+
+	if( property.contains("isCutNode") )
+	{
+		if(n->type() == Structure::CURVE)
+		{
+			Structure::Curve* structure_curve = ((Structure::Curve*)n);
+
+			Vec3d pointA = structure_curve->position( Vec4d(0) );
+			Vec3d pointB = structure_curve->position( Vec4d(1) );
+
+			// Find first link to a sheet
+			QVector<Structure::Link*> my_edges = active->getEdges(n->id); 
+			Structure::Link * endLink = my_edges.front();
+			foreach(Structure::Link * edge, my_edges){
+				if(edge->otherNode(n->id)->type() == Structure::SHEET){
+					endLink = edge;
+					break;
+				}
+			}
+
+			// Curve folding
+			bool isApplyFold = (type == GROW) ? true : false;
+			Array1D_Vector3 deltas = structure_curve->foldTo( endLink->getCoord(n->id).front(), isApplyFold );
+			if(!isApplyFold) deltas = inverseVectors3(deltas);
+
+			property["deltas"].setValue( deltas );
+			property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
+			property["anchorNode"].setValue( endLink->otherNode(n->id)->id );
+		}
+
+		if(n->type() == Structure::SHEET)
+		{
+		}
+
+		this->isReady = true;
+
+		return;
+	}
 
 	if(edges.size() == 1)
 	{
@@ -239,48 +299,46 @@ void Task::prepareGrowShrink()
 		{
 			Structure::Curve* structure_curve = ((Structure::Curve*)n);
 
-			if( !active->isCutNode(n->id) )
+			QList<Structure::Link*> farEdges = furthermostGoodEdges();
+
+			Structure::Link * linkA = farEdges.front();
+			Structure::Link * linkB = farEdges.back();
+
+			// ARAP curve deformation
+			setupCurveDeformer( structure_curve, linkA, linkB );
+			ARAPCurveDeformer* deformer = property["deformer"].value<ARAPCurveDeformer*>();
+			
+			Vec3d pointA = linkA->position( n->id );
+			Vec3d pointB = linkB->position( n->id );
+
+			QVector< NodeCoord > path;
+
+			GraphDistance gd( active, SingleNode(node()->id) );
+			gd.computeDistances( pointA );
+			gd.pathCoordTo( pointB, path);
+
+			NodeCoord endPointCoord = path[path.size() / 2];
+			Vec3d endPoint = active->position(endPointCoord.first, endPointCoord.second);
+
+			if(type == GROW)
 			{
-				QList<Structure::Link*> farEdges = active->furthermostEdges( n->id );
-				
-				Structure::Link * linkA = farEdges.front();
-				Structure::Link * linkB = farEdges.back();
-
-				// ARAP curve deformation
-				setupCurveDeformer( structure_curve, linkA, linkB );
-				ARAPCurveDeformer* deformer = property["deformer"].value<ARAPCurveDeformer*>();
-
-				Vec3d pointA = linkA->position( n->id );
-				Vec3d pointB = linkB->position( n->id );
-
-				GraphDistance gd( active, SingleNode(node()->id) );
-				gd.computeDistances( pointA );
-				QVector< NodeCoord > path;
-				gd.pathCoordTo( pointB, path);
-
-				NodeCoord midPointCoord = path[path.size() / 2];
-				Vec3d midPoint = active->position(midPointCoord.first, midPointCoord.second);
-
-				if(type == GROW)
-				{
-					structure_curve->foldTo( Vec4d(0.5), true );
-					structure_curve->moveBy( midPoint - structure_curve->position(Vec4d(0.5)) );
-					deformer->points = structure_curve->curve.mCtrlPoint;
-				}
-				
-				if(type == SHRINK)
-				{
-					linkA->replace( linkA->otherNode(n->id)->id, active->getNode(midPointCoord.first), Array1D_Vec4d(1, midPointCoord.second));
-					linkB->replace( linkB->otherNode(n->id)->id, active->getNode(midPointCoord.first), Array1D_Vec4d(1, midPointCoord.second));
-				}
-
-				// Morph operation need these
-				linkA->property["finalCoord_n1"].setValue( qMakePair(linkA->n1->id, linkA->getCoord(linkA->n1->id)) );
-				linkA->property["finalCoord_n2"].setValue( qMakePair(linkA->n2->id, linkA->getCoord(linkA->n2->id)) );
-
-				linkB->property["finalCoord_n1"].setValue( qMakePair(linkB->n1->id, linkB->getCoord(linkB->n1->id)) );
-				linkB->property["finalCoord_n2"].setValue( qMakePair(linkB->n2->id, linkB->getCoord(linkB->n2->id)) );
+				structure_curve->foldTo( Vec4d(0.5), true );
+				structure_curve->moveBy( endPoint - structure_curve->position(Vec4d(0.5)) );
+				deformer->points = structure_curve->curve.mCtrlPoint;
 			}
+				
+			if(type == SHRINK)
+			{
+				linkA->replace( linkA->otherNode(n->id)->id, active->getNode(endPointCoord.first), Array1D_Vec4d(1, endPointCoord.second));
+				linkB->replace( linkB->otherNode(n->id)->id, active->getNode(endPointCoord.first), Array1D_Vec4d(1, endPointCoord.second));
+			}
+
+			// Morph operation need these
+			linkA->property["finalCoord_n1"].setValue( qMakePair(linkA->n1->id, linkA->getCoord(linkA->n1->id)) );
+			linkA->property["finalCoord_n2"].setValue( qMakePair(linkA->n2->id, linkA->getCoord(linkA->n2->id)) );
+
+			linkB->property["finalCoord_n1"].setValue( qMakePair(linkB->n1->id, linkB->getCoord(linkB->n1->id)) );
+			linkB->property["finalCoord_n2"].setValue( qMakePair(linkB->n2->id, linkB->getCoord(linkB->n2->id)) );
 		}
 
 		if(node()->type() == Structure::SHEET)
@@ -296,10 +354,78 @@ void Task::executeGrowShrink()
 	if(!isReady) return;
 
 	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = active->getEdges(n->id);
+	QVector<Structure::Link*> edges = getGoodEdges();
 
 	int stretchedLength = scaledTime();
 
+	/// Cut node cases:
+	if( property.contains("isCutNode") )
+	{
+		if(n->type() == Structure::CURVE)
+		{
+			Structure::Curve* current_curve = ((Structure::Curve*)node());
+
+			// Grow / shrink the node
+			Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
+			Array1D_Vector3 deltas = property["deltas"].value<Array1D_Vector3>();
+			QString anchorNode = property["anchorNode"].toString();
+
+			for(int i = 0; i < stretchedLength; i++)
+			{
+				double t = (double)i / (stretchedLength - 1);
+
+				// Grow / shrink curve
+				for(int u = 0; u < current_curve->curve.mNumCtrlPoints; u++)
+					current_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);
+
+				// Relink:
+				foreach( Structure::Link * edge, active->getEdges(n->id) )
+				{
+					Structure::Node * otherNode = edge->otherNode(n->id);
+					if(otherNode->id == anchorNode) continue;
+
+					if(otherNode->type() == Structure::CURVE)
+					{
+						Structure::Curve* other_curve = ((Structure::Curve*) otherNode);
+
+						int nCtrl = other_curve->curve.GetNumCtrlPoints();
+						int idx_control = other_curve->controlPointIndexFromCoord( edge->getCoord(other_curve->id).front() );
+						int idx_anchor = (idx_control > nCtrl / 2) ? 0 : nCtrl - 1;
+
+						ARAPCurveDeformer * deformer = new ARAPCurveDeformer( other_curve->controlPoints() );
+
+						deformer->ClearAll();
+						deformer->setControl( idx_control );
+						deformer->SetAnchor( idx_anchor );
+						deformer->MakeReady();
+
+						Vec3d newPosCtrl = edge->position(n->id);
+						deformer->UpdateControl(idx_control, newPosCtrl);
+						deformer->Deform( arapIterations );
+						other_curve->setControlPoints( deformer->points );
+
+						debugPoints.push_back(newPosCtrl);
+					}
+
+					if(n->type() == Structure::SHEET)
+					{
+					}
+				}
+
+				outGraphs[i] = new Structure::Graph(*active);
+			}
+		}
+
+		if(n->type() == Structure::SHEET)
+		{
+		}
+
+		return;
+	}
+
+	/// Normal cases:
+
+	// One edge
 	if(edges.size() == 1)
 	{
 		if(node()->type() == Structure::CURVE)
@@ -318,7 +444,7 @@ void Task::executeGrowShrink()
 					structure_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);
 
 				//active->saveToFile(QString("test_growCurve_0%1.xml").arg(i));
-				outGraphs.push_back( new Structure::Graph(*active) );
+				outGraphs[i] = new Structure::Graph(*active);
 			}
 		}
 
@@ -339,7 +465,7 @@ void Task::executeGrowShrink()
 						structure_sheet->surface.mCtrlPoint[u][v] = cpts[u][v] + (deltas[u][v] * t);
 
 				//active->saveToFile(QString("test_growSheet_%1.xml").arg(i));
-				outGraphs.push_back( new Structure::Graph(*active) );
+				outGraphs[i] = new Structure::Graph(*active);
 			}
 		}
 	}
@@ -363,7 +489,7 @@ void Task::prepareMorph()
 {
 	isReady = true;
 
-	QVector<Structure::Link*> edges = active->getEdges(node()->id);
+	QVector<Structure::Link*> edges = getGoodEdges();
 
 	// 1) SINGLE edge
 	if(edges.size() == 1)
@@ -385,7 +511,7 @@ void Task::prepareMorph()
 			Structure::Curve* structure_curve = ((Structure::Curve*)node());
 
 			// We will get two "handles" from furthest edges
-			QList<Structure::Link*> farEdges = active->furthermostEdges( node()->id );
+			QList<Structure::Link*> farEdges = furthermostGoodEdges();
 
 			// ARAP curve deformation
 			setupCurveDeformer( structure_curve, farEdges.front(), farEdges.back() );
@@ -401,18 +527,41 @@ void Task::executeMorph()
 	if(!isReady) return;
 
 	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = active->getEdges(n->id);
+	QVector<Structure::Link*> edges = getGoodEdges();
 
 	int stretchedLength = scaledTime();
-
-	int arapIterations = 10;
 
 	// 1) SINGLE edge
 	if(edges.size() == 1)
 	{
 		if(n->type() == Structure::CURVE)
-		{
+		{			
+			Structure::Curve* current_curve = ((Structure::Curve*)n);
 
+			Structure::Link * link = edges.front();
+
+			GraphDistance graphDist(active, SingleNode(n->id));
+			QVector< NodeCoord > path;
+
+			Vec3d startPoint = link->position(n->id);
+
+			graphDist.computeDistances( link->positionOther( n->id ) );
+			graphDist.pathCoordTo( startPoint, path);
+
+			for(int i = 0; i < stretchedLength; i++)
+			{
+				double t = (double)i / (stretchedLength - 1);
+
+				int current = t * (path.size() - 1);
+
+				Vec3d delta = active->position(path[current].first,path[current].second) - startPoint;
+				current_curve->curve.translate( delta );
+
+				outGraphs[i] = new Structure::Graph(*active);
+
+				if (t < 1.0)
+					current_curve->curve.translate( -delta );
+			}
 		}
 
 		if(n->type() == Structure::SHEET)
@@ -477,7 +626,7 @@ void Task::executeMorph()
 					deformer->Deform( arapIterations );
 					structure_curve->setControlPoints( deformer->points );
 
-					debugPoints.push_back(newPosA);
+					//debugPoints.push_back(newPosA);
 				}
 
 				// Move point B to next step
@@ -494,15 +643,13 @@ void Task::executeMorph()
 					deformer->Deform( arapIterations );
 					structure_curve->setControlPoints( deformer->points );
 
-					debugPoints2.push_back(newPosB);
+					//debugPoints2.push_back(newPosB);
 				}
 
+				// Output the graph:
 				if(pathA.size() > 2 || pathB.size() > 2)
 				{
-					//QString fileName = QString("test_%1_Task%2_MorphCurve.xml").arg(globalCount++).arg(taskID);
-					//active->saveToFile(fileName);
-
-					outGraphs.push_back( new Structure::Graph(*active) );
+					outGraphs[i] = new Structure::Graph(*active);
 				}
 			}
 
@@ -543,7 +690,7 @@ Structure::Node * Task::node()
 
 bool Task::stillWorking()
 {
-	return currentTime >= start + length;
+	return currentTime == start + length;
 }
 
 void Task::reset()
@@ -555,4 +702,37 @@ void Task::reset()
 int Task::endTime()
 {
 	return start + length;
+}
+
+void Task::setStart( int newStart )
+{
+	start = newStart;
+	this->setX(newStart);
+}
+
+QVector<Structure::Link *> Task::getGoodEdges()
+{
+	QVector<Structure::Link *> goodEdges;
+
+	foreach(Structure::Link * edge, active->getEdges(node()->id))
+	{
+		if( edge->property.contains("isCut") ) continue;
+
+		goodEdges.push_back(edge);
+	}
+
+	return goodEdges;
+}
+
+QList<Structure::Link*> Task::furthermostGoodEdges()
+{
+	QList<Structure::Link*> allEdges = active->furthermostEdges(node()->id);
+	
+	foreach(Structure::Link * edge, allEdges)
+	{
+		if( edge->property.contains("isCut") )
+			allEdges.removeAll(edge);
+	}
+
+	return allEdges;
 }
