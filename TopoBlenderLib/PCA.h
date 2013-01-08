@@ -7,7 +7,16 @@
 using namespace Eigen;
 
 struct PCA{
-	static Vec3d mainAxis( const std::vector<Vec3d> & points, Vec3d & first = Vec3d(), Vec3d & second = Vec3d(), Vec3d & third = Vec3d() )
+    static Vec3d mainAxis( const std::vector<Vec3d> & points)
+    {
+        Vec3d first = Vec3d(0);
+        Vec3d second = Vec3d(0);
+        Vec3d third = Vec3d(0) ;
+
+        return mainAxis(points, first, second, third);
+    }
+
+    static Vec3d mainAxis( const std::vector<Vec3d> & points, Vec3d & first, Vec3d & second, Vec3d & third )
 	{
 		int n = points.size();
 

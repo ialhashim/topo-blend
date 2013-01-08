@@ -65,7 +65,8 @@ void Curve::get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> &
 
 SurfaceMeshTypes::Vector3 Curve::position( const Vec4d& coordinates )
 {
-	Vector3 p(0); get(coordinates,p);
+    std::vector<Vec3d> nf = noFrame();
+    Vector3 p(0); get(coordinates, p, nf);
 	return p;
 }
 
@@ -217,7 +218,8 @@ SurfaceMeshTypes::Scalar Curve::area()
 SurfaceMeshTypes::Vector3 Curve::center()
 {
 	Vector3 pos(0);
-	get(Vec4d(0.5,0.5,0,0), pos);
+    std::vector<Vec3d> nf = noFrame();
+    get(Vec4d(0.5,0.5,0,0), pos, nf);
 	return pos;
 }
 

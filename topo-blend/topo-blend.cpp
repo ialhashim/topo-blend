@@ -136,7 +136,10 @@ void topoblend::generateChairModels()
 	Structure::Graph chair1, chair2, chair3, chair4, chair5;
 	Structure::Graph swivel_chair1, swivel_chair2;
 
-	NURBSRectangle backSheet = NURBSRectangle::createSheet(2,1, Vector3(0,-0.5,2));
+    Vector3 dU = Vector3(1,0,0);
+    Vector3 dV = Vector3(0,0,1);
+
+    NURBSRectangle backSheet = NURBSRectangle::createSheet(2,1, Vector3(0,-0.5,2), dU, dV);
 
 	NURBSRectangle seatSheet = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
 	NURBSRectangle seatSheetInv = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,-1,0));
@@ -383,11 +386,14 @@ void topoblend::generateTwoSimpleModels()
 
 	Structure::Graph model1, model2;
 
+    Vector3 dU = Vector3(1,0,0);
+    Vector3 dV = Vector3(0,0,1);
+
 	// Geometry
-	NURBSRectangle centerSheet = NURBSRectangle::createSheet(1,1, Vector3(0,0,0));
-	NURBSRectangle leftSheet = NURBSRectangle::createSheet(1,1, Vector3(-3,0,2));
-	NURBSRectangle rightSheet = NURBSRectangle::createSheet(1,1, Vector3(3,0,2));
-	NURBSRectangle bottomSheet = NURBSRectangle::createSheet(1,1, Vector3(0,0,-2.5));
+    NURBSRectangle centerSheet = NURBSRectangle::createSheet(1,1, Vector3(0,0,0), dU, dV);
+    NURBSRectangle leftSheet = NURBSRectangle::createSheet(1,1, Vector3(-3,0,2), dU, dV);
+    NURBSRectangle rightSheet = NURBSRectangle::createSheet(1,1, Vector3(3,0,2), dU, dV);
+    NURBSRectangle bottomSheet = NURBSRectangle::createSheet(1,1, Vector3(0,0,-2.5), dU, dV);
 
 	NURBSCurve leftCurve = NURBSCurve::createCurve(Vector3(-0.5,0,0.5), Vector3(-2.5, 0, 1.5));
 	NURBSCurve rightCurve = NURBSCurve::createCurve(Vector3(0.5,0,0.5), Vector3(2.5, 0, 1.5));
@@ -673,7 +679,10 @@ void topoblend::clearGraphs()
 
 void topoblend::currentExperiment()
 {
-	NURBSRectangle sheetA = NURBSRectangle::createSheet(1.75,2, Vector3(0,0.25,0));
+    Vector3 dU = Vector3(1,0,0);
+    Vector3 dV = Vector3(0,0,1);
+
+    NURBSRectangle sheetA = NURBSRectangle::createSheet(1.75,2, Vector3(0,0.25,0), dU, dV);
 	NURBSRectangle sheetB = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
 
 	sheetA.bend(-0.7);

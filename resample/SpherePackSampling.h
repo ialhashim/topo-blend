@@ -5,8 +5,14 @@
 class SpherePackSampling{
 
 public:
+    static std::vector<Vec3d> sample(SurfaceMeshModel * m, int randomSampleCount, double r)
+    {
+        std::vector<Vec3d> gridPoints = std::vector<Vec3d>();
+        return sample(m,randomSampleCount,r,gridPoints);
+    }
+
     static std::vector<Vec3d> sample(SurfaceMeshModel * m, int randomSampleCount, double r, 
-		std::vector<Vec3d> & gridPoints = std::vector<Vec3d>(), int density = 1)
+        std::vector<Vec3d> & gridPoints, int density = 1)
 	{
         std::vector<Vec3d> samples, centers, rndSamples;
 

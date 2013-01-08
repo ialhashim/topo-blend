@@ -490,7 +490,7 @@ inline void isect2(float VTX0[3],float VTX1[3],float VTX2[3],float VV0,float VV1
               isect0=VV0+(VV1-VV0)*tmp;          \
 	      SUB(diff,VTX1,VTX0);               \
 	      MULT(diff,diff,tmp);               \
-              ADD(isectpoint0,diff,VTX0);        \ 
+              ADD(isectpoint0,diff,VTX0);        \
               tmp=D0/(D0-D2);                    
 /*              isect1=VV0+(VV2-VV0)*tmp;          \ */
 /*              SUB(diff,VTX2,VTX0);               \     */
@@ -587,9 +587,7 @@ inline int tri_tri_intersect_with_isectline(float V0[3],float V1[3],float V2[3],
   float b,c,max;
   float tmp,diff[3];
   int smallest1,smallest2;
-  
-  tmp;
-  diff;
+
 
   /* compute plane equation of triangle(V0,V1,V2) */
   SUB(E1,V1,V0);

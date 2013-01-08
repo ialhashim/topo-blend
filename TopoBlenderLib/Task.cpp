@@ -322,7 +322,8 @@ void Task::prepareGrowShrink()
 
 			if(type == GROW)
 			{
-				structure_curve->foldTo( Vec4d(0.5), true );
+                Vec4d halfCoord(0.5);
+                structure_curve->foldTo( halfCoord, true );
 				structure_curve->moveBy( endPoint - structure_curve->position(Vec4d(0.5)) );
 				deformer->points = structure_curve->curve.mCtrlPoint;
 			}

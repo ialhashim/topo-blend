@@ -50,9 +50,9 @@ public:
 
 	// Valence based operations
 	int valence(int nodeIndex);
-	QVector< QPairInt > DynamicGraph::valences(bool isPrint = false);
+    QVector< QPairInt > valences(bool isPrint = false);
 	bool sameValences( DynamicGraph & other );
-	QVector< QPairInt > DynamicGraph::correspondence( DynamicGraph & other, double & score, bool isPrint = false );
+    QVector< QPairInt > correspondence( DynamicGraph & other, double & score, bool isPrint = false );
 	//void correspondTo( DynamicGraph & other );
 
 	// Generate structure graph
@@ -80,5 +80,5 @@ public:
 	QMap< int, int > movable;
 	QMap< int, std::pair<int, std::pair<int,double> > > growingCurves;
 	QMap< int, std::pair<int,Array2D_Vector3> > growingSheets;
-	std::vector<Vec4d> DynamicGraph::firstSpecialCoord( int node_index );
+    std::vector<Vec4d> firstSpecialCoord( int node_index );
 };

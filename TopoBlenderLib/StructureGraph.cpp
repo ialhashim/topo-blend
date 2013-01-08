@@ -808,7 +808,7 @@ QVector<Link*> Graph::getEdges( QString nodeID )
 
 QMap<Link*, std::vector<Vec4d> > Graph::linksCoords( QString nodeID )
 {
-	QMap<Link*, std::vector<Vec4d>> coords;
+    QMap< Link*, std::vector<Vec4d> > coords;
 
 	for(int i = 0; i < edges.size(); i++)
 	{

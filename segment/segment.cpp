@@ -466,7 +466,7 @@ void segment::splitCurveRegion(Region & r)
 	// 2) Faces
 	foreach(SurfaceMeshTypes::Face f, m.faces()){
 		std::vector<CurveskelTypes::Vertex> m_vertices;
-		Surface_mesh::Vertex_around_face_circulator vit = m.vertices(f),vend=vit;
+        Surface_mesh::Vertex_around_face_circulator vit = m.vertices(f),vend=vit;
 		do{ m_vertices.push_back(CurveskelTypes::Vertex( SurfaceMeshTypes::Vertex(vit).idx() )); } while(++vit != vend);
 		skel.add_face( m_vertices );
 	}

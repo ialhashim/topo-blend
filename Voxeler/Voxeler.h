@@ -33,7 +33,7 @@ public:
 
 	// Find inside and outside of mesh surface
 	std::vector< Voxel > fillOther();
-    std::vector<Voxel> Voxeler::fillInside();
+    std::vector< Voxel > fillInside();
     void fillOuter(NanoKdTree & outside);
 
 	// Intersection

@@ -547,16 +547,18 @@ QVector< QPairInt > DynamicGraph::correspondence( DynamicGraph & other, double &
 
 		QMap<double, int> scoreBoard;
 
+        std::vector<Vector3> nf = noFrame();
+
 		QString n1_id = nodes[nodeID].str("original");
 		Structure::Node * n1 = this->mGraph->getNode( n1_id );
-		Vector3 center1(0); n1->get(Vec4d(0.5), center1);
+        Vector3 center1(0); n1->get(Vec4d(0.5), center1, nf);
 
 		// Test against possible corresponding nodes
 		foreach( int curID, vset[ valence ] )
 		{
 			QString n2_id = other.nodes[curID].str("original");
 			Structure::Node * n2 = other.mGraph->getNode( n2_id );
-			Vector3 center2(0); n2->get(Vec4d(0.5), center2);
+            Vector3 center2(0); n2->get(Vec4d(0.5), center2, nf);
 
 			double currScore = (center1 - center2).norm();
 

@@ -127,7 +127,13 @@ public:
 
 
 	/** \returns the projection of point x onto the MLS surface, and optionally returns the normal in \a pNormal */
-	Vector3 project(const Vector3& x, Vector3 & pNormal = Vector3(0), int* errorMask = 0)
+    Vector3 project(const Vector3& x)
+    {
+        Vector3 pNormal(0);
+        return project(x, pNormal);
+    }
+
+    Vector3 project(const Vector3& x, Vector3 & pNormal, int* errorMask = 0)
 	{
 		int iterationCount = 0;
 		Vector3 position = x;

@@ -1,5 +1,5 @@
 #pragma once
-
+#include <float.h>
 #include "SurfaceMeshModel.h"
 #include "SurfaceMeshHelper.h"
 using namespace SurfaceMeshTypes;

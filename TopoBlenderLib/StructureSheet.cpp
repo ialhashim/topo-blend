@@ -98,13 +98,16 @@ void Sheet::get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> &
 
 	frame.resize(3, Vector3(0));
 
-	surface.Get(u, v, pos, frame[0], frame[1]);
+    std::vector<Vec3d> temp(5);
+
+    surface.Get(u, v, pos, frame[0], frame[1], temp[0], temp[1], temp[2]);
 	surface.GetFrame(u, v, pos, frame[0], frame[1], frame[2]);
 }
 
 SurfaceMeshTypes::Vector3 Sheet::position( const Vec4d& coordinates )
 {
-	Vector3 p(0); get(coordinates,p);
+    std::vector<Vector3> nf = noFrame();
+    Vector3 p(0); get(coordinates,p, nf);
 	return p;
 }
 
@@ -166,7 +169,8 @@ SurfaceMeshTypes::Scalar Sheet::area()
 SurfaceMeshTypes::Vector3 Sheet::center()
 {
 	Vector3 pos(0);
-	get(Vec4d(0.5,0.5,0,0), pos);
+    std::vector<Vector3> nf = noFrame();
+    get(Vec4d(0.5,0.5,0,0), pos, nf);
 	return pos;
 }
 

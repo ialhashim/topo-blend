@@ -147,8 +147,8 @@ void Matrix2<Real>::MakeDiagonal (Real m00, Real m11)
 template <typename Real>
 void Matrix2<Real>::MakeRotation (Real angle)
 {
-    mEntry[0] = Math<Real>::Cos(angle);
-    mEntry[2] = Math<Real>::Sin(angle);
+    mEntry[0] = cos(angle);
+    mEntry[2] = sin(angle);
     mEntry[1] = -mEntry[2];
     mEntry[3] =  mEntry[0];
 }
@@ -218,10 +218,10 @@ Matrix2<Real> Matrix2<Real>::operator/ (Real scalar) const
     {
         return Matrix2<Real>
         (
-            Math<Real>::MAX_REAL,
-            Math<Real>::MAX_REAL,
-            Math<Real>::MAX_REAL,
-            Math<Real>::MAX_REAL
+            DBL_MAX,
+            DBL_MAX,
+            DBL_MAX,
+            DBL_MAX
         );
     }
 }
@@ -281,10 +281,10 @@ Matrix2<Real>& Matrix2<Real>::operator/= (Real scalar)
     }
     else
     {
-        mEntry[0] = Math<Real>::MAX_REAL;
-        mEntry[1] = Math<Real>::MAX_REAL;
-        mEntry[2] = Math<Real>::MAX_REAL;
-        mEntry[3] = Math<Real>::MAX_REAL;
+        mEntry[0] = DBL_MAX;
+        mEntry[1] = DBL_MAX;
+        mEntry[2] = DBL_MAX;
+        mEntry[3] = DBL_MAX;
     }
 
     return *this;
@@ -304,7 +304,7 @@ template <typename Real>
 Real Matrix2<Real>::QForm (const Vector2& u, const Vector2& v)
     const
 {
-    return u.Dot((*this)*v);
+    return dot(u,(*this)*v);
 }
 //----------------------------------------------------------------------------
 template <typename Real>
@@ -378,7 +378,7 @@ Matrix2<Real> Matrix2<Real>::Inverse (const Real epsilon) const
     Matrix2<Real> inverse;
 
     Real det = mEntry[0]*mEntry[3] - mEntry[1]*mEntry[2];
-    if (Math<Real>::FAbs(det) > epsilon)
+    if (fabs(det) > epsilon)
     {
         Real invDet = ((Real)1)/det;
         inverse.mEntry[0] =  mEntry[3]*invDet;
@@ -413,7 +413,7 @@ template <typename Real>
 void Matrix2<Real>::ExtractAngle (Real& angle) const
 {
     // assert:  'this' matrix represents a rotation
-    angle = Math<Real>::ATan2(mEntry[2], mEntry[0]);
+    angle = atan2(mEntry[2], mEntry[0]);
 }
 //----------------------------------------------------------------------------
 template <typename Real>
@@ -429,7 +429,7 @@ void Matrix2<Real>::Orthonormalize ()
     // product of vectors A and B.
 
     // Compute q0.
-    Real invLength = Math<Real>::InvSqrt(mEntry[0]*mEntry[0] +
+    Real invLength = 1.0/sqrt(mEntry[0]*mEntry[0] +
         mEntry[2]*mEntry[2]);
 
     mEntry[0] *= invLength;
@@ -440,7 +440,7 @@ void Matrix2<Real>::Orthonormalize ()
     mEntry[1] -= dot0*mEntry[0];
     mEntry[3] -= dot0*mEntry[2];
 
-    invLength = Math<Real>::InvSqrt(mEntry[1]*mEntry[1] +
+    invLength = 1.0/sqrt(mEntry[1]*mEntry[1] +
         mEntry[3]*mEntry[3]);
 
     mEntry[1] *= invLength;
@@ -450,8 +450,8 @@ void Matrix2<Real>::Orthonormalize ()
 template <typename Real>
 void Matrix2<Real>::EigenDecomposition (Matrix2& rot, Matrix2& diag) const
 {
-    Real sum = Math<Real>::FAbs(mEntry[0]) + Math<Real>::FAbs(mEntry[3]);
-    if (Math<Real>::FAbs(mEntry[1]) + sum == sum)
+    Real sum = fabs(mEntry[0]) + fabs(mEntry[3]);
+    if (fabs(mEntry[1]) + sum == sum)
     {
         // The matrix M is diagonal (within numerical round-off).
         rot.mEntry[0] = (Real)1;
@@ -467,7 +467,7 @@ void Matrix2<Real>::EigenDecomposition (Matrix2& rot, Matrix2& diag) const
 
     Real trace = mEntry[0] + mEntry[3];
     Real diff = mEntry[0] - mEntry[3];
-    Real discr = Math<Real>::Sqrt(diff*diff + ((Real)4)*mEntry[1]*mEntry[1]);
+    Real discr = sqrt(diff*diff + ((Real)4)*mEntry[1]*mEntry[1]);
     Real eigVal0 = ((Real)0.5)*(trace - discr);
     Real eigVal1 = ((Real)0.5)*(trace + discr);
     diag.MakeDiagonal(eigVal0, eigVal1);
@@ -483,7 +483,7 @@ void Matrix2<Real>::EigenDecomposition (Matrix2& rot, Matrix2& diag) const
         cs = eigVal0 - mEntry[3];
         sn = mEntry[1];
     }
-    Real invLength = Math<Real>::InvSqrt(cs*cs + sn*sn);
+    Real invLength = 1.0/sqrt(cs*cs + sn*sn);
     cs *= invLength;
     sn *= invLength;
 
