@@ -1,5 +1,7 @@
 #pragma once
 
+#include <float.h>
+
 /* AABB-triangle overlap test code                      */
 /* by Tomas Akenine-Möller                              */
 #define X 0

@@ -229,6 +229,12 @@ Real NURBSRectangle::GetKnot (int dim, int i)
     return MAX_REAL;
 }
 //----------------------------------------------------------------------------
+void NURBSRectangle::Get (Real u, Real v, Vector3& pos)
+{
+    std::vector<Vector3> temp(5);
+
+    Get(u, v, pos, temp[0], temp[1], temp[2], temp[3], temp[4]);
+}
 
 void NURBSRectangle::Get (Real u, Real v, Vector3& pos,
     Vector3& derU, Vector3& derV, Vector3& derUU,Vector3& derUV, Vector3& derVV)
@@ -393,7 +399,10 @@ void NURBSRectangle::Get (Real u, Real v, Vector3& pos,
 Vector3 NURBSRectangle::P (Real u, Real v)
 {
     Vector3 pos;
-    Get(u, v, pos);
+
+    std::vector<Vector3> temp(5);
+
+    Get(u, v, pos, temp[0], temp[1], temp[2], temp[3], temp[4]);
     return pos;
 }
 //----------------------------------------------------------------------------
@@ -401,7 +410,9 @@ Vector3 NURBSRectangle::P (Real u, Real v)
 Vector3 NURBSRectangle::PU (Real u, Real v)
 {
     Vector3 derU;
-    Get(u, v, Vector3(0), derU);
+    std::vector<Vector3> temp(5);
+
+    Get(u, v, temp[0], derU, temp[1], temp[2], temp[3], temp[4]);
     return derU;
 }
 //----------------------------------------------------------------------------
@@ -409,7 +420,9 @@ Vector3 NURBSRectangle::PU (Real u, Real v)
 Vector3 NURBSRectangle::PV (Real u, Real v)
 {
     Vector3 derV;
-    Get(u, v, Vector3(0), Vector3(0), derV);
+    std::vector<Vector3> temp(5);
+
+    Get(u, v, temp[0], temp[1], derV, temp[2], temp[3], temp[4]);
     return derV;
 }
 //----------------------------------------------------------------------------
@@ -417,7 +430,9 @@ Vector3 NURBSRectangle::PV (Real u, Real v)
 Vector3 NURBSRectangle::PUU (Real u, Real v)
 {
     Vector3 derUU;
-    Get(u, v, Vector3(0), Vector3(0), Vector3(0), derUU);
+    std::vector<Vector3> temp(5);
+
+    Get(u, v, temp[0], temp[1], temp[2], derUU, temp[3], temp[4]);
     return derUU;
 }
 //----------------------------------------------------------------------------
@@ -425,7 +440,9 @@ Vector3 NURBSRectangle::PUU (Real u, Real v)
 Vector3 NURBSRectangle::PUV (Real u, Real v)
 {
     Vector3 derUV;
-    Get(u, v, Vector3(0), Vector3(0), Vector3(0), Vector3(0), derUV);
+    std::vector<Vector3> temp(5);
+
+    Get(u, v, temp[0], temp[1], temp[2], temp[3], derUV, temp[4]);
     return derUV;
 }
 //----------------------------------------------------------------------------
@@ -433,7 +450,9 @@ Vector3 NURBSRectangle::PUV (Real u, Real v)
 Vector3 NURBSRectangle::PVV (Real u, Real v)
 {
     Vector3 derVV;
-    Get(u, v, Vector3(0), Vector3(0), Vector3(0), Vector3(0), Vector3(0), derVV);
+    std::vector<Vector3> temp(5);
+
+    Get(u, v, temp[0], temp[1], temp[2], temp[3], temp[4], derVV);
     return derVV;
 }
 //----------------------------------------------------------------------------
@@ -620,7 +639,9 @@ Vec4d NURBSRectangle::timeAt( const Vector3 & pos, Vec4d & bestUV, Vec4d & minRa
 		Vec4d minRange( qMax(0.0, curU - du), qMax(0.0, curV - dv), 0, 0 );
 		Vec4d maxRange( qMin(1.0, curU + du), qMin(1.0, curV + dv), 0, 0 );
 
-		return timeAt(pos, Vec4d(curU, curV, 0, 0), minRange, maxRange, minDist, threshold);
+        Vec4d crd(curU, curV, 0, 0);
+
+        return timeAt(pos, crd, minRange, maxRange, minDist, threshold);
 	}
 }
 
@@ -790,7 +811,7 @@ std::vector<Vec3d> NURBSRectangle::intersect( NURBSRectangle & other, double res
 	}
 
 	std::vector<size_t> corner_xrefs;
-	weld(samples, corner_xrefs, std::hash<Vec3d>(), std::equal_to<Vec3d>());
+    weld(samples, corner_xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
 
 	Vec3d p(0);	
 	double threshold = resolution * 0.1;
@@ -813,7 +834,7 @@ std::vector<Vec3d> NURBSRectangle::intersect( NURBSRectangle & other, double res
 		samples.push_back(p);
 	}
 
-	weld(samples, corner_xrefs, std::hash<Vec3d>(), std::equal_to<Vec3d>());
+    weld(samples, corner_xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
 
 	// Cluster and average
 	std::vector<bool> visited(samples.size(), false);
@@ -839,7 +860,7 @@ std::vector<Vec3d> NURBSRectangle::intersect( NURBSRectangle & other, double res
 		samples.push_back(avg);
 	}
 
-	weld(samples, corner_xrefs, std::hash<Vec3d>(), std::equal_to<Vec3d>());
+    weld(samples, corner_xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
 
 	std::vector<Vec3d> clusterdSamples = samples;
 

@@ -153,7 +153,7 @@ public:
     typedef typename WingedgeProperty_array<T>::const_reference const_reference;
 
     friend class Property_container;
-    friend class Surface_mesh;
+    //friend class Surface_mesh;
 
 
 public:

@@ -1,5 +1,6 @@
 #include "GraphCorresponder.h"
 
+#include <QFile>
 #include <algorithm>
 #include <fstream>
 
@@ -814,7 +815,9 @@ void GraphCorresponder::computeCorrespondences()
 
 void GraphCorresponder::saveLandmarks(QString filename)
 {
-	std::ofstream outF(filename.toStdString(), std::ios::out);
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+    QTextStream outF(&file);
 
 	outF << landmarks.size() << "\n\n";
 
@@ -822,21 +825,23 @@ void GraphCorresponder::saveLandmarks(QString filename)
 	{
 		outF << vector2vector.first.size() << '\t';;
 		foreach (QString strID, vector2vector.first)
-			outF << strID.toStdString() << '\t';
+            outF << strID << '\t';
 		outF << '\n';
 
 		outF << vector2vector.second.size() << '\t';
 		foreach (QString strID, vector2vector.second)
-			outF << strID.toStdString() << '\t';
+            outF << strID << '\t';
 		outF << "\n\n";
 	}
 
-	outF.close();
+    file.close();
 }
 
 void GraphCorresponder::loadLandmarks(QString filename)
 {
-	std::ifstream inF(filename.toStdString(), std::ios::in);
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+    QTextStream inF(&file);
 
 	landmarks.clear();
 	sIsLandmark.clear();
@@ -850,27 +855,27 @@ void GraphCorresponder::loadLandmarks(QString filename)
 	for (int i = 0; i < nbCorr; i++)
 	{
 		int n;
-		std::string strID;
+        QString strID;
 		std::vector<QString> sParts, tParts;
 
 		inF >> n;
 		for (int j = 0; j < n; j++)
 		{
 			inF >> strID;
-			sParts.push_back(QString(strID.c_str()));
+            sParts.push_back(strID);
 		}
 
 		inF >> n;
 		for (int j = 0; j < n; j++)
 		{
 			inF >> strID;
-			tParts.push_back(QString(strID.c_str()));
+            tParts.push_back(strID);
 		}
 
 		this->addLandmarks(sParts, tParts);
 	}
 
-	inF.close();
+    file.close();
 }
 
 std::vector<QString> GraphCorresponder::nonCorresSource()

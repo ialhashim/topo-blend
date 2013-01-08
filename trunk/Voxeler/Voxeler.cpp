@@ -44,7 +44,7 @@ Voxeler::Voxeler( SurfaceMeshModel * src_mesh, double voxel_size, bool verbose /
 	
 	// Combine into a set of voxels
 	std::vector<size_t> xrefs;
-	weld(voxels, xrefs, std::hash<Voxel>(), std::equal_to<Voxel>());
+    weld(voxels, xrefs, std::hash_VoxelerLibraryVoxel(), std::equal_to<Voxel>());
 
 	// Add voxels to KD-tree and build
 	foreach(Voxel v, voxels) 
@@ -193,7 +193,7 @@ void Voxeler::setupDraw()
 			cornerPnts.push_back(corner[i][j]);
 
 	std::vector<size_t> xrefs;
-	weld(cornerPnts, xrefs, std::hash<Vec3d>(), std::equal_to<Vec3d>());
+    weld(cornerPnts, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
 
 	foreach(Vec3d p, cornerPnts) corner_kd.addPoint(p);
 	corner_kd.build();
@@ -294,7 +294,8 @@ std::vector<Voxel> Voxeler::fillOther()
 	for(int x = minVox.x - 1; x <= maxVox.x + 1; x++){
 		for(int y = minVox.y - 1; y <= maxVox.y + 1; y++){
 			for(int z = minVox.z - 1; z <= maxVox.z + 1; z++){
-				if(!kd.has(Vector3(x,y,z)))
+                Vector3 v(x,y,z);
+                if(!kd.has(v))
 					filled.push_back(Voxel(x,y,z));
 			}
 		}
@@ -316,7 +317,8 @@ std::vector<Voxel> Voxeler::fillInside()
 	for(int x = minVox.x - 1; x <= maxVox.x + 1; x++){
 		for(int y = minVox.y - 1; y <= maxVox.y + 1; y++){
 			for(int z = minVox.z - 1; z <= maxVox.z + 1; z++){
-				if(!outside.has(Vector3(x,y,z))){
+                Vector3 v(x,y,z);
+                if(!outside.has(v)){
 					innerVoxels.push_back(Voxel(x,y,z));
 				}
 			}
@@ -388,7 +390,8 @@ std::vector<Voxel> Voxeler::Intersects(Voxeler * other)
 	{
 		Voxel v = minVoxeler->voxels[i];
 
-		if(maxVoxeler->kd.has(Vector3(v.x, v.y, v.z)))
+        Vector3 vv(v.x, v.y, v.z);
+        if(maxVoxeler->kd.has(vv))
 			intersection.push_back(v);
 	}
 
@@ -410,7 +413,9 @@ std::map<int, Voxel> Voxeler::around(Point p)
 
 				Vec3d vpos(v.x, v.y, v.z);
 
-				if(kd.has(Vector3(v.x, v.y, v.z))){
+                Vector3 vv(v.x, v.y, v.z);
+
+                if(kd.has(vv)){
 					int idx = kd.closest(vpos);
 					result[idx] = v;
 				}
@@ -443,7 +448,7 @@ void Voxeler::grow()
 
 	// Combine into set of voxels
 	std::vector<size_t> xrefs;
-	weld(voxels, xrefs, std::hash<Voxel>(), std::equal_to<Voxel>());
+    weld(voxels, xrefs, std::hash_VoxelerLibraryVoxel(), std::equal_to<Voxel>());
 
 	// Clear old, add new points and build
 	kd.cloud.pts.clear();

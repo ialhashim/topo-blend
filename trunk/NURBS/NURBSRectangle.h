@@ -35,8 +35,8 @@ public:
     NURBSRectangle(Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight,
                    int uDegree, int vDegree, bool uLoop, bool vLoop, bool uOpen, bool vOpen);
 
-    static NURBSRectangle createSheet(Scalar width = 2.0, Scalar length = 1.0, Vector3 center = Vector3(0),
-                                      Vector3 dU = Vector3(1,0,0), Vector3 dV = Vector3(0,0,1));
+    static NURBSRectangle createSheet(Scalar width, Scalar length, Vector3 center ,
+                                      Vector3 dU /*= Vector3(1,0,0)*/, Vector3 dV /*= Vector3(0,0,1)*/);
 
     int GetNumCtrlPoints (int dim) ;
     int GetDegree (int dim) ;
@@ -75,8 +75,9 @@ public:
     // efficient to call these functions.  Pass the addresses of those
     // quantities whose values you want.  You may pass 0 in any argument
     // whose value you do not want.
-    void Get (Real u, Real v, Vector3& pos = Vector3(0), Vector3& derU= Vector3(0),
-        Vector3& derV= Vector3(0), Vector3& derUU= Vector3(0), Vector3& derUV= Vector3(0), Vector3& derVV= Vector3(0));
+    void Get (Real u, Real v, Vector3& pos , Vector3& derU,
+        Vector3& derV, Vector3& derUU, Vector3& derUV, Vector3& derVV);
+    void Get (Real u, Real v, Vector3& pos);
 
 	// General properties
 	Real aspectU();
@@ -92,7 +93,7 @@ public:
 	void uniformCoordinates(std::vector<Real> & valU, std::vector<Real> & valV, int resolution = 10, int u = 0, int v = 0);
 	std::vector< std::vector<Vector3> > generateSurfaceTris( Real resolution );
 	void generateSurfacePoints( Scalar stepSize, std::vector< std::vector<Vector3> > & points, 
-		std::vector<Real> & valU = std::vector<Real>(), std::vector<Real> & valV = std::vector<Real>());
+        std::vector<Real> & valU , std::vector<Real> & valV );
 	void generateSurfacePointsCoords( Scalar stepSize, std::vector< std::vector<Vec4d> > & points);
 
 	// Control cage / network
@@ -100,9 +101,9 @@ public:
 	Vector3 projectOnControl( Real u, Real v );
 
 	// Projection
-	Vec4d timeAt(const Vector3 & pos);
+    Vec4d timeAt( const Vector3 & pos );
 	Vec4d timeAt( const Vector3 & pos, Vec4d & bestUV, Vec4d & minRange, Vec4d & maxRange, Real currentDist, Real threshold = 1e-4 );
-	std::vector<Vec4d> NURBSRectangle::timeAt( const std::vector<Vector3> & pos, Real threshold );
+    std::vector<Vec4d> timeAt( const std::vector<Vector3> & pos, Real threshold );
 
 	// Modifiers
 	void bend( Scalar amount, int bendDirection = 0 );
@@ -110,8 +111,8 @@ public:
 	void scale(Scalar scaleFactor);
 
 	// Intersection
-	std::vector<Vec3d> NURBSRectangle::intersect( NURBSRectangle & other, double resolution, 
-		std::vector<Vec4d> & coordMe = std::vector<Vec4d>(), std::vector<Vec4d> & coordOther = std::vector<Vec4d>() );
+    std::vector<Vec3d> intersect( NURBSRectangle & other, double resolution,
+        std::vector<Vec4d> & coordMe, std::vector<Vec4d> & coordOther);
 
 protected:
     // Replicate the necessary number of control points when the Create

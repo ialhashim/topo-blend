@@ -149,21 +149,21 @@ static void drawCube(double x, double y, double z, double scale = 1.0){
 }
 
 namespace std {
-	template <> struct hash<Vec3d> {
+    struct hash_Vec3d {
 		size_t operator()(Vec3d v) { 
 			const unsigned int * h = (const unsigned int *)(&v);
 			unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0
 			return (f>>22)^(f>>12)^(f);
 		}
 	};
-	template <> struct hash<Vec3f> {
+    struct hash_Vec3f {
 		size_t operator()(Vec3f v) { 
 			const unsigned int * h = (const unsigned int *)(&v);
 			unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0
 			return (f>>22)^(f>>12)^(f);
 		}
 	};
-    template <> struct hash<DynamicVoxelLib::Voxel> {
+    struct hash_DynamicVoxelLibVoxel {
         size_t operator()(DynamicVoxelLib::Voxel v) {
 			const unsigned int * h = (const unsigned int *)(&v);
 			unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0

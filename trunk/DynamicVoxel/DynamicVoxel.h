@@ -48,7 +48,8 @@ public:
 
 	QuadMesh toQuadMesh();
 
-	void buildMesh(SurfaceMeshModel * mesh, QuadMesh & m = QuadMesh());
+    void buildMesh( SurfaceMeshModel * mesh );
+    void buildMesh( SurfaceMeshModel * mesh, QuadMesh & m );
 
 	// Mesh smoothing
 	static void MeanCurvatureFlow( SurfaceMeshModel *m, double dt = 0.5 );

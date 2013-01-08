@@ -30,7 +30,7 @@ struct Node
 	virtual void rotate( double angle, Vector3 axis ) = 0;
 
 	// Coordinates
-	virtual void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame = noFrame() ) = 0;
+    virtual void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame ) = 0;
 	virtual Vector3 position( const Vec4d& coordinates ) = 0;
 	virtual Vec4d approxCoordinates( const Vector3 & pos ) = 0;
 	virtual Vector3 approxProjection( const Vector3 & point ) = 0;

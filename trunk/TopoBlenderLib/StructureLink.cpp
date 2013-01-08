@@ -83,8 +83,10 @@ void Link::draw()
 	{
 		Vector3 p1(0), p2(0);
 
-		n1->get(coord[0][j], p1);
-		n2->get(coord[1][j], p2);
+        std::vector<Vector3> nf = noFrame();
+
+        n1->get(coord[0][j], p1, nf);
+        n2->get(coord[1][j], p2, nf);
 
 		linkPos.push_back(p1);
 		linkPos.push_back(p2);
@@ -123,7 +125,10 @@ SurfaceMeshTypes::Vector3 Link::position( QString nodeID )
 	assert(n->id == nodeID);
 
 	Vector3 pos(0);
-	n->get( getMiddleCoord(nodeID), pos);
+
+    std::vector<Vector3> nf = noFrame();
+
+    n->get( getMiddleCoord(nodeID), pos, nf);
 	return pos;
 }
 

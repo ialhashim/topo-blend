@@ -152,9 +152,9 @@ std::vector<Voxel> DynamicVoxel::voxelLine(const Vec3d &p1, const Vec3d &p2, boo
 
     Vec3d d = (p2 - p1) / voxel_size;
     double N = qMax( abs(d.x()), qMax(abs(d.y()), abs(d.z())) );
-    Voxel s = d / N;
+    Voxel s = Voxel(d / N);
 
-    Voxel p = p1 / voxel_size;
+    Voxel p = Voxel(p1 / voxel_size);
 
     line.push_back( p );
 
@@ -323,9 +323,15 @@ void DynamicVoxel::end()
 
 	// Weld
 	std::vector<size_t> xrefs;
-	weld(voxels, xrefs, std::hash<Voxel>(), std::equal_to<Voxel>());
+    weld(voxels, xrefs, std::hash_DynamicVoxelLibVoxel(), std::equal_to<Voxel>());
 
     qDebug() << "Voxel weld operation " << timer.elapsed() << " ms";
+}
+
+void DynamicVoxel::buildMesh(SurfaceMeshModel * mesh)
+{
+    QuadMesh qmesh;
+    buildMesh(mesh, qmesh);
 }
 
 void DynamicVoxel::buildMesh(SurfaceMeshModel * mesh, QuadMesh & m)
@@ -361,10 +367,10 @@ void DynamicVoxel::buildMesh(SurfaceMeshModel * mesh, QuadMesh & m)
 	}
 
 	std::vector<size_t> corner_xrefs;
-	weld(voxelCorners, corner_xrefs, std::hash<Vec3d>(), std::equal_to<Vec3d>());
+    weld(voxelCorners, corner_xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
 
 	std::vector<size_t> face_xrefs;
-	weld(allFaceCenters, face_xrefs, std::hash<Vec3d>(), std::equal_to<Vec3d>());
+    weld(allFaceCenters, face_xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
 	
 	// Count face center occurrences
 	std::vector<int> fcount(allFaceCenters.size(), 0);

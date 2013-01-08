@@ -1,5 +1,6 @@
 #pragma once
 
+#include <float.h>
 #include <qgl.h>
 #include "RenderObject.h"
 

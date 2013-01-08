@@ -17,14 +17,14 @@ Doc:
 **/
 
 namespace std {
-	template <> struct hash<Vec3d> {
+    struct hash_Vec3d {
 		size_t operator()(Vec3d v) { 
 			const unsigned int * h = (const unsigned int *)(&v);
 			unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0
 			return (f>>22)^(f>>12)^(f);
 		}
 	};
-	template <> struct hash<VoxelerLibrary::Voxel> {
+    struct hash_VoxelerLibraryVoxel {
 		size_t operator()(VoxelerLibrary::Voxel v) {
 			const unsigned int * h = (const unsigned int *)(&v);
 			unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0

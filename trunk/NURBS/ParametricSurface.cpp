@@ -1,5 +1,3 @@
-#pragma once
-
 #include "ParametricSurface.h"
 #include "Matrix2.h"
 
