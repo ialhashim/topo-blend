@@ -1,5 +1,8 @@
 #include <QHash>
+
+#if defined(Q_OS_MAC)
 #include <tr1/functional>
+#endif
 
 struct DoubleTuple{
     double x, y, z;
