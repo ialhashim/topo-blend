@@ -285,6 +285,8 @@ public:
 			}
 		}
 		double tnear = t_near, tfar = t_far; // put return values in place
+		Q_UNUSED(tnear);
+		Q_UNUSED(tfar);
 		return true; // if we made it here, there was an intersection - YAY
 	}
 

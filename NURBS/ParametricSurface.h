@@ -20,18 +20,10 @@ public:
     Real GetVMax();
     bool IsRectangular();
 
-    // position and derivatives up to second order
-    virtual Vector3 P (Real u, Real v) = 0;
-    virtual Vector3 PU (Real u, Real v) = 0;
-    virtual Vector3 PV (Real u, Real v) = 0;
-    virtual Vector3 PUU (Real u, Real v) = 0;
-    virtual Vector3 PUV (Real u, Real v) = 0;
-    virtual Vector3 PVV (Real u, Real v) = 0;
-
     // Compute a coordinate frame.  The set {T0,T1,N} is a right-handed
     // orthonormal set.
-    void GetFrame (Real u, Real v, Vector3& position,
-        Vector3& tangent0, Vector3& tangent1, Vector3& normal) ;
+    void GetFrame (Real u, Real v, Vector3& position, Vector3& tangent0, Vector3& tangent1, Vector3& normal) ;
+	virtual void GetAll (Real u, Real v, Vector3 * pos, Vector3* derU = 0, Vector3* derV = 0, Vector3* derUU = 0, Vector3* derUV = 0, Vector3* derVV = 0) = 0;
 
     // Differential geometric quantities.  The returned scalars are the
     // principal curvatures and the returned vectors are the corresponding

@@ -23,8 +23,11 @@ public:
 
 	int totalExecutionTime();
 
+	QVector<Task*> tasksSortedByStart();
+
 	// Properties
 	int rulerHeight;
+	bool isForceStop;
 
 	TimelineSlider * slider;
 
@@ -37,6 +40,9 @@ protected:
 public slots:
 	void timeChanged(int newTime);
 	void doBlend();
+	void stopExecution();
+
+	void startAllSameTime();
 
 signals:
 	void activeGraphChanged( Structure::Graph* );

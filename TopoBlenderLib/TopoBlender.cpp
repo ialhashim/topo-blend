@@ -166,12 +166,6 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 		}
 	}
 
-
-	int j = 0;
-
-	toGraphviz(DynamicGraph(active),QString("%1_active_morphed").arg(j++));
-	toGraphviz(DynamicGraph(tg),QString("%1_tg_morphed").arg(j++));
-
 	// Grow missing target nodes
 	foreach(QString nodeID, gcoor->nonCorresTarget())
 	{
@@ -190,9 +184,6 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 		// Graph edit
 		active->addNode( missingNode );
 	}
-
-	toGraphviz(DynamicGraph(active),QString("%1_active_grew_node").arg(j++));
-	toGraphviz(DynamicGraph(tg),QString("%1_tg_grew_node").arg(j++));
 
 	// Add missing edges from target graph
 	foreach (Structure::Link * e, tg->edges)
@@ -214,10 +205,6 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 		}
 	}
 
-
-	toGraphviz(DynamicGraph(active),QString("%1_active_grew_edges").arg(j++));
-	toGraphviz(DynamicGraph(tg),QString("%1_tg_grew_edges").arg(j++));
-
 	// Modify edges coordinates for morphing
 	foreach(Structure::Link * sLink, active->edges)
 	{
@@ -231,10 +218,12 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 		sLink->property["finalCoord_n2"].setValue( qMakePair(sLink->n2->id, tLink->getCoord(t_n2)) );
 	}
 
-	toGraphviz(DynamicGraph(active),"active_Final");
+	qApp->setOverrideCursor(Qt::WaitCursor);
 
 	/// STEP 3) Order and schedule the tasks
 	scheduler->schedule();
+
+	qApp->restoreOverrideCursor();
 
 	// Show the scheduler window:
 	SchedulerWidget * sw = new SchedulerWidget( scheduler );

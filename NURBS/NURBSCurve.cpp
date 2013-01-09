@@ -387,3 +387,11 @@ void NURBSCurve::scaleInPlace( Scalar scaleFactor, int placeCtrlPoint )
 	scale(scaleFactor);
 	translate( delta );
 }
+
+void NURBSCurve::translateTo( const Vector3 & newPos, int cpIDX )
+{
+	Vec3d cp = mCtrlPoint[cpIDX];
+	Vec3d delta = newPos - cp;
+	for(int i = 0; i < GetNumCtrlPoints(); i++)
+		mCtrlPoint[i] += delta;
+}

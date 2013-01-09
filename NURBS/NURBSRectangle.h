@@ -61,23 +61,13 @@ public:
     void SetKnot (int dim, int i, Real knot);
     Real GetKnot (int dim, int i) ;
 
-    // The spline is defined for 0 <= u <= 1 and 0 <= v <= 1.  The input
-    // values should be in this domain.  Any inputs smaller than 0 are clamped
-    // to 0.  Any inputs larger than 1 are clamped to 1.
-    virtual Vector3 P (Real u, Real v) ;
-    virtual Vector3 PU (Real u, Real v) ;
-    virtual Vector3 PV (Real u, Real v) ;
-    virtual Vector3 PUU (Real u, Real v) ;
-    virtual Vector3 PUV (Real u, Real v) ;
-    virtual Vector3 PVV (Real u, Real v) ;
-
     // If you need position and derivatives at the same time, it is more
     // efficient to call these functions.  Pass the addresses of those
     // quantities whose values you want.  You may pass 0 in any argument
     // whose value you do not want.
-    void Get (Real u, Real v, Vector3& pos , Vector3& derU,
-        Vector3& derV, Vector3& derUU, Vector3& derUV, Vector3& derVV);
-    void Get (Real u, Real v, Vector3& pos);
+    void GetAll (Real u, Real v, Vector3 * pos , Vector3* derU = 0, Vector3* derV = 0, Vector3* derUU = 0, Vector3* derUV = 0, Vector3* derVV = 0);
+	void Get (Real u, Real v, Vector3& pos);
+	Vector3 P(Real u, Real v);
 
 	// General properties
 	Real aspectU();
