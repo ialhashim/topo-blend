@@ -231,13 +231,10 @@ Real NURBSRectangle::GetKnot (int dim, int i)
 //----------------------------------------------------------------------------
 void NURBSRectangle::Get (Real u, Real v, Vector3& pos)
 {
-    std::vector<Vector3> temp(5);
-
-    Get(u, v, pos, temp[0], temp[1], temp[2], temp[3], temp[4]);
+    GetAll(u, v, &pos);
 }
 
-void NURBSRectangle::Get (Real u, Real v, Vector3& pos,
-    Vector3& derU, Vector3& derV, Vector3& derUU,Vector3& derUV, Vector3& derVV)
+void NURBSRectangle::GetAll (Real u, Real v, Vector3 * pos , Vector3* derU, Vector3* derV, Vector3* derUU, Vector3* derUV, Vector3* derVV)
 {
     int iu, iumin, iumax;
     if (derUU)
@@ -290,7 +287,7 @@ void NURBSRectangle::Get (Real u, Real v, Vector3& pos,
     Vector3 P = invW*X;
     if (pos)
     {
-        pos = P;
+        *pos = P;
     }
 
     if (!derU && !derV && !derUU && !derUV && !derVV)
@@ -318,7 +315,7 @@ void NURBSRectangle::Get (Real u, Real v, Vector3& pos,
         PDerU = invW*(XDerU - P*wDerU);
         if (derU)
         {
-            derU = PDerU;
+            *derU = PDerU;
         }
     }
 
@@ -337,7 +334,7 @@ void NURBSRectangle::Get (Real u, Real v, Vector3& pos,
         PDerV = invW*(XDerV - P*wDerV);
         if (derV)
         {
-            derV = PDerV;
+            *derV = PDerV;
         }
     }
 
@@ -359,7 +356,7 @@ void NURBSRectangle::Get (Real u, Real v, Vector3& pos,
                 wDerUU += tmp;
             }
         }
-        derUU = invW*(XDerUU - (PDerU*(Real)2)*wDerU - P*wDerUU);
+        *derUU = invW*(XDerUU - (PDerU*(Real)2)*wDerU - P*wDerUU);
     }
 
     if (derUV)
@@ -375,7 +372,7 @@ void NURBSRectangle::Get (Real u, Real v, Vector3& pos,
                 wDerUV += tmp;
             }
         }
-        derUV = invW*(XDerUV - PDerV*wDerU - PDerU*wDerV - P*wDerUV);
+        *derUV = invW*(XDerUV - PDerV*wDerU - PDerU*wDerV - P*wDerUV);
     }
 
     if (derVV)
@@ -391,71 +388,9 @@ void NURBSRectangle::Get (Real u, Real v, Vector3& pos,
                 wDerVV += tmp;
             }
         }
-        derVV = invW*(XDerVV - PDerV*((Real)2)*wDerV - P*wDerVV);
+        *derVV = invW*(XDerVV - PDerV*((Real)2)*wDerV - P*wDerVV);
     }
 }
-//----------------------------------------------------------------------------
-
-Vector3 NURBSRectangle::P (Real u, Real v)
-{
-    Vector3 pos;
-
-    std::vector<Vector3> temp(5);
-
-    Get(u, v, pos, temp[0], temp[1], temp[2], temp[3], temp[4]);
-    return pos;
-}
-//----------------------------------------------------------------------------
-
-Vector3 NURBSRectangle::PU (Real u, Real v)
-{
-    Vector3 derU;
-    std::vector<Vector3> temp(5);
-
-    Get(u, v, temp[0], derU, temp[1], temp[2], temp[3], temp[4]);
-    return derU;
-}
-//----------------------------------------------------------------------------
-
-Vector3 NURBSRectangle::PV (Real u, Real v)
-{
-    Vector3 derV;
-    std::vector<Vector3> temp(5);
-
-    Get(u, v, temp[0], temp[1], derV, temp[2], temp[3], temp[4]);
-    return derV;
-}
-//----------------------------------------------------------------------------
-
-Vector3 NURBSRectangle::PUU (Real u, Real v)
-{
-    Vector3 derUU;
-    std::vector<Vector3> temp(5);
-
-    Get(u, v, temp[0], temp[1], temp[2], derUU, temp[3], temp[4]);
-    return derUU;
-}
-//----------------------------------------------------------------------------
-
-Vector3 NURBSRectangle::PUV (Real u, Real v)
-{
-    Vector3 derUV;
-    std::vector<Vector3> temp(5);
-
-    Get(u, v, temp[0], temp[1], temp[2], temp[3], derUV, temp[4]);
-    return derUV;
-}
-//----------------------------------------------------------------------------
-
-Vector3 NURBSRectangle::PVV (Real u, Real v)
-{
-    Vector3 derVV;
-    std::vector<Vector3> temp(5);
-
-    Get(u, v, temp[0], temp[1], temp[2], temp[3], temp[4], derVV);
-    return derVV;
-}
-//----------------------------------------------------------------------------
 
 void NURBSRectangle::generateSurfaceQuads( int resolution )
 {
@@ -977,4 +912,11 @@ void NURBSRectangle::scale( Scalar scaleFactor )
 	for(int y = 0; y < (int)mCtrlPoint.size(); y++)
 		for(int x = 0; x < (int)mCtrlPoint[0].size(); x++)
 			mCtrlPoint[y][x] *= scaleFactor;
+}
+
+SurfaceMeshTypes::Vector3 NURBSRectangle::P( Real u, Real v )
+{
+	Vector3 pos(0);
+	Get(u,v,pos);
+	return pos;
 }

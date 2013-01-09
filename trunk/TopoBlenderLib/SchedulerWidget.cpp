@@ -22,6 +22,9 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
 	this->connect( scheduler, SIGNAL(progressStarted()), SLOT(progressStarted()) );
 	this->connect( scheduler, SIGNAL(progressDone()), SLOT(progressDone()) );
 
+	scheduler->connect( ui->stopButton, SIGNAL(clicked()), SLOT(stopExecution()) );
+	scheduler->connect( ui->sameTimeButton, SIGNAL(clicked()), SLOT(startAllSameTime()) );
+
 	ui->progressBar->setVisible(false);
 }
 

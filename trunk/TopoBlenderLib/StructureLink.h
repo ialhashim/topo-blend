@@ -57,6 +57,7 @@ struct Link
 
 }
 
-Q_DECLARE_METATYPE(Structure::Link*)
-Q_DECLARE_METATYPE(NodeCoord)
-Q_DECLARE_METATYPE(NodeCoords)
+Q_DECLARE_METATYPE( Structure::Link* )
+Q_DECLARE_METATYPE( NodeCoord )
+Q_DECLARE_METATYPE( NodeCoords )
+Q_DECLARE_METATYPE( QVector< NodeCoord > )

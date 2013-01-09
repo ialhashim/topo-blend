@@ -11,7 +11,6 @@ void Scheduler::drawBackground( QPainter * painter, const QRectF & rect )
 {
 	QGraphicsScene::drawBackground(painter,rect);
 
-	int x = rect.x();
 	int y = rect.y();
 	int screenBottom = y + rect.height();
 
@@ -41,7 +40,8 @@ void Scheduler::drawForeground( QPainter * painter, const QRectF & rect )
 	painter->fillRect(x, screenBottom - rulerHeight - yellowLineHeight, rect.width(), yellowLineHeight, Qt::yellow);
 
 	// Draw text & ticks
-	int spacing = 100;
+	int totalTime = totalExecutionTime();
+	int spacing = totalTime / 10;
 	int timeEnd = 10;
 	int minorTicks = 5;
 	painter->setPen(Qt::gray);
@@ -59,12 +59,15 @@ void Scheduler::drawForeground( QPainter * painter, const QRectF & rect )
 		// Major tick
 		painter->drawLine(curX, screenBottom, curX, screenBottom - 10);
 
-		// Minor tick
-		for(int j = 1; j < minorTicks; j++)
+		if(i != timeEnd)
 		{
-			double delta = double(spacing) / minorTicks;
-			int minorX = curX + (j * delta);
-			painter->drawLine(minorX, screenBottom, minorX, screenBottom - 5);
+			// Minor tick
+			for(int j = 1; j < minorTicks; j++)
+			{
+				double delta = double(spacing) / minorTicks;
+				int minorX = curX + (j * delta);
+				painter->drawLine(minorX, screenBottom, minorX, screenBottom - 5);
+			}
 		}
 	}
 
@@ -78,10 +81,10 @@ void Scheduler::schedule()
 {
 	Task *current, *prev = NULL;
 
-	foreach(Task * t, tasks)
+	foreach(Task * task, tasks)
 	{
 		// Create
-		current = t;
+		current = task;
 
 		// Placement
 		if(prev) current->moveBy(prev->x() + prev->width,prev->y() + (prev->height));
@@ -98,9 +101,9 @@ void Scheduler::schedule()
 
 
 	// Prepare all tasks:
-	foreach(Task * t, tasks)
+	foreach(Task * task, tasks)
 	{
-		t->prepare();
+		task->prepare();
 	}
 
 	// Time-line slider
@@ -116,18 +119,31 @@ void Scheduler::executeAll()
 
 	emit( progressStarted() );
 
+	double timeStep = 0.001;
+	int totalTime = totalExecutionTime();
+	isForceStop = false;
+
+	QVector<Task*> allTasks = tasksSortedByStart();
+
 	// Execute all tasks
-	for(int i = 0; i < tasks.size(); i++)
+	for(double globalTime = 0; globalTime <= (1.0 + timeStep); globalTime += timeStep)
 	{
-		Task * t = tasks[i];
+		QElapsedTimer timer; timer.start();
 
-		t->execute();
+		for(int i = 0; i < (int)allTasks.size(); i++)
+		{
+			Task * task = allTasks[i];
+			double localTime = task->localT( globalTime * totalTime );
+			task->execute( localTime );
+		}
 
-		// Collect resulting graphs
-		allGraphs << t->outGraphs;
+		// Output current active graph:
+		allGraphs.push_back( new Structure::Graph( *(tasks.front()->active) ) );
 
-		// UI:
-		int percent = (double(i) / (tasks.size() - 1)) * 100;
+		if(isForceStop) break;
+
+		// UI - visual indicator:
+		int percent = globalTime * 100;
 		emit( progressChanged(percent) );
 	}
 
@@ -166,4 +182,26 @@ void Scheduler::timeChanged( int newTime )
 void Scheduler::doBlend()
 {
 	emit( startBlend() );
+}
+
+QVector<Task*> Scheduler::tasksSortedByStart()
+{
+	QMap<Task*,int> tasksMap;
+	typedef QPair<int, Task*> IntTaskPair;
+	foreach(Task* t, tasks) tasksMap[t] = t->start;
+	QList< IntTaskPair > sortedTasksList = sortQMapByValue<Task*,int>( tasksMap );
+	QVector< Task* > sortedTasks; 
+	foreach( IntTaskPair p, sortedTasksList ) sortedTasks.push_back(p.second);
+	return sortedTasks;
+}
+
+void Scheduler::stopExecution()
+{
+	isForceStop = true;
+}
+
+void Scheduler::startAllSameTime()
+{
+	foreach(Task * t, tasks)
+		t->setX(0);
 }

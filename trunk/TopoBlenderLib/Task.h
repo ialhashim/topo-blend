@@ -1,6 +1,6 @@
 #pragma once
 
-#include <QGraphicsItem>
+#include <QGraphicsObject>
 #include "TopoBlender.h"
 
 // red, orange, yellow, green, blue
@@ -11,7 +11,7 @@ static QColor TaskColors[] = { QColor(255,97,121),  QColor(107,255,135),
 
 static QString TaskNames[] = { "SHRINK", "MORPH", "MERGE", "SPLIT", "GROW" };
 
-class Task : public QGraphicsItem
+class Task : public QGraphicsObject
 {
 public:
 	enum TaskType{ SHRINK, MORPH, MERGE, SPLIT, GROW };
@@ -30,9 +30,9 @@ public:
 	void prepareMorph();
 
 	// Execution stage
-	void execute();
-	void executeGrowShrink();
-	void executeMorph();
+	void execute( double t );
+	void executeGrowShrink( double t );
+	void executeMorph( double t );
 
 	Structure::Node * node();
 
@@ -49,22 +49,19 @@ public:
 	Structure::Graph *active, *target;
 	QMap<QString, QVariant> property;
 
-	// Save execution output
-	QVector<Structure::Graph *> outGraphs;
-
 	// Time related
-	double start;
-	double length;
-	double currentTime;
+	int start;
+	int length;
+	int currentTime;
 	bool isReady;
 	int taskID;
 
-	void setStart(int newStart);
 	void setLength(int newLength);
 	void reset();
 	bool stillWorking();
-	int scaledTime();
+	bool isDone;
 	int endTime();
+	double localT( int globalTime );
 
 	// Visual properties
 	int width;

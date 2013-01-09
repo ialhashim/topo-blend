@@ -100,6 +100,7 @@ public:
     void CreateControl (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight);
 
 	void translate(const Vector3 & delta);
+	void translateTo(const Vector3 & newPos, int cpIDX);
 	void scale(Scalar scaleFactor);
 	void scaleInPlace(Scalar scaleFactor, int placeCtrlPoint = 0);
 

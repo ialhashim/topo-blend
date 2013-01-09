@@ -98,9 +98,6 @@ void Sheet::get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> &
 
 	frame.resize(3, Vector3(0));
 
-    std::vector<Vec3d> temp(5);
-
-    surface.Get(u, v, pos, frame[0], frame[1], temp[0], temp[1], temp[2]);
 	surface.GetFrame(u, v, pos, frame[0], frame[1], frame[2]);
 }
 

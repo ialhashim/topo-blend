@@ -47,17 +47,19 @@ bool ParametricSurface::IsRectangular ()
 }
 //----------------------------------------------------------------------------
 
-void ParametricSurface::GetFrame (Real u, Real v,
-    Vector3& position, Vector3& tangent0,
-    Vector3& tangent1, Vector3& normal)
+void ParametricSurface::GetFrame (Real u, Real v, Vector3& position, Vector3& tangent0, Vector3& tangent1, Vector3& normal)
 {
-    position = P(u, v);
+	Vector3 p(0), PU(0), PV(0);
 
-    tangent0 = PU(u, v);
-    tangent1 = PV(u, v);
+	GetAll(u, v, &p, &PU, &PV);
+
+    position = p;
+    tangent0 = PU;
+    tangent1 = PV;
+
     tangent0.normalize();  // T0
     tangent1.normalize();  // temporary T1 just to compute N
-    normal = cross(tangent0,tangent1).normalized();  // N
+    normal = cross(tangent0, tangent1).normalized();  // N
 
     // The normalized first derivatives are not necessarily orthogonal.
     // Recompute T1 so that {T0,T1,N} is an orthonormal set.
@@ -90,11 +92,14 @@ void ParametricSurface::ComputePrincipalCurvatureInfo (Real u, Real v, Real& cur
     // is (k1+k2)/2 and the Gaussian curvature is k1*k2.
 
     // Compute derivatives.
-    Vector3 derU = PU(u,v);
-    Vector3 derV = PV(u,v);
-    Vector3 derUU = PUU(u,v);
-    Vector3 derUV = PUV(u,v);
-    Vector3 derVV = PVV(u,v);
+	Vector3 p(0), PU(0), PV(0), PUU(0), PUV(0), PVV(0);
+	GetAll(u,v,&p,&PU,&PV,&PUU,&PUV,&PVV);
+
+    Vector3 derU = PU;
+    Vector3 derV = PV;
+    Vector3 derUU = PUU;
+    Vector3 derUV = PUV;
+    Vector3 derVV = PVV;
 
     // Compute the metric tensor.
     Matrix2<Real> metricTensor;

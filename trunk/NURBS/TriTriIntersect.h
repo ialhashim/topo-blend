@@ -585,8 +585,13 @@ inline int tri_tri_intersect_with_isectline(float V0[3],float V1[3],float V2[3],
   float vp0,vp1,vp2;
   float up0,up1,up2;
   float b,c,max;
-  float tmp,diff[3];
+  float tmp = 0,diff[3] = {0,0,0};
   int smallest1,smallest2;
+
+  float tmp_shutup = tmp;
+  float diff_shutup[3] = {diff[0],diff[1],diff[2]};
+  Q_UNUSED(tmp_shutup);
+  Q_UNUSED(diff_shutup);
 
 
   /* compute plane equation of triangle(V0,V1,V2) */
