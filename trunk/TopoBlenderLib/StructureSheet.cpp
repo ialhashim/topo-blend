@@ -2,6 +2,7 @@
 #include "NanoKdTree.h"
 #include "GraphDistance.h"
 #include "PCA.h"
+#include <GL/glu.h>
 
 #include "StructureSheet.h"
 using namespace Structure;
@@ -174,6 +175,54 @@ SurfaceMeshTypes::Vector3 Sheet::center()
 void Sheet::draw()
 {
     NURBS::SurfaceDraw::draw( &surface, vis_property["color"].value<QColor>(), vis_property["showControl"].toBool() );
+
+	// Draw selections
+	glColor3d(1, 1, 0);
+	GLUquadricObj *quadObj = gluNewQuadric();
+
+	gluQuadricDrawStyle(quadObj, GLU_FILL);
+	gluQuadricNormals(quadObj, GLU_SMOOTH);
+
+	foreach (int pID, selections)
+	{
+		int u = pID / surface.mNumVCtrlPoints;
+		int v = pID % surface.mNumVCtrlPoints;
+
+		Vector3 p = surface.GetControlPoint(u, v);
+
+		glPushMatrix();
+		glTranslatef(p.x(), p.y(), p.z());
+		gluSphere(quadObj, 0.08, 16, 16);
+		glPopMatrix();
+	}
+
+	gluDeleteQuadric(quadObj);
+}
+
+
+
+void Sheet::drawWithNames( int nID, int pointIDRange )
+{
+	int pID = nID * pointIDRange;
+
+	float radius = 1.0f;
+	glPointSize(20.0f);
+
+	for(int u = 0; u < surface.mNumUCtrlPoints; u++)
+	{
+		for(int v = 0; v < surface.mNumVCtrlPoints; v++)
+		{
+			glPushName(pID++);
+
+			Vec3d p = surface.GetControlPoint(u, v);
+
+			glBegin(GL_POINTS);
+			glVertex3d(p.x(), p.y(), p.z());
+			glEnd();
+
+			glPopName();
+		}
+	}
 }
 
 std::vector< std::vector<Vec3d> > Sheet::foldTo( const std::vector<Vec4d> & curve, bool isApply )
@@ -243,6 +292,8 @@ std::vector< std::vector<Vec3d> > Sheet::foldTo( const std::vector<Vec4d> & curv
 void Sheet::scale( Scalar scaleFactor )
 {
 	this->surface.scale(scaleFactor);
+
+	this->surface.quads.clear();
 }
 
 void Sheet::rotate( double angle, Vector3 axis )

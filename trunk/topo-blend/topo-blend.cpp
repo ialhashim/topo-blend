@@ -53,6 +53,10 @@ void topoblend::create()
 
 		loadModel();
 	}
+
+
+	drawArea()->setSelectRegionHeight(20);
+	drawArea()->setSelectRegionWidth(20);
 }
 
 void topoblend::decorate()
@@ -106,13 +110,6 @@ void topoblend::decorate()
 	double deltaX = layout ? drawArea()->sceneRadius() : 0;
 	double posX = - deltaX * (graphs.size() - 1) / 2;
 
-	if(graphs.size() > 1) 
-	{
-		float r = drawArea()->sceneRadius();
-		posX = -r * (graphs.size() - 1) / 2;
-		deltaX = r * 1.25;
-	}
-
 	for(int g = 0; g < (int) graphs.size(); g++)
 	{
 		glPushMatrix();
@@ -128,6 +125,55 @@ void topoblend::decorate()
 
 	}
 }
+
+
+void topoblend::drawWithNames()
+{
+	float deltaX = layout ? drawArea()->sceneRadius() : 0;
+	float posX = - deltaX * (graphs.size() - 1) / 2;
+
+	// Select control points
+	for(int gID = 0; gID < (int) graphs.size(); gID++)
+	{
+		Structure::Graph *g = graphs[gID];
+		int nodeID_base = gID * NODE_ID_RANGE;
+
+		glPushMatrix();
+		glTranslatef(posX, 0, 0);
+
+		for (int nID = 0; nID < (int)g->nodes.size(); nID++)
+		{
+			g->nodes[nID]->drawWithNames(nodeID_base + nID, POINT_ID_RANGE);
+		}
+
+
+		glPopMatrix();
+
+		posX += deltaX;
+	}
+}
+
+
+void topoblend::endSelection( const QPoint& p )
+{
+	drawArea()->defaultEndSelection(p);
+}
+
+
+void topoblend::postSelection( const QPoint& point )
+{
+	int selectedID = drawArea()->selectedName();
+	if (selectedID == -1) return;
+
+	int gID, nID, pID;
+	getIndicesFromSelectedName(selectedID, gID, nID, pID);
+
+	graphs[gID]->nodes[nID]->selectControlPoint(pID);
+
+	qDebug() << "Selected ID is " << selectedID;
+}
+
+
 
 void topoblend::generateChairModels()
 {
@@ -718,6 +764,7 @@ void topoblend::currentExperiment()
 
 void topoblend::updateDrawArea()
 {
+	setSceneBounds();
 	drawArea()->updateGL();
 }
 

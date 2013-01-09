@@ -63,6 +63,7 @@ struct Graph
 
 	// Visualization
     void draw();
+	void drawAABB();
     void draw2D(int width, int height);
 	QImage fontImage;
 
@@ -79,6 +80,7 @@ struct Graph
 	void moveBottomCenterToOrigin();
 	void normalize();
 	void rotate(double angle, Vector3 axis);
+	void scale(double scaleFactor);
 
 	// DEBUG:
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;

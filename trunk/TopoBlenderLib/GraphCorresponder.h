@@ -18,6 +18,8 @@ public:
 	// Helper functions
 	QString sgName();
 	QString tgName();
+
+	// Matrix operations
 	template <class Type>
 	void initializeMatrix(std::vector< std::vector<Type> > & M, Type value);
 	void normalizeMatrix(std::vector< std::vector<float> > & M);

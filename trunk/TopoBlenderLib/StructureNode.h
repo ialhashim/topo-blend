@@ -56,6 +56,14 @@ struct Node
     // Visualization
     virtual void draw() = 0;
     QMap< QString, QVariant > vis_property;
+	virtual void drawWithNames(int nID, int pointIDRange) = 0;
+
+	// Selections
+	QSet<int> selections;
+	void selectControlPoint(int pID){
+		if (selections.contains(pID)) selections.remove(pID);
+		else selections.insert(pID);
+	}
 };
 
 }

@@ -46,7 +46,9 @@ LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QD
 
 	/// Alignment
 	this->connect(ui->showAABB, SIGNAL(stateChanged(int)), SLOT(showAABB(int)));
+	this->connect(ui->normalizeButton, SIGNAL(clicked()), SLOT(normalize()));
 	this->connect(ui->rotateButton, SIGNAL(clicked()), SLOT(rotateGraph()));
+	this->connect(ui->scaleTarget, SIGNAL(valueChanged(int)), SLOT(scaleTarget(int)));
 
 
 	/// Correspondences
@@ -418,6 +420,26 @@ void LandmarksDialog::showAABB(int state)
 {
 	foreach (Structure::Graph *g, tp->graphs)
 		g->property["showAABB"] = (state == 2);
+
+	tp->updateDrawArea();
+}
+
+void LandmarksDialog::scaleTarget(int slider)
+{
+	double scaleFactor = slider / 50.0;
+
+	gcorr->tg->scale(scaleFactor);
+
+	tp->updateDrawArea();
+}
+
+void LandmarksDialog::normalize()
+{
+	foreach(Structure::Graph *g, tp->graphs)
+	{
+		g->moveBottomCenterToOrigin();
+		g->normalize();
+	}
 
 	tp->updateDrawArea();
 }
