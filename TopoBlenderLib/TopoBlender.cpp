@@ -183,6 +183,15 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 
 		// Graph edit
 		active->addNode( missingNode );
+
+		// Check cut node case
+		if( tg->isCutNode(nodeID) )
+		{
+			task->property["isCutNode"];
+
+			foreach(Structure::Link * edge, active->getEdges(nodeID))
+				edge->property["isCut"].setValue(true);
+		}
 	}
 
 	// Add missing edges from target graph
