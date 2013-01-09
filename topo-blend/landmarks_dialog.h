@@ -53,7 +53,9 @@ public slots:
 
 	// Alignment
 	void showAABB(int state);
+	void normalize();
 	void rotateGraph();
+	void scaleTarget(int slider);
 
 	// Correspondences
 	void reload();

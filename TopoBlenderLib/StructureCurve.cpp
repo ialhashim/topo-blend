@@ -2,6 +2,8 @@
 #include "LineSegment.h"
 using namespace Structure;
 
+#include "GL/GLU.h"
+
 Curve::Curve(const NURBSCurve & newCurve, QString newID, QColor color)
 {
     this->curve = newCurve;
@@ -226,4 +228,45 @@ SurfaceMeshTypes::Vector3 Curve::center()
 void Curve::draw()
 {
     NURBS::CurveDraw::draw( &curve, vis_property["color"].value<QColor>(), vis_property["showControl"].toBool() );
+
+	// Draw selections
+	glColor3d(1, 1, 0);
+	GLUquadricObj *quadObj = gluNewQuadric();
+
+	gluQuadricDrawStyle(quadObj, GLU_FILL);
+	gluQuadricNormals(quadObj, GLU_SMOOTH);
+
+	foreach (int i, selections)
+	{
+		Vector3 p = curve.GetControlPoint(i);
+
+		glPushMatrix();
+		glTranslatef(p.x(), p.y(), p.z());
+		gluSphere(quadObj, 0.08, 16, 16);
+		glPopMatrix();
+	}
+
+	gluDeleteQuadric(quadObj);
+}
+
+
+
+void Structure::Curve::drawWithNames( int nID, int pointIDRange )
+{
+	int pID = nID * pointIDRange;
+
+	float radius = 1.0f;
+	glPointSize(20.0f);
+	for(int i = 0; i < curve.mNumCtrlPoints; i++)
+	{
+		glPushName(pID++);
+
+		Vec3d p = curve.GetControlPoint(i);
+
+		glBegin(GL_POINTS);
+		glVertex3d(p.x(), p.y(), p.z());
+		glEnd();
+
+		glPopName();
+	}
 }

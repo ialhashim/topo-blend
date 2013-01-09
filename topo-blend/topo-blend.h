@@ -24,6 +24,10 @@ public:
 
     void decorate();
 
+	void drawWithNames();
+	void endSelection(const QPoint& p);
+	void postSelection(const QPoint& p);
+
 	bool keyPressEvent( QKeyEvent* event );
 
 	QMap<QString, QVariant> params;
@@ -45,6 +49,7 @@ public:
 	GraphCorresponder *gcoor;
 	GraphCorresponder* corresponder();
 	Structure::Graph * getGraph(int id);
+
 public slots:
 	void setSceneBounds();
 

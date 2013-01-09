@@ -51,6 +51,7 @@ struct Curve : public Node
 
     // Visualization
     void draw();
+	void drawWithNames(int nID, int pointIDRange);
 };
 
 }

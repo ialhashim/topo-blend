@@ -47,3 +47,16 @@ static inline Vec3d rotatedVec(const Vec3d & v, double theta, const Vec3d & axis
 {
 	return (v * cos(theta) + cross(axis, v) * sin(theta) + axis * dot(axis, v) * (1 - cos(theta)));
 }
+
+
+#define	POINT_ID_RANGE 1000
+#define NODE_ID_RANGE	100
+
+static void getIndicesFromSelectedName(int selectedName, int &gID, int &nID, int &pID)
+{
+	pID = selectedName % POINT_ID_RANGE;
+	selectedName /= POINT_ID_RANGE;
+
+	nID = selectedName % NODE_ID_RANGE;
+	gID = selectedName / NODE_ID_RANGE;
+}

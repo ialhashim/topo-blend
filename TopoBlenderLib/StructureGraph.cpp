@@ -23,8 +23,6 @@ Graph::Graph( QString fileName )
 	property["name"] = fileName;
 
 	property["showAABB"] = false;
-//	moveBottomCenterToOrigin();
-//	normalize();
 }
 
 Graph::Graph( const Graph & other )
@@ -286,53 +284,59 @@ void Graph::draw()
 	glEnable(GL_LIGHTING);
 
 	// AABB
-	if (property["showAABB"].toBool())
-	{
-		if (!property.contains("AABB"))
-			property["AABB"].setValue(bbox());
-		QBox3D aabb = property["AABB"].value<QBox3D>();
-		QVector3D qc = aabb.center();
-		QVector3D diagonal = aabb.maximum() - aabb.minimum();
-
-		double width = diagonal.x()/2;
-		double length = diagonal.y()/2;
-		double height = diagonal.z()/2;
-
-		Vec3d center(qc.x(), qc.y(), qc.z());
-		Vec3d  c1, c2, c3, c4;
-		Vec3d  bc1, bc2, bc3, bc4;
-
-		c1 = Vec3d (width, length, height) + center;
-		c2 = Vec3d (-width, length, height) + center;
-		c3 = Vec3d (-width, -length, height) + center;
-		c4 = Vec3d (width, -length, height) + center;
-
-		bc1 = Vec3d (width, length, -height) + center;
-		bc2 = Vec3d (-width, length, -height) + center;
-		bc3 = Vec3d (-width, -length, -height) + center;
-		bc4 = Vec3d (width, -length, -height) + center;
-
-		glDisable(GL_LIGHTING);
-		glLineWidth(1.0f);
-
-		glBegin(GL_LINES);
-		glVertex3dv(c1);glVertex3dv(bc1);
-		glVertex3dv(c2);glVertex3dv(bc2);
-		glVertex3dv(c3);glVertex3dv(bc3);
-		glVertex3dv(c4);glVertex3dv(bc4);
-		glVertex3dv(c1);glVertex3dv(c2);
-		glVertex3dv(c3);glVertex3dv(c4);
-		glVertex3dv(c1);glVertex3dv(c4);
-		glVertex3dv(c2);glVertex3dv(c3);
-		glVertex3dv(bc1);glVertex3dv(bc2);
-		glVertex3dv(bc3);glVertex3dv(bc4);
-		glVertex3dv(bc1);glVertex3dv(bc4);
-		glVertex3dv(bc2);glVertex3dv(bc3);
-		glEnd();
-
-		glEnable(GL_LIGHTING);
-	}
+	if (property["showAABB"].toBool()) drawAABB();
 }
+
+
+void Graph::drawAABB()
+{
+	if (!property.contains("AABB"))
+		property["AABB"].setValue(bbox());
+	QBox3D aabb = property["AABB"].value<QBox3D>();
+	QVector3D qc = aabb.center();
+	QVector3D diagonal = aabb.maximum() - aabb.minimum();
+
+	double width = diagonal.x()/2;
+	double length = diagonal.y()/2;
+	double height = diagonal.z()/2;
+
+	Vec3d center(qc.x(), qc.y(), qc.z());
+	Vec3d  c1, c2, c3, c4;
+	Vec3d  bc1, bc2, bc3, bc4;
+
+	c1 = Vec3d (width, length, height) + center;
+	c2 = Vec3d (-width, length, height) + center;
+	c3 = Vec3d (-width, -length, height) + center;
+	c4 = Vec3d (width, -length, height) + center;
+
+	bc1 = Vec3d (width, length, -height) + center;
+	bc2 = Vec3d (-width, length, -height) + center;
+	bc3 = Vec3d (-width, -length, -height) + center;
+	bc4 = Vec3d (width, -length, -height) + center;
+
+	glDisable(GL_LIGHTING);
+	glLineWidth(1.0f);
+
+	glBegin(GL_LINES);
+	glVertex3dv(c1);glVertex3dv(bc1);
+	glVertex3dv(c2);glVertex3dv(bc2);
+	glVertex3dv(c3);glVertex3dv(bc3);
+	glVertex3dv(c4);glVertex3dv(bc4);
+	glVertex3dv(c1);glVertex3dv(c2);
+	glVertex3dv(c3);glVertex3dv(c4);
+	glVertex3dv(c1);glVertex3dv(c4);
+	glVertex3dv(c2);glVertex3dv(c3);
+	glVertex3dv(bc1);glVertex3dv(bc2);
+	glVertex3dv(bc3);glVertex3dv(bc4);
+	glVertex3dv(bc1);glVertex3dv(bc4);
+	glVertex3dv(bc2);glVertex3dv(bc3);
+	glEnd();
+
+	glEnable(GL_LIGHTING);
+
+}
+
+
 
 void Graph::draw2D(int width, int height)
 {
@@ -945,4 +949,20 @@ void Graph::rotate( double angle, Vector3 axis )
 void Structure::Graph::removeEdge( QString n1_id, QString n2_id )
 {
 	removeEdge( getNode(n1_id),getNode(n2_id) );
+}
+
+void Structure::Graph::scale( double scaleFactor )
+{
+	double current_scale = 1.0;
+	if (property.contains("scale"))
+		current_scale = property["scale"].toDouble();
+
+	double relative_scale = scaleFactor / current_scale;
+
+	foreach (Structure::Node * node, nodes)
+		node->scale(relative_scale);
+
+	property["scale"] = scaleFactor;
+
+	property["AABB"].setValue(bbox());
 }

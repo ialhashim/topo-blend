@@ -38,7 +38,8 @@ HEADERS += StructureNode.h \
     FFD.h \
     ARAPCurveDeformer.h \
 	ARAPCurveHandle.h \
-    TimelineSlider.h
+    TimelineSlider.h \
+    StructureGlobal.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
