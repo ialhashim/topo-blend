@@ -8,6 +8,7 @@
 #include "NURBSCurve.h"
 //#include "../topo-blend/topo/DynamicGraph.h"
 #include "StructureGraph.h"
+#include "StructureNode.h"
 //#include "CurveskelHelper.h"
 
 
@@ -32,9 +33,6 @@ public:
 		void loadSourceModel();
 		void loadTargetModel();
 
-		void loadSourceCurve();
-		void loadTargetCurve();
-
 		void loadSourceGraph();
 		void loadTargetGraph();
 
@@ -44,15 +42,16 @@ signals:
 
 private:
 	geometry_morph_widget * widget;
-	
-	SurfaceMeshModel * sourceModel;
-	SurfaceMeshModel * targetModel;
-	SurfaceMeshModel * blendModel;
-	
-	NURBSCurve sourceCurve;
-	NURBSCurve targetCurve;
-	//NURBSCurve blendCurve;
 
-	Structure::Graph sourceGraph;
-	Structure::Graph targetGraph;
+public:
+	QVector<SurfaceMeshModel*> sourceModels;
+	QVector<SurfaceMeshModel*> targetModels;
+
+	QVector<Structure::Graph> sourceGraphs;
+	QVector<Structure::Graph> targetGraphs;
+
+	std::vector<SurfaceMeshModel*> resampledSourceModels;
+	std::vector<SurfaceMeshModel*> resampledTargetModels;
+
+	QVector<SurfaceMeshModel*> blendedModels;
 };
