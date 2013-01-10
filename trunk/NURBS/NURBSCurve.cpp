@@ -17,11 +17,10 @@ NURBSCurve::NURBSCurve (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWe
 }
 //----------------------------------------------------------------------------
 
-NURBSCurve NURBSCurve::createCurve( Vector3 from, Vector3 to )
+NURBSCurve NURBSCurve::createCurve( Vector3 from, Vector3 to, int steps )
 {
 	std::vector<Vector3> ctrlPoint;
 
-	int steps = 5;
 	int degree = 3;
 
 	Vector3 delta = (to - from) / steps;

@@ -42,8 +42,7 @@ public:
     NURBSCurve () {}
     NURBSCurve (std::vector<Vector3> ctrlPoint, std::vector<Real> ctrlWeight, int degree = 3, bool loop = false, bool open = true);
 
-	static NURBSCurve createCurve(Vector3 from, Vector3 to);
-
+	static NURBSCurve createCurve( Vector3 from, Vector3 to, int steps = 5 );
     int GetNumCtrlPoints () ;
     int GetDegree () ;
     bool IsOpen () ;
