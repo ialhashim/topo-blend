@@ -168,7 +168,7 @@ void topoblend::postSelection( const QPoint& point )
 	int gID, nID, pID;
 	getIndicesFromSelectedName(selectedID, gID, nID, pID);
 
-	graphs[gID]->nodes[nID]->selectControlPoint(pID);
+	graphs[gID]->nodes[nID]->addSelectionWithColor(pID, Qt::green);
 
 	qDebug() << "Selected ID is " << selectedID;
 }
@@ -764,7 +764,6 @@ void topoblend::currentExperiment()
 
 void topoblend::updateDrawArea()
 {
-	setSceneBounds();
 	drawArea()->updateGL();
 }
 

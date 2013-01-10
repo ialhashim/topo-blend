@@ -230,19 +230,21 @@ void Curve::draw()
     NURBS::CurveDraw::draw( &curve, vis_property["color"].value<QColor>(), vis_property["showControl"].toBool() );
 
 	// Draw selections
-	glColor3d(1, 1, 0);
 	GLUquadricObj *quadObj = gluNewQuadric();
 
 	gluQuadricDrawStyle(quadObj, GLU_FILL);
 	gluQuadricNormals(quadObj, GLU_SMOOTH);
 
-	foreach (int i, selections)
+	foreach (int pID, selections.keys())
 	{
-		Vector3 p = curve.GetControlPoint(i);
+		QColor color = selections[pID];
+		glColor3d(color.red(), color.green(), color.blue());
+
+		Vector3 p = curve.GetControlPoint(pID);
 
 		glPushMatrix();
 		glTranslatef(p.x(), p.y(), p.z());
-		gluSphere(quadObj, 0.08, 16, 16);
+		gluSphere(quadObj, 0.02, 16, 16);
 		glPopMatrix();
 	}
 

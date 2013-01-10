@@ -28,7 +28,11 @@ LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QD
 	// Update the contents
 	updateAll();
 
-	/// Landmarks
+	/// Point Landmarks
+	this->connect(ui->addPointLandmarkButton, SIGNAL(clicked()), SLOT(addPointLandmark()));
+	this->connect(ui->pointLandmarksList, SIGNAL(itemSelectionChanged()), SLOT(visualizePointLandmarks()));
+
+	/// Part Landmarks
 	// Selections
 	this->connect(ui->sClearButton, SIGNAL(clicked()), SLOT(sClearSelections()));
 	this->connect(ui->tClearButton, SIGNAL(clicked()), SLOT(tClearSelections()));
@@ -140,7 +144,7 @@ void LandmarksDialog::updateLandmarksTableWidget()
 	for (int i = 0; i < nLandmarks; i++)
 	{
 		QString sItem, tItem;
-		VECTOR_PAIR set2set = gcorr->landmarks[i];
+		PART_LANDMARK set2set = gcorr->landmarks[i];
 		
 		foreach (QString s, set2set.first)	sItem += s + ", ";
 		sItem.remove(sItem.size()-2, 2);
@@ -171,7 +175,7 @@ void LandmarksDialog::addLandmark()
 	if (sItems.empty() || tItems.empty()) return;
 
 
-	std::vector<QString> sParts, tParts;
+	QVector<QString> sParts, tParts;
 
 	foreach (QListWidgetItem* item, sItems)
 		sParts.push_back(item->text());
@@ -274,7 +278,7 @@ void LandmarksDialog::visualizeLandmark()
 
 		// Get the landmark
 		int id = ui->landmarksTable->row(items.front());
-		VECTOR_PAIR set2set = gcorr->landmarks[id];
+		PART_LANDMARK set2set = gcorr->landmarks[id];
 
 		// Set red for landmark
 		foreach (QString sID, set2set.first)
@@ -315,7 +319,7 @@ void LandmarksDialog::updateCorrTableWidget()
 	for (int i = 0; i < nCoor; i++)
 	{
 		// Correspondences and scores
-		VECTOR_PAIR vec2vec = gcorr->correspondences[i];
+		PART_LANDMARK vec2vec = gcorr->correspondences[i];
 		std::vector<float> scores = gcorr->corrScores[i];
 
 		// One to many
@@ -439,6 +443,67 @@ void LandmarksDialog::normalize()
 	{
 		g->moveBottomCenterToOrigin();
 		g->normalize();
+	}
+
+	tp->setSceneBounds();
+	tp->updateDrawArea();
+}
+
+void LandmarksDialog::addPointLandmark()
+{
+	gcorr->addPointLandmark();
+	tp->updateDrawArea();
+
+	updatePointLandmarksList();
+}
+
+void LandmarksDialog::updatePointLandmarksList()
+{
+	// Clear
+	ui->pointLandmarksList->clear();
+
+	// Add items
+	foreach (POINT_LANDMARK landmark, gcorr->pointLandmarks)
+	{
+		 QVector<POINT_ID> sPoints = landmark.first;
+		 QVector<POINT_ID> tPoints = landmark.second;
+
+		 QString sIDString, tIDString;
+		 foreach( POINT_ID sID, sPoints ) sIDString += "<" + QString::number(sID.first) + ", " + QString::number(sID.second) + ">";
+		 foreach( POINT_ID tID, tPoints ) tIDString += "<" + QString::number(tID.first) + ", " + QString::number(tID.second) + ">";
+		 ui->pointLandmarksList->addItem(new QListWidgetItem(sIDString + "\t" + tIDString));
+	}
+}
+
+void LandmarksDialog::visualizePointLandmarks()
+{
+	// Clear all selection
+	gcorr->sg->clearSelections();
+	gcorr->tg->clearSelections();
+
+	// Add selected point landmarks
+	QModelIndexList selectedIDs = ui->pointLandmarksList->selectionModel()->selectedRows();
+	int nbItems = selectedIDs.size();
+	foreach(QModelIndex modelID, selectedIDs)
+	{
+		int id = modelID.row();
+		double color = (double) (id+1) / nbItems;
+
+		POINT_LANDMARK landmark = gcorr->pointLandmarks[id];
+
+		foreach (POINT_ID sID, landmark.first)
+		{
+			int nID = sID.first;
+			int pID = sID.second;
+			gcorr->sg->nodes[nID]->addSelectionWithColor(pID, qtJetColorMap(color));
+		}
+
+		foreach (POINT_ID tID, landmark.second)
+		{
+			int nID = tID.first;
+			int pID = tID.second;
+			gcorr->tg->nodes[nID]->addSelectionWithColor(pID, qtJetColorMap(color));
+		}
 	}
 
 	tp->updateDrawArea();

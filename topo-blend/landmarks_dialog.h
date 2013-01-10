@@ -29,6 +29,8 @@ public:
 	Structure::Node* sNode(int i);
 	Structure::Node* tNode(int i);
 
+	void updatePointLandmarksList();
+
 	void updateSList();
 	void updateTList();
 	void updateLandmarksTableWidget();
@@ -39,7 +41,11 @@ public:
 	void updateAll();
 
 public slots:
-	// Landmarks
+	// Point Landmarks
+	void addPointLandmark();
+	void visualizePointLandmarks();
+
+	// Part Landmarks
 	void sClearSelections();
 	void tClearSelections();
 	void visualizeSelections();

@@ -177,14 +177,16 @@ void Sheet::draw()
     NURBS::SurfaceDraw::draw( &surface, vis_property["color"].value<QColor>(), vis_property["showControl"].toBool() );
 
 	// Draw selections
-	glColor3d(1, 1, 0);
 	GLUquadricObj *quadObj = gluNewQuadric();
 
 	gluQuadricDrawStyle(quadObj, GLU_FILL);
 	gluQuadricNormals(quadObj, GLU_SMOOTH);
 
-	foreach (int pID, selections)
+	foreach (int pID, selections.keys())
 	{
+		QColor color = selections[pID];
+		glColor3d(color.red(), color.green(), color.blue());
+
 		int u = pID / surface.mNumVCtrlPoints;
 		int v = pID % surface.mNumVCtrlPoints;
 
@@ -192,7 +194,7 @@ void Sheet::draw()
 
 		glPushMatrix();
 		glTranslatef(p.x(), p.y(), p.z());
-		gluSphere(quadObj, 0.08, 16, 16);
+		gluSphere(quadObj, 0.02, 16, 16);
 		glPopMatrix();
 	}
 
