@@ -8,6 +8,10 @@
 #include "NURBSRectangle.h"
 #include "NurbsDraw.h"
 
+#include "nurbstools.h"
+
+#include "OBB_Volume.h"
+
 class nurbs_plugin : public SurfaceMeshModePlugin{
     Q_OBJECT
     Q_INTERFACES(ModePlugin)
@@ -21,6 +25,19 @@ public:
 
     void decorate();
 
-    std::vector<NURBSCurve> nc;
+    std::vector<NURBSCurve> curves;
     std::vector<NURBSRectangle> rects;
+
+    NURBSTools * widget;
+
+    Vector3VertexProperty points;
+
+	OBB_Volume mesh_obb;
+
+	void basicFit(NURBSCurve & curve, std::vector<Vec3d> pnts);
+	void basicFitRecursive(NURBSCurve & curve, std::vector<Vec3d> pnts, int high, int low);
+
+public slots:
+    void doFitCurve();
+    void doFitSurface();
 };

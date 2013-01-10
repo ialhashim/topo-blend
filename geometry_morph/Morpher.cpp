@@ -1152,7 +1152,7 @@ SurfaceMeshModel* Morpher::generateInBetween( std::vector<SurfaceMeshModel*> sou
 	int vertexIndexBase=0;
 	std::vector<Vertex> vertiexIndices;
 
-	for (int i=0; i< source_models.size(); i++)
+    for (int i=0; i< (int)source_models.size(); i++)
 	{
 		Vector3VertexProperty source_points = source_models[i]->vertex_property<Vector3>(VPOINT);
 		Vector3VertexProperty target_points = target_models[i]->vertex_property<Vector3>(VPOINT);
@@ -1177,7 +1177,7 @@ SurfaceMeshModel* Morpher::generateInBetween( std::vector<SurfaceMeshModel*> sou
 			face_vertex_idx.push_back(++vfit);
 
 			//since we read multiple models, the vertex index should be added by a base index number of previous saved vertex number 
-			for(int v=0;v<face_vertex_idx.size();v++)
+            for(int v=0;v<(int)face_vertex_idx.size();v++)
 				Face_vertex_idx.push_back(vertiexIndices[face_vertex_idx[v].idx()+vertexIndexBase]);
 
 			blendModel->add_face(Face_vertex_idx);

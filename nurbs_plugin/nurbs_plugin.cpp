@@ -1,74 +1,120 @@
 #include "nurbs_plugin.h"
+#include "NanoKdTree.h"
 
-void nurbs_plugin::decorate()
-{
-    for(int i = 0; i < (int) nc.size(); i++)
-    {
-        NURBS::CurveDraw::draw( &nc[i] );
-    }
-
-    for(int i = 0; i < (int) rects.size(); i++)
-    {
-        NURBS::SurfaceDraw::draw ( &rects[i] );
-    }
-}
+#include "interfaces/ModePluginDockWidget.h"
 
 void nurbs_plugin::create()
 {
-	int degree = 3;
+    ModePluginDockWidget * dockwidget = new ModePluginDockWidget(mainWindow());
+    widget = new NURBSTools(this);
+    dockwidget->setWidget(widget);
+    dockwidget->setWindowTitle(widget->windowTitle());
+    mainWindow()->addDockWidget(Qt::RightDockWidgetArea,dockwidget);
 
-	// Curve example
-	std::vector<Vec3d> cps;
-	int steps = 10;
-	double theta = M_PI * 5 / steps;
-	double r = M_PI;
+    points = mesh()->vertex_property<Vector3>("v:point");
+}
 
-	for(int i = 0; i <= steps; i++)
+void nurbs_plugin::decorate()
+{
+	// Draw OBB
+	mesh_obb.draw();
+
+	for(int i = 0; i < (int)curves.size(); i++)
 	{
-		double x = (double(i) / steps) * r;
-		double y = sin(i * theta) * r * 0.25;
+		NURBS::CurveDraw::draw( &curves[i], QColor(0,255,255), true );
+	}
+}
 
-		cps.push_back(Vec3d(x - r * 0.5, y, cos(i*theta)));
+void nurbs_plugin::doFitCurve()
+{
+    qDebug() << "Curve fitting..";
+
+	mesh_obb = OBB_Volume( mesh() );
+
+	std::vector<Vec3d> corners = mesh_obb.corners();
+
+	Vector3 from( corners.front() );
+	Vector3 to( corners.back() );
+
+	NURBSCurve c = NURBSCurve::createCurve(from, to, 10);
+
+	std::vector<Vec3d> mesh_points;
+	foreach(Vertex v, mesh()->vertices()) mesh_points.push_back( points[v] );
+
+	basicFit(c, mesh_points);
+
+	curves.push_back( c );
+
+	drawArea()->updateGL();
+}
+
+void nurbs_plugin::doFitSurface()
+{
+    qDebug() << "Surface fitting..";
+
+	drawArea()->updateGL();
+}
+
+void nurbs_plugin::basicFit( NURBSCurve & curve, std::vector<Vec3d> pnts )
+{
+	int high = curve.mCtrlPoint.size() - 1;
+	int low = 0;
+
+	// Try to fit two ends
+	Vec3d planeNormal = (curve.mCtrlPoint[high] - curve.mCtrlPoint[low]).normalized();
+
+	QMap<double, Vec3d> distsLow, distsHigh;
+	for(int i = low; i <= high; i++){
+		for(int j = 0; j < (int)pnts.size(); j++){
+			distsLow[abs(dot( planeNormal, (pnts[j] - curve.mCtrlPoint[low]) ))] = pnts[j];
+			distsHigh[abs(dot( planeNormal, (pnts[j] - curve.mCtrlPoint[high]) ))] = pnts[j];
+		}
 	}
 
-    std::vector<Scalar> weight(cps.size(), 1.0);
+	curve.mCtrlPoint[low] = distsLow.values().front();
+	curve.mCtrlPoint[high] = distsHigh.values().front();
 
-    nc.push_back(NURBSCurve(cps, weight, degree, false, true));
+	basicFitRecursive(curve,pnts,high,low);
+}
 
-	// Rectangular surface
-	double w = 1;
-	double l = 2;
+void nurbs_plugin::basicFitRecursive( NURBSCurve & curve, std::vector<Vec3d> pnts, int high, int low )
+{
+	int mid = ((high - low) * 0.5) + low;
 
-	int width = w * 5;
-	int length = l * 5;
+	if(high <= low || mid == low || mid == high) return;
 
-	std::vector< std::vector<Vec3d> > cpts( width, std::vector<Vec3d>(length, 1.0) );
-	std::vector< std::vector<Scalar> > weights( width, std::vector<Scalar>(length, 1.0) );
+	qDebug() << QString("High = %1  Mid = %2  Low = %3").arg(high).arg(mid).arg(low);
 
-	double omega = M_PI * 3 / qMin(width, length);
+	Vec3d planeCenter = (curve.mCtrlPoint[high] + curve.mCtrlPoint[low]) * 0.5;
+	Vec3d planeNormal = (curve.mCtrlPoint[high] - curve.mCtrlPoint[low]).normalized();
 
-	Vec4d surface_pos(0,1);
-
-	for(int i = 0; i < width; i++)
-		for(int j = 0; j < length; j++)
+	QMap<double, Vec3d> dists;
+	for(int i = low; i <= high; i++)
+	{
+		for(int j = 0; j < (int)pnts.size(); j++)
 		{
-			double x = double(i) / width;
-			double y = double(j) / length;
-
-			double delta = sqrt(x*x + y*y) * 0.5;
-
-			cpts[i][j] = Vec3d(surface_pos.x() + x * w, surface_pos.y() + y * l, delta + sin(j * omega) * qMin(width, length) * 0.02);
+			double d = abs(dot( planeNormal, (pnts[j] - planeCenter) ));
+			dists[d] = pnts[j];
 		}
+	}
 
-    rects.push_back( NURBSRectangle(cpts, weights, degree, degree, false, false, true, true) );
+	Vec3d closestPoint = dists.values().front();
+	curve.mCtrlPoint[mid] = closestPoint;
 
-    // Set scene bounds
-    QBox3D bbox;
-    foreach(Vector3 v, cps) bbox.unite(v);
-    foreach(std::vector<Vec3d> vs, cpts) foreach(Vector3 v, vs) bbox.unite(v);
-    Vector3 a = bbox.minimum();
-    Vector3 b = bbox.maximum();
-    drawArea()->setSceneBoundingBox(qglviewer::Vec(a.x(), a.y(), a.z()), qglviewer::Vec(b.x(), b.y(), b.z()));
+	Vec3d deltaLow = (curve.mCtrlPoint[mid] - curve.mCtrlPoint[low]) / (mid - (low + 1));
+	for(int i = low + 1; i < mid; i++)
+	{
+		curve.mCtrlPoint[i] = curve.mCtrlPoint[i-1] + deltaLow;
+	}
+
+	Vec3d deltaHigh = (curve.mCtrlPoint[high] - curve.mCtrlPoint[mid]) / (high - (mid + 1));
+	for(int i = mid + 1; i < high; i++)
+	{
+		curve.mCtrlPoint[i] = curve.mCtrlPoint[i-1] + deltaHigh;
+	}
+
+	basicFitRecursive(curve, pnts, mid, low);
+	basicFitRecursive(curve, pnts, high, mid);
 }
 
 Q_EXPORT_PLUGIN (nurbs_plugin)

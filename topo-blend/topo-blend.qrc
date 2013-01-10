@@ -18,5 +18,7 @@
         <file>images/cross-red.png</file>
         <file>images/update.png</file>
         <file>images/tick.png</file>
+        <file>images/nurbs_curve.png</file>
+        <file>images/nurbs_surface.png</file>
     </qresource>
 </RCC>

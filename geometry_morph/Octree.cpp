@@ -383,8 +383,9 @@ void Octree::intersectionTest( Surface_mesh::Face f, const Ray & ray, HitResult 
 	Vec3d v1 = vert[1];
 	Vec3d v2 = vert[2];
 
+    allowBack = allowBack;
 
-	float EPSILON = 1e-8;
+    double EPSILON = 1e-8;
 	Vec3d edge1 = v1 - v0;
 	Vec3d edge2 = v2 - v0;
 	Vec3d pvec = cross(ray.direction, edge2);
@@ -479,6 +480,8 @@ void Octree::my_intersectionTest( Surface_mesh::Face ff, const Ray & ray, HitRes
 	std::vector<Vec3d> vert = triPoints(ff);
 	res.hit = false;
 	res.distance = DBL_MAX;
+
+    allowBack = allowBack;
 
 	Vec3d e1,e2,h,s,q;
 	float a,f,u,v,t;
