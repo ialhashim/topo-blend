@@ -82,6 +82,10 @@ struct Graph
 	void rotate(double angle, Vector3 axis);
 	void scale(double scaleFactor);
 
+	// Point Landmarks
+	QVector<POINT_ID> selectedControlPointsByColor(QColor color);
+	void clearSelections();
+
 	// DEBUG:
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
 	void printAdjacency();

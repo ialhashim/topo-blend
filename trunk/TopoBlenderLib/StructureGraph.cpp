@@ -946,12 +946,12 @@ void Graph::rotate( double angle, Vector3 axis )
 		node->rotate(angle, axis);
 }
 
-void Structure::Graph::removeEdge( QString n1_id, QString n2_id )
+void Graph::removeEdge( QString n1_id, QString n2_id )
 {
 	removeEdge( getNode(n1_id),getNode(n2_id) );
 }
 
-void Structure::Graph::scale( double scaleFactor )
+void Graph::scale( double scaleFactor )
 {
 	double current_scale = 1.0;
 	if (property.contains("scale"))
@@ -965,4 +965,26 @@ void Structure::Graph::scale( double scaleFactor )
 	property["scale"] = scaleFactor;
 
 	property["AABB"].setValue(bbox());
+}
+
+QVector<POINT_ID> Graph::selectedControlPointsByColor(QColor color)
+{
+	QVector<POINT_ID> result;
+	for (int nID = 0; nID < (int)nodes.size(); nID++)
+	{
+		Structure::Node *node = nodes[nID];
+		foreach (int pID, node->selections.keys())
+		{
+			if (node->selections[pID] == color)
+				result.push_back(std::make_pair(nID, pID));
+		}
+	}
+
+	return result;
+}
+
+void Structure::Graph::clearSelections()
+{
+	foreach(Structure::Node *node, nodes)
+		node->selections.clear();
 }

@@ -60,3 +60,7 @@ static void getIndicesFromSelectedName(int selectedName, int &gID, int &nID, int
 	nID = selectedName % NODE_ID_RANGE;
 	gID = selectedName / NODE_ID_RANGE;
 }
+
+typedef std::pair< QVector<QString>, QVector<QString> > PART_LANDMARK;
+typedef std::pair< int, int > POINT_ID;
+typedef std::pair< QVector<POINT_ID>, QVector<POINT_ID> > POINT_LANDMARK;

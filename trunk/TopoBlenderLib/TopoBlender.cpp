@@ -52,10 +52,10 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 
 	// Morph corresponded nodes
 	QVector< PairQString > core_pairs;
-	foreach (VECTOR_PAIR vec2vec, gcoor->correspondences)
+	foreach (PART_LANDMARK vec2vec, gcoor->correspondences)
 	{
-		std::vector<QString> sNodes = vec2vec.first;
-		std::vector<QString> tNodes = vec2vec.second;
+		QVector<QString> sNodes = vec2vec.first;
+		QVector<QString> tNodes = vec2vec.second;
 
 		int sN = sNodes.size();
 		int tN = tNodes.size();

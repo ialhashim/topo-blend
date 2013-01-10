@@ -19,7 +19,7 @@ GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph
 }
 
 
-void GraphCorresponder::addLandmarks( std::vector<QString> sParts, std::vector<QString> tParts )
+void GraphCorresponder::addLandmarks( QVector<QString> sParts, QVector<QString> tParts )
 {
 	// Check if those parts are available
 	foreach(QString strID, sParts)
@@ -78,7 +78,7 @@ void GraphCorresponder::removeLandmarks( int pos, int n )
 
 	for (int i = pos; i < pos + n; i++)
 	{
-		VECTOR_PAIR vector2vector = landmarks[i];
+		PART_LANDMARK vector2vector = landmarks[i];
 
 		// Update isLandmark
 		foreach(QString strID, vector2vector.first)
@@ -117,7 +117,7 @@ void GraphCorresponder::computeValidationMatrix()
 	}
 
 	// Landmarks
-	foreach (VECTOR_PAIR vector2vector, landmarks)
+	foreach (PART_LANDMARK vector2vector, landmarks)
 	{
 		// Convert strID to int id
 		std::set<int> sIDs, tIDs;
@@ -474,7 +474,7 @@ void GraphCorresponder::computePartToPartCorrespondences()
 		}
 
 		// Results
-		std::vector<QString> sVector, tVector;
+		QVector<QString> sVector, tVector;
 		sVector.push_back(sg->nodes[r]->id);
 		tVector.push_back(tg->nodes[c]->id);
 		std::vector<float> scores;
@@ -752,7 +752,7 @@ void GraphCorresponder::computeCorrespondences()
 
 	// Add the landmarks as correspondences too
 	std::vector<float> fake_score(1, -1);
-	foreach(VECTOR_PAIR landmark, landmarks)
+	foreach(PART_LANDMARK landmark, landmarks)
 	{
 		correspondences.push_back(landmark);
 		corrScores.push_back(fake_score);
@@ -762,7 +762,7 @@ void GraphCorresponder::computeCorrespondences()
 	// Mark the nodes
 	sIsCorresponded.resize(sg->nodes.size(), false);
 	tIsCorresponded.resize(tg->nodes.size(), false);
-	foreach (VECTOR_PAIR vector2vector, correspondences)
+	foreach (PART_LANDMARK vector2vector, correspondences)
 	{
 		foreach (QString sID, vector2vector.first)
 		{
@@ -781,8 +781,8 @@ void GraphCorresponder::computeCorrespondences()
 	// Then Point-to-Point correspondences can be easily retrieved via parameterized NURBS. 
 	for (int i = 0; i < (int)correspondences.size(); i++)
 	{
-		std::vector<QString> &sVector = correspondences[i].first;
-		std::vector<QString> &tVector = correspondences[i].second;
+		QVector<QString> &sVector = correspondences[i].first;
+		QVector<QString> &tVector = correspondences[i].second;
 
 		// One to many
 		if (sVector.size() == 1)
@@ -821,7 +821,7 @@ void GraphCorresponder::saveLandmarks(QString filename)
 
 	outF << landmarks.size() << "\n\n";
 
-	foreach (VECTOR_PAIR vector2vector, landmarks)
+	foreach (PART_LANDMARK vector2vector, landmarks)
 	{
 		outF << vector2vector.first.size() << '\t';;
 		foreach (QString strID, vector2vector.first)
@@ -856,7 +856,7 @@ void GraphCorresponder::loadLandmarks(QString filename)
 	{
 		int n;
         QString strID;
-		std::vector<QString> sParts, tParts;
+		QVector<QString> sParts, tParts;
 
 		inF >> n;
 		for (int j = 0; j < n; j++)
@@ -926,4 +926,22 @@ void GraphCorresponder::saveCorrespondences( QString filename )
 void GraphCorresponder::LoadCorrespondences( QString filename )
 {
 
+}
+
+void GraphCorresponder::addPointLandmark()
+{
+	QVector<POINT_ID> sSelections = sg->selectedControlPointsByColor(Qt::green);
+	QVector<POINT_ID> tSelections = tg->selectedControlPointsByColor(Qt::green);
+
+	if (sSelections.empty() || tSelections.empty()) 
+	{
+		qDebug() << "You need select landmarks on both the source and target graphs.";
+		return;
+	}
+
+	pointLandmarks.push_back(std::make_pair(sSelections, tSelections));
+
+	// Clear the selections
+	sg->clearSelections();
+	tg->clearSelections();
 }

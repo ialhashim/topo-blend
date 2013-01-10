@@ -5,9 +5,6 @@
 
 #include <vector>
 
-typedef std::pair< std::vector<QString>, std::vector<QString> > VECTOR_PAIR;
-Q_DECLARE_METATYPE(VECTOR_PAIR);
-
 class GraphCorresponder : public QObject
 {
 	Q_OBJECT
@@ -25,10 +22,14 @@ public:
 	void normalizeMatrix(std::vector< std::vector<float> > & M);
 	bool minElementInMatrix(std::vector< std::vector<float> > &M, int &row, int &column, float &minValue);
 
+	// Point Landmarks
+	QVector< POINT_LANDMARK > pointLandmarks;
+	void addPointLandmark();
+
 	// Landmarks
-	std::vector<VECTOR_PAIR> landmarks;
+	QVector<PART_LANDMARK> landmarks;
 	std::vector<bool> sIsLandmark, tIsLandmark;
-	void addLandmarks(std::vector<QString> sParts, std::vector<QString> tParts);
+	void addLandmarks(QVector<QString> sParts, QVector<QString> tParts);
 	void removeLandmarks(int pos, int n);
 	void saveLandmarks(QString filename);
 	void loadLandmarks(QString filename);
@@ -60,7 +61,7 @@ public:
 
 	// Result
 	std::vector<bool> sIsCorresponded, tIsCorresponded;
-	std::vector<VECTOR_PAIR> correspondences;
+	std::vector<PART_LANDMARK> correspondences;
 	std::vector<std::vector<float> > corrScores;
 
 public slots:
