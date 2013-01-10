@@ -5,16 +5,16 @@
 
 // red, orange, yellow, green, blue
 // pink, purpule, portage, lacoste, corn
-static QColor TaskColors[] = { QColor(255,97,121),  QColor(107,255,135), 
-	QColor(255,219,88), QColor(255,165,107) , QColor(104,126,255),
+static QColor TaskColors[] = { QColor(255,97,121),  QColor(255,219,88), 
+	QColor(107,255,135), QColor(255,165,107) , QColor(104,126,255),
 	QColor(242,5,135), QColor(113,53,242), QColor(138,109,242), QColor(3,166,60), QColor(242,203,5)};
 
-static QString TaskNames[] = { "SHRINK", "MORPH", "MERGE", "SPLIT", "GROW" };
+static QString TaskNames[] = { "SHRINK", "MERGE", "MORPH", "SPLIT", "GROW" };
 
 class Task : public QGraphicsObject
 {
 public:
-	enum TaskType{ SHRINK, MORPH, MERGE, SPLIT, GROW };
+	enum TaskType{ SHRINK, MERGE, MORPH, SPLIT, GROW };
 
 	Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, TaskType taskType, int ID );
     QRectF boundingRect() const;
@@ -60,6 +60,7 @@ public:
 	void reset();
 	bool stillWorking();
 	bool isDone;
+	void setStart(int newStart);
 	int endTime();
 	double localT( int globalTime );
 

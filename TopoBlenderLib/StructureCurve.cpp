@@ -251,11 +251,10 @@ void Curve::draw()
 
 
 
-void Structure::Curve::drawWithNames( int nID, int pointIDRange )
+void Curve::drawWithNames( int nID, int pointIDRange )
 {
 	int pID = nID * pointIDRange;
 
-	float radius = 1.0f;
 	glPointSize(20.0f);
 	for(int i = 0; i < curve.mNumCtrlPoints; i++)
 	{

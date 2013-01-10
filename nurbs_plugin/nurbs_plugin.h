@@ -34,8 +34,10 @@ public:
 
 	OBB_Volume mesh_obb;
 
-	void basicFit(NURBSCurve & curve, std::vector<Vec3d> pnts);
-	void basicFitRecursive(NURBSCurve & curve, std::vector<Vec3d> pnts, int high, int low);
+	void basicCurveFit(NURBSCurve & curve, std::vector<Vec3d> pnts);
+	void basicCurveFitRecursive(NURBSCurve & curve, std::vector<Vec3d> pnts, int high, int low);
+
+	void basicSurfaceFit(NURBSRectangle & surface);
 
 public slots:
     void doFitCurve();

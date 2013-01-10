@@ -98,7 +98,7 @@ void Scheduler::schedule()
 	}
 
 	// Order and group here:
-
+	this->order();
 
 	// Prepare all tasks:
 	foreach(Task * task, tasks)
@@ -111,6 +111,31 @@ void Scheduler::schedule()
 	slider->reset();
 	this->connect( slider, SIGNAL(timeChanged(int)), SLOT(timeChanged(int)) );
     this->addItem( slider );
+}
+
+void Scheduler::order()
+{
+	QMultiMap<Task::TaskType,Task*> tasksByType;
+
+	foreach(Task * task, tasks)
+		tasksByType.insert(task->type, task);
+
+	int curStart = 0;
+
+	for(int i = Task::SHRINK; i <= Task::GROW; i++)
+	{
+		QList<Task*> curTasks = tasksByType.values(Task::TaskType(i));
+		if(!curTasks.size()) continue;
+
+		int futureStart = curStart;
+
+		foreach(Task* t, curTasks){
+			t->setStart(curStart);
+			futureStart = qMax(futureStart, t->endTime());
+		}
+
+		curStart = futureStart;
+	}
 }
 
 void Scheduler::executeAll()
