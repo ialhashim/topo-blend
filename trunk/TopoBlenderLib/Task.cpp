@@ -719,3 +719,10 @@ double Task::localT( int globalTime )
 
 	return t;
 }
+
+void Task::setStart( int newStart )
+{
+	start = newStart;
+	currentTime = 0;
+	setX(newStart);
+}

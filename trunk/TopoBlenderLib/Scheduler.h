@@ -19,6 +19,7 @@ public:
 	QVector<Structure::Graph*> allGraphs;
 	
 	void schedule();
+	void order();
 	void executeAll();
 
 	int totalExecutionTime();

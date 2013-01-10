@@ -61,6 +61,56 @@ NURBSRectangle NURBSRectangle::createSheet(Scalar width, Scalar length, Vector3 
     return NURBSRectangle(pts, weights, degree, degree, false, false, true, true);
 }
 
+NURBSRectangle NURBSRectangle::createSheet( Vec3d corner1, Vec3d corner2, int stepsU, int stepsV )
+{
+	int nU = stepsU, nV = stepsV;
+	int degree = 3;
+
+	Vector3 center = (corner1 + corner2) * 0.5;
+	Vector3 corner = corner1;
+
+	Vector3 d = corner1 - corner2;
+	assert(d.norm() > 0);
+
+	QVector<Scalar> vals;
+	vals.push_back(abs(d.x()));
+	vals.push_back(abs(d.y()));
+	vals.push_back(abs(d.z()));
+	qSort(vals);
+	if(vals[1] == 0.0) vals[1] = 1e-16;
+	if(vals[1] == vals[2]) vals[2] += 1e-6;
+
+	double width = vals[2];
+	double length = vals[1];
+
+	Vector3 xyz[3] = { Vector3(0,0,1), Vector3(0,1,0), Vector3(1,0,0) };
+	Vector3 dU = xyz[ vals.indexOf(width ) ];
+	Vector3 dV = xyz[ vals.indexOf(length) ];
+
+	Scalar aspect_U = 1.0, aspect_V = 1.0;
+	if(width > length) aspect_U = length / width;
+	if(length > width) aspect_V = width / length;
+
+	nU *= 1.0 / aspect_U;
+	nV *= 1.0 / aspect_V;
+
+	// Rectangular surface
+	std::vector< std::vector<Vector3> > pts( nU, std::vector<Vector3>( nV, Vector3(0) ) );
+	std::vector< std::vector<Scalar> > weights( nU, std::vector<Scalar>( nV, 1.0 ) );
+
+	Vector3 deltaU = (width  / (nU-1)) * dU;
+	Vector3 deltaV = (length / (nV-1)) * dV;
+
+	for(int y = 0; y < nV; y++){
+		for(int x = 0; x < nU; x++)
+		{
+			pts[x][y] = corner + (deltaU * x) + (deltaV * y);
+		}
+	}
+
+	return NURBSRectangle(pts, weights, degree, degree, false, false, true, true);
+}
+
 //----------------------------------------------------------------------------
 void NURBSRectangle::CreateControl (Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight)
 {
