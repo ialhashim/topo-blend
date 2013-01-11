@@ -1,4 +1,6 @@
 #include <QFile>
+#include <QFileInfo>
+#include <QDir>
 #include <QElapsedTimer>
 #include <QDomElement>
 #include <QStack>
@@ -9,10 +11,13 @@ using namespace Structure;
 #include "GraphEmbed.h"
 #include "GraphDraw2D.h"
 
+#include "QuickMeshDraw.h"
+
 Graph::Graph()
 {
 	property["embeded2D"] = false;
 	property["showAABB"] = false;
+	property["showMeshes"] = true;
 }
 
 Graph::Graph( QString fileName )
@@ -23,6 +28,7 @@ Graph::Graph( QString fileName )
 	property["name"] = fileName;
 
 	property["showAABB"] = false;
+	property["showMeshes"] = true;
 }
 
 Graph::Graph( const Graph & other )
@@ -245,6 +251,15 @@ void Graph::draw()
 			//}
 			//glEnd();
 		}
+
+		// Draw node mesh
+		if( property["showMeshes"].toBool() )
+		{
+			if(n->property.contains("mesh"))
+			{
+				QuickMeshDraw::drawMeshWireFrame( n->property["mesh"].value<SurfaceMeshModel*>() );
+			}
+		}
     }
 
     foreach(Link * e, edges)
@@ -421,6 +436,7 @@ void Graph::saveToFile( QString fileName ) const
 
 	QFile file(fileName);
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+	QFileInfo fileInfo(file.fileName());
 
 	QTextStream out(&file);
 	out << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<document>\n";
@@ -432,7 +448,8 @@ void Graph::saveToFile( QString fileName ) const
 
 		// Type and ID
 		out << QString("\t<id>%1</id>\n").arg(n->id);
-		out << QString("\t<type>%1</type>\n\n").arg(n->type());
+		out << QString("\t<type>%1</type>\n").arg(n->type());
+		out << QString("\t<mesh>%1</mesh>\n\n").arg(n->property["mesh_filename"].toString()); // relative
 
 		// Control count
 		out << "\t<controls>\n";
@@ -486,6 +503,7 @@ void Graph::loadFromFile( QString fileName )
 
 	QFile file(fileName);
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+	QFileInfo fileInfo(file.fileName());
 
 	QDomDocument mDocument;
 	mDocument.setContent(&file, false);    
@@ -502,6 +520,7 @@ void Graph::loadFromFile( QString fileName )
 
 		QString id = node.firstChildElement("id").text();
 		QString node_type = node.firstChildElement("type").text();
+		QString mesh_filename = node.firstChildElement("mesh").text();
 		
 		// Find number of control elements
 		QVector<int> control_count;
@@ -526,8 +545,12 @@ void Graph::loadFromFile( QString fileName )
 		foreach(QString w, weights) ctrlWeights.push_back(w.toDouble());
 
 		// Add node
+		Structure::Node * new_node = NULL;
+
 		if(node_type == CURVE)
-			addNode( new Curve( NURBSCurve(ctrlPoints, ctrlWeights, degree, false, true), id) );
+		{
+			new_node = addNode( new Curve( NURBSCurve(ctrlPoints, ctrlWeights, degree, false, true), id) );
+		}
 		else if(node_type == SHEET)
 		{
 			if(control_count.size() < 2) continue;
@@ -545,7 +568,23 @@ void Graph::loadFromFile( QString fileName )
 				}
 			}
 
-			addNode( new Sheet( NURBSRectangle(cp, cw, degree, degree, false, false, true, true), id ) );
+			new_node = addNode( new Sheet( NURBSRectangle(cp, cw, degree, degree, false, false, true, true), id ) );
+		}
+
+		// Mesh file path
+		new_node->property["mesh_filename"].setValue( mesh_filename );
+		QDir::setCurrent( fileInfo.dir().path() );
+		QFile mfile(mesh_filename);
+
+		// Load node's mesh and make it ready
+		if (mfile.exists())
+		{
+			SurfaceMeshModel * nodeMesh = new SurfaceMeshModel(mesh_filename, id);
+			nodeMesh->read( qPrintable(mesh_filename) );
+			nodeMesh->update_face_normals();
+			nodeMesh->update_vertex_normals();
+			nodeMesh->updateBoundingBox();
+			new_node->property["mesh"].setValue(nodeMesh);
 		}
 	}
 
