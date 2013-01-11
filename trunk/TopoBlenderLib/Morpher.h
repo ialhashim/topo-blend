@@ -2,9 +2,9 @@
 #define MORPHER_H
 
 #include <QObject>
-#include "geometry_morph.h"
 #include "Octree.h"
 
+#include "StructureGraph.h"
 using namespace Structure;
 
 class Morpher : public QObject
@@ -13,9 +13,8 @@ class Morpher : public QObject
 
 public:
 
-explicit	Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2, 
-	Graph graph1, Graph graph2, int uResolution, int vResolution, int timeResolution, int thetaResolution, int phiResolution,
-	QObject *parent=0);
+explicit Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2,
+	Graph graph1, Graph graph2, int uResolution, int vResolution, int timeResolution, int thetaResolution, int phiResolution,QObject *parent=0);
 
 	~Morpher();
 

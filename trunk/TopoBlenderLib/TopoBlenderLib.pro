@@ -56,6 +56,9 @@ SOURCES += StructureGraph.cpp \
     ARAPCurveDeformer.cpp \
     TimelineSlider.cpp
 	
-
 FORMS += \
     SchedulerWidget.ui
+
+# Morpher related
+HEADERS += Morpher.h BoundingBox.h Octree.h
+SOURCES += Morpher.cpp Octree.cpp

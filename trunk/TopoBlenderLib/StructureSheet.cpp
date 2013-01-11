@@ -207,7 +207,7 @@ void Sheet::drawWithNames( int nID, int pointIDRange )
 {
 	int pID = nID * pointIDRange;
 
-	float radius = 1.0f;
+    //float radius = 1.0f;
 	glPointSize(20.0f);
 
 	for(int u = 0; u < surface.mNumUCtrlPoints; u++)

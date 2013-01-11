@@ -7,6 +7,8 @@
 #include "SurfaceMeshHelper.h"
 using namespace SurfaceMeshTypes;
 
+#include "weld.h"
+
 #define MAX_REAL std::numeric_limits<SurfaceMeshTypes::Scalar>::max()
 #define TimeTolerance 1e-5
 #define REAL_ZERO_TOLERANCE TimeTolerance
