@@ -45,7 +45,7 @@ inline size_t NextPowerOfTwo(size_t x)
 * This code is based on the ideas of Ville Miettinen and Pierre Terdiman.
 */
 template <class T, class HashFunction, class BinaryPredicate>
-size_t weld( std::vector<T> & p, std::vector<size_t> & xrefs, HashFunction hash, BinaryPredicate equal )
+size_t weldVoxel( std::vector<T> & p, std::vector<size_t> & xrefs, HashFunction hash, BinaryPredicate equal )
 {
 	size_t const NIL = size_t(~0);							// linked list terminator symbol.
 	size_t const N = p.size();								// # of input vertices.

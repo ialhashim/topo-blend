@@ -1,3 +1,9 @@
+#include <QFile>
+
+// Experiments
+#include "NanoKdTree.h"
+int missCount = 0;
+
 #include "Morpher.h"
 #include "surface_mesh/IO.h"
 #include "surface_mesh/IO_off.cpp"
@@ -8,14 +14,12 @@
 	(a)[0] = (b)[0] - (c)[0];	\
 	(a)[1] = (b)[1] - (c)[1];	\
 	(a)[2] = (b)[2] - (c)[2];
+#ifndef M_PI
+#    define M_PI 3.14159265358979323846
+#endif
 
 #define USE_OCTREE 1
 
-#include "weld.h"
-
-// Experiments
-#include "NanoKdTree.h"
-int missCount = 0;
 
 Morpher::Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2, Graph graph1, Graph graph2,	
 	int uResolution, int vResolution, int timeResolution, int thetaResolution, int phiResolution, QObject *parent)
@@ -33,8 +37,7 @@ Morpher::Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2, Graph graph1,
 	get_faces(source_mesh, target_mesh, source_faces, target_faces);
 	buildOctree(source_mesh,target_mesh,source_octree,target_octree, 20);
 
-	resampling(uResolution, vResolution, 
-		timeResolution, thetaResolution, phiResolution);
+	resampling(uResolution, vResolution, timeResolution, thetaResolution, phiResolution);
 }
 
 Morpher::~Morpher()
@@ -203,10 +206,10 @@ void Morpher::curveResampling(NURBSCurve source_curve, NURBSCurve target_curve, 
 		sampling_phiResolution, sampling_thetaResolution, phiRange, thetaRange, source_octree);
 	Array2D_Vector3 target_endResamplings1=sphereResampling(target_faces,target_pos, thetaStartTarget, -targetTangent,
 		sampling_phiResolution, sampling_thetaResolution, phiRange, thetaRange, target_octree);
-	
+
 	addEndFaces(source_endResamplings1, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
 	addEndFaces(target_endResamplings1, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
-	
+
 	// t=1
 	source_pos=source_curve.GetPosition(1);
 	sourceTangent=source_curve.GetTangent(1);
@@ -234,7 +237,7 @@ void Morpher::curveResampling(NURBSCurve source_curve, NURBSCurve target_curve, 
 void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target_sheet, int uResolution, int vResolution, int thetaResolution, int phiResolution )
 {
 	QElapsedTimer resamplingTimer; resamplingTimer.start();
-	
+
 	// align initial sampling direction
 	Vector3 position, sheetNormal, tangentU, tangentV;
 	Vector3 initialSourceDirection, initialTargetDirection;
@@ -260,7 +263,7 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 	qDebug() << QString("Plane resampling =%1 ms").arg(t1);
 
 	QElapsedTimer cylinderTimer; cylinderTimer.start();
-	
+
 	// Boundary curve initialization
 	//Vector3 initialSourceDirection, initialTargetDirection;
 	double thetaRange=M_PI;
@@ -357,7 +360,7 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 
 	double t2=resamplingTimer.elapsed();
 	qDebug() << QString("Boundary cylinder resampling =%1 ms").arg(t2-t1);
-	
+
 	// corner1: u=0, v=0
 	source_sheet.GetFrame(0,0,position, tangentU, tangentV, sheetNormal);
 	initialSourceDirection=sheetNormal;
@@ -440,7 +443,7 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 
 	stitchPlane(uResolution,vResolution,sampling_thetaResolution,sampling_phiResolution);
 
-	double t3=resamplingTimer.elapsed();
+    //double t3=resamplingTimer.elapsed();
 	//qDebug() << QString("Corner resampling =%1 ms").arg(t3-t2);
 }
 
@@ -462,7 +465,7 @@ Array2D_Vector3 Morpher::cylinderResampling(Array2D_Vector3 mesh_faces, NURBSCur
 			crossSections.push_back(cross_section);
 		}
 	}
-	
+
 	// for a true cylinder (close, thetaSamplings=theResolution), and sampling direction computed as the binormal each time
 	else
 	{
@@ -613,7 +616,7 @@ std::vector<Array2D_Vector3> Morpher::planeResamping(Array2D_Vector3 mesh_faces,
 		{
 
 			sheet.GetFrame(u_idx*delta_u, v_idx*delta_v, sheetPoint, uDirection, vDirection, sheetNormal);
-			
+
 			if (dot(sheetNormal, initialDirection)<0)
 			{
 				sheetNormal=-sheetNormal;
@@ -851,7 +854,7 @@ void Morpher::addPlaneFaces(std::vector<Array2D_Vector3> resampledPlane, Surface
 	}
 }
 
- void Morpher::addCylinderFaces(Array2D_Vector3 crossSecssions, SurfaceMeshModel* mesh, std::vector<Vertex> &vertices_idx, int idxBase)
+void Morpher::addCylinderFaces(Array2D_Vector3 crossSecssions, SurfaceMeshModel* mesh, std::vector<Vertex> &vertices_idx, int idxBase)
 {
 	int tNum=crossSecssions.size();
 	int thetaNum=crossSecssions[0].size();
@@ -1209,7 +1212,7 @@ void Morpher::stitchPlane( int uResolution, int vResolution, int sampling_thetaR
 	for (int curr_theta=0; curr_theta< sampling_thetaResolution; curr_theta++)
 	{
 		std::vector<Vertex> face_vertex_idx;
-		
+
 		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV-numTrunckU+sampling_thetaResolution-curr_theta]);
 		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV-numTrunckU+sampling_thetaResolution-curr_theta-1]);
 		face_vertex_idx.push_back(source_verticesIdx[currentTotal-numCorner+(curr_theta+1)*(sampling_phiResolution+1)]);
@@ -1415,7 +1418,7 @@ void Morpher::testCase()
 			rayDir.push_back(direction);
 		}
 	}
-	
+
 	for(int i = 0; i < (int) models.size();i++)
 	{
 		// Save to a file
@@ -1455,11 +1458,11 @@ SurfaceMeshModel* Morpher::generateInBetween( std::vector<SurfaceMeshModel*> sou
 
 		Surface_mesh::Vertex_iterator vit, vend=source_models[i]->vertices_end();
 
-		
-	}
-	
 
-    for (int i=0; i< (int)source_models.size(); i++)
+	}
+
+
+	for (int i=0; i< (int)source_models.size(); i++)
 	{
 		Vector3VertexProperty source_points = source_models[i]->vertex_property<Vector3>(VPOINT);
 		Vector3VertexProperty target_points = target_models[i]->vertex_property<Vector3>(VPOINT);
@@ -1485,7 +1488,7 @@ SurfaceMeshModel* Morpher::generateInBetween( std::vector<SurfaceMeshModel*> sou
 			face_vertex_idx.push_back(++vfit);
 
 			//since we read multiple models, the vertex index should be added by a base index number of previous saved vertex number 
-            for(int v=0;v<(int)face_vertex_idx.size();v++)
+			for(int v=0;v<(int)face_vertex_idx.size();v++)
 				Face_vertex_idx.push_back(vertiexIndices[face_vertex_idx[v].idx()+vertexIndexBase]);
 
 			blendModel->add_face(Face_vertex_idx);
@@ -1525,7 +1528,7 @@ SurfaceMeshModel* Morpher::mergeVertices( SurfaceMeshModel * model, double thres
 	std::vector<size_t> xrefs;
 	weld(partPoints, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
 
-	for(int vi = 0; vi < partPoints.size(); vi++)
+    for(int vi = 0; vi < (int)partPoints.size(); vi++)
 		mergedMesh->add_vertex(partPoints[vi]);
 
 	foreach(Face f, model->faces())

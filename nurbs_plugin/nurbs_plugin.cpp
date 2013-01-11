@@ -143,7 +143,7 @@ void nurbs_plugin::doFitSurface()
 
 void nurbs_plugin::basicSurfaceFit( NURBSRectangle & surface )
 {
-
+    surface = surface;
 }
 
 Q_EXPORT_PLUGIN (nurbs_plugin)

@@ -5,6 +5,7 @@ CONFIG += ordered
 SUBDIRS += NURBS
 SUBDIRS += DynamicVoxel
 SUBDIRS += Voxeler
+SUBDIRS +=
 SUBDIRS += TopoBlenderLib
 
 # Plugins
@@ -18,6 +19,7 @@ SUBDIRS += geometry_morph
 SUBDIRS += topo-blend # Main UI for topo-blending
 
 # Dependecy map
-topo-blend.depends = NURBS DynamicVoxel TopoBlenderLib
 nurbs_plugin.depends = NURBS
 dynamic_voxel.depends = DynamicVoxel
+geometry_morph.depends = MorpherLib
+topo-blend.depends = NURBS DynamicVoxel TopoBlenderLib MorpherLib

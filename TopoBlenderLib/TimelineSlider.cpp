@@ -18,6 +18,8 @@ QRectF TimelineSlider::boundingRect() const
 
 void TimelineSlider::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
 {
+    Q_UNUSED(widget);
+    Q_UNUSED(option);
     painter->drawImage(0,0,icon);
 }
 

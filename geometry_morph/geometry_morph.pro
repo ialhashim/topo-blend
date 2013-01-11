@@ -18,13 +18,9 @@ LIBS += -L$$PWD/../TopoBlenderLib/lib -lTopoBlenderLib
 INCLUDEPATH += ../TopoBlenderLib
 
 SOURCES +=	geometry_morph.cpp \
-			geometry_morph_widget.cpp \
-			Morpher.cpp \
-			Octree.cpp
+                geometry_morph_widget.cpp \
 
-HEADERS  += geometry_morph.h \
-			geometry_morph_widget.h \
-			Morpher.h \
-			Octree.h
+HEADERS  +=     geometry_morph.h \
+                geometry_morph_widget.h \
 
-FORMS    += geometry_morph_widget.ui
+FORMS    +=     geometry_morph_widget.ui

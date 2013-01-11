@@ -1,7 +1,6 @@
 #include "NURBSRectangle.h"
 #include "NURBSCurve.h"
 
-#include "weld.h"
 #include "Graph.h"
 
 //----------------------------------------------------------------------------

@@ -162,6 +162,7 @@ void topoblend::endSelection( const QPoint& p )
 
 void topoblend::postSelection( const QPoint& point )
 {
+    Q_UNUSED(point);
 	int selectedID = drawArea()->selectedName();
 	if (selectedID == -1) return;
 
