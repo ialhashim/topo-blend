@@ -316,8 +316,7 @@ void GraphCorresponder::computeDistanceMatrix()
 		{
 			if (validM[i][j])
 			{
-				//disM[i][j] += 2 * sM[i][j] + 0.5 * oM[i][j];
-				disM[i][j] = fM[i][j];
+				disM[i][j] += 2 * sM[i][j] + 0.5 * oM[i][j] + fM[i][j];
 			}
 		}
 	}
@@ -427,7 +426,7 @@ void GraphCorresponder::computePartToPartCorrespondences()
 	corrScores.clear();
 
 	// Distance matrix
-	computeDistanceMatrix();
+	if(disM.empty()) computeDistanceMatrix();
 	std::vector< std::vector<float> > disMatrix = disM;
 
 	// Parameters
@@ -1035,6 +1034,13 @@ void GraphCorresponder::computeLandmarkFeatureMatrix( std::vector< std::vector<f
 {
 	// One to one point landmarks
 	prepareOneToOnePointLandmarks();
+
+	// In case there are no point landmarks
+	if(sPointLandmarks.empty())
+	{
+		initializeMatrix<float>(M, 0.0);
+		return;
+	}
 
 	// Landmark features
 	sLandmarkFeatures = computeLandmarkFeatures(sg, sPointLandmarks);
