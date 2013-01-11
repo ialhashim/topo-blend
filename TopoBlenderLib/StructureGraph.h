@@ -93,4 +93,5 @@ struct Graph
 
 }
 
+Q_DECLARE_METATYPE(SurfaceMeshModel *)
 Q_DECLARE_METATYPE(Structure::Graph *)
