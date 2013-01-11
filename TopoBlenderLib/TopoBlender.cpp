@@ -32,6 +32,11 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 	/// STEP 2) Create the magic active graph and generate tasks
 	active = new Structure::Graph(*sg);
 
+	// Set pointers to graphs
+	scheduler->sourceGraph = new Structure::Graph(*sg);
+	scheduler->activeGraph = active;
+	scheduler->targetGraph = new Structure::Graph(*tg);
+
 	// Shrink extra source nodes
 	foreach(QString nodeID, gcoor->nonCorresSource())
 	{
@@ -80,7 +85,7 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 			foreach(QString tnodeID, tNodes)
 			{
 				Structure::Node * clonedNode = snode->clone();
-				clonedNode->id += ":cloned";
+				clonedNode->id += "_cloned";
 				clonedNode->property["correspond"] = tnodeID;
 				tg->getNode(tnodeID)->property["correspond"] = clonedNode->id;
 
@@ -102,7 +107,7 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 			foreach(QString snodeID, sNodes)
 			{
 				Structure::Node *mergedNode = tnode->clone();
-				mergedNode->id += ":merged";
+				mergedNode->id += "_merged";
 				active->getNode(snodeID)->property["correspond"] = mergedNode->id;
 				mergedNode->property["correspond"] = snodeID;
 
@@ -171,7 +176,7 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 	{
 		// Clone and correspond
 		Structure::Node * missingNode = tg->getNode(nodeID)->clone();
-		missingNode->id += ":TG";
+		missingNode->id += "_TG";
 		missingNode->property["correspond"] = nodeID;
 		tg->getNode(nodeID)->property["correspond"] = missingNode->id;
 

@@ -15,6 +15,12 @@ public:
 	// Input
 	QVector<Task*> tasks;
 
+	Structure::Graph * activeGraph;
+	Structure::Graph * sourceGraph;
+	Structure::Graph * targetGraph;
+
+    void prepareSynthesis();
+
 	// Output
 	QVector<Structure::Graph*> allGraphs;
 	
