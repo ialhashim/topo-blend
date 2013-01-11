@@ -5,6 +5,8 @@
 
 #include <vector>
 
+typedef std::vector< std::vector<float> > MATRIX;
+
 class GraphCorresponder : public QObject
 {
 	Q_OBJECT
@@ -17,23 +19,25 @@ public:
 	QString tgName();
 
 	// Matrix operations
+	template <class Type> 
+	std::vector<std::vector<Type> > transpose(const std::vector<std::vector<Type> > data);
 	template <class Type>
 	void initializeMatrix(std::vector< std::vector<Type> > & M, Type value);
-	void normalizeMatrix(std::vector< std::vector<float> > & M);
-	bool minElementInMatrix(std::vector< std::vector<float> > &M, int &row, int &column, float &minValue);
+	void normalizeMatrix(MATRIX & M);
+	bool minElementInMatrix(MATRIX &M, int &row, int &column, float &minValue);
 
 	// Point Landmarks
 	QVector< POINT_LANDMARK > pointLandmarks;
 	void addPointLandmark();
 
-	// Point landmarks
 	QVector< POINT_ID > sPointLandmarks, tPointLandmarks;
 	void prepareOneToOnePointLandmarks();
+
 	QVector< QVector<double> > sLandmarkFeatures, tLandmarkFeatures;
 	QVector< QVector<double> > computeLandmarkFeatures(Structure::Graph *g, QVector<POINT_ID> &pointLandmarks);
 	double distanceBetweenLandmarkFeatures(QVector<double> sFeature, QVector<double> tFeature);
 
-	// Landmarks
+	// Part Landmarks
 	QVector<PART_LANDMARK> landmarks;
 	std::vector<bool> sIsLandmark, tIsLandmark;
 	void addLandmarks(QVector<QString> sParts, QVector<QString> tParts);
@@ -41,24 +45,31 @@ public:
 	void saveLandmarks(QString filename);
 	void loadLandmarks(QString filename);
 
-	// Hausdorff distance
+	// Spatial Hausdorff distance
 	float supInfDistance(std::vector<Vector3> &A, std::vector<Vector3> &B);
 	float HausdorffDistance(std::vector<Vector3> &A, std::vector<Vector3> &B);
 
 	// Distance matrices
 	void computeValidationMatrix();
-	void computeHausdorffDistanceMatrix(std::vector< std::vector<float> > & M);
-	void computeSizeDiffMatrix(std::vector< std::vector<float> > & M);
-	void computeOrientationDiffMatrix(std::vector< std::vector<float> > & M);
-	void computeLandmarkFeatureMatrix(std::vector< std::vector<float> > & M);
-	void computeDistanceMatrix();
+	void computeHausdorffDistanceMatrix(MATRIX & M);
+	void computeSizeDiffMatrix(MATRIX & M);
+	void computeOrientationDiffMatrix(MATRIX & M);
+	void computeLandmarkFeatureMatrix(MATRIX & M);
+	void prepareAllMatrices();
+
+	// Final distance matrix by combining all matrices
+	MATRIX hM, sM, oM, fM;
+	double hW, sW, oW, fW;
+	void computeFinalDistanceMatrix();
 
 	// Part to Part
+	float scoreThreshold;
 	void computePartToPartCorrespondences();
 	void saveCorrespondences(QString filename);
 	void LoadCorrespondences(QString filename);
 
 	// Point to Point 
+	void correspondAllNodes();
 	void correspondTwoNodes(Structure::Node *sNode, Structure::Node *tNode);
 	void correspondTwoCurves(Structure::Curve *sCurve, Structure::Curve *tCurve);
 	void correspondTwoSheets(Structure::Sheet *sSheet, Structure::Sheet *tSheet);
@@ -67,7 +78,7 @@ public:
 	std::vector<QString> nonCorresSource(); // to kill
 	std::vector<QString> nonCorresTarget(); // to grow
 
-	// Result
+	// Results
 	std::vector<bool> sIsCorresponded, tIsCorresponded;
 	std::vector<PART_LANDMARK> correspondences;
 	std::vector<std::vector<float> > corrScores;
