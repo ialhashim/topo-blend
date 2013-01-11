@@ -26,6 +26,13 @@ public:
 	QVector< POINT_LANDMARK > pointLandmarks;
 	void addPointLandmark();
 
+	// Point landmarks
+	QVector< POINT_ID > sPointLandmarks, tPointLandmarks;
+	void prepareOneToOnePointLandmarks();
+	QVector< QVector<double> > sLandmarkFeatures, tLandmarkFeatures;
+	QVector< QVector<double> > computeLandmarkFeatures(Structure::Graph *g, QVector<POINT_ID> &pointLandmarks);
+	double distanceBetweenLandmarkFeatures(QVector<double> sFeature, QVector<double> tFeature);
+
 	// Landmarks
 	QVector<PART_LANDMARK> landmarks;
 	std::vector<bool> sIsLandmark, tIsLandmark;
@@ -43,6 +50,7 @@ public:
 	void computeHausdorffDistanceMatrix(std::vector< std::vector<float> > & M);
 	void computeSizeDiffMatrix(std::vector< std::vector<float> > & M);
 	void computeOrientationDiffMatrix(std::vector< std::vector<float> > & M);
+	void computeLandmarkFeatureMatrix(std::vector< std::vector<float> > & M);
 	void computeDistanceMatrix();
 
 	// Part to Part

@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <fstream>
 
+#include "GraphDistance.h"
+
 #define INVALID_VALUE -1
 
 GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph *target )
@@ -299,10 +301,11 @@ void GraphCorresponder::computeDistanceMatrix()
 	computeValidationMatrix();
 
 	// Distance matrices
-	std::vector< std::vector<float> > hM, sM, oM;
+	std::vector< std::vector<float> > hM, sM, oM, fM;
 	computeHausdorffDistanceMatrix(hM);
 	computeSizeDiffMatrix(sM);
 	computeOrientationDiffMatrix(oM);
+	computeLandmarkFeatureMatrix(fM);
 
 	// Combine
 	disM = hM;
@@ -313,7 +316,8 @@ void GraphCorresponder::computeDistanceMatrix()
 		{
 			if (validM[i][j])
 			{
-				disM[i][j] += 2 * sM[i][j] + 0.5 * oM[i][j];
+				//disM[i][j] += 2 * sM[i][j] + 0.5 * oM[i][j];
+				disM[i][j] = fM[i][j];
 			}
 		}
 	}
@@ -423,7 +427,7 @@ void GraphCorresponder::computePartToPartCorrespondences()
 	corrScores.clear();
 
 	// Distance matrix
-	if (disM.empty()) computeDistanceMatrix();
+	computeDistanceMatrix();
 	std::vector< std::vector<float> > disMatrix = disM;
 
 	// Parameters
@@ -944,4 +948,112 @@ void GraphCorresponder::addPointLandmark()
 	// Clear the selections
 	sg->clearSelections();
 	tg->clearSelections();
+}
+
+
+void GraphCorresponder::prepareOneToOnePointLandmarks()
+{
+	// Clear
+	sPointLandmarks.clear();
+	tPointLandmarks.clear();
+
+	// Prepare
+	foreach (POINT_LANDMARK pLandmark, pointLandmarks)
+	{
+		QVector<POINT_ID> sIDs = pLandmark.first;
+		QVector<POINT_ID> tIDs = pLandmark.second;
+
+		// One to many
+		if (sIDs.size() == 1)
+		{
+			POINT_ID sID = sIDs.front();
+
+			foreach( POINT_ID tID, tIDs)
+			{
+				sPointLandmarks.push_back(sID);
+				tPointLandmarks.push_back(tID);
+			}
+		}
+		// Many to one
+		else if (tIDs.size() == 1)
+		{
+			POINT_ID tID = tIDs.front();
+
+			foreach( POINT_ID sID, sIDs)
+			{
+				sPointLandmarks.push_back(sID);
+				tPointLandmarks.push_back(tID);
+			}
+		}
+	}
+}
+
+QVector< QVector<double> > GraphCorresponder::computeLandmarkFeatures( Structure::Graph *g, QVector<POINT_ID> &pointLandmarks )
+{
+	QVector< QVector<double> > result_features(g->nodes.size(), QVector<double>());
+
+	foreach (POINT_ID landmark, pointLandmarks)
+	{
+		Vector3 startpoint = g->nodes[landmark.first]->controlPoint(landmark.second);
+
+		GraphDistance gd(g);
+		gd.computeDistances(startpoint);
+
+		for (int nID = 0; nID < (int)g->nodes.size(); nID++)
+		{
+			double dis = gd.distance(g->nodes[nID]->center());
+
+			result_features[nID].push_back(dis);
+		}
+	}
+
+	return result_features;
+}
+
+
+double GraphCorresponder::distanceBetweenLandmarkFeatures( QVector<double> sFeature, QVector<double> tFeature )
+{
+	if (sFeature.size() != tFeature.size())
+	{
+		qDebug() << "Landmark features have different dimensions.";
+		return -1;
+	}
+
+	// Euclidean distance
+	double dis = 0;
+	for (int i = 0; i < (int) sFeature.size(); i++)
+	{
+		double dif = sFeature[i] - tFeature[i];
+		dis += dif * dif;
+	}
+
+	return sqrt(dis);
+}
+
+
+void GraphCorresponder::computeLandmarkFeatureMatrix( std::vector< std::vector<float> > & M )
+{
+	// One to one point landmarks
+	prepareOneToOnePointLandmarks();
+
+	// Landmark features
+	sLandmarkFeatures = computeLandmarkFeatures(sg, sPointLandmarks);
+	tLandmarkFeatures = computeLandmarkFeatures(tg, tPointLandmarks);
+
+	// Compute differences between features
+	initializeMatrix<float>(M, INVALID_VALUE);
+
+	int sN = sg->nodes.size();
+	int tN = tg->nodes.size();
+	for(int i = 0; i < sN; i++){
+		for (int j = 0; j < tN; j++)
+		{
+			if (validM[i][j])
+			{
+				M[i][j] = distanceBetweenLandmarkFeatures(sLandmarkFeatures[i], tLandmarkFeatures[j]);
+			}
+		}
+	}
+
+	normalizeMatrix(M);
 }

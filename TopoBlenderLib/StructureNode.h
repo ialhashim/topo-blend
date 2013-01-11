@@ -59,7 +59,6 @@ struct Node
 	virtual void drawWithNames(int nID, int pointIDRange) = 0;
 
 	// Selections
-	// Normal: yellow  Highlight:green
 	QMap<int, QColor> selections;
 	void addSelectionWithColor(int pID, QColor color = Qt::green){
 		if (selections.contains(pID)) selections.remove(pID);

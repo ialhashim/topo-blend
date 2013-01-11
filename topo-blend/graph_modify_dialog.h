@@ -24,6 +24,10 @@ public slots:
     void link();
     void unlink();
     void remove();
+	void visualizeSelections();
+
+signals:
+	void updateView();
 };
 
 #endif // GRAPH_MODIFY_DIALOG_H
