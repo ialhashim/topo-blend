@@ -201,33 +201,27 @@ void geometry_morph::doMorph()
 
     for (int i=0; i<sourceModels.size(); i++)
     {
-        morpher = new Morpher(sourceModels[i],targetModels[i],sourceGraphs[i],targetGraphs[i]);
-        double t1=timer.elapsed();
-
+		// resampling happens in the constructor and results are saved in resampledSourceMesh
+        morpher = new Morpher(sourceModels[i],targetModels[i],sourceGraphs[i],targetGraphs[i],
+			uResolution,vResolution,timeResolution,thetaResolution, phiResolution);    
         //morpher->testCase();
-
-        morpher->resampling(uResolution,vResolution,timeResolution,thetaResolution, phiResolution);
-        double t2=timer.elapsed();
 
         resampledSourceModels.push_back(morpher->resampledSourceMesh);
         resampledTargetModels.push_back(morpher->resampledTargetMesh);
-
-        //qDebug() << QString("Morpher Constructor =%1 ms Resampling = %2 ms").arg(t1).arg(t2-t1);
-        //qDebug() << QString("Total =%1 ms").arg(t2);
-
-    //	mainWindow()->setStatusBarMessage(QString("Total time = %1").arg(t2));
     }
 
     for (int step=0; step<=numStep; step++)
     {
         double t=step*1.0/numStep;
-        blendedModels.push_back(morpher->generateInBetween(resampledSourceModels,resampledTargetModels,t));
-        blendedModels.last()->triangulate();
+		std::vector<double > T(resampledSourceModels.size(), t);
+        blendedModels.push_back(morpher->generateInBetween(resampledSourceModels,resampledTargetModels,T));
+        //blendedModels.last()->triangulate();
 
         QString seq_num; seq_num.sprintf("%02d", step);
         blendedModels.last()->write(QString("blend%1.off").arg(seq_num).toStdString());
     }
 
+	mainWindow()->setStatusBarMessage(QString("Geometry morphing done: %1 ms").arg(timer.elapsed()));
     ////document()->addModel(sourceModel);
 }
 

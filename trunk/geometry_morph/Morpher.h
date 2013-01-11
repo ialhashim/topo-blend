@@ -14,7 +14,7 @@ class Morpher : public QObject
 public:
 
 explicit	Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2, 
-	Graph graph1, Graph graph2, 
+	Graph graph1, Graph graph2, int uResolution, int vResolution, int timeResolution, int thetaResolution, int phiResolution,
 	QObject *parent=0);
 
 	~Morpher();
@@ -58,8 +58,11 @@ explicit	Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2,
 	void addCornerFaces(Array2D_Vector3 resampledSphere, SurfaceMeshModel* mesh, std::vector<Vertex> &vertices_idx, int idxBase);
 	void addEndFaces(Array2D_Vector3 resampledSphere, SurfaceMeshModel* mesh, std::vector<Vertex> &vertices_idx, int idxBase);
 
+	void stitchCylinder(int timeResolution, int thetaResolution, int sampling_phiResolution);
+	void stitchPlane(int uResolution, int vResolution, int sampling_thetaResolution, int sampling_phiResolution);
+
 	// blending options
-	SurfaceMeshModel* generateInBetween(std::vector<SurfaceMeshModel*> source_models, std::vector<SurfaceMeshModel*> target_models, double t);
+	SurfaceMeshModel* generateInBetween(std::vector<SurfaceMeshModel*> source_models, std::vector<SurfaceMeshModel*> target_models, std::vector<double> T );
 	
 	SurfaceMeshModel *source_mesh;
 	SurfaceMeshModel *target_mesh;
@@ -84,8 +87,14 @@ explicit	Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2,
 
 	std::vector<Vec3d> debugPoints,debugPoints2;
 
+	SurfaceMeshModel* mergeVertices( SurfaceMeshModel * model, double threshold = 1e-6);
+
 private:
-	
+	int uResolution; 
+	int vResolution;
+	int timeResolution; 
+	int thetaResolution;
+	int phiResolution;
 };
 
 #endif // MORPHER_H
