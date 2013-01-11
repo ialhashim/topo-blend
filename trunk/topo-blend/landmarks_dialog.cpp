@@ -7,8 +7,8 @@
 
 LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QDialog(parent), ui(new Ui::LandmarksDialog)
 {
-	tp = topo_blender;
-	gcorr = tp->corresponder();
+	tb = topo_blender;
+	gcorr = tb->corresponder();
     ui->setupUi(this);
 	
 	// Set up the table widgets
@@ -30,7 +30,10 @@ LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QD
 
 	/// Point Landmarks
 	this->connect(ui->addPointLandmarkButton, SIGNAL(clicked()), SLOT(addPointLandmark()));
-	this->connect(ui->pointLandmarksList, SIGNAL(itemSelectionChanged()), SLOT(visualizePointLandmarks()));
+	this->connect(ui->removePointLandmarkButton, SIGNAL(clicked()), SLOT(removePointLandmark()));
+	this->connect(ui->pointLandmarksList, SIGNAL(itemSelectionChanged()), SLOT(visualizeCurrentPointLandmark()));
+	this->connect(ui->visAllButton, SIGNAL(clicked()), SLOT(visualizeAllPointLandmarks()));
+
 
 	/// Part Landmarks
 	// Selections
@@ -52,13 +55,13 @@ LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QD
 	this->connect(ui->showAABB, SIGNAL(stateChanged(int)), SLOT(showAABB(int)));
 	this->connect(ui->normalizeButton, SIGNAL(clicked()), SLOT(normalize()));
 	this->connect(ui->rotateButton, SIGNAL(clicked()), SLOT(rotateGraph()));
-	this->connect(ui->scaleTarget, SIGNAL(valueChanged(int)), SLOT(scaleTarget(int)));
+	this->connect(ui->scaleTarget, SIGNAL(valueChanged(int)), SLOT(scaleGraph(int)));
 
 
 	/// Correspondences
 	this->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizePart2PartDistance(int)));
 	this->connect(ui->runButton, SIGNAL(clicked()), SLOT(computeCorrespondences()));
-	tp->connect(ui->p2pButton, SIGNAL(clicked()), SLOT(testPoint2PointCorrespondences()));
+	tb->connect(ui->p2pButton, SIGNAL(clicked()), SLOT(testPoint2PointCorrespondences()));
 
 	// Reload
 	this->connect(ui->reloadButton, SIGNAL(clicked()), SLOT(reload()));
@@ -161,6 +164,8 @@ void LandmarksDialog::updateLandmarksTableWidget()
 
 void LandmarksDialog::updateLandmarksTab()
 {
+	updatePointLandmarksList();
+
 	updateSList();
 	updateTList();
 	updateLandmarksTableWidget();
@@ -251,7 +256,7 @@ void LandmarksDialog::visualizeSelections()
 	foreach (QListWidgetItem* item, ui->tList->selectedItems())
 		tg()->getNode(item->text())->vis_property["color"] = Qt::yellow;
 
-	tp->updateDrawArea();
+	tb->updateDrawArea();
 }
 
 
@@ -287,7 +292,7 @@ void LandmarksDialog::visualizeLandmark()
 		foreach (QString tID, set2set.second)
 			tg()->getNode(tID)->vis_property["color"] = Qt::red;
 
-		tp->updateDrawArea();
+		tb->updateDrawArea();
 	}
 
 }
@@ -368,20 +373,27 @@ void LandmarksDialog::updateCorrTableWidget()
 void LandmarksDialog::updateCorrTab()
 {
 	updateCorrTableWidget();
+
+	this->ui->sourceID->setMaximum(gcorr->sg->nodes.size()-1);
 }
 
 void LandmarksDialog::updateAll()
 {
+	normalize();
+
 	ui->sName->setText("Source: " + gcorr->sgName());
 	ui->tName->setText("Target: " + gcorr->tgName());
 
 	updateLandmarksTab();
 	updateCorrTab();
+
+	// Alignment tab
+	this->ui->graphID->setMaximum(tb->graphs.size()-1);
 }
 
 void LandmarksDialog::reload()
 {
-	gcorr = tp->corresponder();
+	gcorr = tb->corresponder();
 	if (!gcorr)
 	{
 		this->done(0);
@@ -396,7 +408,7 @@ void LandmarksDialog::visualizePart2PartDistance( int id)
 {
 	gcorr->visualizePart2PartDistance(id);
 
-	tp->updateDrawArea();
+	tb->updateDrawArea();
 }
 
 void LandmarksDialog::computeCorrespondences()
@@ -409,52 +421,54 @@ void LandmarksDialog::rotateGraph()
 {
 	double angle = ui->angleAroundZ->value();
 
-	Structure::Graph *g = tp->getGraph(ui->graphID->value());
+	Structure::Graph *g = tb->getGraph(ui->graphID->value());
 	if (g)
 	{
 		// Rotate the target graph
 		g->rotate(angle, Vector3(0, 0, 1));
 
 		// Update the scene
-		tp->updateDrawArea();
+		tb->updateDrawArea();
 	}
 }
 
 void LandmarksDialog::showAABB(int state)
 {
-	foreach (Structure::Graph *g, tp->graphs)
+	foreach (Structure::Graph *g, tb->graphs)
 		g->property["showAABB"] = (state == 2);
 
-	tp->updateDrawArea();
+	tb->updateDrawArea();
 }
 
-void LandmarksDialog::scaleTarget(int slider)
+void LandmarksDialog::scaleGraph(int slider)
 {
 	double scaleFactor = slider / 50.0;
 
-	gcorr->tg->scale(scaleFactor);
+	Structure::Graph *g = tb->graphs[ui->graphID->value()];
+	g->scale(scaleFactor);
 
-	tp->updateDrawArea();
+	tb->updateDrawArea();
 }
 
 void LandmarksDialog::normalize()
 {
-	foreach(Structure::Graph *g, tp->graphs)
+	foreach(Structure::Graph *g, tb->graphs)
 	{
 		g->moveBottomCenterToOrigin();
 		g->normalize();
 	}
 
-	tp->setSceneBounds();
-	tp->updateDrawArea();
+	tb->setSceneBounds();
+	tb->updateDrawArea();
 }
 
 void LandmarksDialog::addPointLandmark()
 {
 	gcorr->addPointLandmark();
-	tp->updateDrawArea();
 
 	updatePointLandmarksList();
+
+	tb->updateDrawArea();
 }
 
 void LandmarksDialog::updatePointLandmarksList()
@@ -475,19 +489,52 @@ void LandmarksDialog::updatePointLandmarksList()
 	}
 }
 
-void LandmarksDialog::visualizePointLandmarks()
+void LandmarksDialog::visualizeCurrentPointLandmark()
+{
+	int currRow = ui->pointLandmarksList->currentRow();
+	if (currRow < 0 || currRow > gcorr->pointLandmarks.size() - 1)
+	{
+		qDebug() << "Current row is out of range.";
+		return;
+	}
+
+	// Clear all selection
+	gcorr->sg->clearSelections();
+	gcorr->tg->clearSelections();
+
+	// Add current point landmarks
+	QColor color = Qt::yellow;
+	POINT_LANDMARK landmark = gcorr->pointLandmarks[currRow];
+
+	foreach (POINT_ID sID, landmark.first)
+	{
+		int nID = sID.first;
+		int pID = sID.second;
+		gcorr->sg->nodes[nID]->addSelectionWithColor(pID, color);
+	}
+
+	foreach (POINT_ID tID, landmark.second)
+	{
+		int nID = tID.first;
+		int pID = tID.second;
+		gcorr->tg->nodes[nID]->addSelectionWithColor(pID, color);
+	}
+
+	tb->updateDrawArea();
+}
+
+void LandmarksDialog::visualizeAllPointLandmarks()
 {
 	// Clear all selection
 	gcorr->sg->clearSelections();
 	gcorr->tg->clearSelections();
 
-	// Add selected point landmarks
-	QModelIndexList selectedIDs = ui->pointLandmarksList->selectionModel()->selectedRows();
-	int nbItems = selectedIDs.size();
-	foreach(QModelIndex modelID, selectedIDs)
+	// Add all point landmarks
+	int num = gcorr->pointLandmarks.size();
+	for (int id = 0; id < num; id++)
 	{
-		int id = modelID.row();
-		double color = (double) (id+1) / nbItems;
+		double t = (id+1) / (double) num;
+		QColor color = qtJetColorMap(t);
 
 		POINT_LANDMARK landmark = gcorr->pointLandmarks[id];
 
@@ -495,16 +542,28 @@ void LandmarksDialog::visualizePointLandmarks()
 		{
 			int nID = sID.first;
 			int pID = sID.second;
-			gcorr->sg->nodes[nID]->addSelectionWithColor(pID, qtJetColorMap(color));
+			gcorr->sg->nodes[nID]->addSelectionWithColor(pID, color);
 		}
 
 		foreach (POINT_ID tID, landmark.second)
 		{
 			int nID = tID.first;
 			int pID = tID.second;
-			gcorr->tg->nodes[nID]->addSelectionWithColor(pID, qtJetColorMap(color));
+			gcorr->tg->nodes[nID]->addSelectionWithColor(pID, color);
 		}
 	}
 
-	tp->updateDrawArea();
+	tb->updateDrawArea();
+}
+
+
+void LandmarksDialog::removePointLandmark()
+{
+	int currRow = ui->pointLandmarksList->currentRow();
+	if (currRow >= 0 && currRow < gcorr->pointLandmarks.size())
+		gcorr->pointLandmarks.remove(currRow);
+
+	updatePointLandmarksList();
+
+	tb->updateDrawArea();
 }

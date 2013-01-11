@@ -17,7 +17,7 @@ public:
     ~LandmarksDialog();
 
 private:
-	topoblend *tp;
+	topoblend *tb;
 	GraphCorresponder *gcorr;
 	Ui::LandmarksDialog *ui;
 
@@ -43,7 +43,9 @@ public:
 public slots:
 	// Point Landmarks
 	void addPointLandmark();
-	void visualizePointLandmarks();
+	void removePointLandmark();
+	void visualizeCurrentPointLandmark();
+	void visualizeAllPointLandmarks();
 
 	// Part Landmarks
 	void sClearSelections();
@@ -61,7 +63,7 @@ public slots:
 	void showAABB(int state);
 	void normalize();
 	void rotateGraph();
-	void scaleTarget(int slider);
+	void scaleGraph(int slider);
 
 	// Correspondences
 	void reload();

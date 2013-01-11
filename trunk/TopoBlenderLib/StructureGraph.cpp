@@ -685,85 +685,125 @@ SurfaceMeshTypes::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 	double s1 = n1->bbox().size().length();
 	double s2 = n2->bbox().size().length();
 
-	Scalar r = 0.1 * qMin(s1, s2);
+	Scalar r = 0.04 * qMin(s1, s2);
 
 	std::vector< std::vector<Vector3> > parts1 = n1->discretized(r);
 	std::vector< std::vector<Vector3> > parts2 = n2->discretized(r);
 
 	Scalar minDist = DBL_MAX;
 	int minI = 0, minJ = 0;
+	int minIm = 0, minJn = 0;
 
-	// Compare parts bounding boxes
 	for(int i = 0; i < (int)parts1.size(); i++)
 	{
-		Vector3 mean1(0);
-		Scalar r1 = 0;
-
-		foreach(Vector3 p, parts1[i])	mean1 += p;
-		mean1 /= parts1[i].size();
-		foreach(Vector3 p, parts1[i])	r1 = qMax((p - mean1).norm(), r1);
-
 		for(int j = 0; j < (int)parts2.size(); j++)
 		{
-			Vector3 mean2(0);
-			Scalar r2 = 0;
+			Scalar local_min_dis = DBL_MAX;
+			int min_m = 0;
+			int min_n = 0;
 
-			foreach(Vector3 p, parts2[j])	mean2 += p;
-			mean2 /= parts2[j].size();
-			foreach(Vector3 p, parts2[j])	r2 = qMax((p - mean2).norm(), r2);
-
-			Vector3 diff = mean1 - mean2;
-			Scalar dist = diff.norm();
-
-			Scalar sphereDist = dist - r1 - r2;
-
-			if(sphereDist <= 0)
+			for (int m = 0; m < (int)parts1[i].size(); m++)
 			{
-				std::vector<Vector3> p1 = parts1[ i ];
-				std::vector<Vector3> p2 = parts2[ j ];
-				int g1 = p1.size(), g2 = p2.size();
-				Vector3 c1,c2;
-				Scalar s,t;
-
-				if(g1 == 2 && g2 == 2) ClosestPointSegments		(p1[0],p1[1],  p2[0],p2[1],       s, t, c1, c2);	// curve -- curve
-				if(g1 == 2 && g2 == 3) ClosestSegmentTriangle	(p1[0],p1[1],  p2[0],p2[1],p2[2],       c1, c2);	// curve -- sheet
-				if(g1 == 3 && g2 == 2) ClosestSegmentTriangle	(p2[0],p2[1],  p1[0],p1[1],p1[2],       c1, c2);	// sheet -- curve
-				if(g1 == 3 && g2 == 3) TriTriIntersect			(p1[0],p1[1],p1[2],  p2[0],p2[1],p2[2], c1, c2);	// sheet -- sheet
-				
-				Scalar dist = (c1 - c2).norm();
-
-				if(dist < minDist)
+				for (int n = 0;  n < (int)parts2[j].size(); n++ )
 				{
-					minI = i;
-					minJ = j;
-					minDist = dist;
+					double dis = (parts1[i][m] - parts2[j][n]).norm();
+					if (dis < local_min_dis)
+					{
+						local_min_dis = dis;
+						min_m = m;
+						min_n = n;
+					}
 				}
-
-				//foreach(Vector3 w, parts1[i]) debugPoints2.push_back(w);
-				//foreach(Vector3 w, parts2[j]) debugPoints2.push_back(w);
 			}
+
+			if (local_min_dis < minDist)
+			{
+				minDist = local_min_dis;
+				minI = i;
+				minJ = j;
+
+				minIm = min_m;
+				minJn = min_n;
+			}
+
 		}
 	}
 
-	// Find the exact intersection point
-	std::vector<Vector3> p1 = parts1[ minI ];
-	std::vector<Vector3> p2 = parts2[ minJ ];
-	int g1 = p1.size(), g2 = p2.size();
+	Vector3 p1 = parts1[minI][minIm];
+	Vector3 p2 = parts2[minJ][minJn];
+	return (p1 + p2) / 2;
 
-	Vector3 c1,c2;
-	Scalar s,t;
+	//// Compare parts bounding boxes
+	//for(int i = 0; i < (int)parts1.size(); i++)
+	//{
+	//	Vector3 mean1(0);
+	//	Scalar r1 = 0;
 
-	if(g1 == 2 && g2 == 2) ClosestPointSegments		(p1[0],p1[1],  p2[0],p2[1],       s, t, c1, c2);	// curve -- curve
-	if(g1 == 2 && g2 == 3) ClosestSegmentTriangle	(p1[0],p1[1],  p2[0],p2[1],p2[2],       c1, c2);	// curve -- sheet
-	if(g1 == 3 && g2 == 2) ClosestSegmentTriangle	(p2[0],p2[1],  p1[0],p1[1],p1[2],       c1, c2);	// sheet -- curve
-	if(g1 == 3 && g2 == 3) TriTriIntersect			(p1[0],p1[1],p1[2],  p2[0],p2[1],p2[2], c1, c2);	// sheet -- sheet
+	//	foreach(Vector3 p, parts1[i])	mean1 += p;
+	//	mean1 /= parts1[i].size();
+	//	foreach(Vector3 p, parts1[i])	r1 = qMax((p - mean1).norm(), r1);
+
+	//	for(int j = 0; j < (int)parts2.size(); j++)
+	//	{
+	//		Vector3 mean2(0);
+	//		Scalar r2 = 0;
+
+	//		foreach(Vector3 p, parts2[j])	mean2 += p;
+	//		mean2 /= parts2[j].size();
+	//		foreach(Vector3 p, parts2[j])	r2 = qMax((p - mean2).norm(), r2);
+
+	//		Vector3 diff = mean1 - mean2;
+	//		Scalar dist = diff.norm();
+
+	//		Scalar sphereDist = dist - r1 - r2;
+
+	//		if(sphereDist <= 0)
+	//		{
+	//			std::vector<Vector3> p1 = parts1[ i ];
+	//			std::vector<Vector3> p2 = parts2[ j ];
+	//			int g1 = p1.size(), g2 = p2.size();
+	//			Vector3 c1,c2;
+	//			Scalar s,t;
+
+	//			if(g1 == 2 && g2 == 2) ClosestPointSegments		(p1[0],p1[1],  p2[0],p2[1],       s, t, c1, c2);	// curve -- curve
+	//			if(g1 == 2 && g2 == 3) ClosestSegmentTriangle	(p1[0],p1[1],  p2[0],p2[1],p2[2],       c1, c2);	// curve -- sheet
+	//			if(g1 == 3 && g2 == 2) ClosestSegmentTriangle	(p2[0],p2[1],  p1[0],p1[1],p1[2],       c1, c2);	// sheet -- curve
+	//			if(g1 == 3 && g2 == 3) TriTriIntersect			(p1[0],p1[1],p1[2],  p2[0],p2[1],p2[2], c1, c2);	// sheet -- sheet
+	//			
+	//			Scalar dist = (c1 - c2).norm();
+
+	//			if(dist < minDist)
+	//			{
+	//				minI = i;
+	//				minJ = j;
+	//				minDist = dist;
+	//			}
+
+	//			//foreach(Vector3 w, parts1[i]) debugPoints2.push_back(w);
+	//			//foreach(Vector3 w, parts2[j]) debugPoints2.push_back(w);
+	//		}
+	//	}
+	//}
+
+	//// Find the exact intersection point
+	//std::vector<Vector3> p1 = parts1[ minI ];
+	//std::vector<Vector3> p2 = parts2[ minJ ];
+	//int g1 = p1.size(), g2 = p2.size();
+
+	//Vector3 c1,c2;
+	//Scalar s,t;
+
+	//if(g1 == 2 && g2 == 2) ClosestPointSegments		(p1[0],p1[1],  p2[0],p2[1],       s, t, c1, c2);	// curve -- curve
+	//if(g1 == 2 && g2 == 3) ClosestSegmentTriangle	(p1[0],p1[1],  p2[0],p2[1],p2[2],       c1, c2);	// curve -- sheet
+	//if(g1 == 3 && g2 == 2) ClosestSegmentTriangle	(p2[0],p2[1],  p1[0],p1[1],p1[2],       c1, c2);	// sheet -- curve
+	//if(g1 == 3 && g2 == 3) TriTriIntersect			(p1[0],p1[1],p1[2],  p2[0],p2[1],p2[2], c1, c2);	// sheet -- sheet
 
 	//debugPoints.push_back(c1);
 	//debugPoints.push_back(c2);
 	//foreach(Vector3 w, p1) debugPoints2.push_back(w);
 	//foreach(Vector3 w, p2) debugPoints3.push_back(w);
 
-	return (c1 + c2) / 2.0;
+	//return (c1 + c2) / 2.0;
 }
 
 void Graph::printAdjacency()

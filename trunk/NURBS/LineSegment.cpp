@@ -68,7 +68,7 @@ bool Line::hasPoint( const Vector3& point, double eps)
 void Line::ClosestPoint(Point c, double &t, Point &d)
 {
 	Vector3 ab = b - a;
-	// Project c onto ab, computing parameterized position d(t) = a + t*(b – a)
+	// Project c onto ab, computing parameterized position d(t) = a + t*(b ?a)
 	t = dot(c - a, ab) / dot(ab, ab);
 	// If outside segment, clamp t (and therefore d) to the closest endpoint
 	if (t < 0.0) t = 0.0;

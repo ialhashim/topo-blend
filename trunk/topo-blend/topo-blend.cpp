@@ -558,6 +558,7 @@ void topoblend::modifyModel()
 	}
 	
     GraphModifyDialog modifyDialog(graphs.back());
+	drawArea()->connect(&modifyDialog, SIGNAL(updateView()), SLOT(updateGL()));
 	modifyDialog.exec();
 }
 

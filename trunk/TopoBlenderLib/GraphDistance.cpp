@@ -223,6 +223,12 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	isReady = true;
 }
 
+double GraphDistance::distance( Vector3 point )
+{
+	std::vector<Vector3> path;
+	return pathTo(point, path);
+}
+
 double GraphDistance::pathTo( Vector3 point, std::vector<Vector3> & path )
 {
 	// Find closest destination point

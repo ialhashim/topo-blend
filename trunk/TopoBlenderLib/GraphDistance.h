@@ -26,6 +26,7 @@ public:
 	void computeDistances( Vector3 startingPoint, double resolution = -1 );
 	void computeDistances( std::vector<Vector3> startingPoints, double resolution = -1 );
 
+	double distance( Vector3 point );
     double pathTo( Vector3 point, std::vector<Vector3> & path );
 	double pathCoordTo( Vector3 point, QVector< QPair<QString, Vec4d> > & path );
 	Structure::Node * closestNeighbourNode( Vector3 to, double resolution = 0.25 );

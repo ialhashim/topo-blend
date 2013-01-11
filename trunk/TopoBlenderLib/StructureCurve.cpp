@@ -173,7 +173,7 @@ void Curve::setControlPoints( const std::vector<Vector3> & newPositions )
 	curve.mCtrlPoint = newPositions;
 }
 
-void Structure::Curve::scale( Scalar scaleFactor )
+void Curve::scale( Scalar scaleFactor )
 {
 	this->curve.scale(scaleFactor);
 }
