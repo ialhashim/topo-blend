@@ -1,10 +1,14 @@
 #include <QApplication>
+
 #include "Task.h"
 #include "Scheduler.h"
+
+#include "Synthesizer.h"
 
 Scheduler::Scheduler()
 {
 	rulerHeight = 25;
+	sourceGraph = targetGraph = NULL;
 }
 
 void Scheduler::drawBackground( QPainter * painter, const QRectF & rect )
@@ -229,4 +233,12 @@ void Scheduler::startAllSameTime()
 {
 	foreach(Task * t, tasks)
 		t->setX(0);
+}
+
+void Scheduler::prepareSynthesis()
+{
+	foreach(Task * t, tasks)
+	{
+		
+	}
 }

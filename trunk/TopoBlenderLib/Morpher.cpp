@@ -20,22 +20,20 @@ int missCount = 0;
 
 #define USE_OCTREE 1
 
-
 Morpher::Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2, Graph graph1, Graph graph2,	
-	int uResolution, int vResolution, int timeResolution, int thetaResolution, int phiResolution, QObject *parent)
-	: QObject(parent)
+	int uResolution, int vResolution, int timeResolution, int thetaResolution, int phiResolution, QObject *parent): QObject(parent)
 {
-	source_mesh=mesh1;
-	target_mesh=mesh2;
+	source_mesh = mesh1;
+	target_mesh = mesh2;
 
-	source_graph=graph1;
-	target_graph=graph2;
+	source_graph = graph1;
+	target_graph = graph2;
 
-	resampledSourceMesh=new SurfaceMeshModel("resampled_source.off","resampled_source");
-	resampledTargetMesh=new SurfaceMeshModel("resampled_target.off","resampled_target");
+	resampledSourceMesh = new SurfaceMeshModel("resampled_source.off","resampled_source");
+	resampledTargetMesh = new SurfaceMeshModel("resampled_target.off","resampled_target");
 
 	get_faces(source_mesh, target_mesh, source_faces, target_faces);
-	buildOctree(source_mesh,target_mesh,source_octree,target_octree, 20);
+	buildOctree(source_mesh, target_mesh, source_octree, target_octree, 20);
 
 	resampling(uResolution, vResolution, timeResolution, thetaResolution, phiResolution);
 }
@@ -89,45 +87,42 @@ void Morpher::buildOctree(SurfaceMeshModel *source_mesh, SurfaceMeshModel *targe
 	}
 }
 
-void Morpher::resampling(int uResolution, int vResolution,
-	int timeResolution, int thetaResolution, int phiResolution)
+void Morpher::resampling(int uResolution, int vResolution, int timeResolution, int thetaResolution, int phiResolution)
 {
-	//transverse the graph nodes
-	//do cross section resampling to curve nodes
+	// transverse the graph nodes
 	for(int i=0;i<source_graph.nodes.size();i++)
 	{
-		if(source_graph.nodes[i]->type()==Structure::CURVE&&target_graph.nodes[i]->type()==Structure::CURVE)
+		// do cross section resampling to curve nodes
+		if(source_graph.nodes[i]->type()==Structure::CURVE && target_graph.nodes[i]->type()==Structure::CURVE)
 		{
-			Curve* sourceCurve=(Curve *)source_graph.nodes[i];
-			Curve* targetCurve=(Curve *)target_graph.nodes[i];
-			NURBSCurve source_curve=sourceCurve->curve;
-			NURBSCurve target_curve=targetCurve->curve;
+			Curve* sourceCurve = (Curve *)source_graph.nodes[i];
+			Curve* targetCurve = (Curve *)target_graph.nodes[i];
+			NURBSCurve source_curve = sourceCurve->curve;
+			NURBSCurve target_curve = targetCurve->curve;
 
 			curveResampling(source_curve, target_curve, timeResolution,thetaResolution, phiResolution);
 		}
 
-		if(source_graph.nodes[i]->type()==Structure::SHEET&&target_graph.nodes[i]->type()==Structure::SHEET)
+		if(source_graph.nodes[i]->type()==Structure::SHEET && target_graph.nodes[i]->type()==Structure::SHEET)
 		{
-			Sheet* sourceSheet=(Sheet*) source_graph.nodes[i];
-			Sheet* targetSheet=(Sheet*) target_graph.nodes[i];
-			NURBSRectangle source_sheet=sourceSheet->surface;
-			NURBSRectangle target_sheet=targetSheet->surface;
+			Sheet* sourceSheet = (Sheet*) source_graph.nodes[i];
+			Sheet* targetSheet = (Sheet*) target_graph.nodes[i];
+			NURBSRectangle source_sheet = sourceSheet->surface;
+			NURBSRectangle target_sheet = targetSheet->surface;
 
 			sheetResampling(source_sheet, target_sheet, uResolution, vResolution, thetaResolution, phiResolution);
 		}
 	}
-
-	qDebug() << "Miss count = " << missCount;
 }
 
 void Morpher::curveResampling(NURBSCurve source_curve, NURBSCurve target_curve, int timeResolution, int thetaResolution, int phiResolution )
 {	
 	Vector3 initialSourceDirection, initialTargetDirection;
 	Vector3 initialSourceTangent, initialTargetTangent;
-	double thetaRange=2*M_PI;
-	double phiRange=M_PI/2;
-	int sampling_thetaResolution=(int)thetaResolution*thetaRange/(2*M_PI);
-	int sampling_phiResolution= (int)phiResolution*phiRange/(M_PI);   // full range of phi here is M_PI
+	double thetaRange = 2*M_PI;
+	double phiRange = M_PI/2;
+	int sampling_thetaResolution = (int)thetaResolution*thetaRange/(2*M_PI);
+	int sampling_phiResolution = (int)phiResolution*phiRange/(M_PI);   // full range of phi here is M_PI
 
 	// set the initial theta sampling direction as the curve binormal
 	initialSourceDirection=source_curve.GetBinormal(0);
@@ -137,7 +132,7 @@ void Morpher::curveResampling(NURBSCurve source_curve, NURBSCurve target_curve, 
 	initialTargetTangent=target_curve.GetTangent(0);
 
 	// align initial sampling direction
-	// set the inital sampling direction as the 
+	// set the initial sampling direction as the 
 	if(dot(initialSourceDirection,initialTargetDirection)<0)
 		initialTargetDirection=-1*initialTargetDirection;
 
@@ -202,9 +197,9 @@ void Morpher::curveResampling(NURBSCurve source_curve, NURBSCurve target_curve, 
 	// the theta in the cylinder represents the phi in the sphere
 	// in sphere: theta=longitude, phi=latitude
 
-	Array2D_Vector3 source_endResamplings1=sphereResampling(source_faces,source_pos, thetaStartSource, -sourceTangent,
+	Array2D_Vector3 source_endResamplings1 = sphereResampling(source_faces,source_pos, thetaStartSource, -sourceTangent,
 		sampling_phiResolution, sampling_thetaResolution, phiRange, thetaRange, source_octree);
-	Array2D_Vector3 target_endResamplings1=sphereResampling(target_faces,target_pos, thetaStartTarget, -targetTangent,
+	Array2D_Vector3 target_endResamplings1 = sphereResampling(target_faces,target_pos, thetaStartTarget, -targetTangent,
 		sampling_phiResolution, sampling_thetaResolution, phiRange, thetaRange, target_octree);
 
 	addEndFaces(source_endResamplings1, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
@@ -219,13 +214,13 @@ void Morpher::curveResampling(NURBSCurve source_curve, NURBSCurve target_curve, 
 	targetTangent=target_curve.GetTangent(1);
 	//targetNormal=target_curve.GetNormal(1);
 
-	assert(dot(sourceTangent,targetTangent)>0.5);
-	thetaStartSource=-cross(initialSourceDirection, sourceTangent);
-	thetaStartTarget=-cross(initialTargetDirection, targetTangent);
+	assert(dot(sourceTangent,targetTangent) > 0.5);
+	thetaStartSource = -cross(initialSourceDirection, sourceTangent);
+	thetaStartTarget = -cross(initialTargetDirection, targetTangent);
 
-	Array2D_Vector3 source_endResamplings2=sphereResampling(source_faces,source_pos, thetaStartSource, sourceTangent,
+	Array2D_Vector3 source_endResamplings2 = sphereResampling(source_faces,source_pos, thetaStartSource, sourceTangent,
 		sampling_phiResolution, sampling_thetaResolution, phiRange, thetaRange, source_octree);
-	Array2D_Vector3 target_endResamplings2=sphereResampling(target_faces,target_pos, thetaStartTarget, targetTangent,
+	Array2D_Vector3 target_endResamplings2 = sphereResampling(target_faces,target_pos, thetaStartTarget, targetTangent,
 		sampling_phiResolution, sampling_thetaResolution, phiRange, thetaRange, target_octree);
 
 	addEndFaces(source_endResamplings2, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
@@ -1318,13 +1313,12 @@ void Morpher::stitchPlane( int uResolution, int vResolution, int sampling_thetaR
 
 Vec3d Morpher::intersectionPoint( Ray ray, Octree * useTree, int * faceIndex )
 {
-
 	HitResult res;
 	Vec3d isetpoint(0);
 
 	QSet<int> results = useTree->intersectRay( ray, ray.thickness, false );
 
-	double minDistance=DBL_MAX;
+	double minDistance = DBL_MAX;
 	bool foundIntersection;
 
 	foreach(int i, results)
@@ -1341,18 +1335,17 @@ Vec3d Morpher::intersectionPoint( Ray ray, Octree * useTree, int * faceIndex )
 		// find the nearest intersection point
 		if(res.hit)
 		{
-			if (res.distance<minDistance)
+			if (res.distance < minDistance)
 			{
-				minDistance=res.distance;
+				minDistance = res.distance;
 				isetpoint = ray.origin + (ray.direction * res.distance);
 				if(faceIndex) *faceIndex = i;
 			}
-			foundIntersection=true;
+			foundIntersection = true;
 		}
 	}
 
-	//assert(res.hit == true);
-	assert(foundIntersection==true);
+	assert(foundIntersection == true);
 
 	return isetpoint;
 }
@@ -1446,8 +1439,8 @@ void Morpher::testCase()
 
 SurfaceMeshModel* Morpher::generateInBetween( std::vector<SurfaceMeshModel*> source_models, std::vector<SurfaceMeshModel*> target_models, std::vector<double> T )
 {
-	SurfaceMeshModel* blendModel=new SurfaceMeshModel("blend.off","blend");
-	int vertexIndexBase=0;
+	SurfaceMeshModel* blendModel = new SurfaceMeshModel("blend.off","blend");
+	int vertexIndexBase = 0;
 	std::vector<Vertex> vertiexIndices;
 	std::vector<Vector3> finalPoints;
 
@@ -1457,10 +1450,7 @@ SurfaceMeshModel* Morpher::generateInBetween( std::vector<SurfaceMeshModel*> sou
 		Vector3VertexProperty target_points = target_models[i]->vertex_property<Vector3>(VPOINT);
 
 		Surface_mesh::Vertex_iterator vit, vend=source_models[i]->vertices_end();
-
-
 	}
-
 
 	for (int i=0; i< (int)source_models.size(); i++)
 	{
@@ -1488,16 +1478,16 @@ SurfaceMeshModel* Morpher::generateInBetween( std::vector<SurfaceMeshModel*> sou
 			face_vertex_idx.push_back(++vfit);
 
 			//since we read multiple models, the vertex index should be added by a base index number of previous saved vertex number 
-			for(int v=0;v<(int)face_vertex_idx.size();v++)
-				Face_vertex_idx.push_back(vertiexIndices[face_vertex_idx[v].idx()+vertexIndexBase]);
+			for(int v=0; v < (int)face_vertex_idx.size(); v++)
+				Face_vertex_idx.push_back( vertiexIndices[face_vertex_idx[v].idx() + vertexIndexBase] );
 
 			blendModel->add_face(Face_vertex_idx);
 		}
 
-		vertexIndexBase=blendModel->n_vertices();
+		vertexIndexBase = blendModel->n_vertices();
 	}
 
-	blendModel=mergeVertices(blendModel);
+	blendModel = mergeVertices(blendModel);
 
 	return blendModel;
 }
@@ -1548,7 +1538,4 @@ SurfaceMeshModel* Morpher::mergeVertices( SurfaceMeshModel * model, double thres
 
 	return mergedMesh;
 }
-
-
-
 

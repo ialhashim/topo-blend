@@ -25,8 +25,7 @@ explicit Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2,
 	void testCase();
 
 	// resampling options
-	void resampling(int uResolution=10, int vResolution=10, 
-		int timeResolution=10, int thetaResolution=10, int phiResolution=6);
+	void resampling(int uResolution=10, int vResolution=10, int timeResolution=10, int thetaResolution=10, int phiResolution=6);
 	void curveResampling(NURBSCurve source_curve, NURBSCurve target_curve, int timeResolution, int thetaResolution, int phiResolution);
 	void sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target_sheet, int uResolution, int vResolution, int thetaResolution, int phiResolution);
 
