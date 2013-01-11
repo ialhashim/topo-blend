@@ -11,11 +11,14 @@
 
 #define USE_OCTREE 1
 
+#include "weld.h"
+
 // Experiments
 #include "NanoKdTree.h"
 int missCount = 0;
 
-Morpher::Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2, Graph graph1, Graph graph2,	QObject *parent)
+Morpher::Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2, Graph graph1, Graph graph2,	
+	int uResolution, int vResolution, int timeResolution, int thetaResolution, int phiResolution, QObject *parent)
 	: QObject(parent)
 {
 	source_mesh=mesh1;
@@ -29,6 +32,9 @@ Morpher::Morpher(SurfaceMeshModel *mesh1, SurfaceMeshModel *mesh2, Graph graph1,
 
 	get_faces(source_mesh, target_mesh, source_faces, target_faces);
 	buildOctree(source_mesh,target_mesh,source_octree,target_octree, 20);
+
+	resampling(uResolution, vResolution, 
+		timeResolution, thetaResolution, phiResolution);
 }
 
 Morpher::~Morpher()
@@ -117,6 +123,8 @@ void Morpher::curveResampling(NURBSCurve source_curve, NURBSCurve target_curve, 
 	Vector3 initialSourceTangent, initialTargetTangent;
 	double thetaRange=2*M_PI;
 	double phiRange=M_PI/2;
+	int sampling_thetaResolution=(int)thetaResolution*thetaRange/(2*M_PI);
+	int sampling_phiResolution= (int)phiResolution*phiRange/(M_PI);   // full range of phi here is M_PI
 
 	// set the initial theta sampling direction as the curve binormal
 	initialSourceDirection=source_curve.GetBinormal(0);
@@ -126,6 +134,7 @@ void Morpher::curveResampling(NURBSCurve source_curve, NURBSCurve target_curve, 
 	initialTargetTangent=target_curve.GetTangent(0);
 
 	// align initial sampling direction
+	// set the inital sampling direction as the 
 	if(dot(initialSourceDirection,initialTargetDirection)<0)
 		initialTargetDirection=-1*initialTargetDirection;
 
@@ -143,8 +152,8 @@ void Morpher::curveResampling(NURBSCurve source_curve, NURBSCurve target_curve, 
 
 	//assert(dot(initialSourceDirection,initialTargetDirection)>0.5);
 
-	Array2D_Vector3 source_crossSections=cylinderResampling(source_faces,source_curve,initialSourceDirection,timeResolution,(int) thetaResolution*thetaRange/(2*M_PI),thetaRange, source_octree, false);
-	Array2D_Vector3 target_crossSections=cylinderResampling(target_faces,target_curve,initialTargetDirection,timeResolution,(int)thetaResolution*thetaRange/(2*M_PI),thetaRange, target_octree, false);
+	Array2D_Vector3 source_crossSections=cylinderResampling(source_faces,source_curve,initialSourceDirection,timeResolution,sampling_thetaResolution,thetaRange, source_octree, false);
+	Array2D_Vector3 target_crossSections=cylinderResampling(target_faces,target_curve,initialTargetDirection,timeResolution,sampling_thetaResolution,thetaRange, target_octree, false);
 
 	int idxBase=source_verticesIdx.size();
 	addCylinderFaces(source_crossSections, resampledSourceMesh, source_verticesIdx, idxBase);
@@ -169,7 +178,6 @@ void Morpher::curveResampling(NURBSCurve source_curve, NURBSCurve target_curve, 
 	Vector3 source_pos, sourceTangent, sourceBinormal, sourceNormal, thetaStartSource;
 	Vector3 target_pos, targetTangent, targetBinormal, targetNormal, thetaStartTarget;
 
-	int curr_phiResolution=(int)phiResolution*phiRange/(M_PI);
 	// t=0
 	source_pos=source_curve.GetPosition(0);
 	sourceTangent=source_curve.GetTangent(0);
@@ -187,15 +195,14 @@ void Morpher::curveResampling(NURBSCurve source_curve, NURBSCurve target_curve, 
 	thetaStartSource=cross(initialSourceDirection, sourceTangent);
 	thetaStartTarget=cross(initialTargetDirection, targetTangent);
 
-	// here, the meaning of theta changes:
+	// in sphere sampling, the meaning of theta changes:
 	// the theta in the cylinder represents the phi in the sphere
-	thetaRange=2*M_PI;
-	phiRange=M_PI/2;
+	// in sphere: theta=longitude, phi=latitude
 
 	Array2D_Vector3 source_endResamplings1=sphereResampling(source_faces,source_pos, thetaStartSource, -sourceTangent,
-		curr_phiResolution, (int)thetaResolution*thetaRange/(2*M_PI), phiRange, thetaRange, source_octree);
+		sampling_phiResolution, sampling_thetaResolution, phiRange, thetaRange, source_octree);
 	Array2D_Vector3 target_endResamplings1=sphereResampling(target_faces,target_pos, thetaStartTarget, -targetTangent,
-		curr_phiResolution, (int)thetaResolution*thetaRange/(2*M_PI), phiRange, thetaRange, target_octree);
+		sampling_phiResolution, sampling_thetaResolution, phiRange, thetaRange, target_octree);
 	
 	addEndFaces(source_endResamplings1, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
 	addEndFaces(target_endResamplings1, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
@@ -214,72 +221,14 @@ void Morpher::curveResampling(NURBSCurve source_curve, NURBSCurve target_curve, 
 	thetaStartTarget=-cross(initialTargetDirection, targetTangent);
 
 	Array2D_Vector3 source_endResamplings2=sphereResampling(source_faces,source_pos, thetaStartSource, sourceTangent,
-		curr_phiResolution, (int)thetaResolution*thetaRange/(2*M_PI), phiRange, thetaRange, source_octree);
+		sampling_phiResolution, sampling_thetaResolution, phiRange, thetaRange, source_octree);
 	Array2D_Vector3 target_endResamplings2=sphereResampling(target_faces,target_pos, thetaStartTarget, targetTangent,
-		curr_phiResolution, (int)thetaResolution*thetaRange/(2*M_PI), phiRange, thetaRange, target_octree);
+		sampling_phiResolution, sampling_thetaResolution, phiRange, thetaRange, target_octree);
 
 	addEndFaces(source_endResamplings2, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
 	addEndFaces(target_endResamplings2, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
 
-	// connect the end with the trunk
-	int numTrunk= (timeResolution-1)*thetaResolution;
-	int numEnd=thetaResolution*(curr_phiResolution+1);
-	int currentTotal=source_verticesIdx.size();
-
-	std::vector<Vertex> face_vertex_idx;
-	// t=0, the rotation of sphere sampling is inverse to the trunk
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd+curr_phiResolution*thetaResolution+1]);
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd+curr_phiResolution*thetaResolution]);
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-numTrunk]);
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-numTrunk+ thetaResolution-1]);
-
-	resampledSourceMesh->add_face(face_vertex_idx);
-	resampledTargetMesh->add_face(face_vertex_idx);
-	
-	for (int curr_theta=1; curr_theta< thetaResolution-1; curr_theta++)
-	{
-		std::vector<Vertex> face_vertex_idx;
-
-		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd+curr_phiResolution*thetaResolution+curr_theta+1]);
-		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd+curr_phiResolution*thetaResolution+curr_theta]);
-		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-numTrunk+thetaResolution-curr_theta]);
-		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-numTrunk+thetaResolution-curr_theta-1]);
-
-		resampledSourceMesh->add_face(face_vertex_idx);
-		resampledTargetMesh->add_face(face_vertex_idx);
-	}
-	
-	face_vertex_idx.clear();
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd+curr_phiResolution*thetaResolution]);
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd+curr_phiResolution*thetaResolution+thetaResolution-1]);
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-numTrunk+1]);
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-numTrunk]);
-
-	resampledSourceMesh->add_face(face_vertex_idx);
-	resampledTargetMesh->add_face(face_vertex_idx);
-
-	//t=1
-	for (int curr_theta=0; curr_theta< thetaResolution-1; curr_theta++)
-	{
-		std::vector<Vertex> face_vertex_idx;
-		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-thetaResolution+curr_theta]);
-		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-thetaResolution+curr_theta+1]);
-		face_vertex_idx.push_back(source_verticesIdx[currentTotal-numEnd+curr_phiResolution*thetaResolution+curr_theta+1]);
-		face_vertex_idx.push_back(source_verticesIdx[currentTotal-numEnd+curr_phiResolution*thetaResolution+curr_theta]);
-
-		resampledSourceMesh->add_face(face_vertex_idx);
-		resampledTargetMesh->add_face(face_vertex_idx);
-	}
-
-	face_vertex_idx.clear();
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-thetaResolution+thetaResolution-1]);
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-thetaResolution]);
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-numEnd+curr_phiResolution*thetaResolution]);
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-numEnd+curr_phiResolution*thetaResolution+thetaResolution-1]);
-
-	resampledSourceMesh->add_face(face_vertex_idx);
-	resampledTargetMesh->add_face(face_vertex_idx);
-
+	stitchCylinder(timeResolution, thetaResolution, sampling_phiResolution);
 }
 
 void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target_sheet, int uResolution, int vResolution, int thetaResolution, int phiResolution )
@@ -316,8 +265,8 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 	//Vector3 initialSourceDirection, initialTargetDirection;
 	double thetaRange=M_PI;
 	double phiRange=M_PI/2;
-	int curr_thetaResolution=(int)thetaResolution*thetaRange/(2*M_PI);
-	int curr_phiResolution= (int)phiResolution*phiRange/(2*M_PI);
+	int sampling_thetaResolution=(int)thetaResolution*thetaRange/(2*M_PI);
+	int sampling_phiResolution= (int)phiResolution*phiRange/(2*M_PI);
 
 
 	//Vector3 position, sheetNormal, tangentU, tangentV;
@@ -364,31 +313,31 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 	// sampling using the sheet boundaries, counter-clockwise
 	// curve1: transverse u while v=0
 	Array2D_Vector3 source_crossSections1=cylinderResampling(source_faces,source_curve1,initialSourceDirection,
-		uResolution,(int)thetaResolution*thetaRange/(2*M_PI),thetaRange, source_octree, true);
+		uResolution,sampling_thetaResolution,thetaRange, source_octree, true);
 	Array2D_Vector3 target_crossSections1=cylinderResampling(target_faces,target_curve1,initialTargetDirection,
-		uResolution,(int)thetaResolution*thetaRange/(2*M_PI), thetaRange, target_octree, true);
+		uResolution,sampling_thetaResolution, thetaRange, target_octree, true);
 
 	// curve2: transverse v while u=uResolution
 	Array2D_Vector3 source_crossSections2=cylinderResampling(source_faces,source_curve2,initialSourceDirection,
-		vResolution,(int)thetaResolution*thetaRange/(2*M_PI),thetaRange, source_octree, true);
+		vResolution,sampling_thetaResolution,thetaRange, source_octree, true);
 	Array2D_Vector3 target_crossSections2=cylinderResampling(target_faces,target_curve2,initialTargetDirection,
-		vResolution,(int)thetaResolution*thetaRange/(2*M_PI), thetaRange, target_octree, true);
+		vResolution,sampling_thetaResolution, thetaRange, target_octree, true);
 
 	// curve3: transverse u while v=vResolution
 	initialSourceDirection= -initialSourceDirection;
 	initialTargetDirection=-initialTargetDirection;
 	Array2D_Vector3 source_crossSections3=cylinderResampling(source_faces,source_curve3,initialSourceDirection,
-		uResolution,(int)thetaResolution*thetaRange/(2*M_PI),thetaRange, source_octree,true);
+		uResolution,sampling_thetaResolution,thetaRange, source_octree,true);
 	Array2D_Vector3 target_crossSections3=cylinderResampling(target_faces,target_curve3,initialTargetDirection,
-		uResolution,(int)thetaResolution*thetaRange/(2*M_PI), thetaRange,target_octree,true);
+		uResolution,sampling_thetaResolution, thetaRange,target_octree,true);
 
 	// curve4: transverse v while u=0
 	//initialSourceDirection=-initialSourceDirection;
 	//initialTargetDirection= -initialTargetDirection;
 	Array2D_Vector3 source_crossSections4=cylinderResampling(source_faces,source_curve4,initialSourceDirection,
-		vResolution,(int)thetaResolution*thetaRange/(2*M_PI),thetaRange,source_octree,true);
+		vResolution,sampling_thetaResolution,thetaRange,source_octree,true);
 	Array2D_Vector3 target_crossSections4=cylinderResampling(target_faces,target_curve4,initialTargetDirection,
-		vResolution,(int)thetaResolution*thetaRange/(2*M_PI), thetaRange,target_octree,true);
+		vResolution,sampling_thetaResolution, thetaRange,target_octree,true);
 
 	double ct2=cylinderTimer.elapsed();
 
@@ -414,7 +363,7 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 	initialSourceDirection=sheetNormal;
 
 	Array2D_Vector3 source_cornerResamplings1=sphereResampling(source_faces,position,-tangentV,initialSourceDirection,
-		(int)thetaResolution*thetaRange/(2*M_PI),(int)phiResolution*phiRange/(2*M_PI), thetaRange, phiRange, source_octree);
+		sampling_thetaResolution,sampling_phiResolution, thetaRange, phiRange, source_octree);
 
 	target_sheet.GetFrame(0,0,position, tangentU, tangentV, sheetNormal);
 	initialTargetDirection=sheetNormal;
@@ -424,7 +373,7 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 	}
 
 	Array2D_Vector3 target_cornerResamplings1=sphereResampling(target_faces,position,-tangentV,initialTargetDirection,
-		(int)thetaResolution*thetaRange/(2*M_PI),(int)phiResolution*phiRange/(2*M_PI), thetaRange, phiRange, target_octree);
+		sampling_thetaResolution,sampling_phiResolution, thetaRange, phiRange, target_octree);
 
 	addCornerFaces(source_cornerResamplings1, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
 	addCornerFaces(target_cornerResamplings1, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
@@ -436,7 +385,7 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 		sheetNormal=-sheetNormal;
 	}
 	Array2D_Vector3 source_cornerResamplings2=sphereResampling(source_faces,position,tangentU,sheetNormal,
-		(int)thetaResolution*thetaRange/(2*M_PI),(int)phiResolution*phiRange/(2*M_PI), thetaRange, phiRange, source_octree);
+		sampling_thetaResolution,sampling_phiResolution, thetaRange, phiRange, source_octree);
 
 	target_sheet.GetFrame(1,0,position, tangentU, tangentV, sheetNormal);
 	if (dot(initialTargetDirection, sheetNormal)<0)
@@ -444,7 +393,7 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 		sheetNormal=-sheetNormal;
 	}
 	Array2D_Vector3 target_cornerResamplings2=sphereResampling(target_faces,position,tangentU,sheetNormal,
-		(int)thetaResolution*thetaRange/(2*M_PI),(int)phiResolution*phiRange/(2*M_PI), thetaRange, phiRange, target_octree);
+		sampling_thetaResolution,sampling_phiResolution, thetaRange, phiRange, target_octree);
 
 	addCornerFaces(source_cornerResamplings2, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
 	addCornerFaces(target_cornerResamplings2, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
@@ -456,7 +405,7 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 		sheetNormal=-sheetNormal;
 	}
 	Array2D_Vector3 source_cornerResamplings3=sphereResampling(source_faces,position,tangentV,sheetNormal,
-		(int)thetaResolution*thetaRange/(2*M_PI),(int)phiResolution*phiRange/(2*M_PI), thetaRange, phiRange, source_octree);
+		sampling_thetaResolution,sampling_phiResolution, thetaRange, phiRange, source_octree);
 
 	target_sheet.GetFrame(1,1,position, tangentU, tangentV, sheetNormal);
 	if (dot(initialTargetDirection, sheetNormal)<0)
@@ -464,7 +413,7 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 		sheetNormal=-sheetNormal;
 	}
 	Array2D_Vector3 target_cornerResamplings3=sphereResampling(target_faces,position,tangentV,sheetNormal,
-		(int)thetaResolution*thetaRange/(2*M_PI),(int)phiResolution*phiRange/(2*M_PI), thetaRange, phiRange, target_octree);
+		sampling_thetaResolution,sampling_phiResolution, thetaRange, phiRange, target_octree);
 
 	addCornerFaces(source_cornerResamplings3, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
 	addCornerFaces(target_cornerResamplings3, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
@@ -476,7 +425,7 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 		sheetNormal=-sheetNormal;
 	}
 	Array2D_Vector3 source_cornerResamplings4=sphereResampling(source_faces,position,-tangentU,sheetNormal,
-		(int)thetaResolution*thetaRange/(2*M_PI),(int)phiResolution*phiRange/(2*M_PI), thetaRange, phiRange, source_octree);
+		sampling_thetaResolution,sampling_phiResolution, thetaRange, phiRange, source_octree);
 
 	target_sheet.GetFrame(0,1,position, tangentU, tangentV, sheetNormal);
 	if (dot(initialTargetDirection, sheetNormal)<0)
@@ -484,31 +433,13 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 		sheetNormal=-sheetNormal;
 	}
 	Array2D_Vector3 target_cornerResamplings4=sphereResampling(target_faces,position,-tangentU,sheetNormal,
-		(int)thetaResolution*thetaRange/(2*M_PI),(int)phiResolution*phiRange/(2*M_PI), thetaRange, phiRange, target_octree);
+		sampling_thetaResolution,sampling_phiResolution, thetaRange, phiRange, target_octree);
 
 	addCornerFaces(source_cornerResamplings4, resampledSourceMesh, source_verticesIdx, source_verticesIdx.size());
 	addCornerFaces(target_cornerResamplings4, resampledTargetMesh, target_verticesIdx, target_verticesIdx.size());
 
+	stitchPlane(uResolution,vResolution,sampling_thetaResolution,sampling_phiResolution);
 
-	// connect corner to boundary cylinder
-	int numCorner=curr_thetaResolution*curr_phiResolution;
-	int numTrunckU=uResolution*curr_thetaResolution;
-	int numTrunckV=vResolution*curr_thetaResolution;
-	int currentTotal=source_verticesIdx.size();
-
-	// corner1
-	//for (int curr_theta=0; curr_theta< curr_thetaResolution-1; curr_theta++)
-	//{
-	//	std::vector<Vertex> face_vertex_idx;
-	//	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numTrunckV-numTrunckU-4*numCorner-curr_thetaResolution+curr_theta]);
-	//	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numTrunckV-numTrunckU-4*numCorner-curr_thetaResolution+curr_theta+1]);
-	//	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner+curr_theta+1]);
-	//	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner+curr_theta]);
-
-	//	resampledSourceMesh->add_face(face_vertex_idx);
-	//	resampledTargetMesh->add_face(face_vertex_idx);
-	//}
-	
 	double t3=resamplingTimer.elapsed();
 	//qDebug() << QString("Corner resampling =%1 ms").arg(t3-t2);
 }
@@ -521,12 +452,11 @@ Array2D_Vector3 Morpher::cylinderResampling(Array2D_Vector3 mesh_faces, NURBSCur
 	std::vector<Vector3> cross_section;
 	Array2D_Vector3 crossSections;
 
-
 	// type check
 	// cylinder sampling for plane (open, thetaSamplings=theResolution+1), and sampling direction fixed as the sheet normal
 	if(SheetBoundary)
 	{
-		for (int i=0;i<=timeResolution;i++)
+		for (int i=1;i<timeResolution;i++)
 		{
 			cross_section=resampleCoutourPointsPlane(mesh_faces,pathCurve,i*delta_t,thetaResolution, thetaRange, initialDirection, octree);
 			crossSections.push_back(cross_section);
@@ -672,14 +602,14 @@ std::vector<Array2D_Vector3> Morpher::planeResamping(Array2D_Vector3 mesh_faces,
 
 	double delta_u=1.0/uResolution, delta_v=1.0/vResolution;
 
-	for(int v_idx=0;v_idx<=vResolution;v_idx++)
+	for(int v_idx=1;v_idx<vResolution;v_idx++)
 	{
 		Vector3 sheetPoint;
 		Vector3 uDirection, vDirection, sheetNormal;
 
 		Array1D_Vector3 upIntersections, downIntersections;
 
-		for(int u_idx=0;u_idx<=uResolution;u_idx++)
+		for(int u_idx=1;u_idx<uResolution;u_idx++)
 		{
 
 			sheet.GetFrame(u_idx*delta_u, v_idx*delta_v, sheetPoint, uDirection, vDirection, sheetNormal);
@@ -1018,6 +948,371 @@ void Morpher::addEndFaces(Array2D_Vector3 sphereResamplings, SurfaceMeshModel* m
 	}
 }
 
+void Morpher::stitchCylinder( int timeResolution, int thetaResolution, int sampling_phiResolution )
+{
+	// connect the end with the trunk
+	int numTrunk= (timeResolution-1)*thetaResolution;
+	int numEnd=thetaResolution*(sampling_phiResolution+1);
+	int currentTotal=source_verticesIdx.size();
+
+	std::vector<Vertex> face_vertex_idx;
+	// t=0, the rotation of sphere sampling is inverse to the trunk
+	// curve: startDirection=biNormal
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd+sampling_phiResolution*thetaResolution+1]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd+sampling_phiResolution*thetaResolution]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-numTrunk]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-numTrunk+ thetaResolution-1]);
+
+	resampledSourceMesh->add_face(face_vertex_idx);
+	resampledTargetMesh->add_face(face_vertex_idx);
+
+	for (int curr_theta=1; curr_theta< thetaResolution-1; curr_theta++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd+sampling_phiResolution*thetaResolution+curr_theta+1]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd+sampling_phiResolution*thetaResolution+curr_theta]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-numTrunk+thetaResolution-curr_theta]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-numTrunk+thetaResolution-curr_theta-1]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	face_vertex_idx.clear();
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd+sampling_phiResolution*thetaResolution]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd+sampling_phiResolution*thetaResolution+thetaResolution-1]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-numTrunk+1]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-numTrunk]);
+
+	resampledSourceMesh->add_face(face_vertex_idx);
+	resampledTargetMesh->add_face(face_vertex_idx);
+
+	//t=1
+	for (int curr_theta=0; curr_theta< thetaResolution-1; curr_theta++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-thetaResolution+curr_theta]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-thetaResolution+curr_theta+1]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-numEnd+sampling_phiResolution*thetaResolution+curr_theta+1]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-numEnd+sampling_phiResolution*thetaResolution+curr_theta]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	face_vertex_idx.clear();
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-thetaResolution+thetaResolution-1]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numEnd-thetaResolution]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-numEnd+sampling_phiResolution*thetaResolution]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-numEnd+sampling_phiResolution*thetaResolution+thetaResolution-1]);
+
+	resampledSourceMesh->add_face(face_vertex_idx);
+	resampledTargetMesh->add_face(face_vertex_idx);
+}
+
+void Morpher::stitchPlane( int uResolution, int vResolution, int sampling_thetaResolution, int sampling_phiResolution)
+{
+	int numCorner=(sampling_thetaResolution+1)*(sampling_phiResolution+1);
+	int numTrunckU=(uResolution-1)*(sampling_thetaResolution+1);
+	int numTrunckV=(vResolution-1)*(sampling_thetaResolution+1);
+	int numOnePlane=(uResolution-1)*(vResolution-1);
+	int currentTotal=source_verticesIdx.size();	
+	// connect plane to boundary cylinder
+	// curve1: v=0
+	for (int curr_u=0; curr_u< uResolution-2; curr_u++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-2*numOnePlane+curr_u]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU+curr_u*(sampling_thetaResolution+1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU+(curr_u+1)*(sampling_thetaResolution+1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-2*numOnePlane+curr_u+1]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	for (int curr_u=0; curr_u< uResolution-2; curr_u++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-numOnePlane+curr_u]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-numOnePlane+curr_u+1]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU+(curr_u+1)*(sampling_thetaResolution+1)+sampling_thetaResolution]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU+curr_u*(sampling_thetaResolution+1)+sampling_thetaResolution]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	// curve2: u=uResolution
+	for (int curr_v=0; curr_v< vResolution-2; curr_v++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-2*numOnePlane+curr_v*(uResolution-1)+uResolution-2]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-numTrunckU+curr_v*(sampling_thetaResolution+1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-numTrunckU+(curr_v+1)*(sampling_thetaResolution+1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-2*numOnePlane+(curr_v+1)*(uResolution-1)+uResolution-2]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	for (int curr_v=0; curr_v< vResolution-2; curr_v++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-numOnePlane+curr_v*(uResolution-1)+uResolution-2]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-numOnePlane+(curr_v+1)*(uResolution-1)+uResolution-2]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-numTrunckU+(curr_v+1)*(sampling_thetaResolution+1)+sampling_thetaResolution]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-numTrunckU+curr_v*(sampling_thetaResolution+1)+sampling_thetaResolution]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	// curve3: v=vResolution
+	for (int curr_u=0; curr_u< uResolution-2; curr_u++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-2*numOnePlane+(uResolution-1)*(vResolution-2)+curr_u]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-2*numOnePlane+(uResolution-1)*(vResolution-2)+curr_u+1]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV-numTrunckU+(curr_u+1)*(sampling_thetaResolution+1)+sampling_thetaResolution]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV-numTrunckU+(curr_u)*(sampling_thetaResolution+1)+sampling_thetaResolution]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	for (int curr_u=0; curr_u< uResolution-2; curr_u++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-numOnePlane+(uResolution-1)*(vResolution-2)+curr_u]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV-numTrunckU+curr_u*(sampling_thetaResolution+1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV-numTrunckU+(curr_u+1)*(sampling_thetaResolution+1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-numOnePlane+(uResolution-1)*(vResolution-2)+curr_u+1]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	// curve 4 u=0;
+	for (int curr_v=0; curr_v< vResolution-2; curr_v++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-2*numOnePlane+curr_v*(uResolution-1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-2*numOnePlane+(curr_v+1)*(uResolution-1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV+(curr_v+1)*(sampling_thetaResolution+1)+sampling_thetaResolution]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV+curr_v*(sampling_thetaResolution+1)+sampling_thetaResolution]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	for (int curr_v=0; curr_v< vResolution-2; curr_v++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-numOnePlane+curr_v*(uResolution-1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV+curr_v*(sampling_thetaResolution+1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV+(curr_v+1)*(sampling_thetaResolution+1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU-numOnePlane+(curr_v+1)*(uResolution-1)]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+
+	// connect corner to boundary cylinder
+	// corner1: u=0, v=0
+	// corner1:samplingStartDirection=sheetNormal; curve4: samplingStartDirection=-sheetNormal;
+	for (int curr_theta=0; curr_theta< sampling_thetaResolution; curr_theta++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner+curr_theta*(sampling_phiResolution+1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV+sampling_thetaResolution-curr_theta]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV+sampling_thetaResolution-curr_theta-1]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner+(curr_theta+1)*(sampling_phiResolution+1)]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	// corner1:samplingStartDirection=sheetNormal; curve1: samplingStartDirection=sheetNormal;
+	for (int curr_theta=0; curr_theta< sampling_thetaResolution; curr_theta++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner+curr_theta*(sampling_phiResolution+1)+sampling_phiResolution]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner+(curr_theta+1)*(sampling_phiResolution+1)+sampling_phiResolution]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU+curr_theta+1]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU+curr_theta]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	// corner2: u=1, v=0
+	// corner2:samplingStartDirection=sheetNormal; curve1: samplingStartDirection=sheetNormal;
+	for (int curr_theta=0; curr_theta< sampling_thetaResolution; curr_theta++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU+(uResolution-2)*(sampling_thetaResolution+1)+curr_theta]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-2*numTrunckU+(uResolution-2)*(sampling_thetaResolution+1)+curr_theta+1]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-3*numCorner+(curr_theta+1)*(sampling_phiResolution+1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-3*numCorner+curr_theta*(sampling_phiResolution+1)]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	// corner2:samplingStartDirection=sheetNormal; curve2: samplingStartDirection=sheetNormal;
+	for (int curr_theta=0; curr_theta< sampling_thetaResolution; curr_theta++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-3*numCorner+curr_theta*(sampling_phiResolution+1)+sampling_phiResolution]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-3*numCorner+(curr_theta+1)*(sampling_phiResolution+1)+sampling_phiResolution]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-numTrunckU+curr_theta+1]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-numTrunckU+curr_theta]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	// corner3: u=1, v=1
+	// corner3:samplingStartDirection=sheetNormal; curve2: samplingStartDirection=sheetNormal;
+	for (int curr_theta=0; curr_theta< sampling_thetaResolution; curr_theta++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-numTrunckU+(vResolution-2)*(sampling_thetaResolution+1)+curr_theta]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckV-numTrunckU+(vResolution-2)*(sampling_thetaResolution+1)+curr_theta+1]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numCorner+(curr_theta+1)*(sampling_phiResolution+1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numCorner+curr_theta*(sampling_phiResolution+1)]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	// corner3:samplingStartDirection=sheetNormal; curve3: samplingStartDirection=-sheetNormal;
+	for (int curr_theta=0; curr_theta< sampling_thetaResolution; curr_theta++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numCorner+curr_theta*(sampling_phiResolution+1)+sampling_phiResolution]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numCorner+(curr_theta+1)*(sampling_phiResolution+1)+sampling_phiResolution]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV-numTrunckU
+			+(uResolution-2)*(sampling_thetaResolution+1)+sampling_thetaResolution-curr_theta-1]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV-numTrunckU
+			+(uResolution-2)*(sampling_thetaResolution+1)+sampling_thetaResolution-curr_theta]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	// corner4: u=0, v=1
+	// corner4:samplingStartDirection=sheetNormal; curve3: samplingStartDirection=-sheetNormal;
+	for (int curr_theta=0; curr_theta< sampling_thetaResolution; curr_theta++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV-numTrunckU+sampling_thetaResolution-curr_theta]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV-numTrunckU+sampling_thetaResolution-curr_theta-1]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-numCorner+(curr_theta+1)*(sampling_phiResolution+1)]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-numCorner+curr_theta*(sampling_phiResolution+1)]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	// corner4:samplingStartDirection=sheetNormal; curve4: samplingStartDirection=-sheetNormal;
+	for (int curr_theta=0; curr_theta< sampling_thetaResolution; curr_theta++)
+	{
+		std::vector<Vertex> face_vertex_idx;
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-numCorner+curr_theta*(sampling_phiResolution+1)+sampling_phiResolution]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-numCorner+(curr_theta+1)*(sampling_phiResolution+1)+sampling_phiResolution]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV
+			+(vResolution-2)*(sampling_thetaResolution+1)+sampling_thetaResolution-curr_theta-1]);
+		face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV
+			+(vResolution-2)*(sampling_thetaResolution+1)+sampling_thetaResolution-curr_theta]);
+
+		resampledSourceMesh->add_face(face_vertex_idx);
+		resampledTargetMesh->add_face(face_vertex_idx);
+	}
+
+	// connect plane to corners, 8 faces in total
+	// corner1
+	std::vector<Vertex> face_vertex_idx;
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV-2*numOnePlane]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV+sampling_thetaResolution]); // on curve4
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner]); // on corner1
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV]); // on curve1
+
+	resampledSourceMesh->add_face(face_vertex_idx);
+	resampledTargetMesh->add_face(face_vertex_idx);
+
+	face_vertex_idx.clear();
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV-numOnePlane]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV+sampling_thetaResolution]); // on curve1
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-3*numCorner-1]); // on corner1
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV]); // on curve4
+
+	resampledSourceMesh->add_face(face_vertex_idx);
+	resampledTargetMesh->add_face(face_vertex_idx);
+
+	// corner2
+	face_vertex_idx.clear();
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV-2*numOnePlane+uResolution-2]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV+(uResolution-2)*(sampling_thetaResolution+1)]); // on curve1
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-3*numCorner]); // on corner2
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-2*numTrunckV]); // on curve2
+
+	resampledSourceMesh->add_face(face_vertex_idx);
+	resampledTargetMesh->add_face(face_vertex_idx);
+
+	face_vertex_idx.clear();
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV-numOnePlane+uResolution-2]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-2*numTrunckV+sampling_thetaResolution]); // on curve2
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numCorner-1]); // on corner2
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-2*numTrunckV-1]); // on curve1
+
+	resampledSourceMesh->add_face(face_vertex_idx);
+	resampledTargetMesh->add_face(face_vertex_idx);
+
+	// corner3
+	face_vertex_idx.clear();
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV-numOnePlane-1]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-2*numTrunckV+(vResolution-2)*(sampling_thetaResolution+1)]); // on curve2
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numCorner]); // on corner3
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV-1]); // on curve3
+
+	resampledSourceMesh->add_face(face_vertex_idx);
+	resampledTargetMesh->add_face(face_vertex_idx);
+
+	face_vertex_idx.clear();
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV-1]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-numTrunckV+(uResolution-2)*(sampling_thetaResolution+1)]); // on curve3
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-numCorner-1]); // on corner3
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-numTrunckV-1]); // on curve2
+
+	resampledSourceMesh->add_face(face_vertex_idx);
+	resampledTargetMesh->add_face(face_vertex_idx);
+
+	// corner4
+	face_vertex_idx.clear();
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV-2*numOnePlane+(vResolution-2)*(uResolution-1)]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-numTrunckV+sampling_thetaResolution]); // on curve3
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-numCorner]); // on corner4
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-1]); // on curve4
+
+	resampledSourceMesh->add_face(face_vertex_idx);
+	resampledTargetMesh->add_face(face_vertex_idx);
+
+	face_vertex_idx.clear();
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV-numOnePlane+(vResolution-2)*(uResolution-1)]);
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV+(vResolution-2)*(sampling_thetaResolution+1)]); // on curve4
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-1]); // on corner4
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-numTrunckV]); // on curve3
+
+	resampledSourceMesh->add_face(face_vertex_idx);
+	resampledTargetMesh->add_face(face_vertex_idx);
+
+}
+
 Vec3d Morpher::intersectionPoint( Ray ray, Octree * useTree, int * faceIndex )
 {
 
@@ -1146,11 +1441,23 @@ void Morpher::testCase()
 	}
 }
 
-SurfaceMeshModel* Morpher::generateInBetween( std::vector<SurfaceMeshModel*> source_models, std::vector<SurfaceMeshModel*> target_models, double t )
+SurfaceMeshModel* Morpher::generateInBetween( std::vector<SurfaceMeshModel*> source_models, std::vector<SurfaceMeshModel*> target_models, std::vector<double> T )
 {
 	SurfaceMeshModel* blendModel=new SurfaceMeshModel("blend.off","blend");
 	int vertexIndexBase=0;
 	std::vector<Vertex> vertiexIndices;
+	std::vector<Vector3> finalPoints;
+
+	for (int i=0; i< (int)source_models.size(); i++)
+	{
+		Vector3VertexProperty source_points = source_models[i]->vertex_property<Vector3>(VPOINT);
+		Vector3VertexProperty target_points = target_models[i]->vertex_property<Vector3>(VPOINT);
+
+		Surface_mesh::Vertex_iterator vit, vend=source_models[i]->vertices_end();
+
+		
+	}
+	
 
     for (int i=0; i< (int)source_models.size(); i++)
 	{
@@ -1161,7 +1468,8 @@ SurfaceMeshModel* Morpher::generateInBetween( std::vector<SurfaceMeshModel*> sou
 
 		for (vit=source_models[i]->vertices_begin(); vit!=vend; ++vit)
 		{
-			vertiexIndices.push_back(blendModel->add_vertex((1-t)*source_points[vit]+t*target_points[vit]));
+			Vector3 p = (1-T[i])*source_points[vit]+T[i]*target_points[vit];
+			vertiexIndices.push_back( blendModel->add_vertex(p) );
 		}
 
 		// Go over faces
@@ -1186,8 +1494,58 @@ SurfaceMeshModel* Morpher::generateInBetween( std::vector<SurfaceMeshModel*> sou
 		vertexIndexBase=blendModel->n_vertices();
 	}
 
+	blendModel=mergeVertices(blendModel);
+
 	return blendModel;
 }
+
+SurfaceMeshModel* Morpher::mergeVertices( SurfaceMeshModel * model, double threshold )
+{
+	std::vector<Vec3d> partPoints;
+
+	Vector3VertexProperty points = model->vertex_property<Vector3>(VPOINT);
+	Surface_mesh::Vertex_iterator vit, vend=model->vertices_end();
+
+	for (vit=model->vertices_begin(); vit!=vend; ++vit)
+	{
+		Vector3 p = points[vit];
+
+		foreach(Vec3d q, partPoints){
+			if( (q - p).norm() < threshold){
+				p = q;
+				break;
+			}
+		}
+
+		partPoints.push_back( p );
+	}
+
+	// Merge duplicate vertices
+	SurfaceMeshModel * mergedMesh = new SurfaceMeshModel("merged.off","Merged");
+	std::vector<size_t> xrefs;
+	weld(partPoints, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
+
+	for(int vi = 0; vi < partPoints.size(); vi++)
+		mergedMesh->add_vertex(partPoints[vi]);
+
+	foreach(Face f, model->faces())
+	{
+		std::vector<Vertex> verts;
+		Surface_mesh::Vertex_around_face_circulator vit = model->vertices(f),vend=vit;
+		QVector<int> vset;
+		do{
+			int newIdx = xrefs[Vertex(vit).idx()];
+			if(!vset.contains(newIdx)) vset.push_back(newIdx);
+		} while(++vit != vend);
+
+		foreach(int vidx, vset)	verts.push_back(Vertex(vidx));
+
+		mergedMesh->add_face(verts);
+	}
+
+	return mergedMesh;
+}
+
 
 
 
