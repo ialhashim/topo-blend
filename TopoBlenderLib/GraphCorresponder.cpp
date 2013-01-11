@@ -13,14 +13,239 @@ GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph
 	this->sg = source;
 	this->tg = target;
 
+	scoreThreshold = 0.3;
+	hW = sW = oW = fW = 1.0;
+
 	sIsLandmark.resize(sg->nodes.size(), false);
 	tIsLandmark.resize(tg->nodes.size(), false);
+}
 
-	sIsCorresponded.resize(sg->nodes.size(), false);
-	tIsCorresponded.resize(tg->nodes.size(), false);
+// Helper function
+QString GraphCorresponder::sgName()
+{
+	return sg->property["name"].toString().section('\\', -1).section('.', 0, 0);
+}
+
+QString GraphCorresponder::tgName()
+{
+	return tg->property["name"].toString().section('\\', -1).section('.', 0, 0);
 }
 
 
+// Matrix operations
+template <class Type>
+std::vector<std::vector<Type> > GraphCorresponder::transpose(const std::vector<std::vector<Type> > data) 
+{
+	// this assumes that all inner vectors have the same size and
+	// allocates space for the complete result in advance
+	std::vector<std::vector<Type> > result(data[0].size(), std::vector<Type>(data.size()));
+	for (int i = 0; i < (int)data[0].size(); i++){
+		for (int j = 0; j < (int)data.size(); j++) 
+		{
+			result[i][j] = data[j][i];
+		}
+	}
+
+	return result;
+}
+
+template <class Type>
+void GraphCorresponder::initializeMatrix(std::vector< std::vector<Type> > & M, Type value)
+{
+	int sN = sg->nodes.size();
+	int tN = tg->nodes.size();
+	std::vector<Type> tmp(tN, value);
+	M.clear();
+	M.resize(sN, tmp);
+}
+
+void GraphCorresponder::normalizeMatrix(std::vector< std::vector<float> > & M)
+{
+	float maxDis = -1;
+
+	// Find the maximum value
+	int sN = sg->nodes.size();
+	int tN = tg->nodes.size();
+	for(int i = 0; i < sN; i++){
+		for (int j = 0; j < tN; j++)
+		{
+			if (M[i][j] != INVALID_VALUE && M[i][j] > maxDis)
+				maxDis = M[i][j];
+		}
+	}
+
+	// Normalize
+	for(int i = 0; i < sN; i++){
+		for (int j = 0; j < tN; j++)
+		{
+			if (M[i][j] != INVALID_VALUE)
+			{
+				M[i][j] /= maxDis;
+			}
+		}
+	}
+}
+
+bool GraphCorresponder::minElementInMatrix( std::vector< std::vector<float> > &M, int &row, int &column, float &minValue )
+{
+	if (M.size() == 0 || M[0].size() == 0)
+	{
+		qDebug()  << "Warning: minElementInMatrix: the input matrix cannot be empty.";
+		return false;
+	}
+
+	minValue = FLT_MAX;
+	for (int i = 0; i < (int)M.size(); i++){
+		for (int j = 0; j < (int)M[0].size(); j++)
+		{
+			if (M[i][j] != INVALID_VALUE && M[i][j] < minValue)
+			{
+				minValue = M[i][j];
+				row = i;
+				column = j;
+			}
+		}
+	}
+
+	return minValue != FLT_MAX;
+}
+
+
+
+// Point Landmarks
+void GraphCorresponder::addPointLandmark()
+{
+	QVector<POINT_ID> sSelections = sg->selectedControlPointsByColor(Qt::green);
+	QVector<POINT_ID> tSelections = tg->selectedControlPointsByColor(Qt::green);
+
+	if (sSelections.empty() || tSelections.empty()) 
+	{
+		qDebug() << "You need select landmarks on both the source and target graphs.";
+		return;
+	}
+
+	pointLandmarks.push_back(std::make_pair(sSelections, tSelections));
+
+	// Clear the selections
+	sg->clearSelections();
+	tg->clearSelections();
+}
+
+void GraphCorresponder::prepareOneToOnePointLandmarks()
+{
+	// Clear
+	sPointLandmarks.clear();
+	tPointLandmarks.clear();
+
+	// Prepare
+	foreach (POINT_LANDMARK pLandmark, pointLandmarks)
+	{
+		QVector<POINT_ID> sIDs = pLandmark.first;
+		QVector<POINT_ID> tIDs = pLandmark.second;
+
+		// One to many
+		if (sIDs.size() == 1)
+		{
+			POINT_ID sID = sIDs.front();
+
+			foreach( POINT_ID tID, tIDs)
+			{
+				sPointLandmarks.push_back(sID);
+				tPointLandmarks.push_back(tID);
+			}
+		}
+		// Many to one
+		else if (tIDs.size() == 1)
+		{
+			POINT_ID tID = tIDs.front();
+
+			foreach( POINT_ID sID, sIDs)
+			{
+				sPointLandmarks.push_back(sID);
+				tPointLandmarks.push_back(tID);
+			}
+		}
+	}
+}
+
+QVector< QVector<double> > GraphCorresponder::computeLandmarkFeatures( Structure::Graph *g, QVector<POINT_ID> &pointLandmarks )
+{
+	QVector< QVector<double> > result_features(g->nodes.size(), QVector<double>());
+
+	foreach (POINT_ID landmark, pointLandmarks)
+	{
+		Vector3 startpoint = g->nodes[landmark.first]->controlPoint(landmark.second);
+
+		GraphDistance gd(g);
+		gd.computeDistances(startpoint);
+
+		for (int nID = 0; nID < (int)g->nodes.size(); nID++)
+		{
+			double dis = gd.distance(g->nodes[nID]->center());
+
+			result_features[nID].push_back(dis);
+		}
+	}
+
+	return result_features;
+}
+
+double GraphCorresponder::distanceBetweenLandmarkFeatures( QVector<double> sFeature, QVector<double> tFeature )
+{
+	if (sFeature.size() != tFeature.size())
+	{
+		qDebug() << "Landmark features have different dimensions.";
+		return -1;
+	}
+
+	// Euclidean distance
+	double dis = 0;
+	for (int i = 0; i < (int) sFeature.size(); i++)
+	{
+		double dif = sFeature[i] - tFeature[i];
+		dis += dif * dif;
+	}
+
+	return sqrt(dis);
+}
+
+void GraphCorresponder::computeLandmarkFeatureMatrix( std::vector< std::vector<float> > & M )
+{
+	// One to one point landmarks
+	prepareOneToOnePointLandmarks();
+
+	// In case there are no point landmarks
+	if(sPointLandmarks.empty())
+	{
+		initializeMatrix<float>(M, 0.0);
+		return;
+	}
+
+	// Landmark features
+	sLandmarkFeatures = computeLandmarkFeatures(sg, sPointLandmarks);
+	tLandmarkFeatures = computeLandmarkFeatures(tg, tPointLandmarks);
+
+	// Compute differences between features
+	initializeMatrix<float>(M, INVALID_VALUE);
+
+	int sN = sg->nodes.size();
+	int tN = tg->nodes.size();
+	for(int i = 0; i < sN; i++){
+		for (int j = 0; j < tN; j++)
+		{
+			if (validM[i][j])
+			{
+				M[i][j] = distanceBetweenLandmarkFeatures(sLandmarkFeatures[i], tLandmarkFeatures[j]);
+			}
+		}
+	}
+
+	normalizeMatrix(M);
+}
+
+
+
+// Part landmarks
 void GraphCorresponder::addLandmarks( QVector<QString> sParts, QVector<QString> tParts )
 {
 	// Check if those parts are available
@@ -73,7 +298,6 @@ void GraphCorresponder::addLandmarks( QVector<QString> sParts, QVector<QString> 
 	landmarks.push_back(std::make_pair(sParts, tParts));
 }
 
-
 void GraphCorresponder::removeLandmarks( int pos, int n )
 {
 	if (pos + n > (int)landmarks.size()) return;
@@ -99,8 +323,6 @@ void GraphCorresponder::removeLandmarks( int pos, int n )
 	// Erase
 	landmarks.erase(landmarks.begin() + pos, landmarks.begin() + pos + n);
 }
-
-
 
 void GraphCorresponder::computeValidationMatrix()
 {
@@ -139,7 +361,73 @@ void GraphCorresponder::computeValidationMatrix()
 	}
 }
 
+void GraphCorresponder::saveLandmarks(QString filename)
+{
+	QFile file(filename);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+	QTextStream outF(&file);
 
+	outF << landmarks.size() << "\n\n";
+
+	foreach (PART_LANDMARK vector2vector, landmarks)
+	{
+		outF << vector2vector.first.size() << '\t';;
+		foreach (QString strID, vector2vector.first)
+			outF << strID << '\t';
+		outF << '\n';
+
+		outF << vector2vector.second.size() << '\t';
+		foreach (QString strID, vector2vector.second)
+			outF << strID << '\t';
+		outF << "\n\n";
+	}
+
+	file.close();
+}
+
+void GraphCorresponder::loadLandmarks(QString filename)
+{
+	QFile file(filename);
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+	QTextStream inF(&file);
+
+	landmarks.clear();
+	sIsLandmark.clear();
+	tIsLandmark.clear();
+	sIsLandmark.resize(sg->nodes.size(), false);
+	tIsLandmark.resize(tg->nodes.size(), false);
+
+	int nbCorr;
+	inF >> nbCorr;
+
+	for (int i = 0; i < nbCorr; i++)
+	{
+		int n;
+		QString strID;
+		QVector<QString> sParts, tParts;
+
+		inF >> n;
+		for (int j = 0; j < n; j++)
+		{
+			inF >> strID;
+			sParts.push_back(strID);
+		}
+
+		inF >> n;
+		for (int j = 0; j < n; j++)
+		{
+			inF >> strID;
+			tParts.push_back(strID);
+		}
+
+		this->addLandmarks(sParts, tParts);
+	}
+
+	file.close();
+}
+
+
+// Spatial Hausdorff distance
 float GraphCorresponder::supInfDistance( std::vector<Vector3> &A, std::vector<Vector3> &B )
 {
 	float supinfDis = -1;
@@ -168,7 +456,6 @@ float GraphCorresponder::HausdorffDistance( std::vector<Vector3> &A, std::vector
 
 	return std::max(ABDis, BADis);
 }
-
 
 void GraphCorresponder::computeHausdorffDistanceMatrix( std::vector< std::vector<float> > & M )
 {
@@ -199,7 +486,7 @@ void GraphCorresponder::computeHausdorffDistanceMatrix( std::vector< std::vector
 }
 
 
-
+// Size and orientation matrices
 void GraphCorresponder::computeSizeDiffMatrix( std::vector< std::vector<float> > & M )
 {
 	initializeMatrix<float>(M, INVALID_VALUE);
@@ -232,8 +519,6 @@ void GraphCorresponder::computeSizeDiffMatrix( std::vector< std::vector<float> >
 
 	normalizeMatrix(M);
 }
-
-
 
 void GraphCorresponder::computeOrientationDiffMatrix( std::vector< std::vector<float> > & M )
 {
@@ -295,20 +580,23 @@ void GraphCorresponder::computeOrientationDiffMatrix( std::vector< std::vector<f
 }
 
 
-void GraphCorresponder::computeDistanceMatrix()
+// Final disM
+void GraphCorresponder::prepareAllMatrices()
 {
 	// Validation matrix
 	computeValidationMatrix();
 
 	// Distance matrices
-	std::vector< std::vector<float> > hM, sM, oM, fM;
 	computeHausdorffDistanceMatrix(hM);
 	computeSizeDiffMatrix(sM);
 	computeOrientationDiffMatrix(oM);
 	computeLandmarkFeatureMatrix(fM);
+}
 
-	// Combine
-	disM = hM;
+void GraphCorresponder::computeFinalDistanceMatrix()
+{
+	initializeMatrix<float>(disM, INVALID_VALUE);
+
 	int sN = sg->nodes.size();
 	int tN = tg->nodes.size();
 	for(int i = 0; i < sN; i++) {
@@ -316,7 +604,8 @@ void GraphCorresponder::computeDistanceMatrix()
 		{
 			if (validM[i][j])
 			{
-				disM[i][j] += 2 * sM[i][j] + 0.5 * oM[i][j] + fM[i][j];
+				disM[i][j] = hW * hM[i][j] + fW * fM[i][j] 
+						   + sW * sM[i][j] + oW * oM[i][j];
 			}
 		}
 	}
@@ -324,122 +613,27 @@ void GraphCorresponder::computeDistanceMatrix()
 	normalizeMatrix(disM);
 }
 
-template <class Type>
-void GraphCorresponder::initializeMatrix(std::vector< std::vector<Type> > & M, Type value)
-{
-	int sN = sg->nodes.size();
-	int tN = tg->nodes.size();
-	std::vector<Type> tmp(tN, value);
-	M.clear();
-	M.resize(sN, tmp);
-}
 
-
-void GraphCorresponder::normalizeMatrix(std::vector< std::vector<float> > & M)
-{
-	float maxDis = -1;
-
-	// Find the maximum value
-	int sN = sg->nodes.size();
-	int tN = tg->nodes.size();
-	for(int i = 0; i < sN; i++){
-		for (int j = 0; j < tN; j++)
-		{
-			if (M[i][j] != INVALID_VALUE && M[i][j] > maxDis)
-				maxDis = M[i][j];
-		}
-	}
-
-	// Normalize
-	for(int i = 0; i < sN; i++){
-		for (int j = 0; j < tN; j++)
-		{
-			if (M[i][j] != INVALID_VALUE)
-			{
-				M[i][j] /= maxDis;
-			}
-		}
-	}
-}
-
-
-void GraphCorresponder::visualizePart2PartDistance( int sourceID )
-{
-	if (disM.empty()) 
-		computeDistanceMatrix();
-
-	// The source
-	sourceID %= sg->nodes.size();
-	for (int i = 0; i < sg->nodes.size(); i++)
-	{
-		Structure::Node *sNode = sg->nodes[i];
-		float color = (i == sourceID)? 1.0 : 0.0;
-		sNode->vis_property["color"] = qtJetColorMap(color);
-		sNode->vis_property["showControl"] = false;
-	}
-
-	// Visualize by jet color
-	for (int j = 0; j < tg->nodes.size(); j++)
-	{
-		Structure::Node *tNode = tg->nodes[j];
-
-		float value;
-		if (disM[sourceID][j] == INVALID_VALUE)
-			value = 0;
-		else
-			value = 1 - disM[sourceID][j];
-		tNode->vis_property["color"] = qtJetColorMap(value);
-		tNode->vis_property["showControl"] = false;
-	}
-}
-
-
-
-bool GraphCorresponder::minElementInMatrix( std::vector< std::vector<float> > &M, int &row, int &column, float &minValue )
-{
-	if (M.size() == 0 || M[0].size() == 0)
-	{
-		qDebug()  << "Warning: minElementInMatrix: the input matrix cannot be empty.";
-		return false;
-	}
-
-	minValue = FLT_MAX;
-	for (int i = 0; i < (int)M.size(); i++){
-		for (int j = 0; j < (int)M[0].size(); j++)
-		{
-			if (M[i][j] != INVALID_VALUE && M[i][j] < minValue)
-			{
-				minValue = M[i][j];
-				row = i;
-				column = j;
-			}
-		}
-	}
-
-	return minValue != FLT_MAX;
-}
-
+// Part to Part
 void GraphCorresponder::computePartToPartCorrespondences()
 {
 	// Clear
 	correspondences.clear();
 	corrScores.clear();
 
-	// Distance matrix
-	if(disM.empty()) computeDistanceMatrix();
+	// The final disM
 	std::vector< std::vector<float> > disMatrix = disM;
 
 	// Parameters
 	int sN = sg->nodes.size();
 	int tN = tg->nodes.size();
 	float tolerance = 0.04f;
-	float threshold = 1.1f;
 
 	int r, c;
 	float minValue;
 	while (minElementInMatrix(disMatrix, r, c, minValue))
 	{
-		if (minValue > threshold) break;
+		if (minValue > scoreThreshold) break;
 
 		// source:r <-> target:c
 		float upperBound = disMatrix[r][c] + tolerance;
@@ -523,6 +717,44 @@ void GraphCorresponder::computePartToPartCorrespondences()
 }
 
 
+// Point to Point
+void GraphCorresponder::correspondAllNodes()
+{
+	// Adjust the frames for corresponded parts
+	// Then Point-to-Point correspondences can be easily retrieved via parameterized NURBS. 
+	for (int i = 0; i < (int)correspondences.size(); i++)
+	{
+		QVector<QString> &sVector = correspondences[i].first;
+		QVector<QString> &tVector = correspondences[i].second;
+
+		// One to many
+		if (sVector.size() == 1)
+		{
+			Structure::Node *sNode = sg->getNode(*sVector.begin());
+			foreach(QString tID, tVector)
+			{
+				Structure::Node *tNode = tg->getNode(tID);
+				correspondTwoNodes(sNode, tNode);
+			}
+		}
+		// Many to one
+		else if (tVector.size() == 1)
+		{
+			Structure::Node *tNode = tg->getNode(*tVector.begin());
+			foreach(QString sID, sVector)
+			{
+				Structure::Node *sNode = sg->getNode(sID);
+				correspondTwoNodes(sNode, tNode);
+			}
+		}
+		// Many to many
+		else
+		{
+			qDebug() << "Many to Many correspondence happened. ";
+		}
+	}
+}
+
 void GraphCorresponder::correspondTwoNodes( Structure::Node *sNode, Structure::Node *tNode )
 {
 	if (sNode->type() != tNode->type())
@@ -536,7 +768,6 @@ void GraphCorresponder::correspondTwoNodes( Structure::Node *sNode, Structure::N
 	else
 		correspondTwoCurves((Structure::Curve*) sNode, (Structure::Curve*) tNode);
 }
-
 
 void GraphCorresponder::correspondTwoCurves( Structure::Curve *sCurve, Structure::Curve *tCurve )
 {
@@ -570,24 +801,6 @@ void GraphCorresponder::correspondTwoCurves( Structure::Curve *sCurve, Structure
 		}
 	}
 }
-
-// Helper function
-template <class Type>
-std::vector<std::vector<Type> > transpose(const std::vector<std::vector<Type> > data) 
-{
-	// this assumes that all inner vectors have the same size and
-	// allocates space for the complete result in advance
-	std::vector<std::vector<Type> > result(data[0].size(), std::vector<Type>(data.size()));
-	for (int i = 0; i < (int)data[0].size(); i++){
-		for (int j = 0; j < (int)data.size(); j++) 
-		{
-			result[i][j] = data[j][i];
-		}
-	}
-
-	return result;
-}
-
 
 void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure::Sheet *tSheet )
 {
@@ -748,12 +961,23 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 	}
 }
 
+
+// Main access
 void GraphCorresponder::computeCorrespondences()
 {
+	// Prepare
+	prepareAllMatrices();
+
+	// Distance matrix
+	computeFinalDistanceMatrix();
+
 	// Part to Part correspondence
 	computePartToPartCorrespondences();
 
-	// Add the landmarks as correspondences too
+	// Point to Point correspondence
+	correspondAllNodes();
+
+	// Add the part landmarks as correspondences too
 	std::vector<float> fake_score(1, -1);
 	foreach(PART_LANDMARK landmark, landmarks)
 	{
@@ -761,8 +985,7 @@ void GraphCorresponder::computeCorrespondences()
 		corrScores.push_back(fake_score);
 	}
 
-
-	// Mark the nodes
+	// Mark the correponded nodes
 	sIsCorresponded.resize(sg->nodes.size(), false);
 	tIsCorresponded.resize(tg->nodes.size(), false);
 	foreach (PART_LANDMARK vector2vector, correspondences)
@@ -779,108 +1002,10 @@ void GraphCorresponder::computeCorrespondences()
 			tIsCorresponded[tid] = true;
 		}
 	}
-
-	// Adjust the frames for corresponded parts
-	// Then Point-to-Point correspondences can be easily retrieved via parameterized NURBS. 
-	for (int i = 0; i < (int)correspondences.size(); i++)
-	{
-		QVector<QString> &sVector = correspondences[i].first;
-		QVector<QString> &tVector = correspondences[i].second;
-
-		// One to many
-		if (sVector.size() == 1)
-		{
-			Structure::Node *sNode = sg->getNode(*sVector.begin());
-			foreach(QString tID, tVector)
-			{
-				Structure::Node *tNode = tg->getNode(tID);
-				correspondTwoNodes(sNode, tNode);
-			}
-		}
-		// Many to one
-		else if (tVector.size() == 1)
-		{
-			Structure::Node *tNode = tg->getNode(*tVector.begin());
-			foreach(QString sID, sVector)
-			{
-				Structure::Node *sNode = sg->getNode(sID);
-				correspondTwoNodes(sNode, tNode);
-			}
-		}
-		// Many to many
-		else
-		{
-			qDebug() << "Many to Many correspondence happened. ";
-		}
-	}
 }
 
 
-void GraphCorresponder::saveLandmarks(QString filename)
-{
-    QFile file(filename);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
-    QTextStream outF(&file);
-
-	outF << landmarks.size() << "\n\n";
-
-	foreach (PART_LANDMARK vector2vector, landmarks)
-	{
-		outF << vector2vector.first.size() << '\t';;
-		foreach (QString strID, vector2vector.first)
-            outF << strID << '\t';
-		outF << '\n';
-
-		outF << vector2vector.second.size() << '\t';
-		foreach (QString strID, vector2vector.second)
-            outF << strID << '\t';
-		outF << "\n\n";
-	}
-
-    file.close();
-}
-
-void GraphCorresponder::loadLandmarks(QString filename)
-{
-    QFile file(filename);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
-    QTextStream inF(&file);
-
-	landmarks.clear();
-	sIsLandmark.clear();
-	tIsLandmark.clear();
-	sIsLandmark.resize(sg->nodes.size(), false);
-	tIsLandmark.resize(tg->nodes.size(), false);
-
-	int nbCorr;
-	inF >> nbCorr;
-
-	for (int i = 0; i < nbCorr; i++)
-	{
-		int n;
-        QString strID;
-		QVector<QString> sParts, tParts;
-
-		inF >> n;
-		for (int j = 0; j < n; j++)
-		{
-			inF >> strID;
-            sParts.push_back(strID);
-		}
-
-		inF >> n;
-		for (int j = 0; j < n; j++)
-		{
-			inF >> strID;
-            tParts.push_back(strID);
-		}
-
-		this->addLandmarks(sParts, tParts);
-	}
-
-    file.close();
-}
-
+// Others
 std::vector<QString> GraphCorresponder::nonCorresSource()
 {
 	std::vector<QString> nodes;
@@ -907,16 +1032,6 @@ std::vector<QString> GraphCorresponder::nonCorresTarget()
 	return nodes;
 }
 
-QString GraphCorresponder::sgName()
-{
-	return sg->property["name"].toString().section('\\', -1).section('.', 0, 0);
-}
-
-QString GraphCorresponder::tgName()
-{
-	return tg->property["name"].toString().section('\\', -1).section('.', 0, 0);
-}
-
 void GraphCorresponder::saveCorrespondences( QString filename )
 {
 
@@ -931,135 +1046,33 @@ void GraphCorresponder::LoadCorrespondences( QString filename )
 
 }
 
-void GraphCorresponder::addPointLandmark()
+void GraphCorresponder::visualizePart2PartDistance( int sourceID )
 {
-	QVector<POINT_ID> sSelections = sg->selectedControlPointsByColor(Qt::green);
-	QVector<POINT_ID> tSelections = tg->selectedControlPointsByColor(Qt::green);
+	if (disM.empty()) 
+		computeFinalDistanceMatrix();
 
-	if (sSelections.empty() || tSelections.empty()) 
+	// The source
+	sourceID %= sg->nodes.size();
+	for (int i = 0; i < sg->nodes.size(); i++)
 	{
-		qDebug() << "You need select landmarks on both the source and target graphs.";
-		return;
+		Structure::Node *sNode = sg->nodes[i];
+		float color = (i == sourceID)? 1.0 : 0.0;
+		sNode->vis_property["color"] = qtJetColorMap(color);
+		sNode->vis_property["showControl"] = false;
 	}
 
-	pointLandmarks.push_back(std::make_pair(sSelections, tSelections));
-
-	// Clear the selections
-	sg->clearSelections();
-	tg->clearSelections();
-}
-
-
-void GraphCorresponder::prepareOneToOnePointLandmarks()
-{
-	// Clear
-	sPointLandmarks.clear();
-	tPointLandmarks.clear();
-
-	// Prepare
-	foreach (POINT_LANDMARK pLandmark, pointLandmarks)
+	// Visualize by jet color
+	for (int j = 0; j < tg->nodes.size(); j++)
 	{
-		QVector<POINT_ID> sIDs = pLandmark.first;
-		QVector<POINT_ID> tIDs = pLandmark.second;
+		Structure::Node *tNode = tg->nodes[j];
 
-		// One to many
-		if (sIDs.size() == 1)
-		{
-			POINT_ID sID = sIDs.front();
-
-			foreach( POINT_ID tID, tIDs)
-			{
-				sPointLandmarks.push_back(sID);
-				tPointLandmarks.push_back(tID);
-			}
-		}
-		// Many to one
-		else if (tIDs.size() == 1)
-		{
-			POINT_ID tID = tIDs.front();
-
-			foreach( POINT_ID sID, sIDs)
-			{
-				sPointLandmarks.push_back(sID);
-				tPointLandmarks.push_back(tID);
-			}
-		}
+		float value;
+		if (disM[sourceID][j] == INVALID_VALUE)
+			value = 0;
+		else
+			value = 1 - disM[sourceID][j];
+		tNode->vis_property["color"] = qtJetColorMap(value);
+		tNode->vis_property["showControl"] = false;
 	}
 }
 
-QVector< QVector<double> > GraphCorresponder::computeLandmarkFeatures( Structure::Graph *g, QVector<POINT_ID> &pointLandmarks )
-{
-	QVector< QVector<double> > result_features(g->nodes.size(), QVector<double>());
-
-	foreach (POINT_ID landmark, pointLandmarks)
-	{
-		Vector3 startpoint = g->nodes[landmark.first]->controlPoint(landmark.second);
-
-		GraphDistance gd(g);
-		gd.computeDistances(startpoint);
-
-		for (int nID = 0; nID < (int)g->nodes.size(); nID++)
-		{
-			double dis = gd.distance(g->nodes[nID]->center());
-
-			result_features[nID].push_back(dis);
-		}
-	}
-
-	return result_features;
-}
-
-
-double GraphCorresponder::distanceBetweenLandmarkFeatures( QVector<double> sFeature, QVector<double> tFeature )
-{
-	if (sFeature.size() != tFeature.size())
-	{
-		qDebug() << "Landmark features have different dimensions.";
-		return -1;
-	}
-
-	// Euclidean distance
-	double dis = 0;
-	for (int i = 0; i < (int) sFeature.size(); i++)
-	{
-		double dif = sFeature[i] - tFeature[i];
-		dis += dif * dif;
-	}
-
-	return sqrt(dis);
-}
-
-
-void GraphCorresponder::computeLandmarkFeatureMatrix( std::vector< std::vector<float> > & M )
-{
-	// One to one point landmarks
-	prepareOneToOnePointLandmarks();
-
-	// In case there are no point landmarks
-	if(sPointLandmarks.empty())
-	{
-		initializeMatrix<float>(M, 0.0);
-		return;
-	}
-
-	// Landmark features
-	sLandmarkFeatures = computeLandmarkFeatures(sg, sPointLandmarks);
-	tLandmarkFeatures = computeLandmarkFeatures(tg, tPointLandmarks);
-
-	// Compute differences between features
-	initializeMatrix<float>(M, INVALID_VALUE);
-
-	int sN = sg->nodes.size();
-	int tN = tg->nodes.size();
-	for(int i = 0; i < sN; i++){
-		for (int j = 0; j < tN; j++)
-		{
-			if (validM[i][j])
-			{
-				M[i][j] = distanceBetweenLandmarkFeatures(sLandmarkFeatures[i], tLandmarkFeatures[j]);
-			}
-		}
-	}
-
-	normalizeMatrix(M);
-}

@@ -41,6 +41,9 @@ public:
 	void updateAll();
 
 public slots:
+	// Reload everything
+	void reload();
+
 	// Point Landmarks
 	void addPointLandmark();
 	void removePointLandmark();
@@ -65,10 +68,23 @@ public slots:
 	void rotateGraph();
 	void scaleGraph(int slider);
 
-	// Correspondences
-	void reload();
-	void visualizePart2PartDistance(int id);
+	/// Correspondences
+	void prepareMatrices();
+
+	void setSpatialWeight(double w);
+	void setStructuralWeight(double w);
+	void setSizeWeight(double w);
+	void setOrientationWeight(double w);
+	void computeDisM();
+
+	void setScoreThreshold(double tau);
+	void computePartToPartCorrespondences();
+
+	void alignAllNodes();
 	void computeCorrespondences();
+
+
+	void visualizePart2PartDistance(int id);
 };
 
 #endif // LANDMARKS_DIALOG_H

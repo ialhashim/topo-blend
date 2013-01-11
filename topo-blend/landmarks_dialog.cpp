@@ -59,8 +59,22 @@ LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QD
 
 
 	/// Correspondences
-	this->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizePart2PartDistance(int)));
+	this->connect(ui->prepareButton, SIGNAL(clicked()), SLOT(prepareMatrices()));
+
+	this->connect(ui->spatialWeight, SIGNAL(valueChanged(double)), SLOT(setSpatialWeight(double)));
+	this->connect(ui->structuralWeight, SIGNAL(valueChanged(double)), SLOT(setStructuralWeight(double)));
+	this->connect(ui->sizeWeight, SIGNAL(valueChanged(double)), SLOT(setSizeWeight(double)));
+	this->connect(ui->orientationWeight, SIGNAL(valueChanged(double)), SLOT(setOrientationWeight(double)));
+	this->connect(ui->computeDisMButton, SIGNAL(clicked()), SLOT(computeDisM()));
+
+	this->connect(ui->scoreThreshold, SIGNAL(valueChanged(double)), SLOT(setScoreThreshold(double)));
+	this->connect(ui->computeCorrButton, SIGNAL(clicked()), SLOT(computePartToPartCorrespondences()));
+
+	this->connect(ui->alignNodesButton, SIGNAL(clicked()), SLOT(alignAllNodes()));
+
 	this->connect(ui->runButton, SIGNAL(clicked()), SLOT(computeCorrespondences()));
+
+	this->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizePart2PartDistance(int)));
 	tb->connect(ui->p2pButton, SIGNAL(clicked()), SLOT(testPoint2PointCorrespondences()));
 
 	// Reload
@@ -566,4 +580,50 @@ void LandmarksDialog::removePointLandmark()
 	updatePointLandmarksList();
 
 	tb->updateDrawArea();
+}
+
+void LandmarksDialog::setSpatialWeight( double w )
+{
+	gcorr->hW = w;
+}
+
+void LandmarksDialog::setStructuralWeight( double w )
+{
+	gcorr->fW = w;
+}
+
+void LandmarksDialog::setSizeWeight( double w )
+{
+	gcorr->sW = w;
+}
+
+void LandmarksDialog::setOrientationWeight( double w )
+{
+	gcorr->oW = w;
+}
+
+void LandmarksDialog::computeDisM()
+{
+	gcorr->computeFinalDistanceMatrix();
+}
+
+void LandmarksDialog::setScoreThreshold( double tau )
+{
+	gcorr->scoreThreshold = tau;
+}
+
+void LandmarksDialog::computePartToPartCorrespondences()
+{
+	gcorr->computePartToPartCorrespondences();
+	updateCorrTab();
+}
+
+void LandmarksDialog::alignAllNodes()
+{
+	gcorr->correspondAllNodes();
+}
+
+void LandmarksDialog::prepareMatrices()
+{
+	gcorr->prepareAllMatrices();
 }
