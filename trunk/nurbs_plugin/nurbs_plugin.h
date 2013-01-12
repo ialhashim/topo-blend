@@ -42,4 +42,7 @@ public:
 public slots:
     void doFitCurve();
     void doFitSurface();
+
+	void clearAll();
+	void saveAll();
 };

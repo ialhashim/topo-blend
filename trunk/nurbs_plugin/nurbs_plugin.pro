@@ -9,6 +9,14 @@ StarlabTemplate(plugin)
 LIBS += -L$$PWD/../NURBS/lib -lNURBS
 INCLUDEPATH += ../NURBS
 
+# VOXEL library - Should not be used..
+LIBS += -L$$PWD/../DynamicVoxel/lib -lDynamicVoxel
+INCLUDEPATH += ../DynamicVoxel
+
+# TopoBlender library
+LIBS += -L$$PWD/../TopoBlenderLib/lib -lTopoBlenderLib
+INCLUDEPATH += ../TopoBlenderLib
+
 HEADERS += nurbs_plugin.h \
     nurbstools.h \
     OBB_Volume.h

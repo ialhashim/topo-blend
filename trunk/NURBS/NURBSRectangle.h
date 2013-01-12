@@ -35,11 +35,8 @@ public:
     NURBSRectangle(Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight,
                    int uDegree, int vDegree, bool uLoop, bool vLoop, bool uOpen, bool vOpen);
 
-    static NURBSRectangle createSheet(Scalar width, Scalar length, Vector3 center ,
-                                      Vector3 dU /*= Vector3(1,0,0)*/, Vector3 dV /*= Vector3(0,0,1)*/);
-
+	static NURBSRectangle createSheet(Scalar width, Scalar length, Vector3 center, Vector3 dU, Vector3 dV, int nU = 5, int nV = 5);
 	static NURBSRectangle createSheet(Vec3d corner1, Vec3d corner2, int stepsU = 5, int stepsV = 5);
-
     int GetNumCtrlPoints (int dim) ;
     int GetDegree (int dim) ;
     bool IsOpen (int dim) ;
