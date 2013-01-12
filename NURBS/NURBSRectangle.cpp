@@ -29,9 +29,8 @@ NURBSRectangle::NURBSRectangle (Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeig
 }
 
 //----------------------------------------------------------------------------
-NURBSRectangle NURBSRectangle::createSheet(Scalar width, Scalar length, Vector3 center, Vector3 dU, Vector3 dV)
+NURBSRectangle NURBSRectangle::createSheet(Scalar width, Scalar length, Vector3 center, Vector3 dU, Vector3 dV, int nU, int nV)
 {
-    int nU = 5, nV = 5;
     int degree = 3;
 
 	Vector3 corner = center - (dU * width * 0.5) - (dV * length * 0.5);

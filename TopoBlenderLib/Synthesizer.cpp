@@ -4,6 +4,90 @@ Synthesizer::Synthesizer()
 {
 }
 
+void Synthesizer::generateRaysFromCurve( NURBSCurve & curve )
+{
+	// Clear
+	result_rays.clear();
+
+	// Cylinder
+	generateCylindricalRays(curve, 2 * M_PI);
+
+	// End - 0
+	generateSphericalRays(curve, 0, 0.5 * M_PI, 2 * M_PI);
+
+	// End - 1
+	generateSphericalRays(curve, 1, 0.5 * M_PI, 2 * M_PI);
+}
+
+
+void Synthesizer::generateRaysFromSheet( Structure::Sheet * sheet )
+{
+
+}
+
+
+
+void Synthesizer::generateCylindricalRays( NURBSCurve curve, double thetaRange )
+{
+	double delta_t = 1.0 / timeResolution;
+	double delta_theta = thetaRange / thetaResolution;
+
+	// All cross sections 
+	for (int i = 1; i < timeResolution; i++)
+	{
+		Vector3 current_position;
+		Vector3 curveTangent;
+		Vector3 biNormal;
+		Vector3 curveNormal;
+
+		double curr_t = i * delta_t;
+		curve.GetFrame(curr_t, current_position, curveTangent, curveNormal, biNormal);
+
+		// Around each cross section
+		for (int j = 0; j < thetaResolution; i++)
+		{
+			double rotate_theta = j * delta_theta;
+			Vector3 sampleRay = ROTATED_VEC(curveNormal, rotate_theta, curveTangent);
+
+			result_rays.push_back(sampleRay);
+			result_t.push_back(curr_t);
+		}
+	}
+}
+
+
+
+void Synthesizer::generateSphericalRays( NURBSCurve curve, double t, double thetaRange, double phiRange )
+{
+	Vector3 tangent = curve.GetTangent(t);
+	Vector3 normal = curve.GetNormal(t);
+
+	if(t == 0.0) tangent *= -1;
+
+	double delta_phi = phiRange / phiResolution;
+	double delta_theta = thetaRange / thetaResolution;
+
+	for (int curr_theta=0; curr_theta< thetaResolution; curr_theta++)
+	{
+		double rotate_theta = curr_theta * delta_theta;
+
+		// Set startDirection for phi sampling
+		Vector3 startDirection = ROTATED_VEC(tangent, rotate_theta, normal);
+
+		for (int curr_phi = 0; curr_phi < phiResolution; curr_phi++)
+		{
+			double rotate_phi= curr_phi * delta_phi;
+			Vector3 sampleRay = ROTATED_VEC(startDirection, rotate_phi, tangent);
+
+			result_rays.push_back(sampleRay);
+			result_t.push_back(t);
+		}
+	}
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+
 void Synthesizer::resampleCurve(Curve *structure_curve, int uResolution, int thetaResolution, int phiResolution)
 {
     if(!structure_curve->property.contains("mesh")) return;
@@ -684,7 +768,7 @@ Array1D_Vector3 Synthesizer::resampleCoutourPointsPlane(Array2D_Vector3 mesh_fac
         Vector3 intersect_point;
         double rotate_theta=i*delta_theta;
 
-        Vector3 sampleDirection=ROTATE_VEC(sampleDirection, fixed_startDirection, rotate_theta, curveTanget);
+        Vector3 sampleDirection=ROTATED_VEC(fixed_startDirection, rotate_theta, curveTanget);
         intersections.push_back( intersectionPoint( Ray(current_position,sampleDirection), octree ) );
     }
 
@@ -719,7 +803,7 @@ Array2D_Vector3 Synthesizer::sphereResampling(Array2D_Vector3 mesh_faces, Vector
         double rotate_theta=curr_theta*delta_theta;
 
         startDirection=phiAxis;
-        Vector3 sampleDirection=ROTATE_VEC(sampleDirection, startDirection, rotate_theta, thetaAxis);
+        Vector3 sampleDirection=ROTATED_VEC( startDirection, rotate_theta, thetaAxis);
 
         // set startDirection for phi sampling
         startDirection=sampleDirection;
@@ -728,7 +812,7 @@ Array2D_Vector3 Synthesizer::sphereResampling(Array2D_Vector3 mesh_faces, Vector
         {
             double rotate_phi= curr_phi*delta_phi;
 
-            sampleDirection = ROTATE_VEC(sampleDirection, startDirection, rotate_phi, phiAxis);
+            sampleDirection = ROTATED_VEC(startDirection, rotate_phi, phiAxis);
             phiResamplings.push_back( intersectionPoint( Ray(endPoint,sampleDirection), octree ) );
         }
 
@@ -909,3 +993,5 @@ Vec3d Synthesizer::intersectionPoint( Ray ray, Octree * useTree, int * faceIndex
 
     return isetpoint;
 }
+
+

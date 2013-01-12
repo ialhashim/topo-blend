@@ -13,8 +13,8 @@ GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph
 	this->sg = source;
 	this->tg = target;
 
-	scoreThreshold = 0.3;
-	hW = sW = oW = fW = 1.0;
+	scoreThreshold = 0.3f;
+	hW = sW = oW = fW = 1.0f;
 
 	sIsLandmark.resize(sg->nodes.size(), false);
 	tIsLandmark.resize(tg->nodes.size(), false);

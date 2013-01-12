@@ -1,5 +1,8 @@
+#include <QFileDialog>
+
 #include "nurbs_plugin.h"
 #include "NanoKdTree.h"
+#include "StructureGraph.h"
 
 #include "interfaces/ModePluginDockWidget.h"
 
@@ -41,7 +44,7 @@ void nurbs_plugin::doFitCurve()
 	Vector3 from( corners.front() );
 	Vector3 to( corners.back() );
 
-	NURBSCurve c = NURBSCurve::createCurve(from, to, 10);
+	NURBSCurve c = NURBSCurve::createCurve( from, to, widget->uCount() );
 
 	std::vector<Vec3d> mesh_points;
 	foreach(Vertex v, mesh()->vertices()) mesh_points.push_back( points[v] );
@@ -133,7 +136,7 @@ void nurbs_plugin::doFitSurface()
 	Vec3d dU = axis[1].second;
 	Vec3d dV = axis[2].second;
 
-	NURBSRectangle r = NURBSRectangle::createSheet(width,length,center,dU,dV);
+	NURBSRectangle r = NURBSRectangle::createSheet( width, length, center, dU, dV, widget->uCount(), widget->vCount() );
 
 	//basicSurfaceFit(r);
 
@@ -144,6 +147,32 @@ void nurbs_plugin::doFitSurface()
 void nurbs_plugin::basicSurfaceFit( NURBSRectangle & surface )
 {
     surface = surface;
+}
+
+void nurbs_plugin::clearAll()
+{
+	curves.clear();
+	rects.clear();
+}
+
+void nurbs_plugin::saveAll()
+{
+	Structure::Graph g;
+
+	foreach(NURBSCurve curve, curves)
+	{
+		g.addNode( new Structure::Curve(curve, mesh()->name) );
+	}
+
+	foreach(NURBSRectangle rect, rects)
+	{
+		g.addNode( new Structure::Sheet(rect, mesh()->name) );
+	}
+
+	QString filename = QFileDialog::getSaveFileName(0, tr("Save Model"), 
+		mainWindow()->settings()->getString("lastUsedDirectory"), tr("Model Files (*.xml)"));
+
+	g.saveToFile(filename);
 }
 
 Q_EXPORT_PLUGIN (nurbs_plugin)

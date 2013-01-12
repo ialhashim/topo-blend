@@ -19,6 +19,9 @@ public:
     
     nurbs_plugin * plugin;
 
+	int uCount();
+	int vCount();
+
 private:
     Ui::NURBSTools *ui;
 };
