@@ -103,6 +103,8 @@ public:
 	void scale(Scalar scaleFactor);
 	void scaleInPlace(Scalar scaleFactor, int placeCtrlPoint = 0);
 
+	void bend(double amount = 0.2);
+
     int mNumCtrlPoints;
     std::vector<Vector3> mCtrlPoint;            // ctrl[n+1]
     std::vector<Real> mCtrlWeight;              // weight[n+1]

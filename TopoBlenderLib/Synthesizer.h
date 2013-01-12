@@ -4,7 +4,6 @@
 using namespace Structure;
 
 #include "Octree.h"
-Q_DECLARE_METATYPE(Octree *)
 
 #include "RMF.h"
 
