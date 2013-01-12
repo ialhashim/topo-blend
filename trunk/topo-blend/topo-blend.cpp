@@ -33,6 +33,8 @@ ARAPCurveDeformer * deformer = NULL;
 #include "ARAPCurveHandle.h"
 ARAPCurveHandle * handle = NULL;
 
+#include "Synthesizer.h"
+
 topoblend::topoblend(){
 	widget = NULL;
 	gcoor = NULL;
@@ -533,7 +535,10 @@ void topoblend::loadModel()
 		mainWindow()->settings()->getString("lastUsedDirectory"), tr("Model Files (*.xml)"));
 
 	foreach(QString file, fileNames)
-		graphs.push_back( new Structure::Graph ( file ) );
+	{	
+		Structure::Graph * g = new Structure::Graph ( file );
+		graphs.push_back( g );
+	}
 
 	setSceneBounds();
 }
@@ -727,41 +732,64 @@ void topoblend::clearGraphs()
 
 void topoblend::currentExperiment()
 {
-    Vector3 dU = Vector3(1,0,0);
-    Vector3 dV = Vector3(0,0,1);
+	Structure::Graph * sourceGraph = graphs.back();
 
-    NURBSRectangle sheetA = NURBSRectangle::createSheet(1.75,2, Vector3(0,0.25,0), dU, dV);
-	NURBSRectangle sheetB = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
+	foreach(Structure::Node * n, sourceGraph->nodes)
+	{
+		Synthesizer * synth = new Synthesizer();
+		n->property["synthesizer"].setValue(synth);
 
-	sheetA.bend(-0.7);
-	sheetB.bend(0.2);
-	sheetB.bend(0.1,1);
+		if(n->type() == Structure::CURVE)
+		{
+			Structure::Curve * ncurve = (Structure::Curve *)n;
+			synth->resampleCurve( ncurve );
+			synth->buildFacesCurve();
 
-	Structure::Graph * graph = new Structure::Graph();
+			foreach(Vec3d p, synth->isect_points)
+				debugPoints.push_back(p);
 
-	graph->addNode( new Structure::Sheet( sheetA, "SheetA" ) );
-	graph->addNode( new Structure::Sheet( sheetB, "SheetB" ) );
+			foreach(QVector<int> face, synth->faces)
+			{
+				QVector<QVector3D> quad;
 
-	graph->addEdge( graph->getNode("SheetA"), graph->getNode("SheetB") );
+				foreach(int vi, face)
+					quad.push_back( synth->isect_points[vi] );
 
-	graphs.push_back( graph );
-	setSceneBounds();
+				sourceGraph->ps.addPoly(quad);
+			}
 
-	// Test graph distance on a single node
-	//GraphDistance * gd = new GraphDistance( graph->nodes.front() );
-	//gd->computeDistances( Vector3(0,0.25,0) );
-	//graphs.back()->misc["distance"] = gd;
+			//synth->generateRaysFromCurve( ncurve->curve );
 
-	qDebug() << "Done";
+			//for(int i = 0; i < synth->result_t.size(); i++)
+			//{
+			//	double t = synth->result_t[i];
+			//	Vec3d ray = synth->result_rays[i];
+			//	Vec3d pos = n->position(Vec4d(t));
 
-    //Structure::Graph * blendedGraph = blender->blend();
+			//	sourceGraph->vs.addVector( pos, ray * 0.1 );
+			//}
+		}
 
-    // Set options
-    //blender->params["NUM_STEPS"] = this->params["NUM_STEPS"];
-    //blender->params["materialize"] = this->params["materialize"];
-    //blender->materializeInBetween( blendedGraph, 0, source );
-    //graphs.push_back( blendedGraph );
-    //setSceneBounds();
+		if(n->type() == Structure::SHEET)
+		{
+			Structure::Sheet * nsheet = (Structure::Sheet *)n;
+			synth->resampleSheet( nsheet );
+
+			foreach(Vec3d p, synth->isect_points)
+				debugPoints2.push_back(p);
+
+			//synth->generateRaysFromSheet( nsheet->surface );
+
+			//for(int i = 0; i < synth->result_uv.size(); i++)
+			//{
+			//	std::pair<double,double> uv = synth->result_uv[i];
+			//	Vec3d ray = synth->result_rays[i];
+			//	Vec3d pos = n->position(Vec4d(uv.first,uv.second,0,0));
+
+			//	sourceGraph->vs.addVector( pos, ray * 0.1 );
+			//}
+		}
+	}
 }
 
 void topoblend::updateDrawArea()

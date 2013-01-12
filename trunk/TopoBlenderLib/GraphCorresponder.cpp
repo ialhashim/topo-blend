@@ -18,7 +18,7 @@ GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph
 	sizeW = 0.0;
 	orientationW = 0.0;
 
-	scoreThreshold = 0.3;
+	scoreThreshold = 0.3f;
 
 	sIsLandmark.resize(sg->nodes.size(), false);
 	tIsLandmark.resize(tg->nodes.size(), false);

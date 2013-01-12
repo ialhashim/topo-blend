@@ -8,6 +8,9 @@
 #include "DynamicVoxel.h"
 using namespace DynamicVoxelLib;
 
+// DEBUG:
+#include "../CustomDrawObjects.h"
+
 namespace Structure{
 
 typedef QPair<Node*,Node*> QPairNodes;
@@ -89,6 +92,8 @@ struct Graph
 	// DEBUG:
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
 	void printAdjacency();
+	VectorSoup vs;
+	PolygonSoup ps;
 };
 
 }

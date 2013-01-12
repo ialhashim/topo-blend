@@ -226,6 +226,9 @@ Link *Graph::getEdge(QString id1, QString id2)
 
 void Graph::draw()
 {
+	vs.draw();
+	ps.draw();
+
     foreach(Node * n, nodes)
     {
         n->draw();
