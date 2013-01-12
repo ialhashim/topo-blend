@@ -64,26 +64,18 @@ QVector<SynthSample> Synthesizer2::generateSamplesCurve( Structure::Curve * curv
 		int closest_idx = match.front().first;
 		Vec4d c = curveCoords[closest_idx];
 
-		Vec3d tangent = rmf.U[closest_idx].t;
-		Vec3d normal = rmf.U[closest_idx].r;
-		Vec3d binormal = rmf.U[closest_idx].s;
+		Vec3d tangent = rmf.U[closest_idx].t.normalized();
+		Vec3d normal = rmf.U[closest_idx].r.normalized();
+		Vec3d binormal = rmf.U[closest_idx].s.normalized();
 
 		Vec3d curvePoint = curve->position(c);
 		Vec3d raydirection = (point - curvePoint).normalized();
 
 		double dist = dot(normal, raydirection);
 		Vec3d projectedDir = raydirection - (dist * normal);
-		double angle = signedAngle(tangent, projectedDir,normal);
+		double angle = signedAngle(tangent, projectedDir, normal);
 
 		samples.push_back(SynthSample(c, angle, dist));
-
-		//Eigen::Quaterniond q; q.setFromTwoVectors(V2E(tangent),V2E(raydirection));
-		//Frame3D result;
-		//Vec3d curveFrame[3] = {tangent, normal, binormal};
-		//Vec3d rayFrame[3]	= {RotateBy(tangent,q), RotateBy(normal,q), RotateBy(binormal,q)};
-		//AbsoluteOrientation::compute(std::vector<Vec3d>(curveFrame, curveFrame + 3), std::vector<Vec3d>(rayFrame, rayFrame + 3), result);
-		
-		//samples.push_back(SynthSample(c, tangent.normalized(), raydirection.normalized(), result));
 	}
 
 	return samples;
