@@ -13,8 +13,12 @@ GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph
 	this->sg = source;
 	this->tg = target;
 
-	scoreThreshold = 0.3f;
-	hW = sW = oW = fW = 1.0f;
+	spactialW = 0.5;
+	structuralW = 1.0;
+	sizeW = 0.0;
+	orientationW = 0.0;
+
+	scoreThreshold = 0.3;
 
 	sIsLandmark.resize(sg->nodes.size(), false);
 	tIsLandmark.resize(tg->nodes.size(), false);
@@ -59,7 +63,7 @@ void GraphCorresponder::initializeMatrix(std::vector< std::vector<Type> > & M, T
 	M.resize(sN, tmp);
 }
 
-void GraphCorresponder::normalizeMatrix(std::vector< std::vector<float> > & M)
+void GraphCorresponder::normalizeMatrix(MATRIX & M)
 {
 	float maxDis = -1;
 
@@ -86,7 +90,7 @@ void GraphCorresponder::normalizeMatrix(std::vector< std::vector<float> > & M)
 	}
 }
 
-bool GraphCorresponder::minElementInMatrix( std::vector< std::vector<float> > &M, int &row, int &column, float &minValue )
+bool GraphCorresponder::minElementInMatrix( MATRIX &M, int &row, int &column, float &minValue )
 {
 	if (M.size() == 0 || M[0].size() == 0)
 	{
@@ -209,7 +213,7 @@ double GraphCorresponder::distanceBetweenLandmarkFeatures( QVector<double> sFeat
 	return sqrt(dis);
 }
 
-void GraphCorresponder::computeLandmarkFeatureMatrix( std::vector< std::vector<float> > & M )
+void GraphCorresponder::computeLandmarkFeatureMatrix( MATRIX & M )
 {
 	// One to one point landmarks
 	prepareOneToOnePointLandmarks();
@@ -457,7 +461,7 @@ float GraphCorresponder::HausdorffDistance( std::vector<Vector3> &A, std::vector
 	return std::max(ABDis, BADis);
 }
 
-void GraphCorresponder::computeHausdorffDistanceMatrix( std::vector< std::vector<float> > & M )
+void GraphCorresponder::computeHausdorffDistanceMatrix( MATRIX & M )
 {
 	initializeMatrix<float>(M, INVALID_VALUE);
 
@@ -487,7 +491,7 @@ void GraphCorresponder::computeHausdorffDistanceMatrix( std::vector< std::vector
 
 
 // Size and orientation matrices
-void GraphCorresponder::computeSizeDiffMatrix( std::vector< std::vector<float> > & M )
+void GraphCorresponder::computeSizeDiffMatrix( MATRIX & M )
 {
 	initializeMatrix<float>(M, INVALID_VALUE);
 
@@ -520,7 +524,7 @@ void GraphCorresponder::computeSizeDiffMatrix( std::vector< std::vector<float> >
 	normalizeMatrix(M);
 }
 
-void GraphCorresponder::computeOrientationDiffMatrix( std::vector< std::vector<float> > & M )
+void GraphCorresponder::computeOrientationDiffMatrix( MATRIX & M )
 {
 	initializeMatrix<float>(M, INVALID_VALUE);
 
@@ -587,10 +591,10 @@ void GraphCorresponder::prepareAllMatrices()
 	computeValidationMatrix();
 
 	// Distance matrices
-	computeHausdorffDistanceMatrix(hM);
-	computeSizeDiffMatrix(sM);
-	computeOrientationDiffMatrix(oM);
-	computeLandmarkFeatureMatrix(fM);
+	computeHausdorffDistanceMatrix(spatialM);
+	computeSizeDiffMatrix(sizeM);
+	computeOrientationDiffMatrix(orientationM);
+	computeLandmarkFeatureMatrix(structuralM);
 }
 
 void GraphCorresponder::computeFinalDistanceMatrix()
@@ -604,8 +608,8 @@ void GraphCorresponder::computeFinalDistanceMatrix()
 		{
 			if (validM[i][j])
 			{
-				disM[i][j] = hW * hM[i][j] + fW * fM[i][j] 
-						   + sW * sM[i][j] + oW * oM[i][j];
+				disM[i][j] = spactialW * spatialM[i][j] + structuralW * structuralM[i][j] 
+						   + sizeW * sizeM[i][j] + orientationW * orientationM[i][j];
 			}
 		}
 	}
@@ -1075,4 +1079,3 @@ void GraphCorresponder::visualizePart2PartDistance( int sourceID )
 		tNode->vis_property["showControl"] = false;
 	}
 }
-

@@ -14,7 +14,8 @@ class GraphCorresponder : public QObject
 public:
     GraphCorresponder(Structure::Graph *source, Structure::Graph *target);
 
-	// Helper functions
+	// Source and target
+	Structure::Graph *sg, *tg;
 	QString sgName();
 	QString tgName();
 
@@ -50,16 +51,18 @@ public:
 	float HausdorffDistance(std::vector<Vector3> &A, std::vector<Vector3> &B);
 
 	// Distance matrices
+	std::vector< std::vector<bool> > validM;
+	MATRIX spatialM, sizeM, orientationM, structuralM;
 	void computeValidationMatrix();
 	void computeHausdorffDistanceMatrix(MATRIX & M);
+	void computeLandmarkFeatureMatrix(MATRIX & M);
 	void computeSizeDiffMatrix(MATRIX & M);
 	void computeOrientationDiffMatrix(MATRIX & M);
-	void computeLandmarkFeatureMatrix(MATRIX & M);
 	void prepareAllMatrices();
 
 	// Final distance matrix by combining all matrices
-	MATRIX hM, sM, oM, fM;
-	double hW, sW, oW, fW;
+	MATRIX disM;
+	double spactialW, sizeW, orientationW, structuralW;
 	void computeFinalDistanceMatrix();
 
 	// Part to Part
@@ -86,9 +89,4 @@ public:
 public slots:
 	void visualizePart2PartDistance(int sourceID);
 	void computeCorrespondences();
-
-public:
-	Structure::Graph *sg, *tg;
-	std::vector< std::vector<float> > disM;
-	std::vector< std::vector<bool> > validM;
 };
