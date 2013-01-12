@@ -19,21 +19,26 @@ struct Synthesizer
 	// Parameters
 	int timeResolution;
 	int uResolution, vResolution;
+	// Theta is between Z and <X,Y>, Phi is on <X,Y>
 	int thetaResolution, phiResolution;
 
 	// Generate the rays
 	QVector<double> result_t;
-	QVector<double> result_u, result_v;
+	QVector< std::pair<double, double> > result_uv;
 	QVector<Vec3d> result_rays;
 	QVector<double> result_offset;
+
 	void generateRaysFromCurve(NURBSCurve & curve);
-	void generateRaysFromSheet(Structure::Sheet * sheet);
+	void generateRaysWithinCylinder(NURBSCurve curve);
+	void generateRaysWithinHemiSphere(Vector3 X, Vector3 Z);
 
-	void generateCylindricalRays(NURBSCurve curve, double thetaRange);
-	void generateSphericalRays(NURBSCurve curve, double t, double thetaRange, double phiRange);
+	void generateRaysFromSheet( NURBSRectangle &sheet );
+	void generateRaysOnTwoSidedPlane(NURBSRectangle &sheet);
+	void generateRaysOnEdges(NURBSRectangle &sheet);
+	void generateRaysWithinSheetCorner(Vector3 X, Vector3 Y, Vector3 Z);
 
-	// Legency 
-    /// Resampling
+	QVector<Vector3> raysAroundAxis(Vector3 start, Vector3 axis, double range, int resolution);
+
     // Curves:
     void resampleCurve(Structure::Curve * curve, int timeResolution, int thetaResolution, int phiResolution);
 
@@ -44,16 +49,6 @@ struct Synthesizer
     SurfaceMeshModel * blend( Structure::Node * n1, Structure::Node * n2, double t );
 
     /// Helper functions:
-    Array2D_Vector3 cylinderResampling(Array2D_Vector3 mesh_faces, NURBSCurve pathCurve, Vector3 initialDirection, int timeResolution, int thetaResolution, double thetaRange, Octree *octree, bool SheetBoundary);
-    Array2D_Vector3 sphereResampling(Array2D_Vector3 mesh_faces, Vector3 endPoint,Vector3 thetaAxis, Vector3 phiAxis, int thetaResolution,int phiResolution, double thetaRange, double phiRange, Octree *octree);
-    Array1D_Vector3 resampleCoutourPointsPlane(Array2D_Vector3 mesh_faces, NURBSCurve pathCurve,double curr_t, int thetaResolution, double thetaRange, Vector3 fixed_startDirection, Octree *octree);
-    std::vector<Array2D_Vector3> planeResamping(Array2D_Vector3 mesh_faces, NURBSRectangle sheet, Vector3 initialDirection, int uResolution, int vResolution, Octree *octree);
-
-    void addEndFaces(Array2D_Vector3 sphereResamplings, SurfaceMeshModel *mesh, std::vector<SurfaceMeshModel::Vertex> &vertices_idx, int idxBase);
-    void addCylinderFaces(Array2D_Vector3 crossSecssions, SurfaceMeshModel *mesh, std::vector<Vertex> &vertices_idx, int idxBase);
-    void addCornerFaces(Array2D_Vector3 sphereResamplings, SurfaceMeshModel *mesh, std::vector<Vertex> &vertices_idx, int idxBase);
-    void addPlaneFaces(std::vector<Array2D_Vector3> resampledPlane, SurfaceMeshModel *mesh, std::vector<Vertex> &vertices_idx, int idxBase);
-
     Vec3d intersectionPoint(Ray ray, Octree *useTree, int *faceIndex = NULL);
 };
 

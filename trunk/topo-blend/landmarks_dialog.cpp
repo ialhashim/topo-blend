@@ -388,6 +388,13 @@ void LandmarksDialog::updateCorrTab()
 {
 	updateCorrTableWidget();
 
+	this->ui->spatialWeight->setValue(gcorr->spactialW);
+	this->ui->structuralWeight->setValue(gcorr->structuralW);
+	this->ui->sizeWeight->setValue(gcorr->sizeW);
+	this->ui->orientationWeight->setValue(gcorr->orientationW);
+
+	this->ui->scoreThreshold->setValue(gcorr->scoreThreshold);
+
 	this->ui->sourceID->setMaximum(gcorr->sg->nodes.size()-1);
 }
 
@@ -584,22 +591,22 @@ void LandmarksDialog::removePointLandmark()
 
 void LandmarksDialog::setSpatialWeight( double w )
 {
-	gcorr->hW = w;
+	gcorr->spactialW = w;
 }
 
 void LandmarksDialog::setStructuralWeight( double w )
 {
-	gcorr->fW = w;
+	gcorr->structuralW = w;
 }
 
 void LandmarksDialog::setSizeWeight( double w )
 {
-	gcorr->sW = w;
+	gcorr->sizeW = w;
 }
 
 void LandmarksDialog::setOrientationWeight( double w )
 {
-	gcorr->oW = w;
+	gcorr->orientationW = w;
 }
 
 void LandmarksDialog::computeDisM()
