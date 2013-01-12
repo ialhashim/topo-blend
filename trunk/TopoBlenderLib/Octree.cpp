@@ -51,7 +51,7 @@ void Octree::initBuild( std::vector<Surface_mesh::Face>& tris, int triPerNode )
 	// Transform and scale to node's coordinates
 	double largeSize = qMax(bb.xExtent, qMax(bb.yExtent, bb.zExtent));
 
-	largeSize *= 1.1;
+	largeSize *= 1.25;
 
 	// Define our bounding box
 	this->boundingBox = BoundingBox(bb.center, largeSize, largeSize, largeSize);

@@ -231,7 +231,7 @@ void Synthesizer::resampleCurve( Structure::Curve * curve )
 {
 	SurfaceMeshModel * remeshed = new SurfaceMeshModel(curve->id + "_remeshed.off", curve->id);
 	SurfaceMeshModel * mesh = curve->property["mesh"].value<SurfaceMeshModel *>();
-	Octree tree(600, mesh);
+	Octree tree(50, mesh);
 
 	generateRaysFromCurve(curve->curve);
 

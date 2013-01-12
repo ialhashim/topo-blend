@@ -34,6 +34,7 @@ ARAPCurveDeformer * deformer = NULL;
 ARAPCurveHandle * handle = NULL;
 
 #include "Synthesizer.h"
+#include "Synthesizer2.h"
 
 topoblend::topoblend(){
 	widget = NULL;
@@ -736,58 +737,21 @@ void topoblend::currentExperiment()
 
 	foreach(Structure::Node * n, sourceGraph->nodes)
 	{
-		Synthesizer * synth = new Synthesizer();
-		n->property["synthesizer"].setValue(synth);
-
 		if(n->type() == Structure::CURVE)
 		{
 			Structure::Curve * ncurve = (Structure::Curve *)n;
-			synth->resampleCurve( ncurve );
-			synth->buildFacesCurve();
 
-			foreach(Vec3d p, synth->isect_points)
-				debugPoints.push_back(p);
+			QVector<SynthSample> allSamples = 
+				Synthesizer2::generateFeatureSamplesCurve(ncurve) + 
+				Synthesizer2::generateUniformSamplesCurve(ncurve);
 
-			foreach(QVector<int> face, synth->faces)
-			{
-				QVector<QVector3D> quad;
+			Synthesizer2::outputSamplesCurve(allSamples, ncurve);
 
-				foreach(int vi, face)
-					quad.push_back( synth->isect_points[vi] );
+			ncurve->curve.bend(0.1);
+			Synthesizer2::synthesizeCurve(allSamples, ncurve, "0.1");
 
-				sourceGraph->ps.addPoly(quad);
-			}
-
-			//synth->generateRaysFromCurve( ncurve->curve );
-
-			//for(int i = 0; i < synth->result_t.size(); i++)
-			//{
-			//	double t = synth->result_t[i];
-			//	Vec3d ray = synth->result_rays[i];
-			//	Vec3d pos = n->position(Vec4d(t));
-
-			//	sourceGraph->vs.addVector( pos, ray * 0.1 );
-			//}
-		}
-
-		if(n->type() == Structure::SHEET)
-		{
-			Structure::Sheet * nsheet = (Structure::Sheet *)n;
-			synth->resampleSheet( nsheet );
-
-			foreach(Vec3d p, synth->isect_points)
-				debugPoints2.push_back(p);
-
-			//synth->generateRaysFromSheet( nsheet->surface );
-
-			//for(int i = 0; i < synth->result_uv.size(); i++)
-			//{
-			//	std::pair<double,double> uv = synth->result_uv[i];
-			//	Vec3d ray = synth->result_rays[i];
-			//	Vec3d pos = n->position(Vec4d(uv.first,uv.second,0,0));
-
-			//	sourceGraph->vs.addVector( pos, ray * 0.1 );
-			//}
+			ncurve->curve.bend(0.2);
+			Synthesizer2::synthesizeCurve(allSamples, ncurve, "0.2");
 		}
 	}
 }

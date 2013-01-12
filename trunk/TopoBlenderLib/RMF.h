@@ -22,7 +22,7 @@ public:
 
 		// Estimate tangents
 		for(uint i = 0; i < point.size() - 1; i++)
-			tangent.push_back(point[i+1] - point[i]);
+			tangent.push_back((point[i+1] - point[i]).normalized());
 		tangent.push_back(tangent.back());
 
 		// First frame

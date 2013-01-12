@@ -68,3 +68,5 @@ public:
 	// Debug
 	std::vector<Octree *> selectedChildren;
 };
+
+Q_DECLARE_METATYPE(Octree *);

@@ -394,3 +394,24 @@ void NURBSCurve::translateTo( const Vector3 & newPos, int cpIDX )
 	for(int i = 0; i < GetNumCtrlPoints(); i++)
 		mCtrlPoint[i] += delta;
 }
+
+static inline Vec3d rotatedVec(const Vec3d & v, double theta, const Vec3d & axis)
+{
+	return (v * cos(theta) + cross(axis, v) * sin(theta) + axis * dot(axis, v) * (1 - cos(theta)));
+}
+
+void NURBSCurve::bend( double amount )
+{
+	Vec3d axis = GetBinormal(0);
+	double theta = amount * 3.14;
+
+	for(int j = 1; j < (int)mCtrlPoint.size(); j++)
+	{
+		double angle = theta * j-1;
+
+		for(int i = j; i < (int)mCtrlPoint.size(); i++)
+		{
+			mCtrlPoint[i] = mCtrlPoint[i-1] + rotatedVec(mCtrlPoint[i] - mCtrlPoint[i-1], angle, axis);
+		}
+	}
+}
