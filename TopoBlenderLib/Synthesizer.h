@@ -6,6 +6,8 @@ using namespace Structure;
 #include "Octree.h"
 Q_DECLARE_METATYPE(Octree *)
 
+#include "RMF.h"
+
 struct Sample{
     double u,v;
     Vec3d d;
@@ -16,17 +18,22 @@ struct Synthesizer
 {
     Synthesizer();
 
+	// Frames
+	std::vector<RMF::Frame> frames;
+
 	// Parameters
 	int timeResolution;
 	int uResolution, vResolution;
 	// Theta is between Z and <X,Y>, Phi is on <X,Y>
 	int thetaResolution, phiResolution;
 
-	// Generate the rays
+	/// Generate the rays
 	QVector<double> result_t;
 	QVector< std::pair<double, double> > result_uv;
 	QVector<Vec3d> result_rays;
 	QVector<double> result_offset;
+
+	QVector<Vec3d> isect_points;
 
 	void generateRaysFromCurve(NURBSCurve & curve);
 	void generateRaysWithinCylinder(NURBSCurve curve);
@@ -39,11 +46,16 @@ struct Synthesizer
 
 	QVector<Vector3> raysAroundAxis(Vector3 start, Vector3 axis, double range, int resolution);
 
-    // Curves:
-    void resampleCurve(Structure::Curve * curve, int timeResolution, int thetaResolution, int phiResolution);
+	/// Re-sample
+	void resampleCurve(Structure::Curve * curve);
+	void resampleSheet(Structure::Sheet * sheet);
 
-    // Sheets:
-    void resampleSheet(Structure::Sheet * sheet, int uResolution, int vResolution, int thetaResolution, int phiResolution);
+	/// Reconstruction
+	QVector<int> numV;
+	QVector< QVector<int> > faces;
+	void buildFacesCurve();
+	void buildFacesCylinder();
+	void buildFacesHemiSphere();
 
     /// Blending
     SurfaceMeshModel * blend( Structure::Node * n1, Structure::Node * n2, double t );
@@ -51,6 +63,8 @@ struct Synthesizer
     /// Helper functions:
     Vec3d intersectionPoint(Ray ray, Octree *useTree, int *faceIndex = NULL);
 };
+
+Q_DECLARE_METATYPE(Synthesizer*)
 
 // Helper macros:
 #define SIGN(x) (((x) < 0) ? (-1) : (((x) > 0) ? 1 : 0))

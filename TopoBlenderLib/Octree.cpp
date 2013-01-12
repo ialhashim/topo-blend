@@ -7,6 +7,14 @@ Octree::Octree( int triPerNode, Surface_mesh * useMesh )
 	this->parent = NULL;
 	this->mesh = useMesh;
 	this->trianglePerNode = triPerNode;
+
+	// Using all tris
+	std::vector<Surface_mesh::Face> allTris;
+	Surface_mesh::Face_iterator fit, fend = useMesh->faces_end();
+	for(fit = useMesh->faces_begin(); fit != fend; ++fit)
+		allTris.push_back(fit);
+
+	this->initBuild(allTris, trianglePerNode);
 }
 
 Octree::Octree( int triPerNode, const BoundingBox& bb, const std::vector<Surface_mesh::Face>& tris, Surface_mesh * useMesh )

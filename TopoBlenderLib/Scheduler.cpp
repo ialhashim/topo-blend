@@ -237,8 +237,5 @@ void Scheduler::startAllSameTime()
 
 void Scheduler::prepareSynthesis()
 {
-	foreach(Task * t, tasks)
-	{
-		
-	}
+
 }
