@@ -34,6 +34,8 @@ public:
 	void executeGrowShrink( double t );
 	void executeMorph( double t );
 
+	void geometryMorph( double t );
+
 	Structure::Node * node();
 
 	QVector<Structure::Link *> getGoodEdges();
