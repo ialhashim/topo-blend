@@ -8,6 +8,8 @@
 #include "StructureGraph.h"
 using namespace Structure;
 
+#include "Synthesizer.h"
+
 #include "GraphEmbed.h"
 #include "GraphDraw2D.h"
 
@@ -255,12 +257,51 @@ void Graph::draw()
 			//glEnd();
 		}
 
-		// Draw node mesh
-		if( property["showMeshes"].toBool() )
+		if(n->property.contains("samples"))
 		{
-			if(n->property.contains("mesh"))
+			QVector<Vec3d> points, normals;
+
+			if(!n->property.contains("cached_points"))
 			{
-				QuickMeshDraw::drawMeshWireFrame( n->property["mesh"].value<SurfaceMeshModel*>() );
+				// Without blending!
+				if(n->type() == Structure::CURVE)
+				{
+					Structure::Curve * curve = (Structure::Curve *)n;
+					Synthesizer::blendGeometryCurves(curve,curve,0,points,normals);
+				}
+				if(n->type() == Structure::SHEET)
+				{
+					Structure::Sheet * sheet = (Structure::Sheet *)n;
+					Synthesizer::blendGeometrySheets(sheet,sheet,0,points,normals);
+				}
+
+				n->property["cached_points"].setValue(points);
+				n->property["cached_normals"].setValue(normals);
+			}
+			else
+			{
+				points = n->property["cached_points"].value< QVector<Vec3d> >();
+				normals = n->property["cached_normals"].value< QVector<Vec3d> >();
+			}
+
+			glPointSize(3.0);
+			glEnable(GL_LIGHTING);
+			glBegin(GL_POINTS);
+			for(int i = 0; i < (int)points.size(); i++){
+				glNormal3(normals[i]);
+				glVector3(points[i]);
+			}
+			glEnd();
+		}
+		else
+		{
+			// Draw node mesh
+			if( property["showMeshes"].toBool() )
+			{
+				if(n->property.contains("mesh"))
+				{
+					QuickMeshDraw::drawMeshWireFrame( n->property["mesh"].value<SurfaceMeshModel*>() );
+				}
 			}
 		}
     }

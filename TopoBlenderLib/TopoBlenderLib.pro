@@ -40,9 +40,8 @@ HEADERS += StructureNode.h \
 	ARAPCurveHandle.h \
     TimelineSlider.h \
     StructureGlobal.h \
-	Synthesizer2.h \
-	Sampler.h \
-    SynthesizerOld.h
+    Synthesizer.h \
+	Sampler.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -58,7 +57,7 @@ SOURCES += StructureGraph.cpp \
     FFD.cpp \
     ARAPCurveDeformer.cpp \
     TimelineSlider.cpp \
-	Synthesizer2.cpp \
+    Synthesizer.cpp \
 	Sampler.cpp
 	
 	

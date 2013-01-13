@@ -78,6 +78,11 @@ public slots:
 
 	// Show graphs
 	void updateActiveGraph(Structure::Graph *);
+
+	// Synthesis data
+	void generateSynthesisData();
+	void saveSynthesisData();
+	void loadSynthesisData();
 signals:
 
 };

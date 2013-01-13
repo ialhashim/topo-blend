@@ -34,7 +34,8 @@ ARAPCurveDeformer * deformer = NULL;
 ARAPCurveHandle * handle = NULL;
 
 #include "Synthesizer.h"
-#include "Synthesizer2.h"
+
+VectorSoup vs1,vs2;
 
 topoblend::topoblend(){
 	widget = NULL;
@@ -88,10 +89,25 @@ void topoblend::decorate()
 
 	//glClear( GL_DEPTH_BUFFER_BIT );
 
-	// Points
-	glPointSize(10); glColor3d(1,0,0); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints) glVector3(v); glEnd();
-	glPointSize(15); glColor3d(1,1,1); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints) glVector3(v); glEnd();
+	// Points 1
+	glPushMatrix();
+	glTranslatef(0, -drawArea()->sceneRadius(), 0);
+	glPointSize(4); glColor3d(1,0,0); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints) glVector3(v); glEnd();
+	glPointSize(8); glColor3d(1,1,1); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints) glVector3(v); glEnd();
+
+	vs1.draw();
+
+	glPopMatrix();
+
+	// Points 2
+	glPushMatrix();
+	glTranslatef(0.0, drawArea()->sceneRadius(), 0);
 	glColor3d(0,1,0); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints2) glVector3(v); glEnd();
+	
+	vs2.draw();
+
+	glPopMatrix();
+
 	glColor3d(0,0,1); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints3) glVector3(v); glEnd();
 
 	// Lines
@@ -729,30 +745,73 @@ void topoblend::clearGraphs()
 
 	delete gcoor;
 	gcoor = NULL;
+
+	debugPoints.clear();
+	debugPoints2.clear();
 }
 
 void topoblend::currentExperiment()
 {
-	Structure::Graph * sourceGraph = graphs.back();
+	Structure::Graph * sourceGraph = graphs.front();
+	Structure::Graph * targetGraph = graphs.back();
+
+	std::vector<Structure::Curve*> curvesS, curvesT;
+	std::vector<Structure::Sheet*> sheetsS, sheetsT;
 
 	foreach(Structure::Node * n, sourceGraph->nodes)
 	{
 		if(n->type() == Structure::CURVE)
 		{
 			Structure::Curve * ncurve = (Structure::Curve *)n;
-
-			QVector<ParameterCoord> allSamples = 
-				Synthesizer::genFeatureCoordsCurve(ncurve) + 
-				Synthesizer::genUniformCoordsCurve(ncurve);
-
-			Synthesizer::computeOffsetsCurve(allSamples, ncurve);
-
-			ncurve->curve.bend(0.1);
-			Synthesizer::synthesizeCurve(allSamples, ncurve, "0.1");
-
-			ncurve->curve.bend(0.2);
-			Synthesizer::synthesizeCurve(allSamples, ncurve, "0.2");
+			curvesS.push_back(ncurve);
 		}
+
+		if(n->type() == Structure::SHEET)
+		{
+			Structure::Sheet * nsheet = (Structure::Sheet *)n;
+			sheetsS.push_back(nsheet);
+		}
+	}
+
+	foreach(Structure::Node * n, targetGraph->nodes)
+	{
+		if(n->type() == Structure::CURVE)
+		{
+			Structure::Curve * ncurve = (Structure::Curve *)n;
+			curvesT.push_back(ncurve);
+		}
+
+		if(n->type() == Structure::SHEET)
+		{
+			Structure::Sheet * nsheet = (Structure::Sheet *)n;
+			sheetsT.push_back(nsheet);
+		}
+	}
+
+	QVector<Vec3d> pnts1, normals1;
+	QVector<Vec3d> pnts2, normals2;
+
+	for(int i = 0; i < (int)curvesS.size(); i++)
+	{
+		Synthesizer::prepareSynthesizeCurve( curvesS[i], curvesT[i] );
+		Synthesizer::blendGeometryCurves( curvesS[i], curvesT[i], 0.25, pnts1, normals1);
+		Synthesizer::blendGeometryCurves( curvesT[i], curvesS[i], 0.25, pnts2, normals2);
+
+		Synthesizer::writeXYZ(QString("pointcloud_%1.xyz").arg(curvesS[i]->id), pnts1, normals1);
+	}
+
+	//for(int i = 0; i < (int)sheetsS.size(); i++)
+	//{
+	//	Synthesizer::prepareSynthesizeSheet(sheetsS[i], sheetsT[i]);
+	//	Synthesizer::blendGeometrySheets(sheetsS[i], sheetsT[i], 0.25, pnts1, normals1);
+	//	Synthesizer::blendGeometrySheets(sheetsT[i], sheetsS[i], 0.25, pnts2, normals2);
+	//}
+
+	for(int j = 0; j < (int) pnts1.size(); j++)
+	{
+		double scaling = 1.0;
+		vs1.addVector(pnts1[j], normals1[j] * scaling);
+		vs2.addVector(pnts2[j], normals2[j] * scaling);
 	}
 }
 
@@ -853,6 +912,68 @@ void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 {
 	graphs.clear();
 	this->graphs.push_back(newActiveGraph);
+	drawArea()->updateGL();
+}
+
+void topoblend::generateSynthesisData()
+{
+	if(!blender) return;
+
+	foreach(Structure::Node * node, blender->active->nodes)
+	{
+		if(node->property.contains("correspond"))
+		{
+			QString nodeID = node->id;
+			QString tnodeID = node->property["correspond"].toString();
+
+			if(node->type() == Structure::CURVE)
+			{
+				Synthesizer::prepareSynthesizeCurve((Structure::Curve*)node, (Structure::Curve*)blender->tg->getNode(tnodeID));
+			}
+
+			if(node->type() == Structure::SHEET)
+			{
+				Synthesizer::prepareSynthesizeSheet((Structure::Sheet*)node, (Structure::Sheet*)blender->tg->getNode(tnodeID));
+			}
+		}
+	}
+}
+
+void topoblend::saveSynthesisData()
+{
+	if(!blender) return;
+
+	QString foldername = gcoor->sgName() + "_" + gcoor->tgName();
+	QDir dir; dir.mkdir(foldername); dir.setCurrent(foldername);
+
+	foreach(Structure::Node * node, blender->active->nodes){
+		if(node->property.contains("correspond")){
+			QString nodeID = node->id;
+			QString tnodeID = node->property["correspond"].toString();
+
+			Synthesizer::saveSynthesisData(node);
+			Synthesizer::saveSynthesisData(blender->tg->getNode(tnodeID));
+		}
+	}
+}
+
+void topoblend::loadSynthesisData()
+{
+	if(!blender) return;
+
+	QString foldername = gcoor->sgName() + "_" + gcoor->tgName();
+	QDir dir; dir.setCurrent(foldername);
+
+	foreach(Structure::Node * node, blender->active->nodes){
+		if(node->property.contains("correspond")){
+			QString nodeID = node->id;
+			QString tnodeID = node->property["correspond"].toString();
+
+			Synthesizer::loadSynthesisData(node);
+			Synthesizer::loadSynthesisData(blender->tg->getNode(tnodeID));
+		}
+	}
+
 	drawArea()->updateGL();
 }
 

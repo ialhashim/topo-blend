@@ -170,9 +170,9 @@ public:
         glBegin(GL_LINES);
         for(int i = 0; i < (int) vectors.size(); i++){
             // Color
-            double d = vectorLengths[i] / maxLen;
-            QColor c( _color.red() * d, _color.green() * d, _color.blue() * d );
-            glColorQt(c);
+            //double d = vectorLengths[i] / maxLen;
+            //QColor c( _color.red() * d, _color.green() * d, _color.blue() * d );
+            glColorQt(this->_color.lighter());
 
             // Line
             glVertQt(vectors[i].first);
@@ -184,9 +184,9 @@ public:
         glBegin(GL_POINTS);
         for(int i = 0; i < (int) vectors.size(); i++){
             // Color
-            double d = vectorLengths[i] / maxLen;
-            QColor c( _color.red() * d, _color.green() * d, _color.blue() * d );
-            glColorQt(c);
+            //double d = vectorLengths[i] / maxLen;
+            //QColor c( _color.red() * d, _color.green() * d, _color.blue() * d );
+            glColorQt(this->_color);
 
             // Point
             glVertQt((vectors[i].first + vectors[i].second));
