@@ -36,6 +36,11 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 
 	// Correspondence
 	this->connect(ui->computeCorrButton, SIGNAL(clicked()), SLOT(loadCorrespondenceModel()));
+
+	// Synthesis
+	topo_blend->connect(ui->genSynthButton, SIGNAL(clicked()), SLOT(generateSynthesisData()));
+	topo_blend->connect(ui->saveSynthButton, SIGNAL(clicked()), SLOT(saveSynthesisData()));
+	topo_blend->connect(ui->loadSynthButton, SIGNAL(clicked()), SLOT(loadSynthesisData()));
 }
 
 topo_blend_widget::~topo_blend_widget()

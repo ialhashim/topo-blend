@@ -148,7 +148,7 @@ void Scheduler::executeAll()
 
 	emit( progressStarted() );
 
-	double timeStep = 0.001;
+	double timeStep = 0.01;
 	int totalTime = totalExecutionTime();
 	isForceStop = false;
 

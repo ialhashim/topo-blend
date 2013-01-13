@@ -3,6 +3,8 @@
 #include "ARAPCurveDeformer.h"
 #include <QGraphicsSceneMouseEvent>
 
+#include "Synthesizer.h"
+
 typedef std::vector< std::pair<double,double> > VectorPairDouble;
 Q_DECLARE_METATYPE(Vector3);
 Q_DECLARE_METATYPE(Vec4d);
@@ -514,6 +516,21 @@ void Task::executeMorph( double t )
 	Structure::Node * n = node();
 	QVector<Structure::Link*> edges = getGoodEdges();
 
+	if(n->type() == Structure::CURVE)
+	{	
+		if(n->property.contains("samples"))
+		{
+			QString tnodeID = n->property["correspond"].toString();
+			Structure::Curve * tcurve = (Structure::Curve *)target->getNode(tnodeID);
+
+			Synthesizer::blendCurveBases((Structure::Curve*)n, tcurve, t);
+
+			// Update
+			node()->property.remove("cached_points");
+		}
+	}
+
+
 	// 1) SINGLE edge
 	if(edges.size() == 1)
 	{
@@ -522,11 +539,15 @@ void Task::executeMorph( double t )
 			Structure::Curve* current_curve = ((Structure::Curve*)n);
 
 			QVector< NodeCoord > path = property["path"].value< QVector< NodeCoord > >();
-			int cpIDX = property["cpIDX"].toInt();
-			int current = t * (path.size() - 1);
-			Vec3d newPos = active->position(path[current].first,path[current].second);
 
-			current_curve->curve.translateTo( newPos, cpIDX );
+			if(path.size() > 0) 
+			{
+				int cpIDX = property["cpIDX"].toInt();
+				int current = t * (path.size() - 1);
+				Vec3d newPos = active->position(path[current].first,path[current].second);
+
+				current_curve->curve.translateTo( newPos, cpIDX );
+			}
 		}
 
 		if(n->type() == Structure::SHEET)
