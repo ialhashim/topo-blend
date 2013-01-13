@@ -44,6 +44,11 @@ struct Curve : public Node
 	Vector3 approxProjection( const Vector3 & point );
 	Vector3 center();
 
+	// Encoding
+	void encodeShape();
+	void decodeShape(QVector<Vec3d> & deltas);
+
+
 	// Geometric properties
 	Scalar area();
 

@@ -516,20 +516,8 @@ void Task::executeMorph( double t )
 	Structure::Node * n = node();
 	QVector<Structure::Link*> edges = getGoodEdges();
 
-	if(n->type() == Structure::CURVE)
-	{	
-		if(n->property.contains("samples"))
-		{
-			QString tnodeID = n->property["correspond"].toString();
-			Structure::Curve * tcurve = (Structure::Curve *)target->getNode(tnodeID);
-
-			Synthesizer::blendCurveBases((Structure::Curve*)n, tcurve, t);
-
-			// Update
-			node()->property.remove("cached_points");
-		}
-	}
-
+	// Blend geometries
+	geometryMorph( t );
 
 	// 1) SINGLE edge
 	if(edges.size() == 1)
@@ -746,4 +734,22 @@ void Task::setStart( int newStart )
 	start = newStart;
 	currentTime = 0;
 	setX(newStart);
+}
+
+void Task::geometryMorph( double t )
+{
+	// Geometry morph
+	if(node()->type() == Structure::CURVE)
+	{	
+		if(node()->property.contains("samples"))
+		{
+			QString tnodeID = node()->property["correspond"].toString();
+			Structure::Curve * tcurve = (Structure::Curve *)target->getNode(tnodeID);
+
+			Synthesizer::blendCurveBases((Structure::Curve*)node(), tcurve, t);
+
+			// Update
+			node()->property.remove("cached_points");
+		}
+	}
 }
