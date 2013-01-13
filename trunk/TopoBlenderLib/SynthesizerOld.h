@@ -13,9 +13,9 @@ struct Sample{
     Sample(const Vec3d & D, double U, double V = 0) { u = U; v = V; d = D; }
 };
 
-struct Synthesizer
+struct SynthesizerOld
 {
-    Synthesizer();
+    SynthesizerOld();
 
 	// Frames
 	std::vector<RMF::Frame> frames;
@@ -63,7 +63,7 @@ struct Synthesizer
     Vec3d intersectionPoint(Ray ray, Octree *useTree, int *faceIndex = NULL);
 };
 
-Q_DECLARE_METATYPE(Synthesizer*)
+Q_DECLARE_METATYPE(SynthesizerOld*)
 
 // Helper macros:
 #define SIGN(x) (((x) < 0) ? (-1) : (((x) > 0) ? 1 : 0))
