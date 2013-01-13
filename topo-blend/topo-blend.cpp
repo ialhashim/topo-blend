@@ -741,17 +741,17 @@ void topoblend::currentExperiment()
 		{
 			Structure::Curve * ncurve = (Structure::Curve *)n;
 
-			QVector<SynthSample> allSamples = 
-				Synthesizer2::generateFeatureSamplesCurve(ncurve) + 
-				Synthesizer2::generateUniformSamplesCurve(ncurve);
+			QVector<ParameterCoord> allSamples = 
+				Synthesizer::genFeatureCoordsCurve(ncurve) + 
+				Synthesizer::genUniformCoordsCurve(ncurve);
 
-			Synthesizer2::outputSamplesCurve(allSamples, ncurve);
+			Synthesizer::computeOffsetsCurve(allSamples, ncurve);
 
 			ncurve->curve.bend(0.1);
-			Synthesizer2::synthesizeCurve(allSamples, ncurve, "0.1");
+			Synthesizer::synthesizeCurve(allSamples, ncurve, "0.1");
 
 			ncurve->curve.bend(0.2);
-			Synthesizer2::synthesizeCurve(allSamples, ncurve, "0.2");
+			Synthesizer::synthesizeCurve(allSamples, ncurve, "0.2");
 		}
 	}
 }

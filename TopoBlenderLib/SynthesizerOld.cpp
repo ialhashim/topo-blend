@@ -1,13 +1,13 @@
 #include "Synthesizer.h"
 
-Synthesizer::Synthesizer()
+SynthesizerOld::SynthesizerOld()
 {
 	timeResolution = 20;
 	uResolution = vResolution = 20;
 	thetaResolution = phiResolution = 10;
 }
 
-void Synthesizer::generateRaysFromCurve( NURBSCurve & curve )
+void SynthesizerOld::generateRaysFromCurve( NURBSCurve & curve )
 {
 	// Clear
 	result_rays.clear();
@@ -36,7 +36,7 @@ void Synthesizer::generateRaysFromCurve( NURBSCurve & curve )
 	result_t += QVector<double>(result_rays.size() - result_t.size(), 1);
 }
 
-void Synthesizer::generateRaysFromSheet( NURBSRectangle &sheet )
+void SynthesizerOld::generateRaysFromSheet( NURBSRectangle &sheet )
 {
 	// Clear
 	result_rays.clear();
@@ -67,7 +67,7 @@ void Synthesizer::generateRaysFromSheet( NURBSRectangle &sheet )
 	result_uv += QVector< std::pair<double, double> >(result_rays.size() - result_uv.size(), std::make_pair(1, 1));
 }
 
-void Synthesizer::generateRaysWithinCylinder( NURBSCurve curve )
+void SynthesizerOld::generateRaysWithinCylinder( NURBSCurve curve )
 {
 	double delta_t = 1.0 / timeResolution;
 
@@ -86,7 +86,7 @@ void Synthesizer::generateRaysWithinCylinder( NURBSCurve curve )
 	}
 }
 
-void Synthesizer::generateRaysWithinHemiSphere( Vector3 X, Vector3 Z )
+void SynthesizerOld::generateRaysWithinHemiSphere( Vector3 X, Vector3 Z )
 {
 	foreach (Vector3 v, raysAroundAxis(Z, X, 0.5 * M_PI, thetaResolution))
 	{
@@ -96,7 +96,7 @@ void Synthesizer::generateRaysWithinHemiSphere( Vector3 X, Vector3 Z )
 	}
 }
 
-void Synthesizer::generateRaysOnTwoSidedPlane( NURBSRectangle &sheet )
+void SynthesizerOld::generateRaysOnTwoSidedPlane( NURBSRectangle &sheet )
 {
 	double delta_u = 1.0 / uResolution;
 	double delta_v = 1.0 / vResolution;
@@ -132,7 +132,7 @@ void Synthesizer::generateRaysOnTwoSidedPlane( NURBSRectangle &sheet )
 	}
 }
 
-void Synthesizer::generateRaysOnEdges( NURBSRectangle &sheet )
+void SynthesizerOld::generateRaysOnEdges( NURBSRectangle &sheet )
 {
 	// Temp data
 	double u, v;
@@ -196,7 +196,7 @@ void Synthesizer::generateRaysOnEdges( NURBSRectangle &sheet )
 	}
 }
 
-void Synthesizer::generateRaysWithinSheetCorner( Vector3 X, Vector3 Y, Vector3 Z )
+void SynthesizerOld::generateRaysWithinSheetCorner( Vector3 X, Vector3 Y, Vector3 Z )
 {
 	// Assuming Z = cross(X, Y), but dot(X,Y) might not equal to 0
 
@@ -210,7 +210,7 @@ void Synthesizer::generateRaysWithinSheetCorner( Vector3 X, Vector3 Y, Vector3 Z
 	}
 }
 
-QVector<Vector3> Synthesizer::raysAroundAxis( Vector3 start, Vector3 axis, double range, int resolution )
+QVector<Vector3> SynthesizerOld::raysAroundAxis( Vector3 start, Vector3 axis, double range, int resolution )
 {
 	QVector<Vector3> rays;
 	double delta = range / resolution;
@@ -227,7 +227,7 @@ QVector<Vector3> Synthesizer::raysAroundAxis( Vector3 start, Vector3 axis, doubl
 	return rays;
 }
 
-void Synthesizer::resampleCurve( Structure::Curve * curve )
+void SynthesizerOld::resampleCurve( Structure::Curve * curve )
 {
 	SurfaceMeshModel * remeshed = new SurfaceMeshModel(curve->id + "_remeshed.off", curve->id);
 	SurfaceMeshModel * mesh = curve->property["mesh"].value<SurfaceMeshModel *>();
@@ -245,7 +245,7 @@ void Synthesizer::resampleCurve( Structure::Curve * curve )
 	}
 }
 
-void Synthesizer::resampleSheet( Structure::Sheet * sheet )
+void SynthesizerOld::resampleSheet( Structure::Sheet * sheet )
 {
 	SurfaceMeshModel * remeshed = new SurfaceMeshModel(sheet->id + "_remeshed.off", sheet->id);
 	SurfaceMeshModel * mesh = sheet->property["mesh"].value<SurfaceMeshModel *>();
@@ -263,7 +263,7 @@ void Synthesizer::resampleSheet( Structure::Sheet * sheet )
 	}
 }
 
-Vec3d Synthesizer::intersectionPoint( Ray ray, Octree * useTree, int * faceIndex )
+Vec3d SynthesizerOld::intersectionPoint( Ray ray, Octree * useTree, int * faceIndex )
 {
 	HitResult res;
 	Vec3d isetpoint(0);
@@ -296,7 +296,7 @@ Vec3d Synthesizer::intersectionPoint( Ray ray, Octree * useTree, int * faceIndex
 }
 
 
-void Synthesizer::buildFacesCurve()
+void SynthesizerOld::buildFacesCurve()
 {
 	buildFacesCylinder();
 
@@ -306,7 +306,7 @@ void Synthesizer::buildFacesCurve()
 }
 
 
-void Synthesizer::buildFacesCylinder()
+void SynthesizerOld::buildFacesCylinder()
 {
 	int v0, v1, v2, v3;
 
@@ -331,7 +331,7 @@ void Synthesizer::buildFacesCylinder()
 	}
 }
 
-void Synthesizer::buildFacesHemiSphere()
+void SynthesizerOld::buildFacesHemiSphere()
 {
 
 }
