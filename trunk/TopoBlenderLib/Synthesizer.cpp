@@ -439,11 +439,11 @@ void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVec
 
 void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2 )
 {
-	if(!curve1->property.contains("mesh") || !curve2->property.contains("mesh")) return;
+	if(!curve1 || !curve2 || !curve1->property.contains("mesh") || !curve2->property.contains("mesh")) return;
 
 	// Sample two curves
 	QVector<ParameterCoord> samples = genFeatureCoordsCurve(curve1) + genFeatureCoordsCurve(curve2) 
-									/*+ genUniformCoordsCurve(curve1) + genUniformCoordsCurve(curve2)*/;
+									+ genUniformCoordsCurve(curve1) + genUniformCoordsCurve(curve2);
 
 	// Re-sample the meshes
 	QVector<double> offsets1, offsets2;
@@ -462,11 +462,11 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 
 void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2 )
 {
-	if(!sheet1->property.contains("mesh") || !sheet2->property.contains("mesh")) return;
+	if(!sheet1 || !sheet2 || !sheet1->property.contains("mesh") || !sheet2->property.contains("mesh")) return;
 
 	// Sample two sheets
 	QVector<ParameterCoord> samples = genFeatureCoordsSheet(sheet1) + genFeatureCoordsSheet(sheet2) 
-									/*+ genUniformCoordsSheet(sheet1) + genUniformCoordsSheet(sheet2)*/;
+									+ genUniformCoordsSheet(sheet1) + genUniformCoordsSheet(sheet2);
 
 	// Re-sample the meshes
 	QVector<double> offsets1, offsets2;

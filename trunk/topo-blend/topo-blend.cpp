@@ -923,6 +923,8 @@ void topoblend::generateSynthesisData()
 	{
 		if(node->property.contains("correspond"))
 		{
+			if(!node->property.contains("correspond")) continue;
+
 			QString nodeID = node->id;
 			QString tnodeID = node->property["correspond"].toString();
 
@@ -952,6 +954,7 @@ void topoblend::saveSynthesisData()
 		if(node->property.contains("correspond")){
 			QString nodeID = node->id;
 			QString tnodeID = node->property["correspond"].toString();
+			if(tnodeID.isEmpty()) continue;
 
 			Synthesizer::saveSynthesisData(node);
 			Synthesizer::saveSynthesisData(blender->tg->getNode(tnodeID));
@@ -970,6 +973,7 @@ void topoblend::loadSynthesisData()
 		if(node->property.contains("correspond")){
 			QString nodeID = node->id;
 			QString tnodeID = node->property["correspond"].toString();
+			if(tnodeID.isEmpty()) continue;
 
 			Synthesizer::loadSynthesisData(node);
 			Synthesizer::loadSynthesisData(blender->tg->getNode(tnodeID));
