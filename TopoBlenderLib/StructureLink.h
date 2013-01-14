@@ -23,7 +23,7 @@ struct Link
 	QString type;
     QMap< QString, QVariant > property;
 
-	LinkCoords coord[2];
+	std::vector<LinkCoords> coord;
 
 	void setCoord( QString nodeID, std::vector<Vec4d> newCoord );
 	void setCoordOther( QString nodeID, std::vector<Vec4d> newCoord );
@@ -34,12 +34,14 @@ struct Link
 	Node * getNode(QString nodeID);
 	Node * otherNode(QString nodeID);
 
+	Node * getNodeHasProperty(QString propertyName, QVariant propertyValue);
+
 	// Modify
 	void replace(QString oldNodeID, Node *newNode, std::vector<Vec4d> newCoord);
 
 	// Constructors
     Link(Node * node1, Node * node2, LinkCoords coord_n1, LinkCoords coord_n2, QString link_type, QString ID);
-	Link(){	n1 = n2 = NULL; }
+	Link(){	n1 = n2 = NULL; coord.resize(2); }
 	
 	// Accessors
 	bool hasNode(QString nodeID);

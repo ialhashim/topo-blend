@@ -94,6 +94,7 @@ struct Graph
 	void printAdjacency();
 	VectorSoup vs;
 	PolygonSoup ps;
+	void printLinksInfo();
 };
 
 }

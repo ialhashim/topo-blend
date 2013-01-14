@@ -312,13 +312,13 @@ void Graph::draw()
     }
 
 	glDisable(GL_LIGHTING);
-	glColor3d(1,1,0); glPointSize(8);
+	glColor3d(1,1,0); glPointSize(20);
 	glBegin(GL_POINTS); foreach(Vector3 p, debugPoints) glVector3(p); glEnd();
 
-	glColor3d(0,1,1); glPointSize(14);
+	glColor3d(0,1,1); glPointSize(30);
 	glBegin(GL_POINTS); foreach(Vector3 p, debugPoints2) glVector3(p); glEnd();
 
-	glColor3d(1,0,1); glPointSize(20);
+	glColor3d(1,0,1); glPointSize(40);
 	glBegin(GL_POINTS); foreach(Vector3 p, debugPoints3) glVector3(p); glEnd();
 	glEnable(GL_LIGHTING);
 
@@ -1110,4 +1110,21 @@ void Structure::Graph::clearSelections()
 {
 	foreach(Structure::Node *node, nodes)
 		node->selections.clear();
+}
+
+void Structure::Graph::printLinksInfo()
+{
+	foreach(Link * e, edges)
+	{
+		QStringList c_string;
+
+		foreach(Array1D_Vec4d coords, e->coord)
+		{
+			c_string << "";
+			foreach(Vec4d c, coords)
+				c_string.back() += QString("|%1  %2|").arg(c[0]).arg(c[1]);
+		}
+
+		qDebug() << e->id << "\t=> c1 [ " << c_string.front() << " ] \t c2 [ " << c_string.back() << " ]" ;
+	}
 }

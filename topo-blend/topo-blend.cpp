@@ -928,12 +928,14 @@ void topoblend::generateSynthesisData()
 
 			if(node->type() == Structure::CURVE)
 			{
-				Synthesizer::prepareSynthesizeCurve((Structure::Curve*)node, (Structure::Curve*)blender->tg->getNode(tnodeID));
+				if(!node->id.contains("_TG"))
+					Synthesizer::prepareSynthesizeCurve((Structure::Curve*)node, (Structure::Curve*)blender->tg->getNode(tnodeID));
 			}
 
 			if(node->type() == Structure::SHEET)
 			{
-				Synthesizer::prepareSynthesizeSheet((Structure::Sheet*)node, (Structure::Sheet*)blender->tg->getNode(tnodeID));
+				if(!node->id.contains("_TG"))
+					Synthesizer::prepareSynthesizeSheet((Structure::Sheet*)node, (Structure::Sheet*)blender->tg->getNode(tnodeID));
 			}
 		}
 	}

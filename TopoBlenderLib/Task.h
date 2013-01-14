@@ -36,7 +36,14 @@ public:
 
 	void geometryMorph( double t );
 
+	// Helper functions
+	void deformCurve(int anchorPoint, int controlPoint, Vec3d newControlPos);
+	void weldMorphPath();
+
 	Structure::Node * node();
+	Structure::Node * targetNode();
+	Structure::Curve * targetCurve();
+	Structure::Sheet * targetSheet();
 
 	QVector<Structure::Link *> getGoodEdges();
 	QList<Structure::Link*> furthermostGoodEdges();

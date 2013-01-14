@@ -64,3 +64,5 @@ static void getIndicesFromSelectedName(int selectedName, int &gID, int &nID, int
 typedef std::pair< QVector<QString>, QVector<QString> > PART_LANDMARK;
 typedef std::pair< int, int > POINT_ID;
 typedef std::pair< QVector<POINT_ID>, QVector<POINT_ID> > POINT_LANDMARK;
+
+#define AlphaBlend(alpha, start, end) ( ((1-alpha) * start) + (alpha * end) )

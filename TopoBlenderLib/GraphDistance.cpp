@@ -272,6 +272,8 @@ double GraphDistance::pathCoordTo( Vector3 point, QVector< QPair<QString, Vec4d>
 		}
 	}
 
+	Vec3d closestPoint = allPoints[closest];
+
 	// Retrieve path 
 	std::list<vertex_t> shortestPath = DijkstraGetShortestPathTo(closest, previous);
 	foreach(vertex_t v, shortestPath) 
