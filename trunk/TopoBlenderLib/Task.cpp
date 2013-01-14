@@ -5,6 +5,8 @@
 
 #include "Synthesizer.h"
 
+#include "weld.h"
+
 typedef std::vector< std::pair<double,double> > VectorPairDouble;
 Q_DECLARE_METATYPE(Vector3);
 Q_DECLARE_METATYPE(Vec4d);
@@ -167,6 +169,8 @@ void Task::prepare()
 	this->currentTime = start;
 	this->isDone = false;
 
+	this->property["orgCtrlPoints"].setValue( node()->controlPoints() );
+
 	switch(type)
 	{
 	case GROW:
@@ -188,6 +192,9 @@ void Task::execute( double t )
 	if(t < 0.0 || !isReady || isDone) return;
 
 	currentTime = start + (t * length);
+
+	// Blend geometries
+	geometryMorph( t );
 
 	switch(type)
 	{
@@ -247,6 +254,14 @@ void Task::prepareGrowShrink()
 		}
 
 		return;
+	}
+
+	// Special case?
+	if(edges.size() == 0){
+		if(type == SHRINK){
+			Structure::Link * singleEdge = active->getEdges(n->id).front();
+			edges.push_back(singleEdge);
+		}
 	}
 
 	if(edges.size() == 1)
@@ -417,6 +432,14 @@ void Task::executeGrowShrink( double t )
 		return;
 	}
 
+	// Special case?
+	if(edges.size() == 0){
+		if(type == SHRINK){
+			Structure::Link * singleEdge = active->getEdges(n->id).front();
+			edges.push_back(singleEdge);
+		}
+	}
+
 	/// Normal cases:
 
 	// One edge
@@ -516,26 +539,35 @@ void Task::executeMorph( double t )
 	Structure::Node * n = node();
 	QVector<Structure::Link*> edges = getGoodEdges();
 
-	// Blend geometries
-	geometryMorph( t );
-
 	// 1) SINGLE edge
 	if(edges.size() == 1)
 	{
 		if(n->type() == Structure::CURVE)
 		{			
 			Structure::Curve* current_curve = ((Structure::Curve*)n);
+			Structure::Curve* target_curve = targetCurve();
 
+			weldMorphPath();
 			QVector< NodeCoord > path = property["path"].value< QVector< NodeCoord > >();
+
+			int cpIDX = property["cpIDX"].toInt();
 
 			if(path.size() > 0) 
 			{
-				int cpIDX = property["cpIDX"].toInt();
 				int current = t * (path.size() - 1);
 				Vec3d newPos = active->position(path[current].first,path[current].second);
 
+				// Move end with a link
 				current_curve->curve.translateTo( newPos, cpIDX );
+				target_curve->curve.translateTo( newPos, cpIDX ); // moves along for the ride..
 			}
+
+			// Move free end (linear interpolation)
+			int freeEnd = (cpIDX < current_curve->curve.GetNumCtrlPoints() * 0.5) ? 
+				current_curve->curve.GetNumCtrlPoints() - 1 : 0;
+
+			Vec3d freeEndPos = AlphaBlend(pow(t,2), current_curve->controlPoint(freeEnd), target_curve->controlPoint(freeEnd));
+			deformCurve(cpIDX, freeEnd, freeEndPos);
 		}
 
 		if(n->type() == Structure::SHEET)
@@ -642,22 +674,31 @@ void Task::setupCurveDeformer( Structure::Curve* curve, Structure::Link* linkA, 
 	
 	// Compute paths for two ends
 	Structure::Node * n = node();
-	NodeCoords coordA = linkA->property["finalCoord_n1"].value<NodeCoords>();
-	NodeCoords coordOtherA = linkA->property["finalCoord_n2"].value<NodeCoords>();
-	if(coordA.first != n->id) std::swap(coordA, coordOtherA);
+	NodeCoords finalCoordA = linkA->property["finalCoord_n1"].value<NodeCoords>();
+	NodeCoords finalCoordOtherA = linkA->property["finalCoord_n2"].value<NodeCoords>();
+	if(finalCoordA.first != n->id) std::swap(finalCoordA, finalCoordOtherA);
 
-	NodeCoords coordB = linkB->property["finalCoord_n1"].value<NodeCoords>();
-	NodeCoords coordOtherB = linkB->property["finalCoord_n2"].value<NodeCoords>();
-	if(coordB.first != n->id) std::swap(coordB, coordOtherB);
+	NodeCoords finaCoordB = linkB->property["finalCoord_n1"].value<NodeCoords>();
+	NodeCoords finalCoordOtherB = linkB->property["finalCoord_n2"].value<NodeCoords>();
+	if(finaCoordB.first != n->id) std::swap(finaCoordB, finalCoordOtherB);
 
 	GraphDistance graphDistA(active, SingleNode(n->id));
 	QVector< NodeCoord > pathA;
-	graphDistA.computeDistances( linkA->otherNode(n->id)->position(coordOtherA.second.front()) );
-	graphDistA.pathCoordTo( linkA->position(n->id), pathA);
+	graphDistA.computeDistances( linkA->otherNode(n->id)->position(finalCoordOtherA.second.front()) );
+	graphDistA.pathCoordTo( linkA->position(n->id), pathA );
+
+	//if(!node()->id.contains("_cloned"))
+	//{
+	//	foreach(NodeCoord path, pathA)
+	//		target->debugPoints.push_back(active->position(path.first, path.second));
+
+	//	target->debugPoints3.push_back(linkA->otherNode(n->id)->position(finalCoordOtherA.second.front()));
+	//	target->debugPoints2.push_back(linkA->position(n->id));
+	//}
 
 	GraphDistance graphDistB(active, SingleNode(n->id));
 	QVector< NodeCoord > pathB;
-	graphDistB.computeDistances( linkB->otherNode(n->id)->position(coordOtherB.second.front()) );
+	graphDistB.computeDistances( linkB->otherNode(n->id)->position(finalCoordOtherB.second.front()) );
 	graphDistB.pathCoordTo( linkB->position(n->id), pathB );
 
 	// Save paths for A & B
@@ -738,18 +779,103 @@ void Task::setStart( int newStart )
 
 void Task::geometryMorph( double t )
 {
-	// Geometry morph
-	if(node()->type() == Structure::CURVE)
-	{	
-		if(node()->property.contains("samples"))
-		{
-			QString tnodeID = node()->property["correspond"].toString();
-			Structure::Curve * tcurve = (Structure::Curve *)target->getNode(tnodeID);
+	// Geometry morph:
+	if(node()->property.contains("samples"))
+	{
+		QVector<Vec3d> points, normals;
 
-			Synthesizer::blendCurveBases((Structure::Curve*)node(), tcurve, t);
+		if(node()->type() == Structure::CURVE)
+		{	
+			Structure::Curve * tcurve = (Structure::Curve *)targetNode();
+			Structure::Curve * curve = (Structure::Curve *)node();
 
-			// Update
-			node()->property.remove("cached_points");
+			Synthesizer::blendGeometryCurves(curve, tcurve, t, points, normals);
 		}
+
+        if(node()->type() == Structure::SHEET)
+		{	
+			Structure::Sheet * tsheet = (Structure::Sheet *)targetNode();
+			Structure::Sheet * sheet = (Structure::Sheet *)node();
+
+			Synthesizer::blendGeometrySheets(sheet, tsheet, t, points, normals);
+		}
+
+		node()->property["cached_points"].setValue(points);
+		node()->property["cached_normals"].setValue(normals);
 	}
+}
+
+Structure::Node * Task::targetNode()
+{
+	if(!node()->property.contains("correspond")) return NULL;
+	return target->getNode( node()->property["correspond"].toString() );
+}
+
+Structure::Curve * Task::targetCurve()
+{
+	Structure::Node* n = targetNode();
+	if(!n || n->type() != Structure::CURVE) return NULL;
+	return (Structure::Curve *)n;
+}
+
+Structure::Sheet * Task::targetSheet()
+{
+	Structure::Node* n = targetNode();
+	if(!n || n->type() != Structure::SHEET) return NULL;
+	return (Structure::Sheet *)n;
+}
+
+void Task::deformCurve( int anchorPoint, int controlPoint, Vec3d newControlPos )
+{
+	Structure::Curve * curve = (Structure::Curve*)node();
+
+	ARAPCurveDeformer * deformer = NULL;
+
+	if(!property.contains("deformer"))
+		property["deformer"].setValue( deformer = new ARAPCurveDeformer( curve->curve.mCtrlPoint ) );
+	else
+		deformer = property["deformer"].value<ARAPCurveDeformer*>();
+
+	// From current state
+	deformer->points = curve->curve.mCtrlPoint;
+
+	deformer->ClearAll();
+	deformer->setControl(controlPoint);
+	deformer->SetAnchor(anchorPoint);
+	deformer->MakeReady();
+
+	// Update and deform
+	deformer->UpdateControl(controlPoint, newControlPos);
+	deformer->Deform( arapIterations );
+
+	// Update curve geometry
+	curve->setControlPoints( deformer->points );
+}
+
+void Task::weldMorphPath()
+{
+	QVector< NodeCoord > cleanPath;
+	QVector< NodeCoord > oldPath = property["path"].value< QVector< NodeCoord > >();
+	
+	// Find spatial position
+	std::vector<Vec3d> spatialPath;
+	QSet<int> allPath;
+	foreach(NodeCoord nc, oldPath) 
+	{
+		spatialPath.push_back( active->position(nc.first, nc.second) );
+		allPath.insert( allPath.size() );
+	}
+
+	std::vector<size_t> xrefs;
+	weld(spatialPath, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
+
+	QSet<int> goodPath; 
+    for(int i = 0; i < (int)xrefs.size(); i++)
+	{
+		oldPath[ xrefs[i] ] = oldPath[i];
+		goodPath.insert( xrefs[i] );
+	}
+
+	foreach(int i, goodPath) cleanPath.push_back( oldPath[i] );
+	property["path"].setValue( cleanPath );
 }

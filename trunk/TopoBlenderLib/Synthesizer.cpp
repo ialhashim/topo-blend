@@ -443,7 +443,7 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 
 	// Sample two curves
 	QVector<ParameterCoord> samples = genFeatureCoordsCurve(curve1) + genFeatureCoordsCurve(curve2) 
-									+ genUniformCoordsCurve(curve1) + genUniformCoordsCurve(curve2);
+									/*+ genUniformCoordsCurve(curve1) + genUniformCoordsCurve(curve2)*/;
 
 	// Re-sample the meshes
 	QVector<double> offsets1, offsets2;
@@ -466,7 +466,7 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 
 	// Sample two sheets
 	QVector<ParameterCoord> samples = genFeatureCoordsSheet(sheet1) + genFeatureCoordsSheet(sheet2) 
-									+ genUniformCoordsSheet(sheet1) + genUniformCoordsSheet(sheet2);
+									/*+ genUniformCoordsSheet(sheet1) + genUniformCoordsSheet(sheet2)*/;
 
 	// Re-sample the meshes
 	QVector<double> offsets1, offsets2;
@@ -486,6 +486,8 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 
 void Synthesizer::blendGeometryCurves( Structure::Curve * curve1, Structure::Curve * curve2, double alpha, QVector<Vector3> &points, QVector<Vector3> &normals )
 {
+	if(!curve1->property.contains("samples") || !curve2->property.contains("samples")) return;
+
 	QVector<ParameterCoord> samples = curve1->property["samples"].value< QVector<ParameterCoord> >();
 
 	QVector<double> offsets1 = curve1->property["offsets"].value< QVector<double> >();
@@ -513,6 +515,8 @@ void Synthesizer::blendGeometryCurves( Structure::Curve * curve1, Structure::Cur
 
 void Synthesizer::blendGeometrySheets( Structure::Sheet * sheet1, Structure::Sheet * sheet2, double alpha, QVector<Vector3> &points, QVector<Vector3> &normals )
 {
+	if(!sheet1->property.contains("samples") || !sheet2->property.contains("samples")) return;
+
 	QVector<ParameterCoord> samples = sheet1->property["samples"].value< QVector<ParameterCoord> >();
 
 	QVector<double> offsets1 = sheet1->property["offsets"].value< QVector<double> >();
@@ -555,6 +559,8 @@ void Synthesizer::writeXYZ( QString filename, QVector<Vector3> &points, QVector<
 
 void Synthesizer::saveSynthesisData( Structure::Node *node )
 {
+    if(!node->property.contains("samples")) return;
+
 	QVector<ParameterCoord> samples = node->property["samples"].value< QVector<ParameterCoord> >();
 	QVector<double> offsets = node->property["offsets"].value< QVector<double> >();
 	QVector<Vec2d> normals = node->property["normals"].value< QVector<Vec2d> >();

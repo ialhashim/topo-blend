@@ -126,6 +126,7 @@ void Scheduler::order()
 
 	int curStart = 0;
 
+	// General layout
 	for(int i = Task::SHRINK; i <= Task::GROW; i++)
 	{
 		QList<Task*> curTasks = tasksByType.values(Task::TaskType(i));
@@ -139,6 +140,22 @@ void Scheduler::order()
 		}
 
 		curStart = futureStart;
+	}
+
+	// Collect morph generated from split together
+	foreach(Task* t, tasks)
+	{
+		if(t->type == Task::SPLIT)
+		{
+			Task * morphTask = getTaskFromNodeID( t->property["splitFrom"].toString() );
+			morphTask->setStart( t->start );
+		}
+
+		if(t->type == Task::MERGE)
+		{
+			Task * morphTask = getTaskFromNodeID( t->property["mergeTo"].toString() );
+			morphTask->setStart( t->start );
+		}
 	}
 }
 
@@ -238,4 +255,10 @@ void Scheduler::startAllSameTime()
 void Scheduler::prepareSynthesis()
 {
 
+}
+
+Task * Scheduler::getTaskFromNodeID( QString nodeID )
+{
+	foreach(Task * t, tasks) if(t->node()->id == nodeID) return t;
+	return NULL;
 }

@@ -75,23 +75,27 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 		task = new Task( active, tg, Task::MORPH, scheduler->tasks.size() );
 		task->property["nodeID"] = snode->id;
 		scheduler->tasks.push_back(task);
-		core_pairs.push_back(std::make_pair(snode->id, tnode->id));
+		core_pairs.push_back( std::make_pair(snode->id, tnode->id) );
 
 		if (tN > 1)
 		{
 			tNodes.erase(tNodes.begin());
-
+			
 			// One to remaining of many : splitting
+			Structure::Node * clonedNode = NULL;
 			foreach(QString tnodeID, tNodes)
 			{
-				Structure::Node * clonedNode = snode->clone();
+				clonedNode = snode->clone();
 				clonedNode->id += "_cloned";
 				clonedNode->property["correspond"] = tnodeID;
+				clonedNode->property["isCloned"].setValue(true);
+				clonedNode->property["origin"].setValue(snode->id);
 				tg->getNode(tnodeID)->property["correspond"] = clonedNode->id;
 
 				// Generate task
 				task = new Task( active, tg, Task::SPLIT, scheduler->tasks.size() );
 				task->property["nodeID"] = clonedNode->id;
+				task->property["splitFrom"] = snode->id;
 				scheduler->tasks.push_back(task);
 
 				// Graph edit
@@ -114,6 +118,7 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 				// Generate task
 				task = new Task( active, tg, Task::MERGE, scheduler->tasks.size() );
 				task->property["nodeID"] = snodeID;
+				task->property["mergeTo"] = snode->id;
 				scheduler->tasks.push_back(task);
 
 				// Graph edit - nodes
@@ -215,9 +220,28 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 
 		if(active->getEdge(n1->id, n2->id) == NULL)
 		{
-			active->addEdge( n1, n2, e->coord[0], e->coord[1], active->linkName(n1, n2) );
+			Structure::Link * newEdge = active->addEdge( n1, n2, e->coord[0], e->coord[1], active->linkName(n1, n2) );
+
+			// Cloned nodes take coordinates from source
+			Structure::Node * clonedNode = newEdge->getNodeHasProperty("isCloned", true);
+
+			if(clonedNode)
+			{
+				QString originNodeID = clonedNode->property["origin"].toString();
+				QString baseNodeID = newEdge->otherNode(clonedNode->id)->id;
+
+				Structure::Link * orginLink = active->getEdge(originNodeID, baseNodeID);
+				
+				newEdge->setCoord(clonedNode->id, orginLink->getCoord(originNodeID));
+				newEdge->setCoord(baseNodeID, orginLink->getCoord(baseNodeID));
+			}
 		}
 	}
+
+	//qDebug() << "\n\n===== <Target> :";
+	//tg->printLinksInfo();
+	//qDebug() << "\n\n===== Active";
+	//active->printLinksInfo();
 
 	// Modify edges coordinates for morphing
 	foreach(Structure::Link * sLink, active->edges)
@@ -231,6 +255,7 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 		sLink->property["finalCoord_n1"].setValue( qMakePair(sLink->n1->id, tLink->getCoord(t_n1)) );
 		sLink->property["finalCoord_n2"].setValue( qMakePair(sLink->n2->id, tLink->getCoord(t_n2)) );
 	}
+
 
 	qApp->setOverrideCursor(Qt::WaitCursor);
 

@@ -18,7 +18,7 @@ GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph
 	sizeW = 0.0;
 	orientationW = 0.0;
 
-	scoreThreshold = 0.3f;
+	scoreThreshold = 0.4f;
 
 	sIsLandmark.resize(sg->nodes.size(), false);
 	tIsLandmark.resize(tg->nodes.size(), false);
@@ -982,10 +982,11 @@ void GraphCorresponder::computeCorrespondences()
 	correspondAllNodes();
 
 	// Add the part landmarks as correspondences too
-	std::vector<float> fake_score(1, -1);
 	foreach(PART_LANDMARK landmark, landmarks)
 	{
 		correspondences.push_back(landmark);
+		int n = qMax(landmark.first.size(),landmark.second.size());
+		std::vector<float> fake_score(n, -1);
 		corrScores.push_back(fake_score);
 	}
 

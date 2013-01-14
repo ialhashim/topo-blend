@@ -10,6 +10,7 @@ Link::Link( Node * node1, Node * node2, LinkCoords coord_n1, LinkCoords coord_n2
 	this->type = link_type;
 	this->id = ID;
 
+	this->coord.resize(2);
 	this->coord[0] = coord_n1;
 	this->coord[1] = coord_n2;
 }
@@ -78,6 +79,7 @@ void Link::draw()
 	glEnable( GL_POINT_SMOOTH );
 
 	std::vector<Vector3> linkPos;
+	std::vector<Node*> ns;
 
 	for(int j = 0; j < (int)coord[0].size(); j++)
 	{
@@ -90,13 +92,20 @@ void Link::draw()
 
 		linkPos.push_back(p1);
 		linkPos.push_back(p2);
+
+		ns.push_back(n1);
+		ns.push_back(n2);
 	}
 
 	for(int i = 0; i < (int)linkPos.size(); i++)
 	{
 		// Blue
 		glPointSize(10.0f);
-		glColor3d(0,0,1);glBegin(GL_POINTS);glVector3(linkPos[i]);glEnd();
+		if(ns[i]->type() == CURVE) 
+			glColor3d(0,0,1);
+		else
+			glColor3d(0,1,1);
+		glBegin(GL_POINTS);glVector3(linkPos[i]);glEnd();
 
 		// White
 		glPointSize(12.0f);
@@ -117,6 +126,16 @@ bool Link::hasNodeProperty( QString propertyName, QVariant propertyValue )
 	bool pn2 = n2->hasProperty(propertyName) && n2->property[propertyName] == propertyValue;
 
 	return pn1 || pn2;
+}
+
+Node * Link::getNodeHasProperty( QString propertyName, QVariant propertyValue )
+{
+	bool pn1 = n1->hasProperty(propertyName) && n1->property[propertyName] == propertyValue;
+	bool pn2 = n2->hasProperty(propertyName) && n2->property[propertyName] == propertyValue;
+
+	if(pn1) return n1;
+	if(pn2) return n2;
+	return NULL;
 }
 
 SurfaceMeshTypes::Vector3 Link::position( QString nodeID )

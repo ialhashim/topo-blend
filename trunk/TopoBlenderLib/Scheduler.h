@@ -30,7 +30,9 @@ public:
 
 	int totalExecutionTime();
 
+	// Helper functions
 	QVector<Task*> tasksSortedByStart();
+	Task * getTaskFromNodeID( QString nodeID );
 
 	// Properties
 	int rulerHeight;
