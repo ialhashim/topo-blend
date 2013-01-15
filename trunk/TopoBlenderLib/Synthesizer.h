@@ -24,7 +24,6 @@ struct ParameterCoord{
 };
 
 struct Synthesizer{
-	enum SamplingType{ Features, Edges, Random, Uniform };
 
 	// Generate sample points in the parameter domain
 	static QVector<ParameterCoord> genPointCoordsCurve( Structure::Curve * curve, const std::vector<Vec3d> & points);
@@ -49,10 +48,11 @@ struct Synthesizer{
 											QVector<Vec2d> &in_normals, QVector<Vector3> &out_points, QVector<Vector3> &out_normals);
 	static void reconstructGeometrySheet( Structure::Sheet * base_sheet, QVector<ParameterCoord> in_samples, QVector<double> &in_offsets, 
 											QVector<Vec2d> &in_normals, QVector<Vector3> &out_points, QVector<Vector3> &out_normals);
-
 	// Preparation
-	static void prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2 );
-	static void prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2 );
+	enum SamplingType{ Features = 1, Edges = 2, Random = 4, Uniform = 8, All = 16, AllNonUniform = 32 };
+
+	static void prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2, int samplingType = Features | Random );
+	static void prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2, int samplingType = Features | Random );
 
 	// Blend geometries
 	static void blendGeometryCurves( Structure::Curve * curve1, Structure::Curve * curve2, double alpha, QVector<Vector3> &points, QVector<Vector3> &normals);
