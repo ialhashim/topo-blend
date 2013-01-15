@@ -14,9 +14,13 @@ typedef std::pair<ParameterCoord,int> ParameterCoordInt;
 bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCoordInt& r)
 { return l.first < r.first; }
 
-#define UNIFORM_RESOLUTION 0.01
 #define CURVE_FRAME_RESOLUTION 0.0001
 #define SHEET_FRAME_RESOLUTION 0.01
+
+// Sampling
+#define RANDOM_COUNT 1e4
+#define UNIFORM_RESOLUTION 0.01
+#define EDGE_RESOLUTION 0.005
 
 // Helper functions
 void Synthesizer::sortSamplesCurve( QVector<ParameterCoord> & samples, QVector<int> & oldIndices )
@@ -185,7 +189,7 @@ QVector<ParameterCoord> Synthesizer::genEdgeCoords( Structure::Node * node, doub
 	Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
 
 	// Auto resolution
-	if(sampling_resolution < 0) sampling_resolution = node->bbox().size().length() * UNIFORM_RESOLUTION;
+	if(sampling_resolution < 0) sampling_resolution = node->bbox().size().length() * EDGE_RESOLUTION;
 
 	// Sample mesh surface
 	std::vector<Vec3d> samplePoints;
@@ -198,9 +202,10 @@ QVector<ParameterCoord> Synthesizer::genEdgeCoords( Structure::Node * node, doub
 
 	// Sample edges up to sampling resolution
 	foreach(QPairVec3d edge, meshEdges){
-		double delta = (edge.first - edge.second).norm() / sampling_resolution;
-		for(double t = 0; t <= 1; t += delta)
+		for(double t = 0; t <= 1; t += sampling_resolution)
+		{
 			samplePoints.push_back( ((1 - t) * edge.first) + (t * edge.second) );
+		}
 	}
 
 	if(node->type() == Structure::CURVE)
@@ -213,12 +218,10 @@ QVector<ParameterCoord> Synthesizer::genRandomCoords(Node *node, double sampling
 {
 	SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
 
-	// Auto resolution
-	if(sampling_resolution < 0) sampling_resolution = node->bbox().size().length() * UNIFORM_RESOLUTION;
-
 	// Sample mesh surface
+	int samples_count = RANDOM_COUNT;
 	std::vector<Vec3d> samplePoints;
-	samplePoints = SpherePackSampling::getRandomSamples(model, 1e4);
+	samplePoints = SpherePackSampling::getRandomSamples(model, samples_count);
 
 	if(node->type() == Structure::CURVE)
 		return genPointCoordsCurve((Structure::Curve*)node, samplePoints);
@@ -488,17 +491,24 @@ void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVec
 	}
 }
 
-
-void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2 )
+void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2, int s )
 {
+
 	if(!curve1 || !curve2 || !curve1->property.contains("mesh") || !curve2->property.contains("mesh")) return;
 
 	QElapsedTimer timer; timer.start();
 	qDebug() << "Generating samples..";
 
 	// Sample two curves
-	QVector<ParameterCoord> samples = genFeatureCoords(curve1) + genFeatureCoords(curve2) 
-                                    + genUniformCoords(curve1) + genUniformCoords(curve2);
+	QVector<ParameterCoord> samples;
+
+	if (s & SamplingType::All)	s = SamplingType::Features | SamplingType::Edges | SamplingType::Random | SamplingType::Uniform;
+	if (s & SamplingType::AllNonUniform) s = SamplingType::Features | SamplingType::Edges | SamplingType::Random;
+
+	if (s & SamplingType::Features)	samples += genFeatureCoords(curve1) + genFeatureCoords(curve2);
+	if (s & SamplingType::Edges)	samples += genEdgeCoords(curve1) + genEdgeCoords(curve2);
+	if (s & SamplingType::Random)	samples += genRandomCoords(curve1) + genRandomCoords(curve2);
+	if (s & SamplingType::Uniform)	samples += genUniformCoords(curve1) + genUniformCoords(curve2);
 
 	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());
 
@@ -517,7 +527,7 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 	curve2->property["normals"].setValue(normals2);
 }
 
-void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2 )
+void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2, int s )
 {
 	if(!sheet1 || !sheet2 || !sheet1->property.contains("mesh") || !sheet2->property.contains("mesh")) return;
 
@@ -525,8 +535,15 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
     qDebug() << "Generating samples..";
 
 	// Sample two sheets
-	QVector<ParameterCoord> samples = genFeatureCoords(sheet1) + genFeatureCoords(sheet2) 
-                                    + genUniformCoords(sheet1) + genUniformCoords(sheet2);
+	QVector<ParameterCoord> samples;
+
+	if (s & SamplingType::All)	s = SamplingType::Features | SamplingType::Edges | SamplingType::Random | SamplingType::Uniform;
+	if (s & SamplingType::AllNonUniform) s = SamplingType::Features | SamplingType::Edges | SamplingType::Random;
+
+	if (s & SamplingType::Features)	samples += genFeatureCoords(sheet1) + genFeatureCoords(sheet2);
+	if (s & SamplingType::Edges)	samples += genEdgeCoords(sheet1) + genEdgeCoords(sheet2);
+	if (s & SamplingType::Random)	samples += genRandomCoords(sheet1) + genRandomCoords(sheet2);
+	if (s & SamplingType::Uniform)	samples += genUniformCoords(sheet1) + genUniformCoords(sheet2);
 
     qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());
 

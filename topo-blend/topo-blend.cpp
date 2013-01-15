@@ -934,16 +934,18 @@ void topoblend::generateSynthesisData()
 			QString nodeID = node->id;
 			QString tnodeID = node->property["correspond"].toString();
 
+			int sampling_method = Synthesizer::Random | Synthesizer::Features;
+
 			if(node->type() == Structure::CURVE)
 			{
 				if(!node->id.contains("_TG"))
-					Synthesizer::prepareSynthesizeCurve((Structure::Curve*)node, (Structure::Curve*)blender->tg->getNode(tnodeID));
+					Synthesizer::prepareSynthesizeCurve((Structure::Curve*)node, (Structure::Curve*)blender->tg->getNode(tnodeID), sampling_method);
 			}
 
 			if(node->type() == Structure::SHEET)
 			{
 				if(!node->id.contains("_TG"))
-					Synthesizer::prepareSynthesizeSheet((Structure::Sheet*)node, (Structure::Sheet*)blender->tg->getNode(tnodeID));
+					Synthesizer::prepareSynthesizeSheet((Structure::Sheet*)node, (Structure::Sheet*)blender->tg->getNode(tnodeID), sampling_method);
 			}
 		}
 	}
@@ -1030,10 +1032,12 @@ void topoblend::outputPointCloud()
 			}
 
 			// Estimate normals
-			int num_nighbours = 16;
-			NormalExtrapolation::ExtrapolateNormals(points, normals, num_nighbours);
-
-			Synthesizer::writeXYZ(n->id, points, normals);
+			if(points.size())
+			{
+				int num_nighbours = 16;
+				NormalExtrapolation::ExtrapolateNormals(points, normals, num_nighbours);
+				Synthesizer::writeXYZ(n->id + ".xyz", points, normals);
+			}
 		}
 	}
 }
