@@ -14,15 +14,13 @@ public:
     static std::vector<Vec3d> sample(SurfaceMeshModel * m, int randomSampleCount, double r, 
         std::vector<Vec3d> & gridPoints, int density = 1)
 	{
-        std::vector<Vec3d> samples, centers, rndSamples;
+        std::vector<Vec3d> samples, centers;
+
+        // Get a lot of random samples
+        std::vector<Vec3d> rndSamples = getRandomSamples(m, randomSampleCount);
 
         // Centers of packed spheres
         centers = spheres(r, m->bbox().minimum(), m->bbox().maximum(), density);
-
-		// Get a lot of random samples
-		foreach(SamplePoint sp, Sampler(m).getSamples(randomSampleCount)){
-			rndSamples.push_back(sp.pos);
-		}
 
 		// Initialize KD-tree
 		NanoKdTree tree;
@@ -50,6 +48,15 @@ public:
 
 		return samples;
 	}
+
+    static std::vector<Vec3d> getRandomSamples(SurfaceMeshModel * m, int randomSampleCount)
+    {
+        std::vector<Vec3d> rndSamples;
+        foreach(SamplePoint sp, Sampler(m).getSamples(randomSampleCount)){
+            rndSamples.push_back(sp.pos);
+        }
+        return rndSamples;
+    }
 
 	/* Hexagonal close packing of spheres (HCP lattice) */
     static std::vector<Vec3d> spheres(double r, Vec3d bbmin, Vec3d bbmax, int density = 1)

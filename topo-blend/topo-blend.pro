@@ -35,3 +35,14 @@ FORMS +=    topo_blend_widget.ui \
             animationWidget.ui \
             graph_modify_dialog.ui \
 			landmarks_dialog.ui
+
+# OpenMP
+win32 {
+	QMAKE_CXXFLAGS += /openmp
+	export(QMAKE_CXXFLAGS_DEBUG)
+	export(QMAKE_CXXFLAGS_RELEASE)
+}
+unix {
+	QMAKE_CXXFLAGS += -fopenmp 
+	LIBS += -lgomp
+}

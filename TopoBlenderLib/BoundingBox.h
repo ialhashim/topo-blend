@@ -208,7 +208,7 @@ public:
 		return corners;
 	}
 
-	bool intersects( const Ray& ray )
+	bool intersects( const Ray& ray ) const
 	{
 		// r.dir is unit direction vector of ray
 		Vec3d dirfrac;

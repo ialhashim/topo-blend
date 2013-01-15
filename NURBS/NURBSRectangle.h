@@ -10,7 +10,7 @@ class NURBSRectangle : public ParametricSurface
 {
 public:
 
-    NURBSRectangle(){}
+    NURBSRectangle(){ mLoop.resize(2); mBasis.resize(2); }
 
     // construction and destruction.   The caller is responsible for deleting
     // the input arrays if they were dynamically allocated.  Internal copies
@@ -113,9 +113,11 @@ public:
     int mNumUCtrlPoints, mNumVCtrlPoints;
     Array2D_Vector3 mCtrlPoint;  //   ctrl[unum][vnum]
     Array2D_Real mCtrlWeight;    // weight[unum][vnum]
-    bool mLoop[2];
-    BSplineBasis mBasis[2];
+    std::vector<bool> mLoop;
+    std::vector<BSplineBasis> mBasis;
     int mUReplicate, mVReplicate;
+
+	int mbool[2];
 
 	// DEBUG:
 	std::vector<Vector3> debugPoints;

@@ -1,3 +1,5 @@
+#include <omp.h>
+
 #include <QFile>
 #include <QTextStream>
 
@@ -56,37 +58,9 @@ void Synthesizer::globalToLocalSpherical( Vector3 X, Vector3 Y, Vector3 Z, doubl
 	psi = signedAngle(X, proj_v, Z);
 }
 
-
-
-QVector<ParameterCoord> Synthesizer::genFeatureCoordsCurve( Structure::Curve * curve )
-{
-	SurfaceMeshModel * model = curve->property["mesh"].value<SurfaceMeshModel*>();
-	
-	// Collect original mesh points
-	Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
-	std::vector<Vec3d> meshPoints;
-	foreach(Vertex v, model->vertices()) meshPoints.push_back(points[v]);
-
-	return genPointCoordsCurve(curve, meshPoints);
-}
-
-QVector<ParameterCoord> Synthesizer::genUniformCoordsCurve( Structure::Curve * curve, double sampling_resolution )
-{
-	SurfaceMeshModel * model = curve->property["mesh"].value<SurfaceMeshModel*>();
-
-	// Auto resolution
-	if(sampling_resolution < 0) sampling_resolution = curve->bbox().size().length() * UNIFORM_RESOLUTION;
-
-	// Sample mesh surface
-	std::vector<Vec3d> gp;
-	static std::vector<Vec3d> samplePoints = SpherePackSampling::sample(model, 1e5, sampling_resolution, gp, 1);
-
-	return genPointCoordsCurve(curve, samplePoints);
-}
-
 QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * curve, const std::vector<Vec3d> & points )
 {
-	QVector<ParameterCoord> samples;
+	QVector<ParameterCoord> samples(points.size());
 
 	// Auto resolution
 	double resolution = curve->bbox().size().length() * CURVE_FRAME_RESOLUTION;
@@ -105,9 +79,16 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 	kdtree.build();
 
 	// Project
-	double theta, psi;
-	foreach(Vec3d point, points)
+	NURBSCurve mycurve;
+	#pragma omp parallel for private(mycurve)
+	for(int i = 0; i < (int)points.size(); i++)
 	{
+		mycurve = curve->curve;
+
+		double theta, psi;
+
+		Vec3d point = points[i];
+
 		KDResults match;
 		kdtree.k_closest(point, 1, match);
 		int closest_idx = match.front().first;
@@ -117,55 +98,27 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 		Vec3d Y = rmf.U[closest_idx].s.normalized();
 		Vec3d Z = rmf.U[closest_idx].t.normalized();
 
-		Vec3d curvePoint = curve->position(c);
+		Vec3d curvePoint = mycurve.GetPosition(c[0]);
 		Vec3d raydirection = (point - curvePoint).normalized();
 
 		globalToLocalSpherical(X, Y, Z, theta, psi, raydirection);
-		
-		samples.push_back(ParameterCoord(theta, psi, c[0]));
+
+		samples[i] = ParameterCoord(theta, psi, c[0]);
 	}
 
 	return samples;
 }
 
-
-QVector<ParameterCoord> Synthesizer::genFeatureCoordsSheet( Structure::Sheet * sheet )
-{
-	QVector<ParameterCoord> samples;
-	SurfaceMeshModel * model = sheet->property["mesh"].value<SurfaceMeshModel*>();
-
-	// Collect original mesh points
-	Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
-	std::vector<Vec3d> meshPoints;
-	foreach(Vertex v, model->vertices()) meshPoints.push_back(points[v]);
-
-	return genPointCoordsSheet(sheet, meshPoints);
-}
-
-QVector<ParameterCoord> Synthesizer::genUniformCoordsSheet( Structure::Sheet * sheet, double resolution )
-{
-	SurfaceMeshModel * model = sheet->property["mesh"].value<SurfaceMeshModel*>();
-
-	// Auto resolution
-	if(resolution < 0) resolution = sheet->bbox().size().length() * UNIFORM_RESOLUTION;
-
-	// Sample mesh surface
-	std::vector<Vec3d> gp;
-	static std::vector<Vec3d> samplePoints = SpherePackSampling::sample(model, 1e5, resolution, gp, 1);
-
-	return genPointCoordsSheet(sheet, samplePoints);
-}
-
 QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * sheet, const std::vector<Vec3d> & points )
 {
-	QVector<ParameterCoord> samples;
+	QVector<ParameterCoord> samples(points.size());
 
 	// Auto resolution
 	double resolution = sheet->bbox().size().length() * SHEET_FRAME_RESOLUTION;
 
 	Array2D_Vec4d sheetCoords = sheet->discretizedPoints(resolution);
 	Array1D_Vec4d allCoords;
-	
+
 	// Add all curve points to kd-tree
 	NanoKdTree kdtree;
 	foreach(Array1D_Vec4d row, sheetCoords)
@@ -178,43 +131,126 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * she
 	}
 	kdtree.build();
 
-	// Project
-	Vector3 X, Y, Z;
-	Vector3 vDirection, sheetPoint;
+	NURBSRectangle r;
 
-	double theta, psi;
-	foreach(Vec3d point, points)
+	#pragma omp parallel for private(r)
+	for(int i = 0; i < (int)points.size(); i++)
 	{
+		r = sheet->surface;
+
+		Vec3d point = points[i];
+
+		// Project
+		Vector3 X, Y, Z;
+		Vector3 vDirection, sheetPoint;
+
+		double theta, psi;
+
 		KDResults match;
 		kdtree.k_closest(point, 1, match);
 		int closest_idx = match.front().first;
 		Vec4d c = allCoords[closest_idx];
 
-		sheet->surface.GetFrame( c[0], c[1], sheetPoint, X, vDirection, Z );
+		r.GetFrame( c[0], c[1], sheetPoint, X, vDirection, Z );
 		Y = cross(Z, X);
-	
+		
 		Vec3d raydirection = (point - sheetPoint).normalized();
 
 		globalToLocalSpherical(X, Y, Z, theta, psi, raydirection);
 
-		samples.push_back(ParameterCoord(theta, psi, c[0], c[1]));
+		samples[i] = ParameterCoord(theta, psi, c[0], c[1]);
 	}
 
-	return samples;
+    return samples;
 }
 
+QVector<ParameterCoord> Synthesizer::genFeatureCoords( Structure::Node * node )
+{
+	SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
 
-Vec3d Synthesizer::intersectionPoint( Ray ray, Octree * useTree, int * faceIndex )
+	// Collect original mesh points
+	Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+	std::vector<Vec3d> meshPoints;
+	foreach(Vertex v, model->vertices()) meshPoints.push_back(points[v]);
+
+	if(node->type() == Structure::CURVE)
+		return genPointCoordsCurve((Structure::Curve*)node, meshPoints);
+	else
+		return genPointCoordsSheet((Structure::Sheet*)node, meshPoints);
+}
+
+QVector<ParameterCoord> Synthesizer::genEdgeCoords( Structure::Node * node, double sampling_resolution /*= -1 */ )
+{
+	SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
+	Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+
+	// Auto resolution
+	if(sampling_resolution < 0) sampling_resolution = node->bbox().size().length() * UNIFORM_RESOLUTION;
+
+	// Sample mesh surface
+	std::vector<Vec3d> samplePoints;
+	typedef QPair<Vec3d, Vec3d> QPairVec3d;
+	QVector< QPairVec3d > meshEdges;
+
+	// Collect mesh edges
+	foreach(Edge e, model->edges())
+		meshEdges.push_back( qMakePair(points[model->vertex(e, 0)],points[model->vertex(e, 1)]) );
+
+	// Sample edges up to sampling resolution
+	foreach(QPairVec3d edge, meshEdges){
+		double delta = (edge.first - edge.second).norm() / sampling_resolution;
+		for(double t = 0; t <= 1; t += delta)
+			samplePoints.push_back( ((1 - t) * edge.first) + (t * edge.second) );
+	}
+
+	if(node->type() == Structure::CURVE)
+		return genPointCoordsCurve((Structure::Curve*)node, samplePoints);
+	else
+		return genPointCoordsSheet((Structure::Sheet*)node, samplePoints);
+}
+
+QVector<ParameterCoord> Synthesizer::genRandomCoords(Node *node, double sampling_resolution)
+{
+	SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
+
+	// Auto resolution
+	if(sampling_resolution < 0) sampling_resolution = node->bbox().size().length() * UNIFORM_RESOLUTION;
+
+	// Sample mesh surface
+	std::vector<Vec3d> samplePoints;
+	samplePoints = SpherePackSampling::getRandomSamples(model, 1e4);
+
+	if(node->type() == Structure::CURVE)
+		return genPointCoordsCurve((Structure::Curve*)node, samplePoints);
+	else
+		return genPointCoordsSheet((Structure::Sheet*)node, samplePoints);
+}
+
+QVector<ParameterCoord> Synthesizer::genUniformCoords(Node *node, double sampling_resolution)
+{
+    SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
+
+    // Auto resolution
+    if(sampling_resolution < 0) sampling_resolution = node->bbox().size().length() * UNIFORM_RESOLUTION;
+
+    // Sample mesh surface
+    std::vector<Vec3d> samplePoints, gp;
+    samplePoints = SpherePackSampling::sample(model, 1e5, sampling_resolution, gp, 1);
+
+    if(node->type() == Structure::CURVE)
+        return genPointCoordsCurve((Structure::Curve*)node, samplePoints);
+    else
+        return genPointCoordsSheet((Structure::Sheet*)node, samplePoints);
+}
+
+Vec3d Synthesizer::intersectionPoint( const Ray & ray, const Octree * useTree, int * faceIndex )
 {
 	HitResult res;
 	Vec3d isetpoint(0);
 
-	QSet<int> results = useTree->intersectRay( ray, 0.1, false );
-
 	double minDistance = DBL_MAX;
-	bool foundIntersection;
 
-	foreach(int i, results)
+	foreach( int i, useTree->intersectRay( ray, 0.1, false ) )
 	{
 		useTree->intersectionTestOld(SurfaceMeshModel::Face(i), ray, res);
 
@@ -227,12 +263,11 @@ Vec3d Synthesizer::intersectionPoint( Ray ray, Octree * useTree, int * faceIndex
 				isetpoint = ray.origin + (ray.direction * res.distance);
 				if(faceIndex) *faceIndex = i;
 			}
-			foundIntersection = true;
-			break;
+			return isetpoint;
 		}
 	}
 
-	assert(foundIntersection == true);
+	assert(false);
 
 	return isetpoint;
 }
@@ -254,24 +289,31 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 	QVector<int> oldIndices;
 	sortSamplesCurve(samples, oldIndices);
 
+	// Weld for RMF
 	std::vector<Vec3d> samplePoints;
-	foreach(ParameterCoord s, samples) samplePoints.push_back(curve->position(Vec4d(s.u)));
-
+	foreach(ParameterCoord s, samples) samplePoints.push_back( curve->position(Vec4d(s.u)) );
 	std::vector<size_t> xrefs;
 	weld(samplePoints, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
 	RMF rmf(samplePoints);
 	rmf.compute();
-	
-	for(int i = 0; i < (int) samples.size(); i++)
-	{
-		ParameterCoord & sample = samples[i];
 
+	ParameterCoord * samplesArray = samples.data();
+
+	NURBSCurve mycurve;
+	#pragma omp parallel for private(mycurve)
+	for(int i = 0; i < (int)samples.size(); i++)
+	{
+		mycurve = curve->curve;
+
+		ParameterCoord sample = samplesArray[i];
+		
 		int idx = xrefs[i];
 		Vec3d X = rmf.U[idx].r.normalized();
 		Vec3d Y = rmf.U[idx].s.normalized();
 		Vec3d Z = rmf.U[idx].t.normalized();
 
-		Vec3d rayPos = curve->position(Vec4d(sample.u));
+		Vec4d coordinate(sample.u);
+		Vec3d rayPos = mycurve.GetPosition( coordinate[0] );
 		Vec3d rayDir = rotatedVec(Z, sample.theta, Y);
 		rayDir = rotatedVec(rayDir, sample.psi, Z);
 
@@ -284,8 +326,8 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 		offsets[ oldIndices[i] ] = (isect - rayPos).norm();
 
 		// Code the normal relative to local frame
-		Vec2d normalCoord;
-		Vec3d v = fnormals[SurfaceMeshModel::Face(faceIndex)];
+		Vec2d normalCoord(0);
+		Vec3d v = fnormals[ SurfaceMeshModel::Face(faceIndex) ];
 
 		globalToLocalSpherical(X, Y, Z, normalCoord[0], normalCoord[1], v);
 
@@ -300,35 +342,43 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 	Vector3FaceProperty fnormals = model->face_property<Vec3d>("f:normal");
 	Octree octree(20, model);
 
-	Vector3 X, Y, Z;
-	Vector3 vDirection, sheetPoint;
+	offsets.clear();
+	offsets.resize( samples.size() );
 
-	for(int i = 0; i < (int) samples.size(); i++)
+	normals.clear();
+	normals.resize( samples.size() );
+
+	ParameterCoord * samplesArray = samples.data();
+
+	#pragma omp parallel for
+	for(int i = 0; i < (int)samples.size(); i++)
 	{
-		ParameterCoord & sample = samples[i];
+		ParameterCoord sample = samplesArray[i];
 
-		sheet->surface.GetFrame( sample.u, sample.v, sheetPoint, X, vDirection, Z );
+		Vector3 X(0), Y(0), Z(0);
+		Vector3 vDirection(0), rayPos(0);
+
+		NURBSRectangle r = sheet->surface;
+
+		r.GetFrame( sample.u, sample.v, rayPos, X, vDirection, Z );
 		Y = cross(Z, X);
 
-		Vec3d rayPos = sheet->position( Vec4d(sample.u, sample.v, 0, 0) );
 		Vec3d rayDir = rotatedVec(Z, sample.theta, Y);
 		rayDir = rotatedVec(rayDir, sample.psi, Z);
 
 		Ray ray( rayPos, rayDir );
 		int faceIndex = 0;
 
-
 		// Store the offset
 		Vec3d isect = intersectionPoint(ray, &octree, &faceIndex);
-		offsets.push_back( (isect-rayPos).norm() );
+		offsets[i] = (isect - rayPos).norm();
 
 		// Code the normal relative to local frame
 		Vec2d normalCoord;
 		Vec3d v = fnormals[SurfaceMeshModel::Face(faceIndex)];
 
 		globalToLocalSpherical(X, Y, Z, normalCoord[0], normalCoord[1], v);
-
-		normals.push_back( normalCoord );
+		normals[i] = normalCoord;
 	}
 }
 
@@ -354,7 +404,7 @@ void Synthesizer::blendSheetBases( Structure::Sheet * sheet1, Structure::Sheet *
 
 
 void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVector<ParameterCoord> in_samples, QVector<double> &in_offsets,
-											QVector<Vec2d> &in_normals, QVector<Vector3> &out_points, QVector<Vector3> &out_normals )
+	QVector<Vec2d> &in_normals, QVector<Vector3> &out_points, QVector<Vector3> &out_normals )
 {
 	// Clear
 	out_points.clear();
@@ -374,10 +424,11 @@ void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVect
 	RMF rmf(samplePoints);
 	rmf.compute();
 
-	Vec3d rayPos, rayDir;
 	for(int i = 0; i < (int) in_samples.size(); i++)
 	{
 		ParameterCoord sample = in_samples[i];
+
+		Vec3d rayPos, rayDir;
 
 		int idx = xrefs[i];
 		Vec3d X = rmf.U[idx].r.normalized();
@@ -401,7 +452,7 @@ void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVect
 }
 
 void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVector<ParameterCoord> in_samples, QVector<double> &in_offsets,
-											QVector<Vec2d> &in_normals, QVector<Vector3> &out_points, QVector<Vector3> &out_normals )
+	QVector<Vec2d> &in_normals, QVector<Vector3> &out_points, QVector<Vector3> &out_normals )
 {
 	out_points.clear();
 	out_points.resize(in_samples.size());
@@ -409,12 +460,13 @@ void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVec
 	out_normals.clear();
 	out_normals.resize(in_samples.size());
 
-	Vector3 X, Y, Z;
-	Vector3 vDirection, sheetPoint;
-
-	Vec3d rayPos, rayDir;
 	for(int i = 0; i < (int) in_samples.size(); i++)
 	{
+		Vector3 X, Y, Z;
+		Vector3 vDirection, sheetPoint;
+
+		Vec3d rayPos, rayDir;
+
 		ParameterCoord sample = in_samples[i];
 
 		base_sheet->surface.GetFrame( sample.u, sample.v, sheetPoint, X, vDirection, Z );
@@ -441,9 +493,14 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 {
 	if(!curve1 || !curve2 || !curve1->property.contains("mesh") || !curve2->property.contains("mesh")) return;
 
+	QElapsedTimer timer; timer.start();
+	qDebug() << "Generating samples..";
+
 	// Sample two curves
-	QVector<ParameterCoord> samples = genFeatureCoordsCurve(curve1) + genFeatureCoordsCurve(curve2) 
-									+ genUniformCoordsCurve(curve1) + genUniformCoordsCurve(curve2);
+	QVector<ParameterCoord> samples = genFeatureCoords(curve1) + genFeatureCoords(curve2) 
+                                    + genUniformCoords(curve1) + genUniformCoords(curve2);
+
+	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());
 
 	// Re-sample the meshes
 	QVector<double> offsets1, offsets2;
@@ -464,9 +521,14 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 {
 	if(!sheet1 || !sheet2 || !sheet1->property.contains("mesh") || !sheet2->property.contains("mesh")) return;
 
+    QElapsedTimer timer; timer.start();
+    qDebug() << "Generating samples..";
+
 	// Sample two sheets
-	QVector<ParameterCoord> samples = genFeatureCoordsSheet(sheet1) + genFeatureCoordsSheet(sheet2) 
-									+ genUniformCoordsSheet(sheet1) + genUniformCoordsSheet(sheet2);
+	QVector<ParameterCoord> samples = genFeatureCoords(sheet1) + genFeatureCoords(sheet2) 
+                                    + genUniformCoords(sheet1) + genUniformCoords(sheet2);
+
+    qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());
 
 	// Re-sample the meshes
 	QVector<double> offsets1, offsets2;
@@ -496,7 +558,6 @@ void Synthesizer::blendGeometryCurves( Structure::Curve * curve1, Structure::Cur
 	QVector<Vec2d> normals1 = curve1->property["normals"].value< QVector<Vec2d> >();
 	QVector<Vec2d> normals2 = curve2->property["normals"].value< QVector<Vec2d> >();
 
-
 	// Blend Geometries 
 	QVector<double> blended_offsets;
 	QVector<Vec2d> blended_normals;
@@ -524,7 +585,6 @@ void Synthesizer::blendGeometrySheets( Structure::Sheet * sheet1, Structure::She
 
 	QVector<Vec2d> normals1 = sheet1->property["normals"].value< QVector<Vec2d> >();
 	QVector<Vec2d> normals2 = sheet2->property["normals"].value< QVector<Vec2d> >();
-
 
 	// Blend Geometries 
 	QVector<double> blended_offsets;
@@ -559,7 +619,7 @@ void Synthesizer::writeXYZ( QString filename, QVector<Vector3> &points, QVector<
 
 void Synthesizer::saveSynthesisData( Structure::Node *node )
 {
-    if(!node->property.contains("samples")) return;
+	if(!node->property.contains("samples")) return;
 
 	QVector<ParameterCoord> samples = node->property["samples"].value< QVector<ParameterCoord> >();
 	QVector<double> offsets = node->property["offsets"].value< QVector<double> >();
@@ -569,7 +629,7 @@ void Synthesizer::saveSynthesisData( Structure::Node *node )
 	{
 		qDebug() << QString("WARNING: Node [%1]: No data").arg(node->id);
 		return;
- 	}
+	}
 
 	QFile file(node->id + ".txt");
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
@@ -609,4 +669,3 @@ void Synthesizer::loadSynthesisData( Structure::Node *node )
 	node->property["offsets"].setValue(offsets);
 	node->property["normals"].setValue(normals);
 }
-

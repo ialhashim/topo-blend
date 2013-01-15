@@ -24,18 +24,19 @@ struct ParameterCoord{
 };
 
 struct Synthesizer{
+	enum SamplingType{ Features, Edges, Random, Uniform };
 
 	// Generate sample points in the parameter domain
-	static QVector<ParameterCoord> genFeatureCoordsCurve( Structure::Curve * curve );
-	static QVector<ParameterCoord> genUniformCoordsCurve( Structure::Curve * curve, double sampling_resolution = -1);
 	static QVector<ParameterCoord> genPointCoordsCurve( Structure::Curve * curve, const std::vector<Vec3d> & points);
-
-	static QVector<ParameterCoord> genFeatureCoordsSheet( Structure::Sheet * sheet );
-	static QVector<ParameterCoord> genUniformCoordsSheet( Structure::Sheet * sheet, double sampling_resolution = -1);
 	static QVector<ParameterCoord> genPointCoordsSheet( Structure::Sheet * sheet, const std::vector<Vec3d> & points );
 
+	static QVector<ParameterCoord> genFeatureCoords( Structure::Node * node );
+	static QVector<ParameterCoord> genEdgeCoords( Structure::Node * node, double sampling_resolution = -1 );
+    static QVector<ParameterCoord> genRandomCoords( Structure::Node * node, double sampling_resolution = -1);
+	static QVector<ParameterCoord> genUniformCoords( Structure::Node * node, double sampling_resolution = -1);
+
 	// Compute the geometry on given samples in the parameter domain
-	static Vec3d intersectionPoint( Ray ray, Octree * useTree, int * faceIndex = 0 );
+	static inline Vec3d intersectionPoint( const Ray & ray, const Octree * useTree, int * faceIndex = 0 );
 	static void sampleGeometryCurve( QVector<ParameterCoord> samples, Structure::Curve * curve, QVector<double> &offsets, QVector<Vec2d> &normals);
 	static void sampleGeometrySheet( QVector<ParameterCoord> samples, Structure::Sheet * sheet, QVector<double> &offsets, QVector<Vec2d> &normals );
 
@@ -59,8 +60,8 @@ struct Synthesizer{
 
 	// Helper functions
 	static void sortSamplesCurve( QVector<ParameterCoord> & samples, QVector<int> & oldIndices );
-	static void localSphericalToGlobal(Vector3 X, Vector3 Y, Vector3 Z, double theta, double psi, Vector3 &v);
-	static void globalToLocalSpherical(Vector3 X, Vector3 Y, Vector3 Z, double &theta, double &psi, Vector3 v);
+	static inline void localSphericalToGlobal(Vector3 X, Vector3 Y, Vector3 Z, double theta, double psi, Vector3 &v);
+	static inline void globalToLocalSpherical(Vector3 X, Vector3 Y, Vector3 Z, double &theta, double &psi, Vector3 v);
 
 	// IO
 	static void saveSynthesisData(Structure::Node *node);
