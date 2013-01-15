@@ -32,3 +32,14 @@ HEADERS += \
     SingleCurve.h \
     LineSegment.h \
     NURBSGlobal.h
+	
+# OpenMP
+win32 {
+	QMAKE_CXXFLAGS += /openmp
+	export(QMAKE_CXXFLAGS_DEBUG)
+	export(QMAKE_CXXFLAGS_RELEASE)
+}
+unix {
+	QMAKE_CXXFLAGS += -fopenmp 
+	LIBS += -lgomp
+}

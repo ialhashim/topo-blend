@@ -37,11 +37,12 @@ HEADERS += StructureNode.h \
     SchedulerWidget.h \
     FFD.h \
     ARAPCurveDeformer.h \
-	ARAPCurveHandle.h \
+    ARAPCurveHandle.h \
     TimelineSlider.h \
     StructureGlobal.h \
     Synthesizer.h \
-	Sampler.h
+    Sampler.h \
+    SpherePackSampling.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -58,7 +59,7 @@ SOURCES += StructureGraph.cpp \
     ARAPCurveDeformer.cpp \
     TimelineSlider.cpp \
     Synthesizer.cpp \
-	Sampler.cpp
+    Sampler.cpp
 	
 	
 FORMS += \
@@ -67,3 +68,14 @@ FORMS += \
 # Morpher related
 HEADERS += Morpher.h BoundingBox.h Octree.h
 SOURCES += Morpher.cpp Octree.cpp
+
+# OpenMP
+win32 {
+    QMAKE_CXXFLAGS += /openmp
+    export(QMAKE_CXXFLAGS_DEBUG)
+    export(QMAKE_CXXFLAGS_RELEASE)
+}
+unix {
+    QMAKE_CXXFLAGS += -fopenmp
+    LIBS += -lgomp
+}

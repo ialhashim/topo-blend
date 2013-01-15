@@ -42,7 +42,7 @@ public:
 	IndexSet intersectPoint(const Vec3d& point);
 	void intersectRecursivePoint(const Vec3d& point, IndexSet& tris);
 
-	QSet<int> intersectRay(Ray ray, double rayThickness = 0.0, bool isFullTest = false);
+	QSet<int> intersectRay(Ray ray, double rayThickness = 0.0, bool isFullTest = false) const;
 	void intersectRecursiveRay(const Ray& ray, IndexSet& tris);
 
 	IndexSet intersectSphere(const Vec3d& sphere_center, double radius);
@@ -51,8 +51,8 @@ public:
     /* Perform intersection tests  */
 	bool testIntersectHit(const Ray& ray, HitResult & hitRes);
 
-	void intersectionTest( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack = false );
-	void intersectionTestOld( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack = false );
+	void intersectionTest( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack = false ) const;
+	void intersectionTestOld( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack = false ) const;
 	void my_intersectionTest(Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack = false);
 
 	Octree * parent;
@@ -61,7 +61,7 @@ public:
 	void draw(double r, double g, double b, double lineWidth = 1.0);
 	void DrawBox(const Vec3d& center, float width, float length, float height, float r, float g, float b, float lineWidth);
 
-	std::vector<Vec3d> triPoints(Surface_mesh::Face f);
+	std::vector<Vec3d> triPoints(Surface_mesh::Face f) const;
 
 	//	BaseTriangle* findClosestTri(const Ray & ray, IndexSet & tris, Mesh * mesh, HitResult & hitRes);
 

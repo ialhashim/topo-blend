@@ -34,6 +34,7 @@ ARAPCurveDeformer * deformer = NULL;
 ARAPCurveHandle * handle = NULL;
 
 #include "Synthesizer.h"
+#include "normal_extrapolation.h"
 
 VectorSoup vs1,vs2;
 
@@ -711,9 +712,12 @@ void topoblend::doBlend()
 
 	if(scheduler) scheduler->disconnect(this);
 
-	scheduler = new Scheduler();
+	QElapsedTimer timer; timer.start();
 
+	scheduler = new Scheduler();
     blender = new TopoBlender( source, target, corresponder(), scheduler );
+
+	qDebug() << QString("Created TopoBlender and tasks in [ %1 ms ]").arg(timer.elapsed()  );
 
 	this->connect(scheduler, SIGNAL(activeGraphChanged( Structure::Graph* )), SLOT(updateActiveGraph( Structure::Graph* )));
 	//graphs.push_back( blender->active );
@@ -919,6 +923,8 @@ void topoblend::generateSynthesisData()
 {
 	if(!blender) return;
 
+	QElapsedTimer timer; timer.start();
+
 	foreach(Structure::Node * node, blender->active->nodes)
 	{
 		if(node->property.contains("correspond"))
@@ -941,6 +947,10 @@ void topoblend::generateSynthesisData()
 			}
 		}
 	}
+
+	QString timingString = QString("Synthesis data [ %1 ms ]").arg(timer.elapsed());
+	qDebug() << timingString;
+	mainWindow()->setStatusBarMessage(timingString,120);
 }
 
 void topoblend::saveSynthesisData()
@@ -981,6 +991,51 @@ void topoblend::loadSynthesisData()
 	}
 
 	drawArea()->updateGL();
+}
+
+void topoblend::outputPointCloud()
+{
+	if(!blender) return;
+
+	QString foldername = gcoor->sgName() + "_" + gcoor->tgName();
+	QDir dir; dir.mkdir(foldername); dir.setCurrent(foldername);
+
+	foreach(Structure::Node * n, blender->active->nodes)
+	{
+		if(n->property.contains("correspond"))
+		{
+			QString nodeID = n->id;
+			QString tnodeID = n->property["correspond"].toString();
+
+			//Synthesizer::writeXYZ();
+			QVector<Vec3d> points, normals;
+
+			if(!n->property.contains("cached_points"))
+			{
+				// Without blending!
+				if(n->type() == Structure::CURVE){
+					Structure::Curve * curve = (Structure::Curve *)n;
+					Synthesizer::blendGeometryCurves(curve,curve,0,points,normals);
+				}
+				if(n->type() == Structure::SHEET){
+					Structure::Sheet * sheet = (Structure::Sheet *)n;
+					Synthesizer::blendGeometrySheets(sheet,sheet,0,points,normals);
+				}
+
+				n->property["cached_points"].setValue(points);
+			}
+			else
+			{
+				points = n->property["cached_points"].value< QVector<Vec3d> >();
+			}
+
+			// Estimate normals
+			int num_nighbours = 16;
+			NormalExtrapolation::ExtrapolateNormals(points, normals, num_nighbours);
+
+			Synthesizer::writeXYZ(n->id, points, normals);
+		}
+	}
 }
 
 

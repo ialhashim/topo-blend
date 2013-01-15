@@ -244,39 +244,39 @@ bool Octree::intersectHit( IndexSet& tris )
 	return true;
 }
 
-QSet<int> Octree::intersectRay( Ray ray, double rayThickness, bool isFullTest)
+QSet<int> Octree::intersectRay( Ray ray, double rayThickness, bool isFullTest) const
 {
 	QSet<int> tris;
 
 	ray.thickness = rayThickness;
 
 	//DEBUG:
-	this->selectedChildren.clear();
+	//this->selectedChildren.clear();
 
 	if ( this->boundingBox.intersects(ray) ) 
 	{
-		std::stack<Octree*> s;
+		std::stack<const Octree*> s;
 		s.push( this );
 
 		while( !s.empty() )
 		{
-			Octree * curTree = s.top();
+			const Octree * curTree = s.top();
 			s.pop();
 
 			if(curTree->children.size() == 0)
 			{
-				for(std::vector<Surface_mesh::Face>::iterator it = curTree->triangleData.begin(); it != curTree->triangleData.end(); it++)
+				for(std::vector<Surface_mesh::Face>::const_iterator it = curTree->triangleData.begin(); it != curTree->triangleData.end(); it++)
 				{
 					Surface_mesh::Face face = *it;
 					tris.insert( face.idx() );
 				}
 
 				// Debug:
-				root()->selectedChildren.push_back(curTree);
+				//root()->selectedChildren.push_back(curTree);
 			}
 
 			// Do following if child size > 0
-			for (std::vector<Octree>::iterator child = curTree->children.begin();  child != curTree->children.end(); child++)
+			for (std::vector<Octree>::const_iterator child = curTree->children.begin();  child != curTree->children.end(); child++)
 			{
 				if ( child->boundingBox.intersects(ray) )
 				{
@@ -373,7 +373,7 @@ Octree * Octree::root()
 		return parent->root();
 }
 
-std::vector<Vec3d> Octree::triPoints(Surface_mesh::Face f)
+std::vector<Vec3d> Octree::triPoints(Surface_mesh::Face f) const
 {
 	std::vector<Vec3d> pnts; 
 	Surface_mesh::Vertex_around_face_circulator vit = mesh->vertices(f),vend=vit;
@@ -381,7 +381,7 @@ std::vector<Vec3d> Octree::triPoints(Surface_mesh::Face f)
 	return pnts;
 }
 
-void Octree::intersectionTest( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack )
+void Octree::intersectionTest( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack ) const
 {
 	std::vector<Vec3d> vert = triPoints(f);
 	res.hit = false;
@@ -413,12 +413,12 @@ void Octree::intersectionTest( Surface_mesh::Face f, const Ray & ray, HitResult 
 	res.hit = true;
 }
 
-void Octree::intersectionTestOld( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack )
+void Octree::intersectionTestOld( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack ) const
 {
 	res.hit = false;
 	res.distance = DBL_MAX;
 
-	double EPS = 1e-10;
+	double EPS = 1e-8;
 
 	std::vector<Vec3d> v = triPoints(f);
 	

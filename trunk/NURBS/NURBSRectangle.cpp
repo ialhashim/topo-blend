@@ -7,6 +7,8 @@
 NURBSRectangle::NURBSRectangle (Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight,
     int uDegree, int vDegree, bool uLoop, bool vLoop, bool uOpen, bool vOpen) : ParametricSurface(0, 1, 0, 1, true)
 {
+	mLoop.resize(2); mBasis.resize(2);
+
 	int numUCtrlPoints = ctrlPoint.size();
 	int numVCtrlPoints = ctrlPoint[0].size();
 

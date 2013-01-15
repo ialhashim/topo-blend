@@ -83,6 +83,8 @@ public slots:
 	void generateSynthesisData();
 	void saveSynthesisData();
 	void loadSynthesisData();
+	void outputPointCloud();
+
 signals:
 
 };

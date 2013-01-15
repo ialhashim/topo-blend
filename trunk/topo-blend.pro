@@ -23,3 +23,14 @@ nurbs_plugin.depends = NURBS
 dynamic_voxel.depends = DynamicVoxel
 geometry_morph.depends = MorpherLib
 topo-blend.depends = NURBS DynamicVoxel TopoBlenderLib MorpherLib
+
+# OpenMP
+win32 {
+    QMAKE_CXXFLAGS += /openmp
+    export(QMAKE_CXXFLAGS_DEBUG)
+    export(QMAKE_CXXFLAGS_RELEASE)
+}
+unix {
+    QMAKE_CXXFLAGS += -fopenmp
+    LIBS += -lgomp
+}
