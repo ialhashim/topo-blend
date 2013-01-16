@@ -114,8 +114,20 @@ Link * Graph::addEdge(Node *n1, Node *n2)
 		// Fall back
 		if(c1.size() < 1)
 		{
-			c1.push_back(n1->approxCoordinates(intersectPoint));
-			c2.push_back(n2->approxCoordinates(intersectPoint));
+			Vec3d closetPoint1 = s1->position(s1->approxCoordinates(intersectPoint));
+			Vec3d closetPoint2 = s2->position(s2->approxCoordinates(intersectPoint));
+			
+			Vec3d delta = closetPoint2 - closetPoint1;
+			Vec3d moveDelta = (1.2 * delta.norm()) * delta.normalized();
+			
+			s1->moveBy(moveDelta);
+
+			std::vector<Vec3d> pnts = s1->surface.intersect(s2->surface, 0.025 * length, c1, c2);
+
+			// DEBUG:
+			//foreach(Vec3d p, pnts) debugPoints3.push_back(p);
+
+			s1->moveBy(-moveDelta);
 		}
 
 		edgeType = LINE_EDGE;
@@ -770,6 +782,9 @@ SurfaceMeshTypes::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 
 	Scalar r = 0.04 * qMin(s1, s2);
 
+	if(n1->type() == Structure::SHEET && n2->type() == Structure::SHEET)
+		r *= 2;
+
 	std::vector< std::vector<Vector3> > parts1 = n1->discretized(r);
 	std::vector< std::vector<Vector3> > parts2 = n2->discretized(r);
 
@@ -1043,7 +1058,15 @@ void Graph::moveBottomCenterToOrigin()
 	Vec3d bottom_center(aabb.center().x(), aabb.center().y(), aabb.center().z() - height/2);
 
 	foreach (Structure::Node * node, nodes)
+	{
 		node->moveBy( -bottom_center );
+		
+		// Move actual geometry
+		SurfaceMeshModel* model = node->property["mesh"].value<SurfaceMeshModel*>();
+		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+		foreach(Vertex v, model->vertices())
+			points[v] -= bottom_center;
+	}
 
 	// Update the bounding box
 	property["AABB"].setValue(bbox());
@@ -1057,7 +1080,15 @@ void Graph::normalize()
 	double scaleFactor = 1.0 / height;
 
 	foreach (Structure::Node * node, nodes)
+	{
 		node->scale(scaleFactor);
+		
+		// Move actual geometry
+		SurfaceMeshModel* model = node->property["mesh"].value<SurfaceMeshModel*>();
+		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+		foreach(Vertex v, model->vertices())
+			points[v] *= scaleFactor;
+	}
 
 	// Update the bounding box
 	property["AABB"].setValue(bbox());
@@ -1066,7 +1097,21 @@ void Graph::normalize()
 void Graph::rotate( double angle, Vector3 axis )
 {
 	foreach (Structure::Node * node, nodes)
+	{
 		node->rotate(angle, axis);
+
+		// Move actual geometry
+		SurfaceMeshModel* model = node->property["mesh"].value<SurfaceMeshModel*>();
+		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+		model->updateBoundingBox();
+
+		angle *= 3.14159265358979 /180; 
+
+		foreach(Vertex v, model->vertices())
+		{
+			points[v] = rotatedVec(points[v], angle, axis);
+		}
+	}
 }
 
 void Graph::removeEdge( QString n1_id, QString n2_id )
@@ -1083,7 +1128,15 @@ void Graph::scale( double scaleFactor )
 	double relative_scale = scaleFactor / current_scale;
 
 	foreach (Structure::Node * node, nodes)
+	{
 		node->scale(relative_scale);
+
+		// Move actual geometry
+		SurfaceMeshModel* model = node->property["mesh"].value<SurfaceMeshModel*>();
+		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+		foreach(Vertex v, model->vertices())
+			points[v] *= relative_scale;
+	}
 
 	property["scale"] = scaleFactor;
 

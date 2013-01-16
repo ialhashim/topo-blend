@@ -36,6 +36,8 @@ ARAPCurveHandle * handle = NULL;
 #include "Synthesizer.h"
 #include "normal_extrapolation.h"
 
+#include "poissonrecon.h"
+
 VectorSoup vs1,vs2;
 
 topoblend::topoblend(){
@@ -935,6 +937,7 @@ void topoblend::generateSynthesisData()
 			QString tnodeID = node->property["correspond"].toString();
 
 			int sampling_method = Synthesizer::Random | Synthesizer::Features;
+			//int sampling_method = Synthesizer::Features;
 
 			if(node->type() == Structure::CURVE)
 			{
@@ -999,9 +1002,6 @@ void topoblend::outputPointCloud()
 {
 	if(!blender) return;
 
-	QString foldername = gcoor->sgName() + "_" + gcoor->tgName();
-	QDir dir; dir.mkdir(foldername); dir.setCurrent(foldername);
-
 	foreach(Structure::Node * n, blender->active->nodes)
 	{
 		if(n->property.contains("correspond"))
@@ -1036,7 +1036,11 @@ void topoblend::outputPointCloud()
 			{
 				int num_nighbours = 16;
 				NormalExtrapolation::ExtrapolateNormals(points, normals, num_nighbours);
-				Synthesizer::writeXYZ(n->id + ".xyz", points, normals);
+
+				QString xyz_filename = n->id + ".xyz";
+				Synthesizer::writeXYZ(xyz_filename, points, normals);
+
+				PoissonRecon::makeFromCloud(xyz_filename, xyz_filename + ".off");
 			}
 		}
 	}

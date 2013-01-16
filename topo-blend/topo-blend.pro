@@ -13,6 +13,10 @@ INCLUDEPATH += ../NURBS
 LIBS += -L$$PWD/../DynamicVoxel/lib -lDynamicVoxel
 INCLUDEPATH += ../DynamicVoxel
 
+# Surface Reconstruction library
+LIBS += -L$$PWD/../Reconstruction/lib -lReconstruction
+INCLUDEPATH += ../Reconstruction
+
 # TopoBlender library
 LIBS += -L$$PWD/../TopoBlenderLib/lib -lTopoBlenderLib
 INCLUDEPATH += ../TopoBlenderLib
