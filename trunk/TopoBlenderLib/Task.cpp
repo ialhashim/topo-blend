@@ -30,7 +30,7 @@ Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, Task
 	this->isReady = false;
 	this->isDone = false;
 
-	this->arapIterations = 4;
+	this->arapIterations = 3;
 
 	// Visual properties
 	width = length;
@@ -410,7 +410,7 @@ void Task::executeGrowShrink( double t )
 					int idx_control = other_curve->controlPointIndexFromCoord( edge->getCoord(other_curve->id).front() );
 					int idx_anchor = (idx_control > nCtrl / 2) ? 0 : nCtrl - 1;
 
-					ARAPCurveDeformer * deformer = new ARAPCurveDeformer( other_curve->controlPoints() );
+					ARAPCurveDeformer * deformer = new ARAPCurveDeformer( other_curve->controlPoints(), other_curve->controlPoints().size() * 0.5 );
 
 					deformer->ClearAll();
 					deformer->setControl( idx_control );
@@ -704,7 +704,7 @@ void Task::setupCurveDeformer( Structure::Curve* curve, Structure::Link* linkA, 
 	if(property.contains("orgCtrlPoints"))
 		curvePoints = property["orgCtrlPoints"].value< std::vector<Vec3d> >();
 
-	property["deformer"].setValue( new ARAPCurveDeformer( curvePoints ) );
+	property["deformer"].setValue( new ARAPCurveDeformer( curvePoints, curvePoints.size() * 0.5 ) );
 
 	property["linkA"].setValue( linkA );
 	property["linkB"].setValue( linkB );
@@ -872,7 +872,7 @@ void Task::deformCurve( int anchorPoint, int controlPoint, Vec3d newControlPos )
 	ARAPCurveDeformer * deformer = NULL;
 
 	if(!property.contains("deformer"))
-		property["deformer"].setValue( deformer = new ARAPCurveDeformer( curve->curve.mCtrlPoint ) );
+		property["deformer"].setValue( deformer = new ARAPCurveDeformer( curve->curve.mCtrlPoint, curve->curve.mCtrlPoint.size() * 0.5 ) );
 	else
 		deformer = property["deformer"].value<ARAPCurveDeformer*>();
 

@@ -60,7 +60,7 @@ private:
 
 public:
 
-	static void ExtrapolateNormals(const QVector<Vec3d> & pointcloud, QVector<Vec3d> & normals, 
+	static void ExtrapolateNormals(const std::vector<Vec3d> & pointcloud, QVector<Vec3d> & normals, 
 									unsigned int k, const int root_index=-1, NormalOrientation orientation = Guess)
 	{
 		SurfaceMeshModel m("pointcloud.off", "pointcloud");

@@ -1038,7 +1038,15 @@ void topoblend::outputPointCloud()
 			if(points.size())
 			{
 				int num_nighbours = 16;
-				NormalExtrapolation::ExtrapolateNormals(points, normals, num_nighbours);
+				normals.clear();
+
+				std::vector<Vec3d> clean_points;
+				foreach(Vec3d p, points) clean_points.push_back(p);
+
+				std::vector<size_t> xrefs;
+				weld(clean_points, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
+	
+				NormalExtrapolation::ExtrapolateNormals(clean_points, normals, num_nighbours);
 
 				QString xyz_filename = n->id + ".xyz";
 				Synthesizer::writeXYZ(xyz_filename, points, normals);
