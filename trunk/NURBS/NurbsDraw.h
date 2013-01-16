@@ -62,7 +62,7 @@ public:
 		// Draw start indicator
 		glColor3d(1,0,0);
 		glBegin(GL_LINES);
-		glVector3(nc->GetPosition( 0 )); glVector3(nc->GetPosition( 0.1 ));
+		glVector3(nc->GetPosition( 0 )); glVector3(nc->GetPosition( 0.01 ));
 		glEnd();
 
         glEnable(GL_LIGHTING);

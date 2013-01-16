@@ -106,28 +106,31 @@ Link * Graph::addEdge(Node *n1, Node *n2)
 	{
 		Sheet *s1 = (Sheet*) n1, *s2 = (Sheet*) n2;
 		double length = qMin(s1->bbox().size().length(), s2->bbox().size().length());
-		std::vector<Vec3d> pnts = s1->surface.intersect(s2->surface, 0.025 * length, c1, c2);
+		std::vector<Vec3d> pnts = s1->surface.intersect(s2->surface, 0.005 * length, c1, c2);
 		
 		// DEBUG:
 		//foreach(Vec3d p, pnts) debugPoints3.push_back(p);
 
 		// Fall back
-		if(c1.size() < 1)
+		double scaleFactor = 1.1;
+		while(c1.size() < 1)
 		{
 			Vec3d closetPoint1 = s1->position(s1->approxCoordinates(intersectPoint));
 			Vec3d closetPoint2 = s2->position(s2->approxCoordinates(intersectPoint));
 			
 			Vec3d delta = closetPoint2 - closetPoint1;
-			Vec3d moveDelta = (1.2 * delta.norm()) * delta.normalized();
+			Vec3d moveDelta = (scaleFactor * delta.norm()) * delta.normalized();
 			
 			s1->moveBy(moveDelta);
 
-			std::vector<Vec3d> pnts = s1->surface.intersect(s2->surface, 0.025 * length, c1, c2);
+			std::vector<Vec3d> pnts = s1->surface.intersect(s2->surface, 0.005 * length, c1, c2);
 
 			// DEBUG:
 			//foreach(Vec3d p, pnts) debugPoints3.push_back(p);
 
 			s1->moveBy(-moveDelta);
+
+			scaleFactor += 0.2;
 		}
 
 		edgeType = LINE_EDGE;
@@ -783,7 +786,7 @@ SurfaceMeshTypes::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 	Scalar r = 0.04 * qMin(s1, s2);
 
 	if(n1->type() == Structure::SHEET && n2->type() == Structure::SHEET)
-		r *= 2;
+		r *= 10;
 
 	std::vector< std::vector<Vector3> > parts1 = n1->discretized(r);
 	std::vector< std::vector<Vector3> > parts2 = n2->discretized(r);
@@ -1061,6 +1064,8 @@ void Graph::moveBottomCenterToOrigin()
 	{
 		node->moveBy( -bottom_center );
 		
+		if(!node->property.contains("mesh")) continue;
+
 		// Move actual geometry
 		SurfaceMeshModel* model = node->property["mesh"].value<SurfaceMeshModel*>();
 		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
@@ -1083,6 +1088,8 @@ void Graph::normalize()
 	{
 		node->scale(scaleFactor);
 		
+		if(!node->property.contains("mesh")) continue;
+
 		// Move actual geometry
 		SurfaceMeshModel* model = node->property["mesh"].value<SurfaceMeshModel*>();
 		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
@@ -1099,6 +1106,8 @@ void Graph::rotate( double angle, Vector3 axis )
 	foreach (Structure::Node * node, nodes)
 	{
 		node->rotate(angle, axis);
+
+		if(!node->property.contains("mesh")) continue;
 
 		// Move actual geometry
 		SurfaceMeshModel* model = node->property["mesh"].value<SurfaceMeshModel*>();
@@ -1128,6 +1137,8 @@ void Graph::scale( double scaleFactor )
 	foreach (Structure::Node * node, nodes)
 	{
 		node->scale(relative_scale);
+
+		if(!node->property.contains("mesh")) continue;
 
 		// Move actual geometry
 		SurfaceMeshModel* model = node->property["mesh"].value<SurfaceMeshModel*>();

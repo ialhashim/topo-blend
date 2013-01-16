@@ -557,6 +557,9 @@ void topoblend::loadModel()
 	foreach(QString file, fileNames)
 	{	
 		Structure::Graph * g = new Structure::Graph ( file );
+
+		g->normalize();
+
 		graphs.push_back( g );
 	}
 

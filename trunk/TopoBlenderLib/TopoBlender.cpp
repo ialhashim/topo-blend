@@ -32,6 +32,10 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 	/// STEP 2) Create the magic active graph and generate tasks
 	active = new Structure::Graph(*sg);
 
+	// Assign active edges as so:
+	foreach(Structure::Link * edge, active->edges)
+		edge->property["active"].setValue(true);
+
 	// Set pointers to graphs
 	scheduler->sourceGraph = new Structure::Graph(*sg);
 	scheduler->activeGraph = active;
@@ -171,7 +175,9 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 				LinkCoords c1 = tLink->coord[0];
 				LinkCoords c2 = tLink->coord[1];
 
-				active->addEdge( n1, n2, c1, c2, active->linkName(n1,n2) );
+				Structure::Link * newEdge = active->addEdge( n1, n2, c1, c2, active->linkName(n1,n2) );
+
+				newEdge->property["active"].setValue(false);
 			}
 		}
 	}
@@ -221,6 +227,8 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 		if(active->getEdge(n1->id, n2->id) == NULL)
 		{
 			Structure::Link * newEdge = active->addEdge( n1, n2, e->coord[0], e->coord[1], active->linkName(n1, n2) );
+
+			newEdge->property["active"].setValue(false);
 
 			// Cloned nodes take coordinates from source
 			Structure::Node * clonedNode = newEdge->getNodeHasProperty("isCloned", true);

@@ -95,7 +95,8 @@ std::vector< std::vector<Vec4d> > Curve::discretizedPoints( Scalar resolution )
 
 	Scalar curveLength = curve.GetLength(0,1);
 
-	if((curve.mCtrlPoint[0] - curve.mCtrlPoint[1]).norm() < resolution){
+	double firstTwoDist = (curve.mCtrlPoint[0] - curve.mCtrlPoint[1]).norm();
+	if(firstTwoDist < resolution * 0.001){
 		result.push_back( std::vector<Vec4d>( 1, Vec4d(0,0,0,0) ) );
 		return result;
 	}
