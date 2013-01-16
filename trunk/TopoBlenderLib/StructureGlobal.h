@@ -6,6 +6,7 @@
 #include <QSet>
 
 #include "SurfaceMeshHelper.h"
+#include "SurfaceMeshTypes.h"
 #include "NurbsDraw.h"
 #include "../CustomDrawObjects.h"
 

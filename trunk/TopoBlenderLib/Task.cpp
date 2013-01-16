@@ -338,9 +338,6 @@ void Task::prepareGrowShrink()
 			gd.computeDistances( pointA );
 			gd.pathCoordTo( pointB, path);
 
-			// Why would this happen?
-			if(!path.size()) return;
-
 			NodeCoord endPointCoord = path[path.size() / 2];
 			Vec3d endPoint = active->position(endPointCoord.first, endPointCoord.second);
 
@@ -494,6 +491,27 @@ void Task::executeGrowShrink( double t )
 void Task::prepareMorph()
 {
 	QVector<Structure::Link*> edges = getGoodEdges();
+
+	if(property.contains("mergeTo") && edges.size())
+	{
+		foreach(Structure::Link* edge, edges)
+		{
+			Structure::Node * baseNode = edge->otherNode( node()->id );
+			Structure::Node * mergeToNode = active->getNode(property["mergeTo"].toString());
+			
+			// Copy coordinates
+			Structure::Link* toEdge = active->getEdge(mergeToNode->id, baseNode->id);
+
+			Array1D_Vec4d coordOnBase = toEdge->getCoord(baseNode->id);
+			Array1D_Vec4d coordOnMe = edge->getCoord(node()->id);
+
+			Array1D_Vec4d c1 = (edge->n1->id == node()->id) ? coordOnMe : coordOnBase;
+			Array1D_Vec4d c2 = (edge->n2->id == node()->id) ? coordOnMe : coordOnBase;
+
+			edge->property["finalCoord_n1"].setValue( qMakePair(edge->n1->id, c1) );
+			edge->property["finalCoord_n2"].setValue( qMakePair(edge->n2->id, c2) );
+		}
+	}
 
 	// 1) SINGLE edge
 	if(edges.size() == 1)

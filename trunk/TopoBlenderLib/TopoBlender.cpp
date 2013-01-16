@@ -138,6 +138,18 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 
 					newEdge->property["newEdge"].setValue(true);
 				}
+
+				foreach(Structure::Link * sLink, active->edges)
+				{
+					QString t_n1 = sLink->n1->property["correspond"].toString();
+					QString t_n2 = sLink->n2->property["correspond"].toString();
+
+					Structure::Link * tLink = tg->getEdge(t_n1, t_n2);
+					if(!tLink) continue;
+
+					sLink->property["finalCoord_n1"].setValue( qMakePair(sLink->n1->id, tLink->getCoord(t_n1)) );
+					sLink->property["finalCoord_n2"].setValue( qMakePair(sLink->n2->id, tLink->getCoord(t_n2)) );
+				}
 			}
 		}
 	}
@@ -163,6 +175,12 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 			// Exists only active [delete it]
 			if( sLink && !tLink )
 			{
+				if(active->property.contains("mergeTo"))
+				{
+					sLink->property["active"].setValue(false);
+					continue;
+				}
+
 				active->removeEdge( s1, s2 );
 			}
 
