@@ -1105,11 +1105,9 @@ void Graph::rotate( double angle, Vector3 axis )
 		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
 		model->updateBoundingBox();
 
-		angle *= 3.14159265358979 /180; 
-
 		foreach(Vertex v, model->vertices())
 		{
-			points[v] = rotatedVec(points[v], angle, axis);
+			points[v] = rotatedVec(points[v],  (3.14159265358979 /180) * angle, axis);
 		}
 	}
 }
