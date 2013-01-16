@@ -535,8 +535,27 @@ void NURBSRectangle::generateSurfacePointsCoords( Scalar stepSize, std::vector< 
 	std::vector<Vector3> ctrlU = GetControlPointsU(0);
 	std::vector<Vector3> ctrlV = GetControlPointsV(0);
 
-	std::vector< std::vector<Vector3> > curveU = NURBSCurve(ctrlU, std::vector<Scalar>(ctrlU.size(), 1.0)).toSegments(stepSize);
-	std::vector< std::vector<Vector3> > curveV = NURBSCurve(ctrlV, std::vector<Scalar>(ctrlV.size(), 1.0)).toSegments(stepSize);
+	double lengthU = 0, lengthV = 0;
+
+	for(int i = 1; i < (int)ctrlU.size(); i++) lengthU += (ctrlU[i] - ctrlU[i-1]).norm();
+	for(int i = 1; i < (int)ctrlV.size(); i++) lengthV += (ctrlV[i] - ctrlV[i-1]).norm();
+
+	stepSize = qMin (qMin(lengthU, lengthV) / 50, stepSize);
+
+	double stepU, stepV;
+	if (lengthU > lengthV)
+	{
+		stepU = stepSize * lengthU / lengthV;
+		stepV = stepSize;
+	}
+	else
+	{
+		stepV = stepSize * lengthV / lengthU;
+		stepU = stepSize;
+	}
+
+	std::vector< std::vector<Vector3> > curveU = NURBSCurve(ctrlU, std::vector<Scalar>(ctrlU.size(), 1.0)).toSegments(stepU);
+	std::vector< std::vector<Vector3> > curveV = NURBSCurve(ctrlV, std::vector<Scalar>(ctrlV.size(), 1.0)).toSegments(stepV);
 
 	std::vector<Real> valU,valV;
 	uniformCoordinates(valU, valV, qMin(curveU.size(), curveV.size()));
@@ -555,7 +574,7 @@ Vec4d NURBSRectangle::timeAt( const Vector3 & pos )
 	std::vector< std::vector<Vector3> > pts;
 
 	std::vector<Real> valU, valV;
-	Scalar stepSize = 0.1;
+	Scalar stepSize = 0.01 * (mCtrlPoint.front().front() - mCtrlPoint.back().back()).norm();
 	generateSurfacePoints(stepSize, pts, valU, valV);
 
 	int minIdxU = 0, minIdxV = 0;
@@ -636,7 +655,7 @@ std::vector<Vec4d> NURBSRectangle::timeAt( const std::vector<Vector3> & position
 
 	std::vector< std::vector<Vector3> > pts;
 	std::vector<Real> valU, valV;
-	Scalar stepSize = 0.1;
+	Scalar stepSize = 0.01 * (mCtrlPoint.front().front() - mCtrlPoint.back().back()).norm();
 	generateSurfacePoints(stepSize, pts, valU, valV);
 
 	for(int i = 0; i < (int)positions.size(); i++)
@@ -799,7 +818,7 @@ std::vector<Vec3d> NURBSRectangle::intersect( NURBSRectangle & other, double res
     weld(samples, corner_xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
 
 	Vec3d p(0);	
-	double threshold = resolution * 0.1;
+	double threshold = resolution * 0.5;
 
 	// Project onto other surface
 	std::vector<Vec4d> otheruv = other.timeAt(samples, threshold);

@@ -11,7 +11,10 @@ struct QuickMeshDraw{
 		Surface_mesh::Vertex_property<Vector3> points = mesh->vertex_property<Vector3>("v:point");
 		Surface_mesh::Face_property<Vector3> fnormals = mesh->face_property<Vector3>("f:normal");
 
-		glColor3d(0,1,0);
+		glEnable (GL_BLEND);
+		glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glColor4d(0,1,1, 0.25);
 		glLineWidth(1.0f);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
@@ -25,5 +28,7 @@ struct QuickMeshDraw{
 			glEnd();
 		}
 		glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+
+		glDisable(GL_CULL_FACE);
 	}
 };

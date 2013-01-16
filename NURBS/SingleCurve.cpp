@@ -21,7 +21,7 @@ Real SingleCurve::GetLength (Real t0, Real t1)
     assert(mTMin <= t1 && t1 <= mTMax);
     assert(t0 <= t1);
 
-    return Integrate1<Real>::RombergIntegral(4, t0, t1, GetSpeedWithData, (void*)this);
+    return Integrate1<Real>::RombergIntegral(7, t0, t1, GetSpeedWithData, (void*)this);
 }
 //----------------------------------------------------------------------------
 

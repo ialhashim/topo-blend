@@ -161,6 +161,9 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	{
 		if(excludeNodes.contains(e->n1->id) || excludeNodes.contains(e->n2->id)) continue;
 
+		// Active / inactive
+		if(e->property.contains("active") && !e->property["active"].toBool()) continue;
+
 		int gid1 = nodesMap[e->n1].front().gid;
 		int gid2 = nodesMap[e->n2].front().gid;
 

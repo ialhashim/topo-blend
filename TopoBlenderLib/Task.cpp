@@ -338,6 +338,9 @@ void Task::prepareGrowShrink()
 			gd.computeDistances( pointA );
 			gd.pathCoordTo( pointB, path);
 
+			// Why would this happen?
+			if(!path.size()) return;
+
 			NodeCoord endPointCoord = path[path.size() / 2];
 			Vec3d endPoint = active->position(endPointCoord.first, endPointCoord.second);
 
@@ -546,6 +549,8 @@ void Task::executeMorph( double t )
 	// 1) SINGLE edge
 	if(edges.size() == 1)
 	{
+		Structure::Link * edge = edges.front();
+
 		if(n->type() == Structure::CURVE)
 		{			
 			Structure::Curve* current_curve = ((Structure::Curve*)n);
@@ -563,7 +568,13 @@ void Task::executeMorph( double t )
 
 				// Move end with a link
 				current_curve->curve.translateTo( newPos, cpIDX );
-				target_curve->curve.translateTo( newPos, cpIDX ); // moves along for the ride..
+
+				QString tbaseNode = edge->otherNode(current_curve->id)->property["correspond"].toString();
+				QString tnodeID = current_curve->property["correspond"].toString();
+				
+				int cpIDX_target = target_curve->controlPointIndexFromCoord(target->getEdge(tbaseNode, tnodeID)->getCoord(tnodeID).front());
+
+				target_curve->curve.translateTo( newPos, cpIDX_target); // moves along for the ride..
 			}
 
 			// Move free end (linear interpolation)
@@ -632,7 +643,7 @@ void Task::executeMorph( double t )
 				structure_curve->setControlPoints( deformer->points );
 			}
 			
-			if(t == 1.0)
+			if(t == 1.0 && linkA->property.contains("finalCoord_n1"))
 			{
 				NodeCoords coordA = linkA->property["finalCoord_n1"].value<NodeCoords>();
 				NodeCoords coordOtherA = linkA->property["finalCoord_n2"].value<NodeCoords>();
@@ -659,6 +670,13 @@ void Task::executeMorph( double t )
 	}
 
 	// 3) More than two edges
+
+	// Done with this morph
+	if(t == 1.0)
+	{
+		foreach(Structure::Link * edge, active->getEdges(node()->id))
+			edge->property["active"] = true;
+	}
 }
 
 void Task::setupCurveDeformer( Structure::Curve* curve, Structure::Link* linkA, Structure::Link* linkB )
