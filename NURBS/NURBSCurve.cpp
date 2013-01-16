@@ -157,7 +157,9 @@ std::vector < std::vector<Vector3> > NURBSCurve::toSegments( Scalar resolution )
 {
 	std::vector< std::vector<Vector3> > segments;
 
-	if((mCtrlPoint[0] - mCtrlPoint[1]).norm() < resolution){
+
+	double firstTwoDist = (mCtrlPoint[0] - mCtrlPoint[1]).norm();
+	if(firstTwoDist < resolution * 0.0001){
 		segments.push_back(this->mCtrlPoint);
 		return segments;
 	}

@@ -76,10 +76,10 @@ public:
 
 	// Cached visualization
 	std::vector<SurfaceQuad> quads;
-    void generateSurfaceQuads( int resolution );
+    void generateSurfaceQuads( double resolution );
 
 	// Discretization
-	void uniformCoordinates(std::vector<Real> & valU, std::vector<Real> & valV, int resolution = 10, int u = 0, int v = 0);
+	void uniformCoordinates(std::vector<Real> & valU, std::vector<Real> & valV, double resolution, int u = 0, int v = 0);
 	std::vector< std::vector<Vector3> > generateSurfaceTris( Real resolution );
 	void generateSurfacePoints( Scalar stepSize, std::vector< std::vector<Vector3> > & points, 
         std::vector<Real> & valU , std::vector<Real> & valV );

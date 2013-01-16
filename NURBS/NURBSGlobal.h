@@ -5,6 +5,7 @@
 
 #include "SurfaceMeshModel.h"
 #include "SurfaceMeshHelper.h"
+#include "SurfaceMeshTypes.h"
 using namespace SurfaceMeshTypes;
 
 #include "weld.h"

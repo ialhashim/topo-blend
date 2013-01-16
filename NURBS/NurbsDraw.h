@@ -139,7 +139,7 @@ public:
         }
 
 		// Draw actual surface
-		if(nc->quads.empty()) nc->generateSurfaceQuads(10);
+		if(nc->quads.empty()) nc->generateSurfaceQuads(4.0);
 
 		glEnable(GL_LIGHTING);
         glEnable(GL_BLEND);
