@@ -7,6 +7,7 @@ SUBDIRS += DynamicVoxel
 SUBDIRS += Voxeler
 SUBDIRS +=
 SUBDIRS += TopoBlenderLib
+SUBDIRS += Reconstruction
 
 # Plugins
 SUBDIRS += resample

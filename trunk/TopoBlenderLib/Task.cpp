@@ -231,22 +231,26 @@ void Task::prepareGrowShrink()
 
 			// Find first link to a sheet
 			QVector<Structure::Link*> my_edges = active->getEdges(n->id); 
-			Structure::Link * endLink = my_edges.front();
-			foreach(Structure::Link * edge, my_edges){
-				if(edge->otherNode(n->id)->type() == Structure::SHEET){
-					endLink = edge;
-					break;
+
+			if(my_edges.size())
+			{
+				Structure::Link * endLink = my_edges.front();
+				foreach(Structure::Link * edge, my_edges){
+					if(edge->otherNode(n->id)->type() == Structure::SHEET){
+						endLink = edge;
+						break;
+					}
 				}
+
+				// Curve folding
+				bool isApplyFold = (type == GROW) ? true : false;
+				Array1D_Vector3 deltas = structure_curve->foldTo( endLink->getCoord(n->id).front(), isApplyFold );
+				if(!isApplyFold) deltas = inverseVectors3(deltas);
+
+				property["deltas"].setValue( deltas );
+				property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
+				property["anchorNode"].setValue( endLink->otherNode(n->id)->id );
 			}
-
-			// Curve folding
-			bool isApplyFold = (type == GROW) ? true : false;
-			Array1D_Vector3 deltas = structure_curve->foldTo( endLink->getCoord(n->id).front(), isApplyFold );
-			if(!isApplyFold) deltas = inverseVectors3(deltas);
-
-			property["deltas"].setValue( deltas );
-			property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
-			property["anchorNode"].setValue( endLink->otherNode(n->id)->id );
 		}
 
 		if(n->type() == Structure::SHEET)

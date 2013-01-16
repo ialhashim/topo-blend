@@ -12,6 +12,10 @@ INCLUDEPATH += ../NURBS
 LIBS += -L$$PWD/../DynamicVoxel/lib -lDynamicVoxel
 INCLUDEPATH += ../DynamicVoxel
 
+# Surface Reconstruction library
+LIBS += -L$$PWD/../Reconstruction/lib -lReconstruction
+INCLUDEPATH += ../Reconstruction
+
 TEMPLATE = lib
 CONFIG += staticlib
 QT += opengl xml

@@ -25,7 +25,5 @@ struct QuickMeshDraw{
 			glEnd();
 		}
 		glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-
-
 	}
 };

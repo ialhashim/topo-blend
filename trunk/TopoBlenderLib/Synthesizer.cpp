@@ -502,13 +502,13 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 	// Sample two curves
 	QVector<ParameterCoord> samples;
 
-	if (s & SamplingType::All)	s = SamplingType::Features | SamplingType::Edges | SamplingType::Random | SamplingType::Uniform;
-	if (s & SamplingType::AllNonUniform) s = SamplingType::Features | SamplingType::Edges | SamplingType::Random;
+	if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
+	if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
 
-	if (s & SamplingType::Features)	samples += genFeatureCoords(curve1) + genFeatureCoords(curve2);
-	if (s & SamplingType::Edges)	samples += genEdgeCoords(curve1) + genEdgeCoords(curve2);
-	if (s & SamplingType::Random)	samples += genRandomCoords(curve1) + genRandomCoords(curve2);
-	if (s & SamplingType::Uniform)	samples += genUniformCoords(curve1) + genUniformCoords(curve2);
+	if (s & Synthesizer::Features)	samples += genFeatureCoords(curve1) + genFeatureCoords(curve2);
+	if (s & Synthesizer::Edges)	samples += genEdgeCoords(curve1) + genEdgeCoords(curve2);
+	if (s & Synthesizer::Random)	samples += genRandomCoords(curve1) + genRandomCoords(curve2);
+	if (s & Synthesizer::Uniform)	samples += genUniformCoords(curve1) + genUniformCoords(curve2);
 
 	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());
 
@@ -537,13 +537,13 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 	// Sample two sheets
 	QVector<ParameterCoord> samples;
 
-	if (s & SamplingType::All)	s = SamplingType::Features | SamplingType::Edges | SamplingType::Random | SamplingType::Uniform;
-	if (s & SamplingType::AllNonUniform) s = SamplingType::Features | SamplingType::Edges | SamplingType::Random;
+	if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
+	if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
 
-	if (s & SamplingType::Features)	samples += genFeatureCoords(sheet1) + genFeatureCoords(sheet2);
-	if (s & SamplingType::Edges)	samples += genEdgeCoords(sheet1) + genEdgeCoords(sheet2);
-	if (s & SamplingType::Random)	samples += genRandomCoords(sheet1) + genRandomCoords(sheet2);
-	if (s & SamplingType::Uniform)	samples += genUniformCoords(sheet1) + genUniformCoords(sheet2);
+	if (s & Synthesizer::Features)	samples += genFeatureCoords(sheet1) + genFeatureCoords(sheet2);
+	if (s & Synthesizer::Edges)	samples += genEdgeCoords(sheet1) + genEdgeCoords(sheet2);
+	if (s & Synthesizer::Random)	samples += genRandomCoords(sheet1) + genRandomCoords(sheet2);
+	if (s & Synthesizer::Uniform)	samples += genUniformCoords(sheet1) + genUniformCoords(sheet2);
 
     qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());
 
