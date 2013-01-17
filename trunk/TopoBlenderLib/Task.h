@@ -30,8 +30,13 @@ public:
 	void prepare();
 	void prepareGrowShrink();
 	void prepareMorph();
-	void prepareShrink();
-	void prepareGrow();
+
+	void prepareShrinkCurve();
+	void prepareShrinkSheet();
+	void prepareGrowCurve();
+	void prepareGrowSheet();
+
+
 	void prepareMorph2();
 
 	// Execution stage
