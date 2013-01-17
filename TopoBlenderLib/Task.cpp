@@ -938,6 +938,13 @@ void Task::prepareShrinkCurve()
 	Structure::Node * n = node();
 	QVector<Structure::Link*> edges = active->getEdges(n->id);
 
+	if( active->isCutNode(n->id) )
+	{
+		property["isCutNode"] = true;
+		prepareShrinkCurveConstrained();
+		return;
+	}
+
 	
 	if(edges.size() == 1)
 	{
@@ -1002,6 +1009,38 @@ void Task::prepareShrinkCurve()
 		property["cpidxB"].setValue(cpidxB);
 
 		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint ) );
+	}
+}
+
+void Task::prepareShrinkCurveConstrained()
+{
+	Structure::Node * n = node();
+	Structure::Curve* structure_curve = ((Structure::Curve*)n);
+
+	if (property.contains("isCutNode"))
+	{
+		// Find first link to a sheet
+		QVector<Structure::Link*> my_edges = active->getEdges(n->id); 
+
+		Structure::Link * baseLink = my_edges.front();
+		foreach(Structure::Link * edge, my_edges){
+			Structure::Node *othernode = edge->otherNode(n->id);
+			if(othernode->type() == Structure::SHEET){
+				baseLink = edge;
+				break;
+			}
+		}
+
+		Vec4d coordSelf = baseLink->getCoord(n->id).front();
+		Structure::Node *basenode = baseLink->otherNode(n->id);
+
+		// Curve folding
+		Array1D_Vector3 deltas = structure_curve->foldTo( coordSelf, false );
+		deltas = inverseVectors3(deltas);
+
+		property["deltas"].setValue( deltas );
+		property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
+		property["anchorNode"].setValue( basenode->id );
 	}
 }
 
@@ -1165,6 +1204,11 @@ void Task::executeGrowShrink2( double t )
 	Structure::Node * tn = targetNode();
 	QVector<Structure::Link*> edges = active->getEdges(n->id);
 	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
+
+	if (property.contains("isCutNode"))
+	{
+		
+	}
 
 
 	if ((type == SHRINK && edges.size() == 2)
