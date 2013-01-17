@@ -407,6 +407,7 @@ void TopoBlender::correspondSuperNodes()
 		Structure::Node *tnode = super_tg->getNode(tnodeID);
 		Structure::Node *csnode = tnode->clone();
 		super_sg->addNode(csnode);
+		csnode->property["isReady"] = false;
 
 		csnode->id = tnodeID + "_null";
 		superNodeCorr[csnode->id] = tnodeID;
@@ -448,11 +449,8 @@ void TopoBlender::correspondSuperNodes()
 	{
 		QString tnode = superNodeCorr[snode];
 
-		if (!snode.contains("null"))
-			super_sg->getNode(snode)->property["correspond"] = tnode;
-
-		if (!tnode.contains("null"))
-			super_tg->getNode(tnode)->property["correspond"] = snode;
+		super_sg->getNode(snode)->property["correspond"] = tnode;
+		super_tg->getNode(tnode)->property["correspond"] = snode;
 	}
 }
 
