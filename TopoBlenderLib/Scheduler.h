@@ -30,6 +30,9 @@ public:
 
 	int totalExecutionTime();
 
+	// Dependency
+	QVector<QString> activeTasks(double globalTime);
+
 	// Helper functions
 	QVector<Task*> tasksSortedByStart();
 	Task * getTaskFromNodeID( QString nodeID );

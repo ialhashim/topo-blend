@@ -104,12 +104,6 @@ void Scheduler::schedule()
 	// Order and group here:
 	this->order();
 
-	// Prepare all tasks:
-	foreach(Task * task, tasks)
-	{
-		task->prepare();
-	}
-
 	// Time-line slider
 	slider = new TimelineSlider;
 	slider->reset();
@@ -180,6 +174,10 @@ void Scheduler::executeAll()
 		{
 			Task * task = allTasks[i];
 			double localTime = task->localT( globalTime * totalTime );
+
+			QVector<QString> rtasks = activeTasks(globalTime * totalTime);
+			activeGraph->property["running_tasks"].setValue(rtasks);
+
 			task->execute( localTime );
 		}
 
@@ -261,4 +259,22 @@ Task * Scheduler::getTaskFromNodeID( QString nodeID )
 {
 	foreach(Task * t, tasks) if(t->node()->id == nodeID) return t;
 	return NULL;
+}
+
+QVector<QString> Scheduler::activeTasks( double globalTime )
+{
+	QVector<QString> aTs;
+
+	for(int i = 0; i < (int)tasks.size(); i++)
+	{
+		Task * task = tasks[i];
+		double localTime = task->localT( globalTime );
+		if ( task->isActive( localTime ) )
+		{
+			QString nodeID = task->node()->id;
+			aTs.push_back(nodeID);
+		}
+	}
+
+	return aTs;
 }

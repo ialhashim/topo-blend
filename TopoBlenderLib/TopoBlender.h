@@ -17,15 +17,30 @@ public:
     explicit TopoBlender(Structure::Graph * graph1, Structure::Graph * graph2, GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent = 0);
     
 	Structure::Graph * sg;
-	Structure::Graph * active;
     Structure::Graph * tg;
 	GraphCorresponder * gcoor;
 	Scheduler * scheduler;
+
+	void oldSetup();
 
     QMap<QString, QVariant> params;
 
     // Logging
     int stepCounter;
+
+	// Super graphs
+	Structure::Graph * super_sg;
+	Structure::Graph * active;
+	Structure::Graph * super_tg;
+	QMap<QString, QString> superNodeCorr;
+	QMap<QString, QString> superEdgeCorr;
+	void generateSuperGraphs();
+	void correspondSuperNodes();
+	void correspondSuperEdges();
+	QVector<QString> cloneGraphNode(Structure::Graph *g, QString nodeID, int N);
+
+	// Tasks
+	void generateTasks();
 
 public slots:
 	void executeBlend();
