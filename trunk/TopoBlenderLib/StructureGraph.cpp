@@ -241,6 +241,20 @@ Link *Graph::getEdge(QString id1, QString id2)
 	return NULL;
 }
 
+
+Link* Structure::Graph::getEdge( QString linkID )
+{
+	for(int i = 0; i < (int)edges.size(); i++)
+	{
+		Link * e = edges[i];
+
+		if( e->id == linkID) return e;
+	}
+
+	return NULL;
+}
+
+
 void Graph::draw()
 {
 	vs.draw();

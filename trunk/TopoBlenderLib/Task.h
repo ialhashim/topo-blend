@@ -3,6 +3,8 @@
 #include <QGraphicsObject>
 #include "TopoBlender.h"
 
+Q_DECLARE_METATYPE(QVector<QString>);
+
 // red, orange, yellow, green, blue
 // pink, purpule, portage, lacoste, corn
 static QColor TaskColors[] = { QColor(255,97,121),  QColor(255,219,88), 
@@ -28,17 +30,22 @@ public:
 	void prepare();
 	void prepareGrowShrink();
 	void prepareMorph();
+	void prepareGrowShrink2();
+	void prepareMorph2();
 
 	// Execution stage
 	void execute( double t );
 	void executeGrowShrink( double t );
 	void executeMorph( double t );
+	void executeGrowShrink2( double t );
+	void executeMorph2( double t );
 
 	void geometryMorph( double t );
 
 	// Helper functions
 	void deformCurve(int anchorPoint, int controlPoint, Vec3d newControlPos);
 	void weldMorphPath();
+	bool isActive(double t);
 
 	Structure::Node * node();
 	Structure::Node * targetNode();
