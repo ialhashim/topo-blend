@@ -322,6 +322,27 @@ void TopoBlender::oldSetup()
 }
 
 // Super graphs
+
+bool TopoBlender::isExtraNode( Structure::Node *node )
+{
+	return node->property["correspond"].toString().contains("null");
+}
+
+bool TopoBlender::isExtraEdge( Structure::Link *link )
+{
+	return link->property["correspond"].toString().contains("null");
+}
+
+void TopoBlender::tagEdge( Structure::Link *link, QString tag )
+{
+	link->property[tag] = 0;
+}
+
+bool TopoBlender::taggedEdge( Structure::Link *link, QString tag )
+{
+	return link->property.contains(tag);
+}
+
 QVector<QString> TopoBlender::cloneGraphNode( Structure::Graph *g, QString nodeID, int N )
 {
 	Structure::Node * node = g->getNode(nodeID);
@@ -347,7 +368,7 @@ QVector<QString> TopoBlender::cloneGraphNode( Structure::Graph *g, QString nodeI
 		Structure::Node * other = link->otherNode(nodeID);
 		QString otherID = other->id;
 
-		if (other->property.contains("missing"))
+		if (isExtraNode(other))
 		{
 			if (currCloned >= N)
 			{
@@ -357,23 +378,13 @@ QVector<QString> TopoBlender::cloneGraphNode( Structure::Graph *g, QString nodeI
 
 			// Link other to one of the cloned node
 			QString clonedID = cloned_nodes[currCloned++]->id;
-			Structure::Link * newLink = g->addEdge(otherID, clonedID);
-
-			// Copy coordinates
-			newLink->setCoord(clonedID, link->getCoord(nodeID));
-			newLink->setCoord(otherID, link->getCoord(otherID));
+			g->addEdge(otherID, clonedID);
 		}
 		else
 		{
 			// Link other to all cloned nodes
 			foreach (Structure::Node* cnode, cloned_nodes)
-			{
-				Structure::Link * newLink = g->addEdge(other->id, cnode->id);
-
-				// Copy coordinates
-				newLink->setCoord(cnode->id, link->getCoord(nodeID));
-				newLink->setCoord(otherID, link->getCoord(otherID));
-			}
+				g->addEdge(other->id, cnode->id);
 		}
 
 		// Remove this link
@@ -397,9 +408,6 @@ void TopoBlender::correspondSuperNodes()
 
 		ctnode->id = snodeID + "_null";
 		superNodeCorr[snodeID] = ctnode->id;
-
-		// Mark as missing, used when cloning nodes
-		super_sg->getNode(snodeID)->property["missing"] = true;
 	}
 
 	foreach(QString tnodeID, gcoor->nonCorresTarget())
@@ -411,9 +419,6 @@ void TopoBlender::correspondSuperNodes()
 
 		csnode->id = tnodeID + "_null";
 		superNodeCorr[csnode->id] = tnodeID;
-
-		// Mark as missing, used when cloning nodes
-		super_tg->getNode(tnodeID)->property["missing"] = true;
 	}
 
 	// Build node correspondence for corresponded nodes
@@ -456,10 +461,41 @@ void TopoBlender::correspondSuperNodes()
 
 void TopoBlender::correspondSuperEdges()
 {
-	QMap<QString, QString>::Iterator begin = superNodeCorr.begin(), end = superNodeCorr.end();
-	QMap<QString, QString>::Iterator itr1, itr2;
+	// Links for extra nodes are mapped to null edges
+	// Null edges actually doesn't exist for now
+	// Extra source nodes: do nothing
+	// Extra target nodes: add edges for the null source node after growing is done
+	foreach(QString snodeID, superNodeCorr.keys())
+	{
+		Structure::Node *snode = super_sg->getNode(snodeID);
+		if ( isExtraNode(snode) )
+		{
+			foreach (Structure::Link *sl, super_sg->getEdges(snodeID))
+			{
+				superEdgeCorr[sl->id] = sl->id + "_null";
+				tagEdge(sl, "corresponded");
+			}
+
+			// snode and tnode cannot be null at the same time
+			continue;
+		}
+
+		QString tnodeID = superNodeCorr[snodeID];
+		Structure::Node *tnode = super_tg->getNode(tnodeID);
+		if (isExtraNode(tnode))
+		{
+			foreach (Structure::Link *tl, super_tg->getEdges(tnodeID))
+			{
+				superEdgeCorr[tl->id + "_null"] = tl->id;
+				tagEdge(tl, "corresponded");
+			}
+		}
+	}
+
 
 	// Both ends are corresponded -> for sure
+	QMap<QString, QString>::Iterator begin = superNodeCorr.begin(), end = superNodeCorr.end();
+	QMap<QString, QString>::Iterator itr1, itr2;
 	for (itr1 = begin; itr1 != end; itr1 ++) {
 		for (itr2 = itr1+1; itr2 != end; itr2++)
 		{
@@ -481,6 +517,7 @@ void TopoBlender::correspondSuperEdges()
 	}
 
 	// Two corresponded nodes have the same number of non-corresponded edges
+	// Correspond them one by one
 	for (itr1 = begin; itr1 != end; itr1 ++) 
 	{
 		QString snode = itr1.key();
@@ -489,9 +526,9 @@ void TopoBlender::correspondSuperEdges()
 		// Non-corresponded links
 		QVector<Structure::Link *> slinks, tlinks;
 		foreach(Structure::Link * l, super_sg->getEdges(snode))
-			if (! l->property.contains("corresponded")) slinks.push_back(l);
+			if (! taggedEdge(l, "corresponded")) slinks.push_back(l);
 		foreach(Structure::Link * l, super_tg->getEdges(tnode))
-			if (! l->property.contains("corresponded")) tlinks.push_back(l);
+			if (! taggedEdge(l, "corresponded")) tlinks.push_back(l);
 
 
 		// Correspond them only if numbers of links are equal
@@ -502,10 +539,24 @@ void TopoBlender::correspondSuperEdges()
 				superEdgeCorr[slinks[i]->id] = tlinks[i]->id;
 
 				// Mark
-				slinks[i]->property["corresponded"] = true;
-				tlinks[i]->property["corresponded"] = true;
+				tagEdge(slinks[i], "corresponded");
+				tagEdge(tlinks[i], "corresponded");
 			}
 		}
+	}
+
+	// Remove remaining non-correspond edges
+	// These edges seem useless (???)
+	foreach (Structure::Link *sl, super_sg->edges)
+	{
+		if (!taggedEdge(sl, "corresponded"))
+			super_sg->removeEdge(sl->n1, sl->n2);
+	}
+
+	foreach (Structure::Link *tl, super_tg->edges)
+	{
+		if (!taggedEdge(tl, "corresponded"))
+			super_tg->removeEdge(tl->n1, tl->n2);
 	}
 
 	// Store correspondences in the graphs
@@ -513,8 +564,11 @@ void TopoBlender::correspondSuperEdges()
 	{
 		QString tlink = superEdgeCorr[slink];
 
-		super_sg->getEdge(slink)->property["correspond"] = tlink;
-		super_tg->getEdge(tlink)->property["correspond"] = slink;
+		if (!slink.contains("null"))
+			super_sg->getEdge(slink)->property["correspond"] = tlink;
+
+		if (!tlink.contains("null"))
+			super_tg->getEdge(tlink)->property["correspond"] = slink;
 	}
 }
 

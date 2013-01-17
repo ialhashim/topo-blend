@@ -37,6 +37,12 @@ public:
 	void generateSuperGraphs();
 	void correspondSuperNodes();
 	void correspondSuperEdges();
+
+	// Helper functions
+	bool isExtraNode(Structure::Node *node);
+	bool isExtraEdge(Structure::Link *link);
+	void tagEdge(Structure::Link *link, QString tag);
+	bool taggedEdge(Structure::Link *link, QString tag);
 	QVector<QString> cloneGraphNode(Structure::Graph *g, QString nodeID, int N);
 
 	// Tasks
