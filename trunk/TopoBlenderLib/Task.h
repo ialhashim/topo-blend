@@ -33,6 +33,7 @@ public:
 
 	void prepareShrinkCurve();
 	void prepareShrinkSheet();
+	void prepareShrinkCurveConstrained();
 	void prepareGrowCurve();
 	void prepareGrowSheet();
 
