@@ -262,6 +262,9 @@ void Graph::draw()
 
     foreach(Node * n, nodes)
     {
+		if (n->property.contains("isReady") && !n->property["isReady"].toBool())
+			continue;
+
         n->draw();
 
 		if(n->type() == SHEET)
