@@ -315,16 +315,19 @@ void Sheet::equalizeControlPoints( Structure::Node * _other )
 {
 	Structure::Sheet *other = (Structure::Sheet*) _other;
 
-	Array2D_Vector3 cp(other->surface.mNumUCtrlPoints, Array1D_Vector3(other->surface.mNumVCtrlPoints, Vec3d(0)));
-	Array2D_Real cw(cp.size(), Array1D_Real(cp.front().size(), 1.0));
+	int nU = other->surface.mNumUCtrlPoints;
+	int nV = other->surface.mNumVCtrlPoints;
+
+	Array2D_Vector3 cp(nU, Array1D_Vector3(nV, Vec3d(0)));
+	Array2D_Real cw(nU, Array1D_Real(nV, 1.0));
 	int degree = 3;
 
-	for(int v = 0; v <= other->surface.mNumVCtrlPoints; v++)
+	for(int u = 0; u < nU; u++)
 	{
-		for(int u = 0; u <= other->surface.mNumUCtrlPoints; u++)
+		for(int v = 0; v < nV; v++)
 		{
-			double U = double(u) / other->surface.mNumUCtrlPoints;
-			double V = double(v) / other->surface.mNumVCtrlPoints;
+			double U = double(u) / (nU-1);
+			double V = double(v) / (nV-1);
 
 			cp[u][v] = position(Vec4d(U,V,0,0));
 		}

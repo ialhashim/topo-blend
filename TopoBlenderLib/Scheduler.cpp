@@ -190,6 +190,8 @@ void Scheduler::executeAll()
 			activeGraph->property["running_tasks"].setValue(rtasks);
 
 			task->execute( localTime );
+
+			task->node()->property["t"] = localTime;
 		}
 
 		// Output current active graph:

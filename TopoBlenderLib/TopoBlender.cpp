@@ -321,7 +321,7 @@ void TopoBlender::correspondSuperEdges()
 
 void TopoBlender::generateSuperGraphs()
 {
-	// Prepare nodes
+	// Equalize resolution for corresponded nodes
 	equalizeResolutions();
 
 	// Two super graphs have one-to-one correspondence between nodes and edges
@@ -359,23 +359,53 @@ void TopoBlender::generateTasks()
 
 void TopoBlender::equalizeResolutions()
 {
+	qDebug() << "Equalizing resolutions...";
+
 	foreach (PART_LANDMARK vec2vec, gcoor->correspondences)
 	{
 		QVector<QString> sNodes = vec2vec.first;
 		QVector<QString> tNodes = vec2vec.second;
 
-		Structure::Node * templateNode = NULL;
+		// Pick up the best one 
+		Structure::Node * bestNode = NULL;
 		int bestResolution = 0;
+
 		foreach( QString sid, sNodes)
 		{
-			Structure::Node * snode = super_sg->getNode(sid);
+			Structure::Node * snode = sg->getNode(sid);
 			if (snode->numCtrlPnts() > bestResolution)
 			{
-				bestResolution = 0;
+				bestResolution = snode->numCtrlPnts();
+				bestNode = snode;
 			}
 		}
 
+		foreach( QString tid, tNodes)
+		{
+			Structure::Node * tnode = tg->getNode(tid);
+			if (tnode->numCtrlPnts() > bestResolution)
+			{
+				bestResolution = tnode->numCtrlPnts();
+				bestNode = tnode;
+			}
+		}
+
+
+		// Equalize resolution to the best one
+		foreach( QString sid, sNodes)
+		{
+			Structure::Node * snode = sg->getNode(sid);
+			if (snode != bestNode) snode->equalizeControlPoints(bestNode);
+		}
+
+		foreach( QString tid, tNodes)
+		{
+			Structure::Node * tnode = tg->getNode(tid);
+			if (tnode != bestNode) tnode->equalizeControlPoints(bestNode);
+		}
 	}
+
+	qDebug() << "Equalizing resolution is done.";
 }
 
 

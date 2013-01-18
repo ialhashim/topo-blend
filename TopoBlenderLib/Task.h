@@ -73,7 +73,9 @@ public:
 
 	// Task properties
 	TaskType type;
+
 	int arapIterations;
+	int arapAdjSize;
 
 	Structure::Graph *active, *target;
 	QMap<QString, QVariant> property;

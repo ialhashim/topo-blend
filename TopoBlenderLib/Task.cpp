@@ -30,7 +30,8 @@ Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, Task
 	this->isReady = false;
 	this->isDone = false;
 
-	this->arapIterations = 3;
+	this->arapIterations = 4;
+	this->arapAdjSize = 1;
 
 	// Visual properties
 	width = length;
@@ -290,7 +291,7 @@ void Task::deformCurve( int anchorPoint, int controlPoint, Vec3d newControlPos )
 	ARAPCurveDeformer * deformer = NULL;
 
 	if(!property.contains("deformer"))
-		property["deformer"].setValue( deformer = new ARAPCurveDeformer( curve->curve.mCtrlPoint, curve->curve.mCtrlPoint.size() * 0.5 ) );
+		property["deformer"].setValue( deformer = new ARAPCurveDeformer( curve->curve.mCtrlPoint, arapAdjSize ) );
 	else
 		deformer = property["deformer"].value<ARAPCurveDeformer*>();
 
@@ -383,6 +384,12 @@ void Task::copyTargetEdge( Structure::Link *tlink )
 // PREPARE
 void Task::prepare()
 {
+	// Experiment
+	if(node()->type() == Structure::CURVE)
+	{
+		arapAdjSize = ((Structure::Curve*)node())->numCtrlPnts();
+	}
+
 	this->start = this->x();
 	this->currentTime = start;
 	this->isDone = false;
@@ -513,7 +520,7 @@ void Task::prepareShrinkCurve()
 		property["cpidxA"].setValue(cpidxA);
 		property["cpidxB"].setValue(cpidxB);
 
-		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint ) );
+		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint, arapAdjSize ) );
 	}
 }
 
@@ -610,7 +617,7 @@ void Task::prepareGrowCurve()
 		property["cpidxB"].setValue(cpidxB);
 
 		std::vector<Vec3d> originalPoints = structure_curve->curve.mCtrlPoint;
-		ARAPCurveDeformer * deformer = new ARAPCurveDeformer( originalPoints );
+		ARAPCurveDeformer * deformer = new ARAPCurveDeformer( originalPoints, arapAdjSize );
 		property["deformer"].setValue( deformer );
 
 		// Initial position of n
@@ -742,7 +749,7 @@ void Task::prepareMorphCurve()
 		property["cpidxA"].setValue(cpidxA);
 		property["cpidxB"].setValue(cpidxB);
 
-		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint ) );
+		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint, arapAdjSize ) );
 	}
 }
 
@@ -943,7 +950,7 @@ void Task::executeCurveConstrained( double t )
 		int idx_control = other_curve->controlPointIndexFromCoord( edge->getCoord(other_curve->id).front() );
 		int idx_anchor = (idx_control > nCtrl / 2) ? 0 : nCtrl - 1;
 
-		ARAPCurveDeformer * deformer = new ARAPCurveDeformer( other_curve->controlPoints(), other_curve->controlPoints().size() * 0.5 );
+		ARAPCurveDeformer * deformer = new ARAPCurveDeformer( other_curve->controlPoints(), arapAdjSize );
 
 		deformer->ClearAll();
 		deformer->setControl( idx_control );
