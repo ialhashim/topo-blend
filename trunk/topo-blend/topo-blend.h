@@ -85,6 +85,10 @@ public slots:
 	void loadSynthesisData();
 	void outputPointCloud();
 
+	void renderAll();
+	void renderCurrent();
+	void renderGraph(Structure::Graph *, QString filename);
+
 signals:
 
 };

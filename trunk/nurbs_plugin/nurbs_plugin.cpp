@@ -61,9 +61,7 @@ void nurbs_plugin::basicCurveFit( NURBSCurve & curve, std::vector<Vec3d> pnts )
 	int high = curve.mCtrlPoint.size() - 1;
 	int low = 0;
 
-	// Try to fit two ends
 	Vec3d planeNormal = (curve.mCtrlPoint[high] - curve.mCtrlPoint[low]).normalized();
-
 	QMap<double, Vec3d> distsLow, distsHigh;
 	for(int i = low; i <= high; i++){
 		for(int j = 0; j < (int)pnts.size(); j++){
@@ -71,7 +69,6 @@ void nurbs_plugin::basicCurveFit( NURBSCurve & curve, std::vector<Vec3d> pnts )
 			distsHigh[abs(dot( planeNormal, (pnts[j] - curve.mCtrlPoint[high]) ))] = pnts[j];
 		}
 	}
-
 	curve.mCtrlPoint[low] = distsLow.values().front();
 	curve.mCtrlPoint[high] = distsHigh.values().front();
 
@@ -136,17 +133,35 @@ void nurbs_plugin::doFitSurface()
 	Vec3d dU = axis[1].second;
 	Vec3d dV = axis[2].second;
 
+	// Create coarse B-spline sheet
 	NURBSRectangle r = NURBSRectangle::createSheet( width, length, center, dU, dV, widget->uCount(), widget->vCount() );
-
 	//basicSurfaceFit(r);
 
 	rects.push_back(r);
 	drawArea()->updateGL();
 }
 
-void nurbs_plugin::basicSurfaceFit( NURBSRectangle & surface )
+void nurbs_plugin::basicSurfaceFit( NURBSRectangle & surface, std::vector<Vec3d> pnts )
 {
-    surface = surface;
+	// Try to minimize distance between control points and point cloud [buggy code..]
+	for(int v = 0; v < surface.mNumVCtrlPoints; v++){
+		for(int u = 0; u < surface.mNumUCtrlPoints; u++){
+			QMap<double, Vec3d> dists;
+			/*for(int j = 0; j < (int)pnts.size(); j++)
+			{
+			double d = abs(dot( planeNormal, (pnts[j] - planeCenter) ));
+			*/
+			Vec3d & cp = surface.mCtrlPoint[u][v];
+			for(int j = 0; j < (int)pnts.size(); j++){
+				Vec3d p,t0,t1,normal;
+				surface.GetFrame(u,v,p,t0,t1,normal);
+				double d = abs(dot( normal, (pnts[j] - p) ));
+				dists[d] = pnts[j];
+			}
+			Vec3d closestPoint = dists.values().front();
+			cp = closestPoint;
+		}
+	}
 }
 
 void nurbs_plugin::clearAll()

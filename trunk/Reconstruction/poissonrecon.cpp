@@ -17,7 +17,7 @@ char **PoissonRecon::convertArguments(QStringList args)
     return argsv;
 }
 
-void PoissonRecon::makeFromCloud(QString filename, QString out_filename, int depth)
+void PoissonRecon::makeFromCloudFile(QString filename, QString out_filename, int depth)
 {
     QStringList args;
 
@@ -26,4 +26,15 @@ void PoissonRecon::makeFromCloud(QString filename, QString out_filename, int dep
     args << "--depth" << QString::number(depth);
 
     Execute< 2 >(args.size(), convertArguments(args) );
+}
+
+void PoissonRecon::makeFromCloud( std::vector< std::vector<float> > & p, std::vector< std::vector<float> > & n, QString out_filename, int depth /*= 7*/ )
+{
+	QStringList args;
+
+	args << "program_name";
+	args << "--in" << "dummy" << "--out" << out_filename;
+	args << "--depth" << QString::number(depth);
+
+	ExecuteMemory< 2 >(args.size(), convertArguments(args), p, n );
 }

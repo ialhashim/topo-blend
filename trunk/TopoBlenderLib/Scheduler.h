@@ -56,6 +56,9 @@ public slots:
 
 	void startAllSameTime();
 
+	void doRenderAll() { emit( renderAll() ); } 
+	void doRenderCurrent() { emit( renderCurrent() ); }
+
 signals:
 	void activeGraphChanged( Structure::Graph* );
 	void startBlend();
@@ -63,4 +66,7 @@ signals:
 	void progressStarted();
 	void progressChanged(int);
 	void progressDone();
+
+	void renderAll();
+	void renderCurrent();
 };

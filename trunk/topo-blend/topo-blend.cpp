@@ -725,6 +725,10 @@ void topoblend::doBlend()
 	qDebug() << QString("Created TopoBlender and tasks in [ %1 ms ]").arg(timer.elapsed()  );
 
 	this->connect(scheduler, SIGNAL(activeGraphChanged( Structure::Graph* )), SLOT(updateActiveGraph( Structure::Graph* )));
+	
+	this->connect(scheduler, SIGNAL(renderAll()), SLOT(renderAll()));
+	this->connect(scheduler, SIGNAL(renderCurrent()), SLOT(renderCurrent()));
+
 	//graphs.push_back( blender->active );
 
 	//Structure::Graph * blendedGraph = blender->blend();
@@ -994,7 +998,10 @@ void topoblend::loadSynthesisData()
 			if(tnodeID.isEmpty()) continue;
 
 			Synthesizer::loadSynthesisData(node);
-			Synthesizer::loadSynthesisData(blender->tg->getNode(tnodeID));
+
+			Structure::Node * tnode = scheduler->targetGraph->getNode(tnodeID);
+			if(!tnode) continue;
+			Synthesizer::loadSynthesisData(tnode);
 		}
 	}
 
@@ -1051,9 +1058,97 @@ void topoblend::outputPointCloud()
 				QString xyz_filename = n->id + ".xyz";
 				Synthesizer::writeXYZ(xyz_filename, points, normals);
 
-				PoissonRecon::makeFromCloud(xyz_filename, xyz_filename + ".off");
+				PoissonRecon::makeFromCloudFile(xyz_filename, xyz_filename + ".off");
 			}
 		}
+	}
+}
+
+void topoblend::renderAll()
+{
+	if(!scheduler) return;
+
+	for(int i = 0; i < scheduler->allGraphs.size(); i++)
+	{
+		renderGraph( scheduler->allGraphs[i], QString("output_%1.off").arg(i) );
+	}
+}
+
+void topoblend::renderCurrent()
+{
+	if(!scheduler) return;
+	Structure::Graph * lastGraph = this->graphs.back();
+	renderGraph(lastGraph, "currentGraph.off");
+}
+
+void topoblend::renderGraph( Structure::Graph * graph, QString filename )
+{
+	foreach(Structure::Node * node, graph->nodes)
+	{
+		// Skip inactive nodes
+		if(!node->property["isReady"].toBool()) continue;
+
+		// Retrieve corresponding node
+		if(!node->property.contains("correspond")) continue;
+		Structure::Node * tnode = scheduler->targetGraph->getNode(node->property["correspond"].toString());
+		if(tnode == NULL) continue;
+
+		// Retrieve blending parameter alpha
+		double alpha = 0;
+		if(node->property.contains("t"))
+			alpha = node->property["t"].toDouble();
+		
+		QVector<Vec3d> points, normals;
+
+		if(node->type() == Structure::CURVE)
+		{
+			Structure::Curve * scurve = (Structure::Curve *)node;
+			Structure::Curve * tcurve = (Structure::Curve *)tnode;
+
+			Synthesizer::blendGeometryCurves(scurve, tcurve, alpha, points, normals);
+		}
+
+		if(node->type() == Structure::SHEET)
+		{
+			Structure::Sheet * ssheet = (Structure::Sheet *)node;
+			Structure::Sheet * tsheet = (Structure::Sheet *)tnode;
+
+			Synthesizer::blendGeometrySheets(ssheet, tsheet, alpha, points, normals);
+		}
+
+		if(!points.size()) continue;
+
+		std::vector<Vec3d> clean_points = points.toStdVector();
+
+		// Clean up and compute normals
+		int num_nighbours = 16;
+		//std::vector<size_t> xrefs;
+		//weld(clean_points, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
+		normals.clear();
+		NormalExtrapolation::ExtrapolateNormals(clean_points, normals, num_nighbours);
+
+		// Send to reconstruction
+		std::vector< std::vector<float> > finalP, finalN;
+
+		foreach(Vec3d p, clean_points){
+			std::vector<float> point(3, 0);
+			point[0] = p[0];
+			point[1] = p[1];
+			point[2] = p[2];
+			finalP.push_back(point);
+		}
+
+		foreach(Vec3d n, normals){
+			std::vector<float> normal(3, 0);
+			normal[0] = n[0];
+			normal[1] = n[1];
+			normal[2] = n[2];
+			finalN.push_back(normal);
+		}
+
+		Synthesizer::writeXYZ("currentGraph.xyz", points, normals);
+
+		PoissonRecon::makeFromCloud(finalP, finalN, filename);
 	}
 }
 

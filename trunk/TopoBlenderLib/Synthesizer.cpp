@@ -14,13 +14,13 @@ typedef std::pair<ParameterCoord,int> ParameterCoordInt;
 bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCoordInt& r)
 { return l.first < r.first; }
 
-#define CURVE_FRAME_RESOLUTION 0.0001
+#define CURVE_FRAME_RESOLUTION 0.01
 #define SHEET_FRAME_RESOLUTION 0.01
 
 // Sampling
 #define RANDOM_COUNT 1e4
 #define UNIFORM_RESOLUTION 0.01
-#define EDGE_RESOLUTION 0.005
+#define EDGE_RESOLUTION 0.05
 
 // Helper functions
 void Synthesizer::sortSamplesCurve( QVector<ParameterCoord> & samples, QVector<int> & oldIndices )
@@ -70,6 +70,8 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 	double resolution = curve->bbox().size().length() * CURVE_FRAME_RESOLUTION;
 
 	Array1D_Vec4d curveCoords = curve->discretizedPoints(resolution).front();
+
+	qDebug() << "Curve resolution count = " << curveCoords.size();
 
 	// Generate consistent frames along curve
 	std::vector<Vec3d> samplePoints;
@@ -122,6 +124,8 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * she
 
 	Array2D_Vec4d sheetCoords = sheet->discretizedPoints(resolution);
 	Array1D_Vec4d allCoords;
+
+	qDebug() << "Sheet resolution count = " << sheetCoords.size();
 
 	// Add all curve points to kd-tree
 	NanoKdTree kdtree;
@@ -302,6 +306,8 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 
 	ParameterCoord * samplesArray = samples.data();
 
+	qDebug() << "Curve RMF count = " << rmf.U.size() << ", Samples = " << samples.size();
+
 	NURBSCurve mycurve;
 	#pragma omp parallel for private(mycurve)
 	for(int i = 0; i < (int)samples.size(); i++)
@@ -351,6 +357,8 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 	normals.clear();
 	normals.resize( samples.size() );
 
+	qDebug() << "Sheet samples = " << samples.size();
+
 	ParameterCoord * samplesArray = samples.data();
 
 	#pragma omp parallel for
@@ -383,6 +391,8 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 		globalToLocalSpherical(X, Y, Z, normalCoord[0], normalCoord[1], v);
 		normals[i] = normalCoord;
 	}
+
+	qDebug() << QString("Sheet [%1] Done.").arg(sheet->id);
 }
 
 
@@ -493,7 +503,6 @@ void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVec
 
 void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2, int s )
 {
-
 	if(!curve1 || !curve2 || !curve1->property.contains("mesh") || !curve2->property.contains("mesh")) return;
 
 	QElapsedTimer timer; timer.start();
@@ -510,7 +519,9 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 	if (s & Synthesizer::Random)	samples += genRandomCoords(curve1) + genRandomCoords(curve2);
 	if (s & Synthesizer::Uniform)	samples += genUniformCoords(curve1) + genUniformCoords(curve2);
 
-	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());
+	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());timer.restart();
+
+	qDebug() << "Re-sampling mesh..";
 
 	// Re-sample the meshes
 	QVector<double> offsets1, offsets2;
@@ -525,6 +536,8 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 	curve2->property["samples"].setValue(samples);
 	curve2->property["offsets"].setValue(offsets2);
 	curve2->property["normals"].setValue(normals2);
+
+	qDebug() << QString("Resampling Time [ %1 ms ]\n==\n").arg(timer.elapsed());
 }
 
 void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2, int s )
@@ -636,7 +649,7 @@ void Synthesizer::writeXYZ( QString filename, QVector<Vector3> &points, QVector<
 
 void Synthesizer::saveSynthesisData( Structure::Node *node )
 {
-	if(!node->property.contains("samples")) return;
+	if(!node || !node->property.contains("samples")) return;
 
 	QVector<ParameterCoord> samples = node->property["samples"].value< QVector<ParameterCoord> >();
 	QVector<double> offsets = node->property["offsets"].value< QVector<double> >();
@@ -665,6 +678,8 @@ void Synthesizer::saveSynthesisData( Structure::Node *node )
 
 void Synthesizer::loadSynthesisData( Structure::Node *node )
 {
+	if(!node) return;
+
 	QFile file(node->id + ".txt");
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
 	QTextStream inF(&file);

@@ -37,7 +37,7 @@ public:
 	void basicCurveFit(NURBSCurve & curve, std::vector<Vec3d> pnts);
 	void basicCurveFitRecursive(NURBSCurve & curve, std::vector<Vec3d> pnts, int high, int low);
 
-	void basicSurfaceFit(NURBSRectangle & surface);
+	void basicSurfaceFit( NURBSRectangle & surface, std::vector<Vec3d> pnts );
 
 public slots:
     void doFitCurve();
