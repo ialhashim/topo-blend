@@ -139,7 +139,11 @@ public:
         }
 
 		// Draw actual surface
-		if(nc->quads.empty()) nc->generateSurfaceQuads(4.0);
+		if(nc->quads.empty()) 
+		{
+			double resolution = (nc->mCtrlPoint.front().front() - nc->mCtrlPoint.back().back()).norm() * 0.05;
+			nc->generateSurfaceQuads( resolution );
+		}
 
 		glEnable(GL_LIGHTING);
         glEnable(GL_BLEND);
@@ -173,19 +177,22 @@ public:
 
 
 		// Draw UV indicator
-		SurfaceQuad quad = nc->quads.front();
+		if(!nc->quads.empty())
+		{
+			SurfaceQuad quad = nc->quads.front();
 
-		glLineWidth(8);
+			glLineWidth(8);
 
-		glColor3d(1,0,0);
-		glBegin(GL_LINES);
-		glVector3(quad.p[0]); glVector3(quad.p[1]);
-		glEnd();
+			glColor3d(1,0,0);
+			glBegin(GL_LINES);
+			glVector3(quad.p[0]); glVector3(quad.p[1]);
+			glEnd();
 
-		glColor3d(0,1,0);
-		glBegin(GL_LINES);
-		glVector3(quad.p[0]); glVector3(quad.p[3]);
-		glEnd();
+			glColor3d(0,1,0);
+			glBegin(GL_LINES);
+			glVector3(quad.p[0]); glVector3(quad.p[3]);
+			glEnd();
+		}
 
 		glEnable(GL_LIGHTING);
 	}

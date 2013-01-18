@@ -505,13 +505,7 @@ std::vector< std::vector<Vector3> > NURBSRectangle::generateSurfaceTris( Scalar 
 
 void NURBSRectangle::generateSurfacePoints( Scalar stepSize, std::vector< std::vector<Vector3> > & points, std::vector<Real> & valU, std::vector<Real> & valV )
 {
-	std::vector<Vector3> ctrlU = GetControlPointsU(0);
-	std::vector<Vector3> ctrlV = GetControlPointsV(0);
-
-	std::vector< std::vector<Vector3> > curveU = NURBSCurve(ctrlU, std::vector<Scalar>(ctrlU.size(), 1.0)).toSegments(stepSize);
-	std::vector< std::vector<Vector3> > curveV = NURBSCurve(ctrlV, std::vector<Scalar>(ctrlV.size(), 1.0)).toSegments(stepSize);
-
-	uniformCoordinates(valU, valV, qMin(curveU.size(), curveV.size()));
+	uniformCoordinates(valU, valV, stepSize);
 
 	points.resize(valU.size(), std::vector<Vector3>(valV.size()));
 
@@ -526,14 +520,8 @@ void NURBSRectangle::generateSurfacePoints( Scalar stepSize, std::vector< std::v
 
 void NURBSRectangle::generateSurfacePointsCoords( Scalar stepSize, std::vector< std::vector<Vec4d> > & points )
 {
-	std::vector<Vector3> ctrlU = GetControlPointsU(0);
-	std::vector<Vector3> ctrlV = GetControlPointsV(0);
-
-	std::vector< std::vector<Vector3> > curveU = NURBSCurve(ctrlU, std::vector<Scalar>(ctrlU.size(), 1.0)).toSegments(stepSize);
-	std::vector< std::vector<Vector3> > curveV = NURBSCurve(ctrlV, std::vector<Scalar>(ctrlV.size(), 1.0)).toSegments(stepSize);
-
 	std::vector<Real> valU,valV;
-	uniformCoordinates(valU, valV, qMin(curveU.size(), curveV.size()));
+	uniformCoordinates(valU, valV, stepSize);
 
 	points.resize(valU.size(), std::vector<Vec4d>(valV.size()));
 
@@ -690,10 +678,15 @@ void NURBSRectangle::uniformCoordinates( std::vector<Real> & valU, std::vector<R
 	std::vector<Vector3> cptsU = GetControlPointsU(u);
 	std::vector<Vector3> cptsV = GetControlPointsV(v);
 
-	double lengthU = 0, lengthV = 0;
+	// Uniform across given U, V
+	NURBSCurve curveU( cptsU, std::vector<Scalar>(cptsU.size(), 1) );
+	NURBSCurve curveV( cptsV, std::vector<Scalar>(cptsV.size(), 1) );
 
-	for(int i = 1; i < (int)cptsU.size(); i++) lengthU += (cptsU[i] - cptsU[i-1]).norm();
-	for(int i = 1; i < (int)cptsV.size(); i++) lengthV += (cptsV[i] - cptsV[i-1]).norm();
+	double lengthU = curveU.GetLength(0,1), lengthV = curveV.GetLength(0,1);
+
+	// In case of zero sheet, which is a curve
+	if (lengthU < resolution || lengthV < resolution)
+		return;
 
 	Scalar resSize = resolution;
 	double resU,resV;
@@ -709,16 +702,21 @@ void NURBSRectangle::uniformCoordinates( std::vector<Real> & valU, std::vector<R
 		resU = resSize;
 	}
 
-	resU = ceil(resU);
-	resV = ceil(resV);
+	int nU = lengthU / resU;
+	int nV = lengthV / resV;
+	resU = lengthU / nU;
+	resV = lengthV / nV;
 
-	// Uniform across given U, V
-	NURBSCurve curveU( cptsU, std::vector<Scalar>(cptsU.size(), 1) );
-	NURBSCurve curveV( cptsV, std::vector<Scalar>(cptsV.size(), 1) );
-	Scalar deltaU = curveU.GetLength(0, 1) / resU;
-	Scalar deltaV = curveV.GetLength(0, 1) / resV;
-	for(int i = 0; i <= resU; i++)	valU.push_back(curveU.GetTime(i * deltaU));
-	for(int i = 0; i <= resV; i++)	valV.push_back(curveV.GetTime(i * deltaV));
+	for(int i = 0; i <= nU; i++)	
+	{
+		double distance = resU * i;
+		valU.push_back(curveU.GetTime(distance));
+	}
+	for(int i = 0; i <= nV; i++)	
+	{
+		double distance = resV * i;
+		valV.push_back(curveV.GetTime(distance));
+	}
 }
 
 Real NURBSRectangle::avgCtrlEdgeLength()

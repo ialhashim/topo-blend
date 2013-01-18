@@ -163,548 +163,6 @@ void Task::drawDebug()
 	glEnable(GL_LIGHTING);
 }
 
-void Task::prepare()
-{
-	this->start = this->x();
-	this->currentTime = start;
-	this->isDone = false;
-
-	this->property["orgCtrlPoints"].setValue( node()->controlPoints() );
-
-	QVector<QString> runningTasks = active->property["running_tasks"].value< QVector<QString> >();
-	foreach(QString id, runningTasks) qDebug() << id;
-	qDebug() << "---";
-
-	if (node()->type() == Structure::CURVE)
-	{
-		switch(type)
-		{
-		case GROW:
-			prepareGrowCurve();
-			break;
-		case SHRINK:
-			prepareShrinkCurve();
-			break;
-		case SPLIT:
-		case MERGE:
-		case MORPH:
-			prepareMorph2();
-			break;
-		}
-	}
-	else
-	{
-		switch(type)
-		{
-		case GROW:
-			prepareGrowSheet();
-			break;
-		case SHRINK:
-			prepareShrinkSheet();
-			break;
-		case SPLIT:
-		case MERGE:
-		case MORPH:
-			prepareMorph2();
-			break;
-		}
-	}
-
-	this->isReady = true;
-	node()->property["isReady"] = true;
-}
-
-void Task::execute( double t )
-{	
-	if(!isActive(t)) return;
-
-	if ( !isReady ) prepare();
-
-	currentTime = start + (t * length);
-
-	// Blend geometries
-	geometryMorph( t );
-
-	switch(type)
-	{
-	case GROW:
-	case SHRINK:
-		executeGrowShrink2( t );
-		break;
-	case SPLIT:
-	case MERGE:
-	case MORPH:
-		//executeMorph2( t );
-		break;
-	}
-
-	if(t == 1.0)
-	{
-		this->isDone = true;
-	}
-}
-
-void Task::prepareGrowShrink()
-{
-	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = getGoodEdges();
-
-	if( property.contains("isCutNode") )
-	{
-		if(n->type() == Structure::CURVE)
-		{
-			Structure::Curve* structure_curve = ((Structure::Curve*)n);
-
-			Vec3d pointA = structure_curve->position( Vec4d(0) );
-			Vec3d pointB = structure_curve->position( Vec4d(1) );
-
-			// Find first link to a sheet
-			QVector<Structure::Link*> my_edges = active->getEdges(n->id); 
-
-			if(my_edges.size())
-			{
-				Structure::Link * endLink = my_edges.front();
-				foreach(Structure::Link * edge, my_edges){
-					if(edge->otherNode(n->id)->type() == Structure::SHEET){
-						endLink = edge;
-						break;
-					}
-				}
-
-				// Curve folding
-				bool isApplyFold = (type == GROW) ? true : false;
-				Array1D_Vector3 deltas = structure_curve->foldTo( endLink->getCoord(n->id).front(), isApplyFold );
-				if(!isApplyFold) deltas = inverseVectors3(deltas);
-
-				property["deltas"].setValue( deltas );
-				property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
-				property["anchorNode"].setValue( endLink->otherNode(n->id)->id );
-			}
-		}
-
-		if(n->type() == Structure::SHEET)
-		{
-		}
-
-		return;
-	}
-
-	// Special case?
-	if(edges.size() == 0){
-		if(type == SHRINK){
-			Structure::Link * singleEdge = active->getEdges(n->id).front();
-			edges.push_back(singleEdge);
-		}
-	}
-
-	if(edges.size() == 1)
-	{
-		Structure::Link * l = edges.front();
-		Structure::Node * base = l->otherNode(n->id);
-
-		if(n->type() == Structure::CURVE)
-		{
-			Structure::Curve* structure_curve = ((Structure::Curve*)n);
-
-			Vec4d coordBase = l->getCoord(base->id).front();
-			Vec4d coordSelf = l->getCoord(n->id).front();
-
-			Vector3 linkPositionBase = l->position( base->id );
-			int cpIDX = structure_curve->controlPointIndexFromCoord( coordSelf );
-
-			// Place curve
-			structure_curve->moveBy( linkPositionBase - structure_curve->controlPoint(cpIDX)  );
-
-			// Curve folding
-			bool isApplyFold = (type == GROW) ? true : false;
-			Array1D_Vector3 deltas = structure_curve->foldTo( coordSelf, isApplyFold );
-			if(!isApplyFold) deltas = inverseVectors3(deltas);
-
-			// Growing / shrinking instructions
-			property["deltas"].setValue( deltas );
-			property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
-		}
-
-		if(n->type() == Structure::SHEET)
-		{
-			Structure::Link * l = edges.front();
-			Structure::Node * base = l->otherNode(n->id);
-			Structure::Sheet* structure_sheet = ((Structure::Sheet*)n);
-
-			// Placement:
-			structure_sheet->moveBy( l->position( base->id ) - l->position( n->id ) );
-
-			// Sheet folding:
-			bool isApplyFold = (type == GROW) ? true : false;
-			Array2D_Vector3 deltas = structure_sheet->foldTo( l->getCoord(n->id), isApplyFold );
-			if(!isApplyFold) deltas = inverseVectors3(deltas);
-
-			// Growing / shrinking instructions
-			property["deltas"].setValue( deltas );
-			property["orgCtrlPoints"].setValue( structure_sheet->surface.mCtrlPoint );
-		}
-	}
-
-	if(edges.size() == 2)
-	{
-		if(node()->type() == Structure::CURVE)
-		{
-			Structure::Curve* structure_curve = ((Structure::Curve*)n);
-
-			property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
-
-			QList<Structure::Link*> farEdges = furthermostGoodEdges();
-
-			Structure::Link * linkA = farEdges.front();
-			Structure::Link * linkB = farEdges.back();
-
-			Vec3d pointA = linkA->position( n->id );
-			Vec3d pointB = linkB->position( n->id );
-
-			QVector< NodeCoord > path;
-
-			GraphDistance gd( active, SingleNode(node()->id) );
-			gd.computeDistances( pointA );
-			gd.pathCoordTo( pointB, path);
-
-			NodeCoord endPointCoord = path[path.size() / 2];
-			Vec3d endPoint = active->position(endPointCoord.first, endPointCoord.second);
-
-			if(type == GROW)
-			{
-                Vec4d halfCoord(0.5);
-                structure_curve->foldTo( halfCoord, true );
-				structure_curve->moveBy( endPoint - structure_curve->position(Vec4d(0.5)) );
-			}
-				
-			if(type == SHRINK)
-			{
-				linkA->replace( linkA->otherNode(n->id)->id, active->getNode(endPointCoord.first), Array1D_Vec4d(1, endPointCoord.second));
-				linkB->replace( linkB->otherNode(n->id)->id, active->getNode(endPointCoord.first), Array1D_Vec4d(1, endPointCoord.second));
-			}
-
-			// Morph operation need these
-			linkA->property["finalCoord_n1"].setValue( qMakePair(linkA->n1->id, linkA->getCoord(linkA->n1->id)) );
-			linkA->property["finalCoord_n2"].setValue( qMakePair(linkA->n2->id, linkA->getCoord(linkA->n2->id)) );
-
-			linkB->property["finalCoord_n1"].setValue( qMakePair(linkB->n1->id, linkB->getCoord(linkB->n1->id)) );
-			linkB->property["finalCoord_n2"].setValue( qMakePair(linkB->n2->id, linkB->getCoord(linkB->n2->id)) );
-
-			// ARAP curve deformation
-			setupCurveDeformer( structure_curve, linkA, linkB );
-			ARAPCurveDeformer* deformer = property["deformer"].value<ARAPCurveDeformer*>();
-			deformer->points = structure_curve->curve.mCtrlPoint;
-		}
-
-		if(node()->type() == Structure::SHEET)
-		{
-		}
-	}
-}
-
-void Task::executeGrowShrink( double t )
-{
-	if(!isReady) return;
-
-	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = getGoodEdges();
-
-	/// Cut node cases:
-	if( property.contains("isCutNode") )
-	{
-		if(n->type() == Structure::CURVE)
-		{
-			Structure::Curve* current_curve = ((Structure::Curve*)node());
-
-			// Grow / shrink the node
-			Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
-			Array1D_Vector3 deltas = property["deltas"].value<Array1D_Vector3>();
-			QString anchorNode = property["anchorNode"].toString();
-
-			// Grow / shrink curve
-			for(int u = 0; u < current_curve->curve.mNumCtrlPoints; u++)
-				current_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);
-
-			// Re-link:
-			foreach( Structure::Link * edge, active->getEdges(n->id) )
-			{
-				Structure::Node * otherNode = edge->otherNode(n->id);
-				if(otherNode->id == anchorNode) continue;
-
-				if(otherNode->type() == Structure::CURVE)
-				{
-					Structure::Curve* other_curve = ((Structure::Curve*) otherNode);
-
-					int nCtrl = other_curve->curve.GetNumCtrlPoints();
-					int idx_control = other_curve->controlPointIndexFromCoord( edge->getCoord(other_curve->id).front() );
-					int idx_anchor = (idx_control > nCtrl / 2) ? 0 : nCtrl - 1;
-
-					ARAPCurveDeformer * deformer = new ARAPCurveDeformer( other_curve->controlPoints(), other_curve->controlPoints().size() * 0.5 );
-
-					deformer->ClearAll();
-					deformer->setControl( idx_control );
-					deformer->SetAnchor( idx_anchor );
-					deformer->MakeReady();
-
-					Vec3d newPosCtrl = edge->position(n->id);
-					deformer->UpdateControl(idx_control, newPosCtrl);
-					deformer->Deform( arapIterations );
-					other_curve->setControlPoints( deformer->points );
-				}
-
-				if(n->type() == Structure::SHEET)
-				{
-				}
-			}
-		}
-
-		if(n->type() == Structure::SHEET)
-		{
-		}
-
-		return;
-	}
-
-	// Special case?
-	if(edges.size() == 0){
-		if(type == SHRINK){
-			Structure::Link * singleEdge = active->getEdges(n->id).front();
-			edges.push_back(singleEdge);
-		}
-	}
-
-	/// Normal cases:
-
-	// One edge
-	if(edges.size() == 1)
-	{
-		if(node()->type() == Structure::CURVE)
-		{
-			Structure::Curve* structure_curve = ((Structure::Curve*)node());
-
-			Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
-			Array1D_Vector3 deltas = property["deltas"].value<Array1D_Vector3>();
-
-			// Grow curve
-			for(int u = 0; u < structure_curve->curve.mNumCtrlPoints; u++)
-				structure_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);	
-		}
-
-		if(node()->type() == Structure::SHEET)
-		{
-			Structure::Sheet* structure_sheet = ((Structure::Sheet*)node());
-
-			Array2D_Vector3 cpts = property["orgCtrlPoints"].value<Array2D_Vector3>();
-			Array2D_Vector3 deltas = property["deltas"].value<Array2D_Vector3>();
-
-			// Grow sheet
-			for(int u = 0; u < structure_sheet->surface.mNumUCtrlPoints; u++)
-				for(int v = 0; v < structure_sheet->surface.mNumVCtrlPoints; v++)
-					structure_sheet->surface.mCtrlPoint[u][v] = cpts[u][v] + (deltas[u][v] * t);
-		}
-	}
-
-	if(edges.size() == 2)
-	{
-		if(node()->type() == Structure::CURVE)
-		{
-			executeMorph( t );
-		}
-
-		if(node()->type() == Structure::SHEET)
-		{
-		}
-	}
-}
-
-void Task::prepareMorph()
-{
-	QVector<Structure::Link*> edges = getGoodEdges();
-
-	// 1) SINGLE edge
-	if(edges.size() == 1)
-	{
-		if(node()->type() == Structure::CURVE)
-		{
-			Structure::Curve* structure_curve = ((Structure::Curve*)node());
-
-			Structure::Link * link = edges.front();
-			Vec3d startPoint = link->position(node()->id);
-
-			// Compute path
-			GraphDistance graphDist(active, SingleNode(node()->id));
-			QVector< NodeCoord > path;
-			graphDist.computeDistances( link->positionOther( node()->id ) );
-			graphDist.pathCoordTo( startPoint, path);
-
-			property["path"].setValue( path );
-			property["cpIDX"] = structure_curve->controlPointIndexFromCoord( link->getCoord(node()->id).front() );
-		}
-
-		if(node()->type() == Structure::SHEET)
-		{
-		}
-	}
-
-	// 2) TWO edges
-	if(edges.size() == 2)
-	{
-		if(node()->type() == Structure::CURVE)
-		{
-			Structure::Curve* structure_curve = ((Structure::Curve*)node());
-
-			// We will get two "handles" from furthest edges
-			QList<Structure::Link*> farEdges = furthermostGoodEdges();
-
-			// ARAP curve deformation
-			setupCurveDeformer( structure_curve, farEdges.front(), farEdges.back() );
-		}
-	}
-
-	// 3) More than two edges
-
-}
-
-void Task::executeMorph( double t )
-{
-	if(!isReady) return;
-
-	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = getGoodEdges();
-
-	// 1) SINGLE edge
-	if(edges.size() == 1)
-	{
-		Structure::Link * edge = edges.front();
-
-		if(n->type() == Structure::CURVE)
-		{			
-			Structure::Curve* current_curve = ((Structure::Curve*)n);
-			Structure::Curve* target_curve = targetCurve();
-
-			weldMorphPath();
-			QVector< NodeCoord > path = property["path"].value< QVector< NodeCoord > >();
-
-			int cpIDX = property["cpIDX"].toInt();
-
-			if(path.size() > 0) 
-			{
-				int current = t * (path.size() - 1);
-				Vec3d newPos = active->position(path[current].first,path[current].second);
-
-				// Move end with a link
-				current_curve->curve.translateTo( newPos, cpIDX );
-
-				QString tbaseNode = edge->otherNode(current_curve->id)->property["correspond"].toString();
-				QString tnodeID = current_curve->property["correspond"].toString();
-				
-				int cpIDX_target = target_curve->controlPointIndexFromCoord(target->getEdge(tbaseNode, tnodeID)->getCoord(tnodeID).front());
-
-				target_curve->curve.translateTo( newPos, cpIDX_target); // moves along for the ride..
-			}
-
-			// Move free end (linear interpolation)
-			int freeEnd = (cpIDX < current_curve->curve.GetNumCtrlPoints() * 0.5) ? 
-				current_curve->curve.GetNumCtrlPoints() - 1 : 0;
-
-			Vec3d freeEndPos = AlphaBlend(pow(t,2), current_curve->controlPoint(freeEnd), target_curve->controlPoint(freeEnd));
-			deformCurve(cpIDX, freeEnd, freeEndPos);
-		}
-
-		if(n->type() == Structure::SHEET)
-		{
-
-		}
-	}
-
-	// 2) TWO edges
-	if(edges.size() == 2)
-	{
-		// Curve case:
-		if(n->type() == Structure::CURVE)
-		{
-			Structure::Curve* structure_curve = ((Structure::Curve*)n);
-
-			Structure::Link * linkA = property["linkA"].value<Structure::Link*>();
-			Structure::Link * linkB = property["linkB"].value<Structure::Link*>();
-
-			int cpidxA = property["cpidxA"].toInt();
-			int cpidxB = property["cpidxB"].toInt();
-
-			ARAPCurveDeformer * deformer = property["deformer"].value<ARAPCurveDeformer*>();
-
-			QVector< NodeCoord > pathA = property["pathA"].value< QVector< NodeCoord > >();
-			QVector< NodeCoord > pathB = property["pathB"].value< QVector< NodeCoord > >();
-
-			int idxA = t * (pathA.size() - 1);
-			int idxB = t * (pathB.size() - 1);
-
-			// Move point A to next step
-			if(idxA > 0 && pathA.size() > 2)
-			{
-				NodeCoord stepA = pathA[idxA];
-				deformer->ClearAll();
-				deformer->setControl(cpidxA);
-				deformer->SetAnchor(cpidxB);
-				deformer->MakeReady();
-
-				Vec3d newPosA = active->position(stepA.first, stepA.second);
-				deformer->UpdateControl(cpidxA, newPosA);
-				deformer->Deform( arapIterations );
-				structure_curve->setControlPoints( deformer->points );
-			}
-
-			// Move point B to next step
-			if(idxB > 0 && pathB.size() > 2)
-			{
-				NodeCoord stepB = pathB[idxB];
-				deformer->ClearAll();
-				deformer->setControl(cpidxB);
-				deformer->SetAnchor(cpidxA);
-				deformer->MakeReady();
-
-				Vec3d newPosB = active->position(stepB.first, stepB.second);
-				deformer->UpdateControl(cpidxB, newPosB);
-				deformer->Deform( arapIterations );
-				structure_curve->setControlPoints( deformer->points );
-			}
-			
-			if(t == 1.0 && linkA->property.contains("finalCoord_n1"))
-			{
-				NodeCoords coordA = linkA->property["finalCoord_n1"].value<NodeCoords>();
-				NodeCoords coordOtherA = linkA->property["finalCoord_n2"].value<NodeCoords>();
-				if(coordA.first != n->id) std::swap(coordA, coordOtherA);
-
-				NodeCoords coordB = linkB->property["finalCoord_n1"].value<NodeCoords>();
-				NodeCoords coordOtherB = linkB->property["finalCoord_n2"].value<NodeCoords>();
-				if(coordB.first != n->id) std::swap(coordB, coordOtherB);
-
-				// Apply final coordinates
-				linkA->setCoord(n->id, coordA.second);
-				linkA->setCoordOther(n->id, coordOtherA.second);
-
-				linkB->setCoord(n->id, coordB.second);
-				linkB->setCoordOther(n->id, coordOtherB.second);
-			}
-		}
-
-		// Sheet case:
-		if(n->type() == Structure::SHEET)
-		{
-
-		}
-	}
-
-	// 3) More than two edges
-
-	// Done with this morph
-	if(t == 1.0)
-	{
-		foreach(Structure::Link * edge, active->getEdges(node()->id))
-			edge->property["active"] = true;
-	}
-}
-
 void Task::setupCurveDeformer( Structure::Curve* curve, Structure::Link* linkA, Structure::Link* linkB )
 {
 	std::vector<Vec3d> curvePoints = node()->controlPoints();
@@ -933,6 +391,58 @@ bool Task::isActive( double t )
 	return (t >= 0.0 && !isDone);
 }
 
+// PREPARE
+void Task::prepare()
+{
+	this->start = this->x();
+	this->currentTime = start;
+	this->isDone = false;
+
+	this->property["orgCtrlPoints"].setValue( node()->controlPoints() );
+
+	QVector<QString> runningTasks = active->property["running_tasks"].value< QVector<QString> >();
+	foreach(QString id, runningTasks) qDebug() << id;
+	qDebug() << "---";
+
+	if (node()->type() == Structure::CURVE)
+	{
+		switch(type)
+		{
+		case GROW:
+			prepareGrowCurve();
+			break;
+		case SHRINK:
+			prepareShrinkCurve();
+			break;
+		case SPLIT:
+		case MERGE:
+		case MORPH:
+			prepareMorphCurve();
+			break;
+		}
+	}
+	else
+	{
+		switch(type)
+		{
+		case GROW:
+			prepareGrowSheet();
+			break;
+		case SHRINK:
+			prepareShrinkSheet();
+			break;
+		case SPLIT:
+		case MERGE:
+		case MORPH:
+			prepareMorphCurve();
+			break;
+		}
+	}
+
+	this->isReady = true;
+	node()->property["isReady"] = true;
+}
+
 void Task::prepareShrinkCurve()
 {
 	Structure::Node * n = node();
@@ -1012,38 +522,6 @@ void Task::prepareShrinkCurve()
 	}
 }
 
-void Task::prepareShrinkCurveConstrained()
-{
-	Structure::Node * n = node();
-	Structure::Curve* structure_curve = ((Structure::Curve*)n);
-
-	if (property.contains("isCutNode"))
-	{
-		// Find first link to a sheet
-		QVector<Structure::Link*> my_edges = active->getEdges(n->id); 
-
-		Structure::Link * baseLink = my_edges.front();
-		foreach(Structure::Link * edge, my_edges){
-			Structure::Node *othernode = edge->otherNode(n->id);
-			if(othernode->type() == Structure::SHEET){
-				baseLink = edge;
-				break;
-			}
-		}
-
-		Vec4d coordSelf = baseLink->getCoord(n->id).front();
-		Structure::Node *basenode = baseLink->otherNode(n->id);
-
-		// Curve folding
-		Array1D_Vector3 deltas = structure_curve->foldTo( coordSelf, false );
-		deltas = inverseVectors3(deltas);
-
-		property["deltas"].setValue( deltas );
-		property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
-		property["anchorNode"].setValue( basenode->id );
-	}
-}
-
 void Task::prepareShrinkSheet()
 {
 	Structure::Node * n = node();
@@ -1077,6 +555,13 @@ void Task::prepareGrowCurve()
 
 	Structure::Curve* structure_curve = ((Structure::Curve*)n);
 	Structure::Curve* t_structure_curve = ((Structure::Curve*)tn);
+
+	if( target->isCutNode(tn->id) )
+	{
+		property["isCutNode"] = true;
+		prepareGrowCurveConstrained();
+		return;
+	}
 
 	if (tedges.size() == 1)
 	{
@@ -1193,12 +678,184 @@ void Task::prepareGrowSheet()
 	}
 }
 
-void Task::prepareMorph2()
+void Task::prepareShrinkCurveConstrained()
 {
+	Structure::Node * n = node();
+	Structure::Curve* structure_curve = ((Structure::Curve*)n);
 
+	if (property.contains("isCutNode"))
+	{
+		// Find first link to a sheet
+		QVector<Structure::Link*> my_edges = active->getEdges(n->id); 
+
+		Structure::Link * baseLink = my_edges.front();
+		foreach(Structure::Link * edge, my_edges){
+			Structure::Node *othernode = edge->otherNode(n->id);
+			if(othernode->type() == Structure::SHEET){
+				baseLink = edge;
+				break;
+			}
+		}
+
+		Vec4d coordSelf = baseLink->getCoord(n->id).front();
+		Structure::Node *basenode = baseLink->otherNode(n->id);
+
+		// Curve folding
+		Array1D_Vector3 deltas = structure_curve->foldTo( coordSelf, false );
+		deltas = inverseVectors3(deltas);
+
+		property["deltas"].setValue( deltas );
+		property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
+		property["anchorNode"].setValue( basenode->id );
+	}
 }
 
-void Task::executeGrowShrink2( double t )
+void Task::prepareGrowCurveConstrained()
+{
+	Structure::Node *n = node();
+	Structure::Node *tn = targetNode();
+	Structure::Curve* structure_curve = ((Structure::Curve*)n);
+
+	if (property.contains("isCutNode"))
+	{
+		// Find first link to a sheet
+		QVector<Structure::Link*> t_my_edges = target->getEdges(tn->id); 
+
+		Structure::Link * tbaseLink = t_my_edges.front();
+		foreach(Structure::Link * tedge, t_my_edges){
+			Structure::Node *tothernode = tedge->otherNode(tn->id);
+			if(tothernode->type() == Structure::SHEET){
+				tbaseLink = tedge;
+				break;
+			}
+		}
+
+		Vec4d coordSelf = tbaseLink->getCoord(tn->id).front();
+		Structure::Node *tbasenode = tbaseLink->otherNode(tn->id);
+		QString basenodeID = tbasenode->property["correspond"].toString();
+		
+		// Curve folding
+		Array1D_Vector3 deltas = structure_curve->foldTo( coordSelf, true );
+
+		property["deltas"].setValue( deltas );
+		property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
+		property["anchorNode"].setValue( basenodeID );
+	}
+}
+
+void Task::prepareMorphCurve()
+{
+	Structure::Node * n = node();
+	Structure::Curve* structure_curve = ((Structure::Curve*)node());
+	Structure::Node * tn = targetNode();
+	QVector<Structure::Link*> edges = active->getEdges(n->id);
+
+	// 1) SINGLE edge
+	if(edges.size() == 1)
+	{
+
+		Structure::Link * link = edges.front();
+		Vec3d startPoint = link->position(node()->id);
+
+		// Compute path
+		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
+		GraphDistance graphDist(active, exclude);
+		QVector< NodeCoord > path;
+		graphDist.computeDistances( link->positionOther( node()->id ) );
+		graphDist.pathCoordTo( startPoint, path);
+
+		property["path"].setValue( path );
+		property["cpIDX"] = structure_curve->controlPointIndexFromCoord( link->getCoord(node()->id).front() );
+	}
+
+	// 2) TWO edges
+	if(edges.size() == 2)
+	{
+
+		// Start and end for both links
+		Structure::Link * linkA = edges.front();
+		Vec3d startA = linkA->position( n->id );
+		Structure::Node * otherA = linkA->otherNode(n->id);
+		QString tlinkAID = linkA->property["correspond"].toString();
+		Structure::Link * tlinkA = target->getEdge(tlinkAID);
+		Vec4d endOtherCoordA = tlinkA->getCoordOther(tn->id).front();
+		Vec3d endA = otherA->position(endOtherCoordA);
+		
+		Structure::Link * linkB = edges.front();
+		Vec3d startB = linkB->position( n->id );
+		Structure::Node * otherB = linkB->otherNode(n->id);
+		QString tlinkBID = linkB->property["correspond"].toString();
+		Structure::Link * tlinkB = target->getEdge(tlinkBID);
+		Vec4d endOtherCoordB = tlinkB->getCoordOther(tn->id).front();
+		Vec3d endB = otherB->position(endOtherCoordB);
+
+		// Geodesic distances on the active graph excluding the running tasks
+		QVector< NodeCoord > pathA, pathB;	
+		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
+		GraphDistance gd( active, exclude );
+
+		gd.computeDistances( startA );	gd.pathCoordTo( endA, pathA);
+		gd.computeDistances( startB );	gd.pathCoordTo( endB, pathB);
+		property["pathA"].setValue(pathA);
+		property["pathB"].setValue(pathB);
+
+		// ARAP curve deformation
+		int cpidxA = structure_curve->controlPointIndexFromCoord(linkA->getCoord(n->id).front());
+		int cpidxB = structure_curve->controlPointIndexFromCoord(linkB->getCoord(n->id).front());
+		property["cpidxA"].setValue(cpidxA);
+		property["cpidxB"].setValue(cpidxB);
+
+		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint ) );
+	}
+}
+
+// EXECUTE
+void Task::execute( double t )
+{	
+	if(!isActive(t)) return;
+
+	if ( !isReady ) prepare();
+
+	currentTime = start + (t * length);
+
+	// Blend geometries
+	geometryMorph( t );
+
+	if (node()->type() == Structure::CURVE)
+	{
+		switch(type)
+		{
+		case GROW:
+		case SHRINK:
+			executeGrowShrinkCurve( t );
+			break;
+		case MORPH:
+			executeMorphCurve(t);
+			break;
+		}
+	}
+	else
+	{
+		switch(type)
+		{
+		case GROW:
+		case SHRINK:
+			executeGrowShrinkSheet( t );
+			break;
+		case MORPH:
+			break;
+		}
+	}
+
+
+
+	if(t == 1.0)
+	{
+		this->isDone = true;
+	}
+}
+
+void Task::executeGrowShrinkCurve( double t )
 {
 	Structure::Node * n = node();
 	Structure::Node * tn = targetNode();
@@ -1207,44 +864,62 @@ void Task::executeGrowShrink2( double t )
 
 	if (property.contains("isCutNode"))
 	{
-		
+		Structure::Curve* current_curve = ((Structure::Curve*)node());
+
+		// Grow / shrink the node
+		Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
+		Array1D_Vector3 deltas = property["deltas"].value<Array1D_Vector3>();
+		QString anchorNode = property["anchorNode"].toString();
+
+		// Grow / shrink curve
+		for(int u = 0; u < current_curve->curve.mNumCtrlPoints; u++)
+			current_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);
+
+		// Re-link:
+		foreach( Structure::Link * edge, active->getEdges(n->id) )
+		{
+			Structure::Node * otherNode = edge->otherNode(n->id);
+			if(otherNode->id == anchorNode) continue;
+
+			Structure::Curve* other_curve = ((Structure::Curve*) otherNode);
+
+			int nCtrl = other_curve->curve.GetNumCtrlPoints();
+			int idx_control = other_curve->controlPointIndexFromCoord( edge->getCoord(other_curve->id).front() );
+			int idx_anchor = (idx_control > nCtrl / 2) ? 0 : nCtrl - 1;
+
+			ARAPCurveDeformer * deformer = new ARAPCurveDeformer( other_curve->controlPoints(), other_curve->controlPoints().size() * 0.5 );
+
+			deformer->ClearAll();
+			deformer->setControl( idx_control );
+			deformer->SetAnchor( idx_anchor );
+			deformer->MakeReady();
+
+			Vec3d newPosCtrl = edge->position(n->id);
+			deformer->UpdateControl(idx_control, newPosCtrl);
+			deformer->Deform( arapIterations );
+			other_curve->setControlPoints( deformer->points );
+		}
 	}
 
 
 	if ((type == SHRINK && edges.size() == 2)
 		|| (type == GROW && tedges.size() == 2))
 	{
-		executeMorph2(t);
+		executeMorphCurve(t);
 	}
 
 
 	if ((type == SHRINK && edges.size() == 1)
 		|| (type == GROW && tedges.size() == 1))
 	{
-		if(node()->type() == Structure::CURVE)
-		{
-			Structure::Curve* structure_curve = ((Structure::Curve*)node());
+		Structure::Curve* structure_curve = ((Structure::Curve*)node());
 
-			Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
-			Array1D_Vector3 deltas = property["deltas"].value<Array1D_Vector3>();
+		Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
+		Array1D_Vector3 deltas = property["deltas"].value<Array1D_Vector3>();
 
-			// Grow curve
-			for(int u = 0; u < structure_curve->curve.mNumCtrlPoints; u++)
-				structure_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);	
-		}
-
-		if(node()->type() == Structure::SHEET)
-		{
-			Structure::Sheet* structure_sheet = ((Structure::Sheet*)node());
-
-			Array2D_Vector3 cpts = property["orgCtrlPoints"].value<Array2D_Vector3>();
-			Array2D_Vector3 deltas = property["deltas"].value<Array2D_Vector3>();
-
-			// Grow sheet
-			for(int u = 0; u < structure_sheet->surface.mNumUCtrlPoints; u++)
-				for(int v = 0; v < structure_sheet->surface.mNumVCtrlPoints; v++)
-					structure_sheet->surface.mCtrlPoint[u][v] = cpts[u][v] + (deltas[u][v] * t);
-		}
+		// Grow curve
+		for(int u = 0; u < structure_curve->curve.mNumCtrlPoints; u++)
+			structure_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);	
 	}
 
 	if (t == 1)
@@ -1262,16 +937,77 @@ void Task::executeGrowShrink2( double t )
 	}
 }
 
-void Task::executeMorph2( double t )
+void Task::executeGrowShrinkSheet( double t )
+{
+	Structure::Node * n = node();
+	Structure::Node * tn = targetNode();
+	QVector<Structure::Link*> edges = active->getEdges(n->id);
+	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
+
+
+	if ((type == SHRINK && edges.size() == 1)
+		|| (type == GROW && tedges.size() == 1))
+	{
+		Structure::Sheet* structure_sheet = ((Structure::Sheet*)node());
+
+		Array2D_Vector3 cpts = property["orgCtrlPoints"].value<Array2D_Vector3>();
+		Array2D_Vector3 deltas = property["deltas"].value<Array2D_Vector3>();
+
+		// Grow sheet
+		for(int u = 0; u < structure_sheet->surface.mNumUCtrlPoints; u++)
+			for(int v = 0; v < structure_sheet->surface.mNumVCtrlPoints; v++)
+				structure_sheet->surface.mCtrlPoint[u][v] = cpts[u][v] + (deltas[u][v] * t);
+
+	}
+}
+
+void Task::executeMorphCurve( double t )
 {
 	Structure::Node * n = node();
 	QVector<Structure::Link*> edges = active->getEdges(n->id);
 
-	// Curve case:
-	if(n->type() == Structure::CURVE)
-	{
-		Structure::Curve* structure_curve = ((Structure::Curve*)n);
 
+	Structure::Curve* structure_curve = ((Structure::Curve*)n);
+
+	// 1) SINGLE edge
+	if(edges.size() == 1)
+	{
+		Structure::Link * edge = edges.front();
+		Structure::Curve* current_curve = ((Structure::Curve*)n);
+		Structure::Curve* target_curve = targetCurve();
+
+		weldMorphPath();
+		QVector< NodeCoord > path = property["path"].value< QVector< NodeCoord > >();
+
+		int cpIDX = property["cpIDX"].toInt();
+
+		if(path.size() > 0) 
+		{
+			int current = t * (path.size() - 1);
+			Vec3d newPos = active->position(path[current].first,path[current].second);
+
+			// Move end with a link
+			current_curve->curve.translateTo( newPos, cpIDX );
+
+			QString tbaseNode = edge->otherNode(current_curve->id)->property["correspond"].toString();
+			QString tnodeID = current_curve->property["correspond"].toString();
+
+			int cpIDX_target = target_curve->controlPointIndexFromCoord(target->getEdge(tbaseNode, tnodeID)->getCoord(tnodeID).front());
+
+			target_curve->curve.translateTo( newPos, cpIDX_target); // moves along for the ride..
+		}
+
+		// Move free end (linear interpolation)
+		int freeEnd = (cpIDX < current_curve->curve.GetNumCtrlPoints() * 0.5) ? 
+			current_curve->curve.GetNumCtrlPoints() - 1 : 0;
+
+		Vec3d freeEndPos = AlphaBlend(pow(t,2), current_curve->controlPoint(freeEnd), target_curve->controlPoint(freeEnd));
+		deformCurve(cpIDX, freeEnd, freeEndPos);
+	}
+
+	// 2) TWO edges
+	if (edges.size() == 2)
+	{
 		int cpidxA = property["cpidxA"].toInt();
 		int cpidxB = property["cpidxB"].toInt();
 
@@ -1312,6 +1048,5 @@ void Task::executeMorph2( double t )
 			deformer->Deform( arapIterations );
 			structure_curve->setControlPoints( deformer->points );
 		}
-
 	}
 }
