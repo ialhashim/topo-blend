@@ -368,10 +368,10 @@ void TopoBlender::equalizeResolutions()
 		int bestResolution = 0;
 		foreach( QString sid, sNodes)
 		{
-			Structure::Node * super_sg->getNode(sid)
-			if (->numCtrlPnts() > bestResolution)
+			Structure::Node * snode = super_sg->getNode(sid);
+			if (snode->numCtrlPnts() > bestResolution)
 			{
-				bestResolution = 
+				bestResolution = 0;
 			}
 		}
 
