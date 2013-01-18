@@ -318,121 +318,282 @@ int Execute( int argc , char* argv[] )
 			else                DumpOutput2( comments[commentNum++] , "\t--%s\n" , params[i]->name );
 		}
 
-	double t;
-	double tt=Time();
-	Real isoValue = 0;
+		double t;
+		double tt=Time();
+		Real isoValue = 0;
 
-	Octree<Degree> tree;
-	tree.threads = Threads.value;
-	if( !In.set )
-	{
-		ShowUsage(argv[0]);
-		return 0;
-	}
-	if( !MaxSolveDepth.set ) MaxSolveDepth.value = Depth.value;
-	if( SolverDivide.value<MinDepth.value )
-	{
-		fprintf( stderr , "[WARNING] %s must be at least as large as %s: %d>=%d\n" , SolverDivide.name , MinDepth.name , SolverDivide.value , MinDepth.value );
-		SolverDivide.value = MinDepth.value;
-	}
-	if( IsoDivide.value<MinDepth.value )
-	{
-		fprintf( stderr , "[WARNING] %s must be at least as large as %s: %d>=%d\n" , IsoDivide.name , MinDepth.name , IsoDivide.value , IsoDivide.value );
-		IsoDivide.value = MinDepth.value;
-	}
-	
-	TreeOctNode::SetAllocator( MEMORY_ALLOCATOR_BLOCK_SIZE );
-
-	t=Time();
-	int kernelDepth = KernelDepth.set ?  KernelDepth.value : Depth.value-2;
-
-	tree.setBSplineData( Depth.value , BoundaryType.value );
-	if( kernelDepth>Depth.value )
-	{
-		fprintf( stderr,"[ERROR] %s can't be greater than %s: %d <= %d\n" , KernelDepth.name , Depth.name , KernelDepth.value , Depth.value );
-		return EXIT_FAILURE;
-	}
-
-	double maxMemoryUsage;
-	t=Time() , tree.maxMemoryUsage=0;
-	int pointCount = tree.setTree( In.value , Depth.value , MinDepth.value , kernelDepth , Real(SamplesPerNode.value) , Scale.value , Confidence.set , PointWeight.value , AdaptiveExponent.value , xForm );
-	tree.ClipTree();
-	tree.finalize( IsoDivide.value );
-
-	DumpOutput2( comments[commentNum++] , "#             Tree set in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
-	DumpOutput( "Input Points: %d\n" , pointCount );
-	DumpOutput( "Leaves/Nodes: %d/%d\n" , tree.tree.leaves() , tree.tree.nodes() );
-	DumpOutput( "Memory Usage: %.3f MB\n" , float( MemoryInfo::Usage() )/(1<<20) );
-
-	maxMemoryUsage = tree.maxMemoryUsage;
-	t=Time() , tree.maxMemoryUsage=0;
-	tree.SetLaplacianConstraints();
-	DumpOutput2( comments[commentNum++] , "#      Constraints set in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
-	DumpOutput( "Memory Usage: %.3f MB\n" , float( MemoryInfo::Usage())/(1<<20) );
-	maxMemoryUsage = std::max< double >( maxMemoryUsage , tree.maxMemoryUsage );
-
-	t=Time() , tree.maxMemoryUsage=0;
-	tree.LaplacianMatrixIteration( SolverDivide.value, ShowResidual.set , MinIters.value , SolverAccuracy.value , MaxSolveDepth.value , FixedIters.value );
-	DumpOutput2( comments[commentNum++] , "# Linear system solved in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
-	DumpOutput( "Memory Usage: %.3f MB\n" , float( MemoryInfo::Usage() )/(1<<20) );
-	maxMemoryUsage = std::max< double >( maxMemoryUsage , tree.maxMemoryUsage );
-
-	CoredFileMeshData mesh;
-	if( Verbose.set ) tree.maxMemoryUsage=0;
-	t=Time();
-	isoValue = tree.GetIsoValue();
-	DumpOutput( "Got average in: %f\n" , Time()-t );
-	DumpOutput( "Iso-Value: %e\n" , isoValue );
-
-	if( VoxelGrid.set )
-	{
-		double t = Time();
-		FILE* fp = fopen( VoxelGrid.value , "wb" );
-		if( !fp ) fprintf( stderr , "Failed to open voxel file for writing: %s\n" , VoxelGrid.value );
-		else
+		Octree<Degree> tree;
+		tree.threads = Threads.value;
+		if( !In.set )
 		{
-			int res;
-			Real* values = tree.GetSolutionGrid( res , isoValue , VoxelDepth.value );
-			fwrite( &res , sizeof(int) , 1 , fp );
-			if( sizeof(Real)==sizeof(float) ) fwrite( values , sizeof(float) , res*res*res , fp );
+			ShowUsage(argv[0]);
+			return 0;
+		}
+		if( !MaxSolveDepth.set ) MaxSolveDepth.value = Depth.value;
+		if( SolverDivide.value<MinDepth.value )
+		{
+			fprintf( stderr , "[WARNING] %s must be at least as large as %s: %d>=%d\n" , SolverDivide.name , MinDepth.name , SolverDivide.value , MinDepth.value );
+			SolverDivide.value = MinDepth.value;
+		}
+		if( IsoDivide.value<MinDepth.value )
+		{
+			fprintf( stderr , "[WARNING] %s must be at least as large as %s: %d>=%d\n" , IsoDivide.name , MinDepth.name , IsoDivide.value , IsoDivide.value );
+			IsoDivide.value = MinDepth.value;
+		}
+
+		TreeOctNode::SetAllocator( MEMORY_ALLOCATOR_BLOCK_SIZE );
+
+		t=Time();
+		int kernelDepth = KernelDepth.set ?  KernelDepth.value : Depth.value-2;
+
+		tree.setBSplineData( Depth.value , BoundaryType.value );
+		if( kernelDepth>Depth.value )
+		{
+			fprintf( stderr,"[ERROR] %s can't be greater than %s: %d <= %d\n" , KernelDepth.name , Depth.name , KernelDepth.value , Depth.value );
+			return EXIT_FAILURE;
+		}
+
+		double maxMemoryUsage;
+		t=Time() , tree.maxMemoryUsage=0;
+
+		// Load data
+		int pointCount = tree.setTree( In.value , Depth.value , MinDepth.value , kernelDepth , Real(SamplesPerNode.value) , Scale.value , Confidence.set , PointWeight.value , AdaptiveExponent.value , xForm );
+		tree.ClipTree();
+		tree.finalize( IsoDivide.value );
+
+		DumpOutput2( comments[commentNum++] , "#             Tree set in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
+		DumpOutput( "Input Points: %d\n" , pointCount );
+		DumpOutput( "Leaves/Nodes: %d/%d\n" , tree.tree.leaves() , tree.tree.nodes() );
+		DumpOutput( "Memory Usage: %.3f MB\n" , float( MemoryInfo::Usage() )/(1<<20) );
+
+		maxMemoryUsage = tree.maxMemoryUsage;
+		t=Time() , tree.maxMemoryUsage=0;
+		tree.SetLaplacianConstraints();
+		DumpOutput2( comments[commentNum++] , "#      Constraints set in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
+		DumpOutput( "Memory Usage: %.3f MB\n" , float( MemoryInfo::Usage())/(1<<20) );
+		maxMemoryUsage = std::max< double >( maxMemoryUsage , tree.maxMemoryUsage );
+
+		t=Time() , tree.maxMemoryUsage=0;
+		tree.LaplacianMatrixIteration( SolverDivide.value, ShowResidual.set , MinIters.value , SolverAccuracy.value , MaxSolveDepth.value , FixedIters.value );
+		DumpOutput2( comments[commentNum++] , "# Linear system solved in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
+		DumpOutput( "Memory Usage: %.3f MB\n" , float( MemoryInfo::Usage() )/(1<<20) );
+		maxMemoryUsage = std::max< double >( maxMemoryUsage , tree.maxMemoryUsage );
+
+		CoredFileMeshData mesh;
+		if( Verbose.set ) tree.maxMemoryUsage=0;
+		t=Time();
+		isoValue = tree.GetIsoValue();
+		DumpOutput( "Got average in: %f\n" , Time()-t );
+		DumpOutput( "Iso-Value: %e\n" , isoValue );
+
+		if( VoxelGrid.set )
+		{
+			double t = Time();
+			FILE* fp = fopen( VoxelGrid.value , "wb" );
+			if( !fp ) fprintf( stderr , "Failed to open voxel file for writing: %s\n" , VoxelGrid.value );
 			else
 			{
-				float *fValues = new float[res*res*res];
-				for( int i=0 ; i<res*res*res ; i++ ) fValues[i] = float( values[i] );
-				fwrite( fValues , sizeof(float) , res*res*res , fp );
-				delete[] fValues;
+				int res;
+				Real* values = tree.GetSolutionGrid( res , isoValue , VoxelDepth.value );
+				fwrite( &res , sizeof(int) , 1 , fp );
+				if( sizeof(Real)==sizeof(float) ) fwrite( values , sizeof(float) , res*res*res , fp );
+				else
+				{
+					float *fValues = new float[res*res*res];
+					for( int i=0 ; i<res*res*res ; i++ ) fValues[i] = float( values[i] );
+					fwrite( fValues , sizeof(float) , res*res*res , fp );
+					delete[] fValues;
+				}
+				fclose( fp );
+				delete[] values;
 			}
-			fclose( fp );
-			delete[] values;
+			DumpOutput( "Got voxel grid in: %f\n" , Time()-t );
 		}
-		DumpOutput( "Got voxel grid in: %f\n" , Time()-t );
-	}
 
-	if( Out.set )
+		if( Out.set )
+		{
+			t = Time() , tree.maxMemoryUsage = 0;
+			tree.GetMCIsoTriangles( isoValue , IsoDivide.value , &mesh , 0 , 1 , !NonManifold.set , PolygonMesh.set );
+			if( PolygonMesh.set ) DumpOutput2( comments[commentNum++] , "#         Got polygons in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
+			else                  DumpOutput2( comments[commentNum++] , "#        Got triangles in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
+			maxMemoryUsage = std::max< double >( maxMemoryUsage , tree.maxMemoryUsage );
+			DumpOutput2( comments[commentNum++],"#             Total Solve: %9.1f (s), %9.1f (MB)\n" , Time()-tt , maxMemoryUsage );
+
+			//if( NoComments.set )
+			//{
+			//	if( ASCII.set ) PlyWritePolygons( Out.value , &mesh , PLY_ASCII         , NULL , 0 , iXForm );
+			//	else            PlyWritePolygons( Out.value , &mesh , PLY_BINARY_NATIVE , NULL , 0 , iXForm );
+			//}
+			//else
+			//{
+			//	if( ASCII.set ) PlyWritePolygons( Out.value , &mesh , PLY_ASCII         , comments , commentNum , iXForm );
+			//	else            PlyWritePolygons( Out.value , &mesh , PLY_BINARY_NATIVE , comments , commentNum , iXForm );
+			//}
+
+			// Output OFF file
+			writeOFF(Out.value, &mesh);
+		}
+
+		return 1;
+}
+
+template< int Degree >
+int ExecuteMemory( int argc , char* argv[], std::vector< std::vector< float > > & positions, std::vector< std::vector< float > > & normals )
+{
+	int i;
+	int paramNum = sizeof(params)/sizeof(cmdLineReadable*);
+	int commentNum=0;
+	char **comments;
+
+	comments = new char*[paramNum+7];
+	for( i=0 ; i<paramNum+7 ; i++ ) comments[i] = new char[1024];
+
+	cmdLineParse( argc-1 , &argv[1] , paramNum , params , 1 );
+	if( Verbose.set ) echoStdout=1;
+
+	XForm4x4< Real > xForm , iXForm;
+	if( XForm.set )
 	{
-		t = Time() , tree.maxMemoryUsage = 0;
-		tree.GetMCIsoTriangles( isoValue , IsoDivide.value , &mesh , 0 , 1 , !NonManifold.set , PolygonMesh.set );
-		if( PolygonMesh.set ) DumpOutput2( comments[commentNum++] , "#         Got polygons in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
-		else                  DumpOutput2( comments[commentNum++] , "#        Got triangles in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
-		maxMemoryUsage = std::max< double >( maxMemoryUsage , tree.maxMemoryUsage );
-		DumpOutput2( comments[commentNum++],"#             Total Solve: %9.1f (s), %9.1f (MB)\n" , Time()-tt , maxMemoryUsage );
-
-		//if( NoComments.set )
-		//{
-		//	if( ASCII.set ) PlyWritePolygons( Out.value , &mesh , PLY_ASCII         , NULL , 0 , iXForm );
-		//	else            PlyWritePolygons( Out.value , &mesh , PLY_BINARY_NATIVE , NULL , 0 , iXForm );
-		//}
-		//else
-		//{
-		//	if( ASCII.set ) PlyWritePolygons( Out.value , &mesh , PLY_ASCII         , comments , commentNum , iXForm );
-		//	else            PlyWritePolygons( Out.value , &mesh , PLY_BINARY_NATIVE , comments , commentNum , iXForm );
-		//}
-
-		// Output OFF file
-		writeOFF(Out.value, &mesh);
+		FILE* fp = fopen( XForm.value , "r" );
+		if( !fp )
+		{
+			fprintf( stderr , "[WARNING] Could not read x-form from: %s\n" , XForm.value );
+			xForm = XForm4x4< Real >::Identity();
+		}
+		else
+		{
+			for( int i=0 ; i<4 ; i++ ) for( int j=0 ; j<4 ; j++ ) fscanf( fp , " %f " , &xForm( i , j ) );
+			fclose( fp );
+		}
 	}
+	else xForm = XForm4x4< Real >::Identity();
+	iXForm = xForm.inverse();
 
-	return 1;
+	DumpOutput2( comments[commentNum++] , "Running Screened Poisson Reconstruction (Version 4.5)\n" , Degree );
+	char str[1024];
+	for( int i=0 ; i<paramNum ; i++ )
+		if( params[i]->set )
+		{
+			params[i]->writeValue( str );
+			if( strlen( str ) ) DumpOutput2( comments[commentNum++] , "\t--%s %s\n" , params[i]->name , str );
+			else                DumpOutput2( comments[commentNum++] , "\t--%s\n" , params[i]->name );
+		}
+
+		double t;
+		double tt=Time();
+		Real isoValue = 0;
+
+		Octree<Degree> tree;
+		tree.threads = Threads.value;
+
+		if( !MaxSolveDepth.set ) MaxSolveDepth.value = Depth.value;
+		if( SolverDivide.value<MinDepth.value )
+		{
+			fprintf( stderr , "[WARNING] %s must be at least as large as %s: %d>=%d\n" , SolverDivide.name , MinDepth.name , SolverDivide.value , MinDepth.value );
+			SolverDivide.value = MinDepth.value;
+		}
+		if( IsoDivide.value<MinDepth.value )
+		{
+			fprintf( stderr , "[WARNING] %s must be at least as large as %s: %d>=%d\n" , IsoDivide.name , MinDepth.name , IsoDivide.value , IsoDivide.value );
+			IsoDivide.value = MinDepth.value;
+		}
+
+		TreeOctNode::SetAllocator( MEMORY_ALLOCATOR_BLOCK_SIZE );
+
+		t=Time();
+		int kernelDepth = KernelDepth.set ?  KernelDepth.value : Depth.value-2;
+
+		tree.setBSplineData( Depth.value , BoundaryType.value );
+		if( kernelDepth>Depth.value )
+		{
+			fprintf( stderr,"[ERROR] %s can't be greater than %s: %d <= %d\n" , KernelDepth.name , Depth.name , KernelDepth.value , Depth.value );
+			return EXIT_FAILURE;
+		}
+
+		double maxMemoryUsage;
+		t=Time() , tree.maxMemoryUsage=0;
+
+		// Load data
+		MemoryPointStream< Real >* ps = new MemoryPointStream< Real >( &positions, &normals );
+
+		int pointCount = tree.setTreeMemory( ps , Depth.value , MinDepth.value , kernelDepth , Real(SamplesPerNode.value) , Scale.value , Confidence.set , PointWeight.value , AdaptiveExponent.value , xForm );
+		tree.ClipTree();
+		tree.finalize( IsoDivide.value );
+
+		DumpOutput2( comments[commentNum++] , "#             Tree set in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
+		DumpOutput( "Input Points: %d\n" , pointCount );
+		DumpOutput( "Leaves/Nodes: %d/%d\n" , tree.tree.leaves() , tree.tree.nodes() );
+		DumpOutput( "Memory Usage: %.3f MB\n" , float( MemoryInfo::Usage() )/(1<<20) );
+
+		maxMemoryUsage = tree.maxMemoryUsage;
+		t=Time() , tree.maxMemoryUsage=0;
+		tree.SetLaplacianConstraints();
+		DumpOutput2( comments[commentNum++] , "#      Constraints set in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
+		DumpOutput( "Memory Usage: %.3f MB\n" , float( MemoryInfo::Usage())/(1<<20) );
+		maxMemoryUsage = std::max< double >( maxMemoryUsage , tree.maxMemoryUsage );
+
+		t=Time() , tree.maxMemoryUsage=0;
+		tree.LaplacianMatrixIteration( SolverDivide.value, ShowResidual.set , MinIters.value , SolverAccuracy.value , MaxSolveDepth.value , FixedIters.value );
+		DumpOutput2( comments[commentNum++] , "# Linear system solved in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
+		DumpOutput( "Memory Usage: %.3f MB\n" , float( MemoryInfo::Usage() )/(1<<20) );
+		maxMemoryUsage = std::max< double >( maxMemoryUsage , tree.maxMemoryUsage );
+
+		CoredFileMeshData mesh;
+		if( Verbose.set ) tree.maxMemoryUsage=0;
+		t=Time();
+		isoValue = tree.GetIsoValue();
+		DumpOutput( "Got average in: %f\n" , Time()-t );
+		DumpOutput( "Iso-Value: %e\n" , isoValue );
+
+		if( VoxelGrid.set )
+		{
+			double t = Time();
+			FILE* fp = fopen( VoxelGrid.value , "wb" );
+			if( !fp ) fprintf( stderr , "Failed to open voxel file for writing: %s\n" , VoxelGrid.value );
+			else
+			{
+				int res;
+				Real* values = tree.GetSolutionGrid( res , isoValue , VoxelDepth.value );
+				fwrite( &res , sizeof(int) , 1 , fp );
+				if( sizeof(Real)==sizeof(float) ) fwrite( values , sizeof(float) , res*res*res , fp );
+				else
+				{
+					float *fValues = new float[res*res*res];
+					for( int i=0 ; i<res*res*res ; i++ ) fValues[i] = float( values[i] );
+					fwrite( fValues , sizeof(float) , res*res*res , fp );
+					delete[] fValues;
+				}
+				fclose( fp );
+				delete[] values;
+			}
+			DumpOutput( "Got voxel grid in: %f\n" , Time()-t );
+		}
+
+		if( Out.set )
+		{
+			t = Time() , tree.maxMemoryUsage = 0;
+			tree.GetMCIsoTriangles( isoValue , IsoDivide.value , &mesh , 0 , 1 , !NonManifold.set , PolygonMesh.set );
+			if( PolygonMesh.set ) DumpOutput2( comments[commentNum++] , "#         Got polygons in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
+			else                  DumpOutput2( comments[commentNum++] , "#        Got triangles in: %9.1f (s), %9.1f (MB)\n" , Time()-t , tree.maxMemoryUsage );
+			maxMemoryUsage = std::max< double >( maxMemoryUsage , tree.maxMemoryUsage );
+			DumpOutput2( comments[commentNum++],"#             Total Solve: %9.1f (s), %9.1f (MB)\n" , Time()-tt , maxMemoryUsage );
+
+			//if( NoComments.set )
+			//{
+			//	if( ASCII.set ) PlyWritePolygons( Out.value , &mesh , PLY_ASCII         , NULL , 0 , iXForm );
+			//	else            PlyWritePolygons( Out.value , &mesh , PLY_BINARY_NATIVE , NULL , 0 , iXForm );
+			//}
+			//else
+			//{
+			//	if( ASCII.set ) PlyWritePolygons( Out.value , &mesh , PLY_ASCII         , comments , commentNum , iXForm );
+			//	else            PlyWritePolygons( Out.value , &mesh , PLY_BINARY_NATIVE , comments , commentNum , iXForm );
+			//}
+
+			// Output OFF file
+			writeOFF(Out.value, &mesh);
+		}
+
+		return 1;
 }
 
 #ifdef _WIN32
@@ -450,6 +611,14 @@ int recon_main( int argc , char* argv[] )
 {
 	double t = Time();
 	Execute< 2 >( argc , argv );
+
+	if(false)
+	{
+		std::vector< std::vector< float > > positions;
+		std::vector< std::vector< float > > normals;
+		ExecuteMemory< 2 > (argc, argv, positions, normals);
+	}
+
 #ifdef _WIN32
 	if( Performance.set )
 	{

@@ -50,6 +50,42 @@ public:
 };
 
 template< class Real >
+class MemoryPointStream : public PointStream< Real >
+{
+	int curPos;
+	std::vector< std::vector<Real> > *pos, *normal;
+public:
+	MemoryPointStream( std::vector< std::vector<Real> > * positions, std::vector< std::vector<Real> > * normals  )
+	{
+		pos = positions;
+		normal = normals;
+
+		reset();
+	}
+	~MemoryPointStream( void ){}
+	void reset( void ){
+		curPos = 0;
+	}
+	bool nextPoint( Point3D< Real >& p , Point3D< Real >& n )
+	{
+		if(curPos == pos->size())
+			return false;
+
+		p[0] = pos->at(curPos)[0];
+		p[1] = pos->at(curPos)[1];
+		p[2] = pos->at(curPos)[2];
+
+		n[0] = normal->at(curPos)[0];
+		n[1] = normal->at(curPos)[1];
+		n[2] = normal->at(curPos)[2];
+
+		curPos++;
+
+		return true;
+	}
+};
+
+template< class Real >
 class BinaryPointStream : public PointStream< Real >
 {
 	FILE* _fp;

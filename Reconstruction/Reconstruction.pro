@@ -52,3 +52,14 @@ SOURCES += \
     Src/CmdLineParser.cpp \
     Src/BSplineData.inl \
     poissonrecon.cpp
+
+# OpenMP
+win32 {
+    QMAKE_CXXFLAGS += /openmp
+    export(QMAKE_CXXFLAGS_DEBUG)
+    export(QMAKE_CXXFLAGS_RELEASE)
+}
+unix {
+    QMAKE_CXXFLAGS += -fopenmp
+    LIBS += -lgomp
+}
