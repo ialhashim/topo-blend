@@ -72,12 +72,12 @@ static std::vector<Vec3d> refineByNumber(const std::vector<Vec3d> & fromPnts, in
 {
 	// Refine until targetNumber is achieved
 	std::vector<Vec3d> newPnts = fromPnts;
-	while(targetNumber > newPnts.size())
+	while(targetNumber > (int)newPnts.size())
 	{
 		// Find index of largest edge and split
 		double maxDist = -DBL_MAX;
 		int idx = -1;
-		for(int i = 1; i < newPnts.size(); i++){
+		for(int i = 1; i < (int) newPnts.size(); i++){
 			double dist = (newPnts[i] - newPnts[i-1]).norm();
 			if(dist > maxDist){
 				maxDist = dist;
