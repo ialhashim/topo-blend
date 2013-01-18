@@ -26,26 +26,25 @@ public:
 	void mousePressEvent(QGraphicsSceneMouseEvent * event);
 	void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
 		
+	// Helper functions
+
+
 	// Prepare stage
 	void prepare();
-	void prepareGrowShrink();
-	void prepareMorph();
-
 	void prepareShrinkCurve();
 	void prepareShrinkSheet();
-	void prepareShrinkCurveConstrained();
 	void prepareGrowCurve();
 	void prepareGrowSheet();
-
-
-	void prepareMorph2();
+	void prepareShrinkCurveConstrained();
+	void prepareGrowCurveConstrained();
+	void prepareMorphCurve();
+	void prepareMorphSheet();
 
 	// Execution stage
 	void execute( double t );
-	void executeGrowShrink( double t );
-	void executeMorph( double t );
-	void executeGrowShrink2( double t );
-	void executeMorph2( double t );
+	void executeGrowShrinkCurve( double t );
+	void executeGrowShrinkSheet( double t );
+	void executeMorphCurve( double t );
 
 	void geometryMorph( double t );
 

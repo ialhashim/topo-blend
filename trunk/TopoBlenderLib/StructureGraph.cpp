@@ -1114,6 +1114,15 @@ void Graph::normalize()
 			points[v] *= scaleFactor;
 	}
 
+	// Rebuild visualization geometry
+	foreach (Structure::Node * node, nodes){
+		if(node->type() == Structure::SHEET)
+		{
+			Structure::Sheet * sheet = (Structure::Sheet *)node;
+			sheet->surface.quads.clear();
+		}
+	}
+
 	// Update the bounding box
 	property["AABB"].setValue(bbox());
 }

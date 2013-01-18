@@ -128,9 +128,20 @@ void Scheduler::order()
 
 		int futureStart = curStart;
 
-		foreach(Task* t, curTasks){
-			t->setStart(curStart);
-			futureStart = qMax(futureStart, t->endTime());
+		if(i == Task::MORPH)
+		{
+			foreach(Task* t, curTasks){
+				t->setStart(curStart);
+				futureStart = qMax(futureStart, t->endTime());
+				curStart = futureStart;
+			}
+		}
+		else
+		{
+			foreach(Task* t, curTasks){
+				t->setStart(curStart);
+				futureStart = qMax(futureStart, t->endTime());
+			}
 		}
 
 		curStart = futureStart;
