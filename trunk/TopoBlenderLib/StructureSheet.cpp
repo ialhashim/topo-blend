@@ -310,3 +310,30 @@ void Sheet::rotate( double angle, Vector3 axis )
 
 	this->surface.quads.clear();
 }
+
+void Sheet::equalizeControlPoints( Structure::Node * _other )
+{
+	Structure::Sheet *other = (Structure::Sheet*) _other;
+
+	Array2D_Vector3 cp(other->surface.mNumUCtrlPoints, Array1D_Vector3(other->surface.mNumVCtrlPoints, Vec3d(0)));
+	Array2D_Real cw(cp.size(), Array1D_Real(cp.front().size(), 1.0));
+	int degree = 3;
+
+	for(int v = 0; v <= other->surface.mNumVCtrlPoints; v++)
+	{
+		for(int u = 0; u <= other->surface.mNumUCtrlPoints; u++)
+		{
+			double U = double(u) / other->surface.mNumUCtrlPoints;
+			double V = double(v) / other->surface.mNumVCtrlPoints;
+
+			cp[u][v] = position(Vec4d(U,V,0,0));
+		}
+	}
+
+	surface = NURBSRectangle(cp, cw, degree, degree, false, false, true, true);
+}
+
+int Sheet::numCtrlPnts()
+{
+	return surface.mNumUCtrlPoints * surface.mNumVCtrlPoints;
+}

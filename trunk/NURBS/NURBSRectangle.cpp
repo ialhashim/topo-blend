@@ -688,22 +688,11 @@ void NURBSRectangle::uniformCoordinates( std::vector<Real> & valU, std::vector<R
 	if (lengthU < resolution || lengthV < resolution)
 		return;
 
-	Scalar resSize = resolution;
-	double resU,resV;
+	double resU = resolution;
+	double resV = resolution;
 
-	if (lengthU > lengthV)
-	{
-		resU = resSize * lengthU / lengthV;
-		resV = resSize;
-	}
-	else
-	{
-		resV = resSize * lengthV / lengthU;
-		resU = resSize;
-	}
-
-	int nU = lengthU / resU;
-	int nV = lengthV / resV;
+	int nU = lengthU / resolution;
+	int nV = lengthV / resolution;
 	resU = lengthU / nU;
 	resV = lengthV / nV;
 

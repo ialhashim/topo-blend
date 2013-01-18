@@ -25,7 +25,7 @@ Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, Task
 	this->taskID = ID;
 	this->mycolor = TaskColors[taskType];
 	this->start = 0;
-	this->length = 120;
+	this->length = 80;
 	this->currentTime = start;
 	this->isReady = false;
 	this->isDone = false;
@@ -64,7 +64,8 @@ void Task::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWid
 	painter->fillRect(width - 5,0,5,height,shadeColor);
 
 	// Caption
-	painter->drawText(boundingRect(), QString("%1 - Len: %2").arg(TaskNames[type]).arg(width), QTextOption(Qt::AlignVCenter | Qt::AlignHCenter));
+	QString caption = node()->id.left(12);
+	painter->drawText(boundingRect(), QString("%1").arg(caption), QTextOption(Qt::AlignVCenter | Qt::AlignHCenter));
 }
 
 QVariant Task::itemChange( GraphicsItemChange change, const QVariant & value )
@@ -161,55 +162,6 @@ void Task::drawDebug()
 	glEnd();
 
 	glEnable(GL_LIGHTING);
-}
-
-void Task::setupCurveDeformer( Structure::Curve* curve, Structure::Link* linkA, Structure::Link* linkB )
-{
-	std::vector<Vec3d> curvePoints = node()->controlPoints();
-	
-	if(property.contains("orgCtrlPoints"))
-		curvePoints = property["orgCtrlPoints"].value< std::vector<Vec3d> >();
-
-	property["deformer"].setValue( new ARAPCurveDeformer( curvePoints, curvePoints.size() * 0.5 ) );
-
-	property["linkA"].setValue( linkA );
-	property["linkB"].setValue( linkB );
-
-	property["cpidxA"].setValue( curve->controlPointIndexFromCoord( linkA->getCoord(node()->id).front() ) );
-	property["cpidxB"].setValue( curve->controlPointIndexFromCoord( linkB->getCoord(node()->id).front() ) );
-	
-	// Compute paths for two ends
-	Structure::Node * n = node();
-	NodeCoords finalCoordA = linkA->property["finalCoord_n1"].value<NodeCoords>();
-	NodeCoords finalCoordOtherA = linkA->property["finalCoord_n2"].value<NodeCoords>();
-	if(finalCoordA.first != n->id) std::swap(finalCoordA, finalCoordOtherA);
-
-	NodeCoords finaCoordB = linkB->property["finalCoord_n1"].value<NodeCoords>();
-	NodeCoords finalCoordOtherB = linkB->property["finalCoord_n2"].value<NodeCoords>();
-	if(finaCoordB.first != n->id) std::swap(finaCoordB, finalCoordOtherB);
-
-	GraphDistance graphDistA(active, SingleNode(n->id));
-	QVector< NodeCoord > pathA;
-	graphDistA.computeDistances( linkA->otherNode(n->id)->position(finalCoordOtherA.second.front()) );
-	graphDistA.pathCoordTo( linkA->position(n->id), pathA );
-
-	//if(!node()->id.contains("_cloned"))
-	//{
-	//	foreach(NodeCoord path, pathA)
-	//		target->debugPoints.push_back(active->position(path.first, path.second));
-
-	//	target->debugPoints3.push_back(linkA->otherNode(n->id)->position(finalCoordOtherA.second.front()));
-	//	target->debugPoints2.push_back(linkA->position(n->id));
-	//}
-
-	GraphDistance graphDistB(active, SingleNode(n->id));
-	QVector< NodeCoord > pathB;
-	graphDistB.computeDistances( linkB->otherNode(n->id)->position(finalCoordOtherB.second.front()) );
-	graphDistB.pathCoordTo( linkB->position(n->id), pathB );
-
-	// Save paths for A & B
-	property["pathA"].setValue(pathA);
-	property["pathB"].setValue(pathB);
 }
 
 Structure::Node * Task::node()
@@ -391,6 +343,43 @@ bool Task::isActive( double t )
 	return (t >= 0.0 && !isDone);
 }
 
+// Helper functions
+NodeCoord Task::futureOtherNodeCoord( Structure::Link *link )
+{
+	Structure::Node *tn = targetNode();
+
+	QString tlinkID = link->property["correspond"].toString();
+	Structure::Link * tlink = target->getEdge(tlinkID);
+
+	Structure::Node * tfutureOther = tlink->otherNode(tn->id);
+	QString futureOtherID = tfutureOther->property["correspond"].toString();
+
+	Vec4d futureOtherCoord = tlink->getCoordOther(tn->id).front();
+
+	return qMakePair(futureOtherID, futureOtherCoord);
+}
+
+Vec3d Task::futureLinkPosition( Structure::Link *link )
+{
+	NodeCoord fnc = futureOtherNodeCoord(link);
+	return active->getNode(fnc.first)->position(fnc.second);
+}
+
+void Task::copyTargetEdge( Structure::Link *tlink )
+{
+	Structure::Node *n = node();
+	Structure::Node *tn = targetNode();
+
+	std::vector<Vec4d> coord = tlink->getCoord(tn->id);
+
+	Structure::Node *tOther = tlink->otherNode(tn->id);
+	QString otherID = tOther->property["correspond"].toString();
+	Structure::Node *nOther = active->getNode(otherID);
+	std::vector<Vec4d> coordOther = tlink->getCoordOther(tn->id);
+
+	active->addEdge(n, nOther, coord, coordOther);
+}
+
 // PREPARE
 void Task::prepare()
 {
@@ -434,7 +423,6 @@ void Task::prepare()
 		case SPLIT:
 		case MERGE:
 		case MORPH:
-			prepareMorphCurve();
 			break;
 		}
 	}
@@ -450,6 +438,8 @@ void Task::prepareShrinkCurve()
 
 	if( active->isCutNode(n->id) )
 	{
+		active->printLinksInfo();
+
 		property["isCutNode"] = true;
 		prepareShrinkCurveConstrained();
 		return;
@@ -499,9 +489,14 @@ void Task::prepareShrinkCurve()
 		Vec3d endPoint = active->position(endPointCoord.first, endPointCoord.second);
 
 		// Separate the path into two for linkA and linkB
-		int N = path.size();
+		int N = path.size(), hN = N / 2;
+		if (N % 2 == 0) {
+			path.insert(hN, path[hN]);
+			N++;
+		}
+
 		QVector<NodeCoord> pathA, pathB;
-		for (int i = 0; i < N / 2; i++)
+		for (int i = 0; i < N/2; i++)
 		{
 			pathA.push_back(path[i]);
 			pathB.push_back(path[N-1-i]);
@@ -519,30 +514,6 @@ void Task::prepareShrinkCurve()
 		property["cpidxB"].setValue(cpidxB);
 
 		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint ) );
-	}
-}
-
-void Task::prepareShrinkSheet()
-{
-	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = active->getEdges(n->id);
-
-	if (edges.size() == 1)
-	{
-		Structure::Link * l = edges.front();
-		Structure::Node * base = l->otherNode(n->id);
-		Structure::Sheet* structure_sheet = ((Structure::Sheet*)n);
-
-		// Placement:
-		structure_sheet->moveBy( l->position( base->id ) - l->position( n->id ) );
-
-		// Sheet folding:
-		Array2D_Vector3 deltas = structure_sheet->foldTo( l->getCoord(n->id), false );
-		deltas = inverseVectors3(deltas);
-
-		// Shrinking instructions
-		property["deltas"].setValue( deltas );
-		property["orgCtrlPoints"].setValue( structure_sheet->surface.mCtrlPoint );
 	}
 }
 
@@ -650,34 +621,6 @@ void Task::prepareGrowCurve()
 	}
 }
 
-void Task::prepareGrowSheet()
-{
-	Structure::Node * n = node();
-	Structure::Node * tn = targetNode();
-	QVector<Structure::Link*> edges = active->getEdges(n->id);
-	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
-	Structure::Sheet* structure_sheet = ((Structure::Sheet*)n);
-
-	if (tedges.size() == 1)
-	{
-		Structure::Link * tl = tedges.front();
-		Structure::Node * tbase = tl->otherNode(tn->id);
-
-		QString baseID = tbase->property["correspond"].toString();
-		Structure::Node * base = active->getNode(baseID);
-
-		// Placement:
-		//structure_sheet->moveBy( l->position( base->id ) - l->position( n->id ) );
-
-		// Sheet folding:
-		Array2D_Vector3 deltas = structure_sheet->foldTo( tl->getCoord(tn->id), true );
-
-		// Growing / shrinking instructions
-		property["deltas"].setValue( deltas );
-		property["orgCtrlPoints"].setValue( structure_sheet->surface.mCtrlPoint );
-	}
-}
-
 void Task::prepareShrinkCurveConstrained()
 {
 	Structure::Node * n = node();
@@ -753,7 +696,6 @@ void Task::prepareMorphCurve()
 	// 1) SINGLE edge
 	if(edges.size() == 1)
 	{
-
 		Structure::Link * link = edges.front();
 		Vec3d startPoint = link->position(node()->id);
 
@@ -771,33 +713,28 @@ void Task::prepareMorphCurve()
 	// 2) TWO edges
 	if(edges.size() == 2)
 	{
-
 		// Start and end for both links
 		Structure::Link * linkA = edges.front();
-		Vec3d startA = linkA->position( n->id );
-		Structure::Node * otherA = linkA->otherNode(n->id);
-		QString tlinkAID = linkA->property["correspond"].toString();
-		Structure::Link * tlinkA = target->getEdge(tlinkAID);
-		Vec4d endOtherCoordA = tlinkA->getCoordOther(tn->id).front();
-		Vec3d endA = otherA->position(endOtherCoordA);
-		
-		Structure::Link * linkB = edges.front();
-		Vec3d startB = linkB->position( n->id );
-		Structure::Node * otherB = linkB->otherNode(n->id);
-		QString tlinkBID = linkB->property["correspond"].toString();
-		Structure::Link * tlinkB = target->getEdge(tlinkBID);
-		Vec4d endOtherCoordB = tlinkB->getCoordOther(tn->id).front();
-		Vec3d endB = otherB->position(endOtherCoordB);
+		Vec3d startA = linkA->position(n->id);
+		Vec3d endA = futureLinkPosition(linkA);
+
+		Structure::Link * linkB = edges.back();
+		Vec3d startB = linkB->position(n->id);
+		Vec3d endB = futureLinkPosition(linkB);
 
 		// Geodesic distances on the active graph excluding the running tasks
 		QVector< NodeCoord > pathA, pathB;	
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
 		GraphDistance gd( active, exclude );
 
-		gd.computeDistances( startA );	gd.pathCoordTo( endA, pathA);
-		gd.computeDistances( startB );	gd.pathCoordTo( endB, pathB);
+		gd.computeDistances( endA );	gd.pathCoordTo( startA, pathA);
+		gd.computeDistances( endB );	gd.pathCoordTo( startB, pathB);
+
 		property["pathA"].setValue(pathA);
 		property["pathB"].setValue(pathB);
+
+		// To-do
+		// Swap the correspondence of two links
 
 		// ARAP curve deformation
 		int cpidxA = structure_curve->controlPointIndexFromCoord(linkA->getCoord(n->id).front());
@@ -808,6 +745,64 @@ void Task::prepareMorphCurve()
 		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint ) );
 	}
 }
+
+void Task::prepareShrinkSheet()
+{
+	Structure::Node * n = node();
+	QVector<Structure::Link*> edges = active->getEdges(n->id);
+
+	if (edges.size() == 1)
+	{
+		Structure::Link * l = edges.front();
+		Structure::Node * base = l->otherNode(n->id);
+		Structure::Sheet* structure_sheet = ((Structure::Sheet*)n);
+
+		// Placement:
+		structure_sheet->moveBy( l->position( base->id ) - l->position( n->id ) );
+
+		// Sheet folding:
+		Array2D_Vector3 deltas = structure_sheet->foldTo( l->getCoord(n->id), false );
+		deltas = inverseVectors3(deltas);
+
+		// Shrinking instructions
+		property["deltas"].setValue( deltas );
+		property["orgCtrlPoints"].setValue( structure_sheet->surface.mCtrlPoint );
+	}
+}
+
+void Task::prepareGrowSheet()
+{
+	Structure::Node * n = node();
+	Structure::Node * tn = targetNode();
+	QVector<Structure::Link*> edges = active->getEdges(n->id);
+	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
+	Structure::Sheet* structure_sheet = ((Structure::Sheet*)n);
+
+	if (tedges.size() == 1)
+	{
+		Structure::Link * tl = tedges.front();
+		Structure::Node * tbase = tl->otherNode(tn->id);
+
+		QString baseID = tbase->property["correspond"].toString();
+		Structure::Node * base = active->getNode(baseID);
+
+		// Placement:
+		//structure_sheet->moveBy( l->position( base->id ) - l->position( n->id ) );
+
+		// Sheet folding:
+		Array2D_Vector3 deltas = structure_sheet->foldTo( tl->getCoord(tn->id), true );
+
+		// Growing / shrinking instructions
+		property["deltas"].setValue( deltas );
+		property["orgCtrlPoints"].setValue( structure_sheet->surface.mCtrlPoint );
+	}
+}
+
+void Task::prepareMorphSheet()
+{
+
+}
+
 
 // EXECUTE
 void Task::execute( double t )
@@ -826,8 +821,10 @@ void Task::execute( double t )
 		switch(type)
 		{
 		case GROW:
+			executeGrowCurve(t);
+			break;
 		case SHRINK:
-			executeGrowShrinkCurve( t );
+			executeShrinkCurve( t );
 			break;
 		case MORPH:
 			executeMorphCurve(t);
@@ -843,6 +840,7 @@ void Task::execute( double t )
 			executeGrowShrinkSheet( t );
 			break;
 		case MORPH:
+			executeMorphSheet(t);
 			break;
 		}
 	}
@@ -855,85 +853,107 @@ void Task::execute( double t )
 	}
 }
 
-void Task::executeGrowShrinkCurve( double t )
+void Task::executeShrinkCurve( double t )
 {
-	Structure::Node * n = node();
-	Structure::Node * tn = targetNode();
+	Structure::Node *n = node();
 	QVector<Structure::Link*> edges = active->getEdges(n->id);
-	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
 
+
+	// Cut node
 	if (property.contains("isCutNode"))
 	{
-		Structure::Curve* current_curve = ((Structure::Curve*)node());
-
-		// Grow / shrink the node
-		Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
-		Array1D_Vector3 deltas = property["deltas"].value<Array1D_Vector3>();
-		QString anchorNode = property["anchorNode"].toString();
-
-		// Grow / shrink curve
-		for(int u = 0; u < current_curve->curve.mNumCtrlPoints; u++)
-			current_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);
-
-		// Re-link:
-		foreach( Structure::Link * edge, active->getEdges(n->id) )
-		{
-			Structure::Node * otherNode = edge->otherNode(n->id);
-			if(otherNode->id == anchorNode) continue;
-
-			Structure::Curve* other_curve = ((Structure::Curve*) otherNode);
-
-			int nCtrl = other_curve->curve.GetNumCtrlPoints();
-			int idx_control = other_curve->controlPointIndexFromCoord( edge->getCoord(other_curve->id).front() );
-			int idx_anchor = (idx_control > nCtrl / 2) ? 0 : nCtrl - 1;
-
-			ARAPCurveDeformer * deformer = new ARAPCurveDeformer( other_curve->controlPoints(), other_curve->controlPoints().size() * 0.5 );
-
-			deformer->ClearAll();
-			deformer->setControl( idx_control );
-			deformer->SetAnchor( idx_anchor );
-			deformer->MakeReady();
-
-			Vec3d newPosCtrl = edge->position(n->id);
-			deformer->UpdateControl(idx_control, newPosCtrl);
-			deformer->Deform( arapIterations );
-			other_curve->setControlPoints( deformer->points );
-		}
+		executeCurveConstrained(t);
+		n->property["isReady"] = false;
+		return;
 	}
 
-
-	if ((type == SHRINK && edges.size() == 2)
-		|| (type == GROW && tedges.size() == 2))
-	{
+	// Regular shrink
+	if (edges.size() == 1)
+		foldCurve(t);
+	else if (edges.size() == 2)
 		executeMorphCurve(t);
-	}
 
-
-	if ((type == SHRINK && edges.size() == 1)
-		|| (type == GROW && tedges.size() == 1))
-	{
-		Structure::Curve* structure_curve = ((Structure::Curve*)node());
-
-		Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
-		Array1D_Vector3 deltas = property["deltas"].value<Array1D_Vector3>();
-
-		// Grow curve
-		for(int u = 0; u < structure_curve->curve.mNumCtrlPoints; u++)
-			structure_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);	
-	}
-
+	
+	// When task is done
 	if (t == 1)
 	{
-		if (type == SHRINK)
-			n->property["isReady"] = false;
+		n->property["isReady"] = false;
 
-		if (type == GROW)
-		{
-			// To-Do
-			// Link the grew node with its base
+		// Delete all edges
+		foreach(Structure::Link *link, edges)
+			active->removeEdge(link->n1, link->n2);
+	}
+}
 
-		}
+void Task::executeGrowCurve( double t )
+{
+	Structure::Node * tn = targetNode();
+	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
 
+	// Cut node
+	if (property.contains("isCutNode"))
+	{
+		executeCurveConstrained(t);
+		return;
+	}
+
+	// Regular grow
+	if (tedges.size() == 1)
+		foldCurve(t);
+	
+	if (tedges.size() == 2)
+		executeMorphCurve(t);
+}
+
+void Task::foldCurve( double t )
+{
+	Structure::Curve* structure_curve = ((Structure::Curve*)node());
+
+	Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
+	Array1D_Vector3 deltas = property["deltas"].value<Array1D_Vector3>();
+
+	// Grow curve
+	for(int u = 0; u < structure_curve->curve.mNumCtrlPoints; u++)
+		structure_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);	
+}
+
+void Task::executeCurveConstrained( double t )
+{
+	Structure::Node * n = node();
+	Structure::Curve* current_curve = ((Structure::Curve*)n);
+
+	// Grow / shrink the node
+	Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
+	Array1D_Vector3 deltas = property["deltas"].value<Array1D_Vector3>();
+	QString anchorNode = property["anchorNode"].toString();
+
+	// Grow / shrink curve
+	for(int u = 0; u < current_curve->curve.mNumCtrlPoints; u++)
+		current_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);
+
+	// Re-link:
+	foreach( Structure::Link * edge, active->getEdges(n->id) )
+	{
+		Structure::Node * otherNode = edge->otherNode(n->id);
+		if(otherNode->id == anchorNode) continue;
+
+		Structure::Curve* other_curve = ((Structure::Curve*) otherNode);
+
+		int nCtrl = other_curve->curve.GetNumCtrlPoints();
+		int idx_control = other_curve->controlPointIndexFromCoord( edge->getCoord(other_curve->id).front() );
+		int idx_anchor = (idx_control > nCtrl / 2) ? 0 : nCtrl - 1;
+
+		ARAPCurveDeformer * deformer = new ARAPCurveDeformer( other_curve->controlPoints(), other_curve->controlPoints().size() * 0.5 );
+
+		deformer->ClearAll();
+		deformer->setControl( idx_control );
+		deformer->SetAnchor( idx_anchor );
+		deformer->MakeReady();
+
+		Vec3d newPosCtrl = edge->position(n->id);
+		deformer->UpdateControl(idx_control, newPosCtrl);
+		deformer->Deform( arapIterations );
+		other_curve->setControlPoints( deformer->points );
 	}
 }
 
@@ -957,15 +977,33 @@ void Task::executeGrowShrinkSheet( double t )
 		for(int u = 0; u < structure_sheet->surface.mNumUCtrlPoints; u++)
 			for(int v = 0; v < structure_sheet->surface.mNumVCtrlPoints; v++)
 				structure_sheet->surface.mCtrlPoint[u][v] = cpts[u][v] + (deltas[u][v] * t);
+	}
 
+	// When the task is done
+	if ( t == 1)
+	{
+		if (type == SHRINK)
+		{
+			n->property["isReady"] = false;
+
+			// Delete all edges
+			foreach(Structure::Link *link, edges)
+				active->removeEdge(link->n1, link->n2);
+		}
+
+		if (type == GROW)
+		{
+			copyTargetEdge(tedges.front());
+		}
 	}
 }
 
 void Task::executeMorphCurve( double t )
 {
 	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = active->getEdges(n->id);
-
+	QVector<Structure::Link*> edges = active->getEdges(n->id);			
+	Structure::Node * tn = targetNode();
+	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
 
 	Structure::Curve* structure_curve = ((Structure::Curve*)n);
 
@@ -992,7 +1030,9 @@ void Task::executeMorphCurve( double t )
 			QString tbaseNode = edge->otherNode(current_curve->id)->property["correspond"].toString();
 			QString tnodeID = current_curve->property["correspond"].toString();
 
-			int cpIDX_target = target_curve->controlPointIndexFromCoord(target->getEdge(tbaseNode, tnodeID)->getCoord(tnodeID).front());
+			Structure::Link * tbaseNode_tnode = target->getEdge(tbaseNode, tnodeID);
+
+			int cpIDX_target = target_curve->controlPointIndexFromCoord(tbaseNode_tnode->getCoord(tnodeID).front());
 
 			target_curve->curve.translateTo( newPos, cpIDX_target); // moves along for the ride..
 		}
@@ -1006,7 +1046,7 @@ void Task::executeMorphCurve( double t )
 	}
 
 	// 2) TWO edges
-	if (edges.size() == 2)
+	if (edges.size() == 2 || type == Task::GROW )
 	{
 		int cpidxA = property["cpidxA"].toInt();
 		int cpidxB = property["cpidxB"].toInt();
@@ -1049,4 +1089,49 @@ void Task::executeMorphCurve( double t )
 			structure_curve->setControlPoints( deformer->points );
 		}
 	}
+
+
+	// When this task is done
+	if (t == 1)
+	{
+
+		// There are two edges in the active should be killed
+		if (type == Task::SHRINK)
+		{
+			if (edges.size() == 2)
+			{
+				Structure::Link *linkA = edges.front();
+				Structure::Link *linkB = edges.back();
+
+				active->removeEdge(linkA->n1, linkA->n2);
+				active->removeEdge(linkB->n1, linkB->n2);
+			}
+		}
+
+		// There are no edge in active but two in the target
+		if (type == Task::GROW)
+		{
+			copyTargetEdge(tedges.front());
+			copyTargetEdge(tedges.back());
+		}
+
+		// There are one or two edges need to be updated
+		if (type == Task::MORPH)
+		{
+			foreach(Structure::Link *link, edges)
+			{
+				QString otherNode = link->otherNode(n->id)->id;
+
+				NodeCoord fnc = futureOtherNodeCoord(link);
+
+				link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
+			}
+		}
+
+	}
+}
+
+void Task::executeMorphSheet( double t )
+{
+	
 }

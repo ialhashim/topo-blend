@@ -27,24 +27,34 @@ public:
 	void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
 		
 	// Helper functions
-
+	NodeCoord futureOtherNodeCoord( Structure::Link *link );
+	Vec3d futureLinkPosition( Structure::Link *link );
+	void copyTargetEdge( Structure::Link *tlink );
 
 	// Prepare stage
 	void prepare();
+
 	void prepareShrinkCurve();
-	void prepareShrinkSheet();
 	void prepareGrowCurve();
-	void prepareGrowSheet();
 	void prepareShrinkCurveConstrained();
 	void prepareGrowCurveConstrained();
 	void prepareMorphCurve();
+
+	void prepareShrinkSheet();
+	void prepareGrowSheet();
 	void prepareMorphSheet();
 
 	// Execution stage
 	void execute( double t );
-	void executeGrowShrinkCurve( double t );
+
+	void foldCurve( double t );
+	void executeShrinkCurve( double t );
+	void executeGrowCurve( double t );
+	void executeCurveConstrained( double t );
+
 	void executeGrowShrinkSheet( double t );
 	void executeMorphCurve( double t );
+	void executeMorphSheet( double t );
 
 	void geometryMorph( double t );
 
@@ -60,9 +70,6 @@ public:
 
 	QVector<Structure::Link *> getGoodEdges();
 	QList<Structure::Link*> furthermostGoodEdges();
-
-	// Helper functions
-	void setupCurveDeformer(Structure::Curve* curve, Structure::Link* linkA, Structure::Link* linkB);
 
 	// Task properties
 	TaskType type;

@@ -958,7 +958,7 @@ void topoblend::generateSynthesisData()
 
 	QString timingString = QString("Synthesis data [ %1 ms ]").arg(timer.elapsed());
 	qDebug() << timingString;
-	mainWindow()->setStatusBarMessage(timingString,120);
+	mainWindow()->setStatusBarMessage(timingString,125);
 }
 
 void topoblend::saveSynthesisData()

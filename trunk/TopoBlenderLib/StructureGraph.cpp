@@ -1049,7 +1049,19 @@ bool Graph::isCutNode( QString nodeID )
 		}
 	}
 
-	if(visitedNodes.size() != nodes.size() - 1)
+	// Skip flying nodes
+	int countConnectNodes = 0;
+	foreach(Structure::Node * n, nodes)
+	{
+		if(this->getEdges(n->id).size() > 0)
+		{
+			countConnectNodes++;
+		}
+	}
+
+	int countVisitNodes = visitedNodes.size();
+
+	if( countVisitNodes != countConnectNodes - 1 )
 		return true;
 	else
 		return false;
