@@ -67,3 +67,29 @@ typedef std::pair< int, int > POINT_ID;
 typedef std::pair< QVector<POINT_ID>, QVector<POINT_ID> > POINT_LANDMARK;
 
 #define AlphaBlend(alpha, start, end) ( ((1-alpha) * start) + (alpha * end) )
+
+static std::vector<Vec3d> refineByNumber(const std::vector<Vec3d> & fromPnts, int targetNumber)
+{
+	// Refine until targetNumber is achieved
+	std::vector<Vec3d> newPnts = fromPnts;
+	while(targetNumber > newPnts.size())
+	{
+		// Find index of largest edge and split
+		double maxDist = -DBL_MAX;
+		int idx = -1;
+		for(int i = 1; i < newPnts.size(); i++){
+			double dist = (newPnts[i] - newPnts[i-1]).norm();
+			if(dist > maxDist){
+				maxDist = dist;
+				idx = i;
+			}
+		}
+
+		Vec3d midPoint = (newPnts[idx] + newPnts[idx-1]) / 2.0;
+
+		// Insert new point
+		newPnts.insert( newPnts.begin() + (idx), midPoint );
+	}
+
+	return newPnts;
+}

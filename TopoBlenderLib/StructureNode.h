@@ -23,11 +23,13 @@ struct Node
 	virtual std::vector<Scalar> controlWeights() = 0;
 	virtual Vector3 & controlPoint(int idx) = 0;
 	virtual void setControlPoints(const std::vector<Vector3> & newPositions) = 0;
+	virtual int numCtrlPnts() = 0;
 
 	// Modifiers
 	virtual void moveBy( const Vec3d & delta ) = 0;
 	virtual void scale( Scalar scaleFactor ) = 0;
 	virtual void rotate( double angle, Vector3 axis ) = 0;
+	virtual void equalizeControlPoints( Structure::Node * other ) = 0;
 
 	// Coordinates
     virtual void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame ) = 0;

@@ -38,6 +38,12 @@ void GraphDistance::prepareNodes( Scalar resolution, const std::vector<Vector3> 
 
 		Array2D_Vec4d coords = node->discretizedPoints( resolution );
 
+		if (coords.empty()) 
+		{
+			excludeNodes.push_back(node->id);
+			continue;
+		}
+
 		Array2D_Vector3 discretization = node->getPoints( coords );
 		nodeCount[node] = std::make_pair(discretization.size(), discretization.front().size());
 
@@ -160,9 +166,6 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	foreach(Link * e, g->edges)
 	{
 		if(excludeNodes.contains(e->n1->id) || excludeNodes.contains(e->n2->id)) continue;
-
-		// Active / inactive
-		if(e->property.contains("active") && !e->property["active"].toBool()) continue;
 
 		int gid1 = nodesMap[e->n1].front().gid;
 		int gid2 = nodesMap[e->n2].front().gid;

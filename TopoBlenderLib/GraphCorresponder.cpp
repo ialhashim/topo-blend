@@ -592,8 +592,8 @@ void GraphCorresponder::prepareAllMatrices()
 
 	// Distance matrices
 	computeHausdorffDistanceMatrix(spatialM);
-	computeSizeDiffMatrix(sizeM);
-	computeOrientationDiffMatrix(orientationM);
+	//computeSizeDiffMatrix(sizeM);
+	//computeOrientationDiffMatrix(orientationM);
 	computeLandmarkFeatureMatrix(structuralM);
 }
 
@@ -608,8 +608,7 @@ void GraphCorresponder::computeFinalDistanceMatrix()
 		{
 			if (validM[i][j])
 			{
-				disM[i][j] = spactialW * spatialM[i][j] + structuralW * structuralM[i][j] 
-						   + sizeW * sizeM[i][j] + orientationW * orientationM[i][j];
+				disM[i][j] = spactialW * spatialM[i][j] + structuralW * structuralM[i][j];
 			}
 		}
 	}

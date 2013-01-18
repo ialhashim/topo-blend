@@ -39,6 +39,7 @@ public:
 	void correspondSuperEdges();
 
 	// Helper functions
+	void equalizeResolutions();
 	bool isExtraNode(Structure::Node *node);
 	bool isExtraEdge(Structure::Link *link);
 	void tagEdge(Structure::Link *link, QString tag);

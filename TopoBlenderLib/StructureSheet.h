@@ -23,12 +23,14 @@ struct Sheet : public Node
 	std::vector<Scalar> controlWeights();
 	Vector3 & controlPoint(int idx);
 	void setControlPoints(const std::vector<Vector3> & newPositions);
+	int numCtrlPnts();
 
 	// Modifiers
 	void moveBy( const Vec3d & delta );
 	void scale( Scalar scaleFactor );
 	void rotate( double angle, Vector3 axis );
     std::vector< std::vector<Vec3d> > foldTo( const std::vector<Vec4d> & curve, bool isApply = false );
+	void equalizeControlPoints( Structure::Node * other );
 
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
 	std::vector< std::vector<Vec4d> > discretizedPoints(Scalar resolution);

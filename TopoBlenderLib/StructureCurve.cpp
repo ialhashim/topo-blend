@@ -272,3 +272,19 @@ void Curve::drawWithNames( int nID, int pointIDRange )
 		glPopName();
 	}
 }
+
+void Curve::equalizeControlPoints( Structure::Node * _other )
+{
+	Structure::Node *other = (Structure::Node *)_other;
+
+	int targetNumber = other->curve.mNumCtrlPoints;
+
+	std::vector<Vec3d> newPnts = refineByNumber(curve.mCtrlPoint, targetNumber);
+
+	this->curve = NURBSCurve(newPnts, std::vector<double>( newPnts.size(), 1.0 ));
+}
+
+int Structure::Curve::numCtrlPnts()
+{
+	return curve.mNumCtrlPoints;
+}

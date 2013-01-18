@@ -28,11 +28,14 @@ struct Curve : public Node
 	void setControlPoints(const std::vector<Vector3> & newPositions);
 	void laplacianSmoothControls( int num_iterations, std::set<int> anchored = std::set<int>() );
 
+	int numCtrlPnts();
+
 	// Modifiers
 	void moveBy( const Vec3d & delta );
 	void scale( Scalar scaleFactor );
 	void rotate( double angle, Vector3 axis );
 	std::vector<Vec3d> foldTo( Vec4d & foldPoint, bool isApply = false );
+	void equalizeControlPoints( Structure::Node * other );
 
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
 	std::vector< std::vector<Vec4d> > discretizedPoints(Scalar resolution);
