@@ -900,12 +900,12 @@ void topoblend::testPoint2PointCorrespondences()
 	//Structure::Curve *newCurve = new Structure::Curve(*tCurve);
 	//newG->addNode(newCurve);
 
-	//NURBSCurve curve3 = NURBSCurve::createCurve(Vector3(-0.1, 0.7, 0), Vector3(0.5, 0.7, 0));
-	//sg->addNode(new Structure::Curve(curve3, "hcurve"));
+	//NURBSCurve Curve = NURBSCurve::createCurve(Vector3(-0.1, 0.7, 0), Vector3(0.5, 0.7, 0));
+	//sg->addNode(new Structure::Curve(Curve, "hcurve"));
 	//sg->addEdge("curve", "hcurve");
-	//tg->addNode(new Structure::Curve(curve3, "hcurve"));
+	//tg->addNode(new Structure::Curve(Curve, "hcurve"));
 	//tg->addEdge("curve", "hcurve");
-	//newG->addNode(new Structure::Curve(curve3, "hcurve"));
+	//newG->addNode(new Structure::Curve(Curve, "hcurve"));
 	//newG->addEdge("curve", "hcurve");
 
 	//if (corresponder())

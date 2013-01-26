@@ -294,8 +294,8 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 	std::vector<Real> source_ctrlWeights3(source_ctrlPoints3.size(), 1.0);
 	std::vector<Vector3> target_ctrlPoints3=target_sheet.GetControlPointsU(source_sheet.mNumUCtrlPoints-1);
 	std::vector<Real> target_ctrlWeights3(target_ctrlPoints3.size(), 1.0);
-	NURBSCurve source_curve3=NURBSCurve(source_ctrlPoints3, source_ctrlWeights3, 3, false, true);
-	NURBSCurve target_curve3=NURBSCurve(target_ctrlPoints3, target_ctrlWeights3, 3, false, true);
+	NURBSCurve source_Curve=NURBSCurve(source_ctrlPoints3, source_ctrlWeights3, 3, false, true);
+	NURBSCurve target_Curve=NURBSCurve(target_ctrlPoints3, target_ctrlWeights3, 3, false, true);
 
 	std::vector<Vector3> source_ctrlPoints4=source_sheet.GetControlPointsV();
 	std::vector<Real> source_ctrlWeights4(source_ctrlPoints4.size(), 1.0);
@@ -321,12 +321,12 @@ void Morpher::sheetResampling(NURBSRectangle source_sheet, NURBSRectangle target
 	Array2D_Vector3 target_crossSections2=cylinderResampling(target_faces,target_curve2,initialTargetDirection,
 		vResolution,sampling_thetaResolution, thetaRange, target_octree, true);
 
-	// curve3: transverse u while v=vResolution
+	// Curve: transverse u while v=vResolution
 	initialSourceDirection= -initialSourceDirection;
 	initialTargetDirection=-initialTargetDirection;
-	Array2D_Vector3 source_crossSections3=cylinderResampling(source_faces,source_curve3,initialSourceDirection,
+	Array2D_Vector3 source_crossSections3=cylinderResampling(source_faces,source_Curve,initialSourceDirection,
 		uResolution,sampling_thetaResolution,thetaRange, source_octree,true);
-	Array2D_Vector3 target_crossSections3=cylinderResampling(target_faces,target_curve3,initialTargetDirection,
+	Array2D_Vector3 target_crossSections3=cylinderResampling(target_faces,target_Curve,initialTargetDirection,
 		uResolution,sampling_thetaResolution, thetaRange,target_octree,true);
 
 	// curve4: transverse v while u=0
@@ -1067,7 +1067,7 @@ void Morpher::stitchPlane( int uResolution, int vResolution, int sampling_thetaR
 		resampledTargetMesh->add_face(face_vertex_idx);
 	}
 
-	// curve3: v=vResolution
+	// Curve: v=vResolution
 	for (int curr_u=0; curr_u< uResolution-2; curr_u++)
 	{
 		std::vector<Vertex> face_vertex_idx;
@@ -1187,7 +1187,7 @@ void Morpher::stitchPlane( int uResolution, int vResolution, int sampling_thetaR
 		resampledTargetMesh->add_face(face_vertex_idx);
 	}
 
-	// corner3:samplingStartDirection=sheetNormal; curve3: samplingStartDirection=-sheetNormal;
+	// corner3:samplingStartDirection=sheetNormal; Curve: samplingStartDirection=-sheetNormal;
 	for (int curr_theta=0; curr_theta< sampling_thetaResolution; curr_theta++)
 	{
 		std::vector<Vertex> face_vertex_idx;
@@ -1203,7 +1203,7 @@ void Morpher::stitchPlane( int uResolution, int vResolution, int sampling_thetaR
 	}
 
 	// corner4: u=0, v=1
-	// corner4:samplingStartDirection=sheetNormal; curve3: samplingStartDirection=-sheetNormal;
+	// corner4:samplingStartDirection=sheetNormal; Curve: samplingStartDirection=-sheetNormal;
 	for (int curr_theta=0; curr_theta< sampling_thetaResolution; curr_theta++)
 	{
 		std::vector<Vertex> face_vertex_idx;
@@ -1276,14 +1276,14 @@ void Morpher::stitchPlane( int uResolution, int vResolution, int sampling_thetaR
 	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV-numOnePlane-1]);
 	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-2*numTrunckV+(vResolution-2)*(sampling_thetaResolution+1)]); // on curve2
 	face_vertex_idx.push_back(source_verticesIdx[currentTotal-2*numCorner]); // on corner3
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV-1]); // on curve3
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV-1]); // on Curve
 
 	resampledSourceMesh->add_face(face_vertex_idx);
 	resampledTargetMesh->add_face(face_vertex_idx);
 
 	face_vertex_idx.clear();
 	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV-1]);
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-numTrunckV+(uResolution-2)*(sampling_thetaResolution+1)]); // on curve3
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-numTrunckV+(uResolution-2)*(sampling_thetaResolution+1)]); // on Curve
 	face_vertex_idx.push_back(source_verticesIdx[currentTotal-numCorner-1]); // on corner3
 	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-numTrunckV-1]); // on curve2
 
@@ -1293,7 +1293,7 @@ void Morpher::stitchPlane( int uResolution, int vResolution, int sampling_thetaR
 	// corner4
 	face_vertex_idx.clear();
 	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV-2*numOnePlane+(vResolution-2)*(uResolution-1)]);
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-numTrunckV+sampling_thetaResolution]); // on curve3
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-numTrunckV+sampling_thetaResolution]); // on Curve
 	face_vertex_idx.push_back(source_verticesIdx[currentTotal-numCorner]); // on corner4
 	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-1]); // on curve4
 
@@ -1304,7 +1304,7 @@ void Morpher::stitchPlane( int uResolution, int vResolution, int sampling_thetaR
 	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-2*numTrunckU-2*numTrunckV-numOnePlane+(vResolution-2)*(uResolution-1)]);
 	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckV+(vResolution-2)*(sampling_thetaResolution+1)]); // on curve4
 	face_vertex_idx.push_back(source_verticesIdx[currentTotal-1]); // on corner4
-	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-numTrunckV]); // on curve3
+	face_vertex_idx.push_back(source_verticesIdx[currentTotal-4*numCorner-numTrunckU-numTrunckV]); // on Curve
 
 	resampledSourceMesh->add_face(face_vertex_idx);
 	resampledTargetMesh->add_face(face_vertex_idx);
