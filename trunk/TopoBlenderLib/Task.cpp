@@ -2,6 +2,8 @@
 #include "Task.h"
 #include <QGraphicsSceneMouseEvent>
 
+using namespace NURBS;
+
 #include "Synthesizer.h"
 
 #include "weld.h"
@@ -814,8 +816,8 @@ void Task::prepareMorphSheet()
 	Structure::Node * tn = targetNode();
 	Structure::Sheet * sheet = (Structure::Sheet *)n;
 	Structure::Sheet * tsheet = (Structure::Sheet *)tn;
-	NURBSRectangle &surface = sheet->surface;
-	NURBSRectangle &tsurface = tsheet->surface;
+    NURBSRectangled &surface = sheet->surface;
+    NURBSRectangled &tsurface = tsheet->surface;
 
 	int nU = surface.mNumUCtrlPoints;
 	int nV = surface.mNumVCtrlPoints;
@@ -1179,7 +1181,7 @@ void Task::executeMorphSheet( double t )
 	}
 
 	// Replace the control points
-	sheet->surface = NURBSRectangle(cp, sheet->surface.mCtrlWeight, 3, 3, false, false, true, true);
+    sheet->surface = NURBSRectangled(cp, sheet->surface.mCtrlWeight, 3, 3, false, false, true, true);
 	sheet->surface.quads.clear();
 
 
