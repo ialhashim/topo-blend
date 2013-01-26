@@ -625,7 +625,7 @@ void Graph::loadFromFile( QString fileName )
 
 		if(node_type == CURVE)
 		{
-			new_node = addNode( new Curve( NURBSCurve(ctrlPoints, ctrlWeights, degree, false, true), id) );
+            new_node = addNode( new Curve( NURBS::NURBSCurved(ctrlPoints, ctrlWeights, degree, false, true), id) );
 		}
 		else if(node_type == SHEET)
 		{
@@ -644,7 +644,7 @@ void Graph::loadFromFile( QString fileName )
 				}
 			}
 
-			new_node = addNode( new Sheet( NURBSRectangle(cp, cw, degree, degree, false, false, true, true), id ) );
+            new_node = addNode( new Sheet( NURBS::NURBSRectangled(cp, cw, degree, degree, false, false, true, true), id ) );
 		}
 
 		// Mesh file path

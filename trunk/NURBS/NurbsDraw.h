@@ -15,7 +15,7 @@ namespace NURBS
 
 class CurveDraw{
 public:
-    static void draw( NURBSCurve * nc, QColor curve_color = QColor(0,255,255), bool drawControl = false)
+    static void draw( NURBSCurved * nc, QColor curve_color = QColor(0,255,255), bool drawControl = false)
     {
         if(drawControl)
         {
@@ -71,7 +71,7 @@ public:
 
 class SurfaceDraw{
 public:
-    static void draw( NURBSRectangle * nc, QColor sheet_color = QColor(0,255,255), bool drawControl = false )
+    static void draw( NURBSRectangled * nc, QColor sheet_color = QColor(0,255,255), bool drawControl = false )
 	{
 		glEnable( GL_POINT_SMOOTH );
 

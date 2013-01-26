@@ -25,8 +25,8 @@ public:
 
     void decorate();
 
-    std::vector<NURBSCurve> curves;
-    std::vector<NURBSRectangle> rects;
+    std::vector<NURBS::NURBSCurved> curves;
+    std::vector<NURBS::NURBSRectangled> rects;
 
     NURBSTools * widget;
 
@@ -34,10 +34,10 @@ public:
 
 	OBB_Volume mesh_obb;
 
-	void basicCurveFit(NURBSCurve & curve, std::vector<Vec3d> pnts);
-	void basicCurveFitRecursive(NURBSCurve & curve, std::vector<Vec3d> pnts, int high, int low);
+    void basicCurveFit(NURBS::NURBSCurved & curve, std::vector<Vec3d> pnts);
+    void basicCurveFitRecursive(NURBS::NURBSCurved & curve, std::vector<Vec3d> pnts, int high, int low);
 
-	void basicSurfaceFit( NURBSRectangle & surface, std::vector<Vec3d> pnts );
+    void basicSurfaceFit( NURBS::NURBSRectangled & surface, std::vector<Vec3d> pnts );
 
 public slots:
     void doFitCurve();

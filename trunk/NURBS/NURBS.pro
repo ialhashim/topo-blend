@@ -5,33 +5,34 @@ TEMPLATE = lib
 CONFIG += staticlib
 
 # Library name and destination
-TARGET = NURBS
+TARGET = NURBS2
 DESTDIR = $$PWD/lib
 
 SOURCES += \
     ParametricSurface.cpp \
     NURBSRectangle.cpp \
-    Matrix2.inl \
-    Matrix2.cpp \
-    Integrate1.cpp \
-    BSplineBasis.cpp \
     NURBSCurve.cpp \
+    BSplineRectangle.cpp \
+    BSplineCurve.cpp \
     SingleCurve.cpp \
+    Surface.cpp \
     Curve.cpp \
+    BSplineBasis.cpp \
     LineSegment.cpp
 
 HEADERS += \
     ParametricSurface.h \
     NURBSRectangle.h \
-    NurbsDraw.h \
-    Matrix2.h \
-    Integrate1.h \
-    BSplineBasis.h \
     NURBSCurve.h \
-    Curve.h \
+    BSplineRectangle.h \
+    BSplineCurve.h \
     SingleCurve.h \
-    LineSegment.h \
-    NURBSGlobal.h
+    Surface.h \
+    NURBSGlobal.h \
+    Curve.h \
+    BSplineBasis.h \
+    Integrate1.h \
+    LineSegment.h
 	
 # OpenMP
 win32 {

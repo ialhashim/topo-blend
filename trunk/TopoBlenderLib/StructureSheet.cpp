@@ -7,7 +7,7 @@
 #include "StructureSheet.h"
 using namespace Structure;
 
-Sheet::Sheet(const NURBSRectangle & sheet, QString sheetID, QColor color)
+Sheet::Sheet(const NURBS::NURBSRectangled & sheet, QString sheetID, QColor color)
 {
     this->surface = sheet;
 	this->surface.quads.clear();
@@ -118,7 +118,7 @@ SurfaceMeshTypes::Vector3 Sheet::approxProjection( const Vector3 & point )
 {
 	Vector3 pos(0);
 	Vec4d coords = approxCoordinates(point);
-	surface.Get(coords[0], coords[1], pos);
+    surface.Get(coords[0], coords[1], &pos);
 	return pos;
 }
 
@@ -333,7 +333,7 @@ void Sheet::equalizeControlPoints( Structure::Node * _other )
 		}
 	}
 
-	surface = NURBSRectangle(cp, cw, degree, degree, false, false, true, true);
+    surface = NURBS::NURBSRectangled(cp, cw, degree, degree, false, false, true, true);
 }
 
 int Sheet::numCtrlPnts()

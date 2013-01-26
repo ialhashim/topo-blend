@@ -1,31 +1,45 @@
-#include "Integrate1.h"
+// Geometric Tools, LLC
+// Copyright (c) 1998-2012
+// Distributed under the Boost Software License, Version 1.0.
+// http://www.boost.org/LICENSE_1_0.txt
+// http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
+//
+// File Version: 5.0.2 (2010/10/02)
+
+
 #include "SingleCurve.h"
-using namespace NURBS;
+#include "Integrate1.h"
 
+namespace NURBS
+{
 //----------------------------------------------------------------------------
-
-SingleCurve::SingleCurve (Real tmin, Real tmax) : Curve(tmin, tmax)
+template <typename Real>
+SingleCurve<Real>::SingleCurve (Real tmin, Real tmax)
+    :
+    Curve<Real>(tmin, tmax)
 {
 }
 //----------------------------------------------------------------------------
-
-Real SingleCurve::GetSpeedWithData (Real t, void* data)
+template <typename Real>
+Real SingleCurve<Real>::GetSpeedWithData (Real t, void* data)
 {
-    return ((Curve*)data)->GetSpeed(t);
+    return ((Curve<Real>*)data)->GetSpeed(t);
 }
 //----------------------------------------------------------------------------
-
-Real SingleCurve::GetLength (Real t0, Real t1)
+template <typename Real>
+Real SingleCurve<Real>::GetLength (Real t0, Real t1)
 {
-    assert(mTMin <= t0 && t0 <= mTMax);
-    assert(mTMin <= t1 && t1 <= mTMax);
-    assert(t0 <= t1);
+    assertion(mTMin <= t0 && t0 <= mTMax, "Invalid input\n");
+    assertion(mTMin <= t1 && t1 <= mTMax, "Invalid input\n");
+    assertion(t0 <= t1, "Invalid input\n");
 
-    return Integrate1<Real>::RombergIntegral(7, t0, t1, GetSpeedWithData, (void*)this);
+    return Integrate1<Real>::RombergIntegral(8, t0, t1, GetSpeedWithData,
+        (void*)this);
 }
 //----------------------------------------------------------------------------
-
-Real SingleCurve::GetTime (Real length, int iterations, Real tolerance)
+template <typename Real>
+Real SingleCurve<Real>::GetTime (Real length, int iterations,
+    Real tolerance)
 {
     if (length <= (Real)0)
     {
@@ -112,4 +126,16 @@ Real SingleCurve::GetTime (Real length, int iterations, Real tolerance)
     // the time values are oscillating, due to the limited numerical
     // precision of 32-bit floats.  It is safe to use the last computed time.
     return t;
+}
+//----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+// Explicit instantiation.
+//----------------------------------------------------------------------------
+//template
+//class SingleCurve<float>;
+
+template
+class SingleCurve<double>;
+//----------------------------------------------------------------------------
 }

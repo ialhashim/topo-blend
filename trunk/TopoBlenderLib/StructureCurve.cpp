@@ -4,7 +4,7 @@ using namespace Structure;
 
 #include "GL/GLU.h"
 
-Curve::Curve(const NURBSCurve & newCurve, QString newID, QColor color)
+Curve::Curve(const NURBS::NURBSCurved & newCurve, QString newID, QColor color)
 {
     this->curve = newCurve;
     this->id = newID;
@@ -47,12 +47,12 @@ std::vector<int> Curve::controlCount()
 
 std::vector<Vector3> Curve::controlPoints()
 {
-	return curve.getControlPoints();
+    return curve.mCtrlPoint;
 }
 
 std::vector<Scalar> Curve::controlWeights()
 {
-	return curve.getControlWeights();
+    return curve.mCtrlWeight;
 }
 
 void Curve::get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame )
@@ -281,7 +281,7 @@ void Curve::equalizeControlPoints( Structure::Node * _other )
 
 	std::vector<Vec3d> newPnts = refineByNumber(curve.mCtrlPoint, targetNumber);
 
-	this->curve = NURBSCurve(newPnts, std::vector<double>( newPnts.size(), 1.0 ));
+    this->curve = NURBS::NURBSCurved(newPnts, std::vector<double>( newPnts.size(), 1.0 ));
 }
 
 int Structure::Curve::numCtrlPnts()

@@ -2,11 +2,9 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 # Libraries
-SUBDIRS += NURBSLib
-SUBDIRS += NURBS_old
+SUBDIRS += NURBS
 SUBDIRS += DynamicVoxel
 SUBDIRS += Voxeler
-SUBDIRS +=
 SUBDIRS += TopoBlenderLib
 SUBDIRS += Reconstruction
 
@@ -16,8 +14,7 @@ SUBDIRS += segment
 SUBDIRS += dynamic_voxel
 SUBDIRS += voxel_resampler
 SUBDIRS += nurbs_plugin
-SUBDIRS += nurbs2_plugin
-SUBDIRS += geometry_morph
+#SUBDIRS += geometry_morph
 
 SUBDIRS += topo-blend # Main UI for topo-blending
 

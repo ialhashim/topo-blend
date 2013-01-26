@@ -44,7 +44,7 @@ void nurbs_plugin::doFitCurve()
 	Vector3 from( corners.front() );
 	Vector3 to( corners.back() );
 
-	NURBSCurve c = NURBSCurve::createCurve( from, to, widget->uCount() );
+    NURBS::NURBSCurved c = NURBS::NURBSCurved::createCurve( from, to, widget->uCount() );
 
 	std::vector<Vec3d> mesh_points;
 	foreach(Vertex v, mesh()->vertices()) mesh_points.push_back( points[v] );
@@ -56,7 +56,7 @@ void nurbs_plugin::doFitCurve()
 	drawArea()->updateGL();
 }
 
-void nurbs_plugin::basicCurveFit( NURBSCurve & curve, std::vector<Vec3d> pnts )
+void nurbs_plugin::basicCurveFit( NURBS::NURBSCurved & curve, std::vector<Vec3d> pnts )
 {
 	int high = curve.mCtrlPoint.size() - 1;
 	int low = 0;
@@ -75,7 +75,7 @@ void nurbs_plugin::basicCurveFit( NURBSCurve & curve, std::vector<Vec3d> pnts )
 	basicCurveFitRecursive(curve,pnts,high,low);
 }
 
-void nurbs_plugin::basicCurveFitRecursive( NURBSCurve & curve, std::vector<Vec3d> pnts, int high, int low )
+void nurbs_plugin::basicCurveFitRecursive( NURBS::NURBSCurved & curve, std::vector<Vec3d> pnts, int high, int low )
 {
 	int mid = ((high - low) * 0.5) + low;
 
@@ -134,14 +134,14 @@ void nurbs_plugin::doFitSurface()
 	Vec3d dV = axis[2].second;
 
 	// Create coarse B-spline sheet
-	NURBSRectangle r = NURBSRectangle::createSheet( width, length, center, dU, dV, widget->uCount(), widget->vCount() );
+    NURBS::NURBSRectangled r = NURBS::NURBSRectangled::createSheet( width, length, center, dU, dV, widget->uCount(), widget->vCount() );
 	//basicSurfaceFit(r);
 
 	rects.push_back(r);
 	drawArea()->updateGL();
 }
 
-void nurbs_plugin::basicSurfaceFit( NURBSRectangle & surface, std::vector<Vec3d> pnts )
+void nurbs_plugin::basicSurfaceFit( NURBS::NURBSRectangled & surface, std::vector<Vec3d> pnts )
 {
 	// Try to minimize distance between control points and point cloud [buggy code..]
 	for(int v = 0; v < surface.mNumVCtrlPoints; v++){
@@ -174,12 +174,12 @@ void nurbs_plugin::saveAll()
 {
 	Structure::Graph g;
 
-	foreach(NURBSCurve curve, curves)
+    foreach(NURBS::NURBSCurved curve, curves)
 	{
 		g.addNode( new Structure::Curve(curve, mesh()->name) );
 	}
 
-	foreach(NURBSRectangle rect, rects)
+    foreach(NURBS::NURBSRectangled rect, rects)
 	{
 		g.addNode( new Structure::Sheet(rect, mesh()->name) );
 	}

@@ -11,6 +11,8 @@
 #include "../CustomDrawObjects.h"
 #include "graph_modify_dialog.h"
 
+using namespace NURBS;
+
 // Graph manipulations
 #include "DynamicGraph.h"
 #include "GraphDistance.h"
@@ -208,37 +210,37 @@ void topoblend::generateChairModels()
     Vector3 dU = Vector3(1,0,0);
     Vector3 dV = Vector3(0,0,1);
 
-    NURBSRectangle backSheet = NURBSRectangle::createSheet(2,1, Vector3(0,-0.5,2), dU, dV);
+    NURBSRectangled backSheet = NURBSRectangled::createSheet(2,1, Vector3(0,-0.5,2), dU, dV);
 
-	NURBSRectangle seatSheet = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
-	NURBSRectangle seatSheetInv = NURBSRectangle::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,-1,0));
+    NURBSRectangled seatSheet = NURBSRectangled::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,1,0));
+    NURBSRectangled seatSheetInv = NURBSRectangled::createSheet(2,2, Vector3(0,1,0), Vector3(1,0,0), Vector3(0,-1,0));
 
-	NURBSCurve backLeft = NURBSCurve::createCurve(Vector3(-0.9,0,0), Vector3(-0.9,-0.5,1.5));
-	NURBSCurve backRight = NURBSCurve::createCurve(Vector3(0.9,0,0), Vector3(0.9,-0.5,1.5));
-	NURBSCurve backLeft2 = NURBSCurve::createCurve(Vector3(-0.5,0,0), Vector3(-0.5,-0.5,1.5));
-	NURBSCurve backRight2 = NURBSCurve::createCurve(Vector3(0.5,0,0), Vector3(0.5,-0.5,1.5));
-	NURBSCurve frontLegLeft = NURBSCurve::createCurve(Vector3(-1,1.75,0), Vector3(-1,1.9,-2));
-	NURBSCurve frontLegRight = NURBSCurve::createCurve(Vector3(1,1.75,0), Vector3(1,1.9,-2));
-	NURBSCurve backLegLeft = NURBSCurve::createCurve(Vector3(-1,0.25,0), Vector3(-1,0,-2));
-	NURBSCurve backLegRight = NURBSCurve::createCurve(Vector3(1,0.25,0), Vector3(1,0,-2));
-	NURBSCurve backTop = NURBSCurve::createCurve(Vector3(-0.9,-0.3345,1), Vector3(0.9,-0.3345,1));
-	NURBSCurve backBottom = NURBSCurve::createCurve(Vector3(-0.9,-0.171,0.5), Vector3(0.9,-0.171,0.5));
-	NURBSCurve legBarLeft = NURBSCurve::createCurve(Vector3(-1,0.126,-1), Vector3(-1,1.825,-1));
-	NURBSCurve legBarMiddle = NURBSCurve::createCurve(Vector3(-1,1.825,-1), Vector3(1,1.825,-1));
-	NURBSCurve legBarRight = NURBSCurve::createCurve(Vector3(1,0.126,-1), Vector3(1,1.825,-1));
-	NURBSCurve extraBar = NURBSCurve::createCurve(Vector3(1,0.079,-1.36), Vector3(1,-0.2,-1.6));
+    NURBSCurved backLeft = NURBSCurved::createCurve(Vector3(-0.9,0,0), Vector3(-0.9,-0.5,1.5));
+    NURBSCurved backRight = NURBSCurved::createCurve(Vector3(0.9,0,0), Vector3(0.9,-0.5,1.5));
+    NURBSCurved backLeft2 = NURBSCurved::createCurve(Vector3(-0.5,0,0), Vector3(-0.5,-0.5,1.5));
+    NURBSCurved backRight2 = NURBSCurved::createCurve(Vector3(0.5,0,0), Vector3(0.5,-0.5,1.5));
+    NURBSCurved frontLegLeft = NURBSCurved::createCurve(Vector3(-1,1.75,0), Vector3(-1,1.9,-2));
+    NURBSCurved frontLegRight = NURBSCurved::createCurve(Vector3(1,1.75,0), Vector3(1,1.9,-2));
+    NURBSCurved backLegLeft = NURBSCurved::createCurve(Vector3(-1,0.25,0), Vector3(-1,0,-2));
+    NURBSCurved backLegRight = NURBSCurved::createCurve(Vector3(1,0.25,0), Vector3(1,0,-2));
+    NURBSCurved backTop = NURBSCurved::createCurve(Vector3(-0.9,-0.3345,1), Vector3(0.9,-0.3345,1));
+    NURBSCurved backBottom = NURBSCurved::createCurve(Vector3(-0.9,-0.171,0.5), Vector3(0.9,-0.171,0.5));
+    NURBSCurved legBarLeft = NURBSCurved::createCurve(Vector3(-1,0.126,-1), Vector3(-1,1.825,-1));
+    NURBSCurved legBarMiddle = NURBSCurved::createCurve(Vector3(-1,1.825,-1), Vector3(1,1.825,-1));
+    NURBSCurved legBarRight = NURBSCurved::createCurve(Vector3(1,0.126,-1), Vector3(1,1.825,-1));
+    NURBSCurved extraBar = NURBSCurved::createCurve(Vector3(1,0.079,-1.36), Vector3(1,-0.2,-1.6));
 
-	NURBSCurve swivel1MiddleBar = NURBSCurve::createCurve(Vector3(0,1,0), Vector3(0,1,-2));
-	NURBSCurve swivel1Branch1 = NURBSCurve::createCurve(Vector3(0,1,-2), Vector3(1,1.9,-2));
-	NURBSCurve swivel1Branch2 = NURBSCurve::createCurve(Vector3(0,1,-2), Vector3(-1,1.9,-2));
-	NURBSCurve swivel1Branch3 = NURBSCurve::createCurve(Vector3(0,1,-2), Vector3(1,0,-2));
-	NURBSCurve swivel1Branch4 = NURBSCurve::createCurve(Vector3(0,1,-2), Vector3(-1,0,-2));
+    NURBSCurved swivel1MiddleBar = NURBSCurved::createCurve(Vector3(0,1,0), Vector3(0,1,-2));
+    NURBSCurved swivel1Branch1 = NURBSCurved::createCurve(Vector3(0,1,-2), Vector3(1,1.9,-2));
+    NURBSCurved swivel1Branch2 = NURBSCurved::createCurve(Vector3(0,1,-2), Vector3(-1,1.9,-2));
+    NURBSCurved swivel1Branch3 = NURBSCurved::createCurve(Vector3(0,1,-2), Vector3(1,0,-2));
+    NURBSCurved swivel1Branch4 = NURBSCurved::createCurve(Vector3(0,1,-2), Vector3(-1,0,-2));
 
-	NURBSCurve swivel2MiddleBar = NURBSCurve::createCurve(Vector3(0,1,0), Vector3(0,1,-0.5));
-	NURBSCurve swivel2Branch1 = NURBSCurve::createCurve(Vector3(0,1,-0.5), Vector3(1,1.9,-2));
-	NURBSCurve swivel2Branch2 = NURBSCurve::createCurve(Vector3(0,1,-0.5), Vector3(-1,1.9,-2));
-	NURBSCurve swivel2Branch3 = NURBSCurve::createCurve(Vector3(0,1,-0.5), Vector3(1,0,-2));
-	NURBSCurve swivel2Branch4 = NURBSCurve::createCurve(Vector3(0,1,-0.5), Vector3(-1,0,-2));
+    NURBSCurved swivel2MiddleBar = NURBSCurved::createCurve(Vector3(0,1,0), Vector3(0,1,-0.5));
+    NURBSCurved swivel2Branch1 = NURBSCurved::createCurve(Vector3(0,1,-0.5), Vector3(1,1.9,-2));
+    NURBSCurved swivel2Branch2 = NURBSCurved::createCurve(Vector3(0,1,-0.5), Vector3(-1,1.9,-2));
+    NURBSCurved swivel2Branch3 = NURBSCurved::createCurve(Vector3(0,1,-0.5), Vector3(1,0,-2));
+    NURBSCurved swivel2Branch4 = NURBSCurved::createCurve(Vector3(0,1,-0.5), Vector3(-1,0,-2));
 
 if (0)
 {
@@ -459,16 +461,16 @@ void topoblend::generateTwoSimpleModels()
     Vector3 dV = Vector3(0,0,1);
 
 	// Geometry
-    NURBSRectangle centerSheet = NURBSRectangle::createSheet(1,1, Vector3(0,0,0), dU, dV);
-    NURBSRectangle leftSheet = NURBSRectangle::createSheet(1,1, Vector3(-3,0,2), dU, dV);
-    NURBSRectangle rightSheet = NURBSRectangle::createSheet(1,1, Vector3(3,0,2), dU, dV);
-    NURBSRectangle bottomSheet = NURBSRectangle::createSheet(1,1, Vector3(0,0,-2.5), dU, dV);
+    NURBSRectangled centerSheet = NURBSRectangled::createSheet(1,1, Vector3(0,0,0), dU, dV);
+    NURBSRectangled leftSheet = NURBSRectangled::createSheet(1,1, Vector3(-3,0,2), dU, dV);
+    NURBSRectangled rightSheet = NURBSRectangled::createSheet(1,1, Vector3(3,0,2), dU, dV);
+    NURBSRectangled bottomSheet = NURBSRectangled::createSheet(1,1, Vector3(0,0,-2.5), dU, dV);
 
-	NURBSCurve leftCurve = NURBSCurve::createCurve(Vector3(-0.5,0,0.5), Vector3(-2.5, 0, 1.5));
-	NURBSCurve rightCurve = NURBSCurve::createCurve(Vector3(0.5,0,0.5), Vector3(2.5, 0, 1.5));
-	NURBSCurve bottomCurve = NURBSCurve::createCurve(Vector3(0,0,-0.5), Vector3(0, 0, -2.0));
-	NURBSCurve bottomLeftCurve = NURBSCurve::createCurve(Vector3(-2.5, 0, 1.5), Vector3(-0.5,0,-2));
-	NURBSCurve bottomRightCurve = NURBSCurve::createCurve(Vector3(2.5, 0, 1.5), Vector3(0.5,0,-2));
+    NURBSCurved leftCurve = NURBSCurved::createCurve(Vector3(-0.5,0,0.5), Vector3(-2.5, 0, 1.5));
+    NURBSCurved rightCurve = NURBSCurved::createCurve(Vector3(0.5,0,0.5), Vector3(2.5, 0, 1.5));
+    NURBSCurved bottomCurve = NURBSCurved::createCurve(Vector3(0,0,-0.5), Vector3(0, 0, -2.0));
+    NURBSCurved bottomLeftCurve = NURBSCurved::createCurve(Vector3(-2.5, 0, 1.5), Vector3(-0.5,0,-2));
+    NURBSCurved bottomRightCurve = NURBSCurved::createCurve(Vector3(2.5, 0, 1.5), Vector3(0.5,0,-2));
 
 	// Add nodes model 1
 	model1.addNode( new Structure::Sheet(centerSheet, "Center") );
@@ -865,18 +867,18 @@ void topoblend::testPoint2PointCorrespondences()
 	graphs.push_back(newG);
 
 	// Create one sheet for each graph
-	NURBSRectangle sheet1 = NURBSRectangle::createSheet(2,1, Vector3(0,0,0), Vector3(1,0,0), Vector3(0,1,0));
+    NURBSRectangled sheet1 = NURBSRectangled::createSheet(2,1, Vector3(0,0,0), Vector3(1,0,0), Vector3(0,1,0));
 	Structure::Sheet *sSheet = new Structure::Sheet(sheet1, "sheet");
 	sg->addNode(sSheet);
 
-	NURBSRectangle sheet2 = NURBSRectangle::createSheet(2,1.5, Vector3(0,0,0), Vector3(-1,0,0), Vector3(0,-1,0));
+    NURBSRectangled sheet2 = NURBSRectangled::createSheet(2,1.5, Vector3(0,0,0), Vector3(-1,0,0), Vector3(0,-1,0));
 	Structure::Sheet *tSheet = new Structure::Sheet(sheet2, "sheet");
 	tg->addNode(tSheet);
 
 	Structure::Sheet *newSheet = new Structure::Sheet(*tSheet);
 	newG->addNode(newSheet);
 
-	NURBSCurve curve = NURBSCurve::createCurve(Vector3(0.3, 0.4, 0), Vector3(0.3, 0.6, 1));
+    NURBSCurved curve = NURBSCurved::createCurve(Vector3(0.3, 0.4, 0), Vector3(0.3, 0.6, 1));
 	sg->addNode(new Structure::Curve(curve, "curve"));
 	sg->addEdge("sheet", "curve");
 	tg->addNode(new Structure::Curve(curve, "curve"));
@@ -889,18 +891,18 @@ void topoblend::testPoint2PointCorrespondences()
 		corresponder()->correspondTwoSheets(sSheet, tSheet);
 
 	//// Create one curve for each graph
-	//NURBSCurve curve1 = NURBSCurve::createCurve(Vector3(0,-1,0), Vector3(0,1,0));
+    //NURBSCurved curve1 = NURBSCurved::createCurve(Vector3(0,-1,0), Vector3(0,1,0));
 	//Structure::Curve *sCurve = new Structure::Curve(curve1, "curve");
 	//sg->addNode(sCurve);
 
-	//NURBSCurve curve2 = NURBSCurve::createCurve(Vector3(0, 1, 0), Vector3(0, -1, 0));
+    //NURBSCurved curve2 = NURBSCurved::createCurve(Vector3(0, 1, 0), Vector3(0, -1, 0));
 	//Structure::Curve *tCurve = new Structure::Curve(curve2, "curve");
 	//tg->addNode(tCurve);
 
 	//Structure::Curve *newCurve = new Structure::Curve(*tCurve);
 	//newG->addNode(newCurve);
 
-	//NURBSCurve Curve = NURBSCurve::createCurve(Vector3(-0.1, 0.7, 0), Vector3(0.5, 0.7, 0));
+    //NURBSCurved Curve = NURBSCurved::createCurve(Vector3(-0.1, 0.7, 0), Vector3(0.5, 0.7, 0));
 	//sg->addNode(new Structure::Curve(Curve, "hcurve"));
 	//sg->addEdge("curve", "hcurve");
 	//tg->addNode(new Structure::Curve(Curve, "hcurve"));

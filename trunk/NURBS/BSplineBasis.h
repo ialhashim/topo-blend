@@ -1,7 +1,15 @@
+// Geometric Tools, LLC
+// Copyright (c) 1998-2012
+// Distributed under the Boost Software License, Version 1.0.
+
 #pragma once
 
-#include "Curve.h"
+#include "NURBSGlobal.h"
 
+namespace NURBS
+{
+
+template <typename Real>
 class BSplineBasis
 {
 public:
@@ -57,14 +65,15 @@ public:
 
 protected:
     int Initialize (int numCtrlPoints, int degree, bool open);
-    Array2D_Real Allocate();
+
+	Array2D_Real Allocate();
 
     // Determine knot index i for which knot[i] <= rfTime < knot[i+1].
     int GetKey (Real& t) const;
 
-    int mNumCtrlPoints;     // n+1
-    int mDegree;            // d
-    Array1D_Real mKnot;     // knot[n+d+2]
+    int mNumCtrlPoints;   // n+1
+    int mDegree;          // d
+    Array1D_Real mKnot;          // knot[n+d+2]
     bool mOpen, mUniform;
 
     // Storage for the basis functions and their derivatives first three
@@ -76,4 +85,9 @@ protected:
     Array2D_Real mBD2;  // bd2[d+1][n+d+1]
     Array2D_Real mBD3;  // bd3[d+1][n+d+1]
 };
+
+typedef BSplineBasis<float> BSplineBasisf;
+typedef BSplineBasis<double> BSplineBasisd;
+
+}
 
