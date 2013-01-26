@@ -5,7 +5,7 @@ TEMPLATE = lib
 CONFIG += staticlib
 
 # Library name and destination
-TARGET = NURBS2
+TARGET = NURBS
 DESTDIR = $$PWD/lib
 
 SOURCES += \
