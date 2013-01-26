@@ -28,6 +28,16 @@ public:
 	void order();
 	void executeAll();
 
+	// Relink stage
+	// Propagate the changes made by this task to recover the active graph
+	// Must be called once if current task is a constraint
+	void relink(double t);
+	void relinkConstraintNode(QString cnID);
+	void relinkFreeNode(QString fnID);
+	void moveNodeByLink(Structure::Node* node, Structure::Link *link);
+	void deformCurveByLink(Structure::Node* node, Structure::Link *link);
+	void tranformSheetByTwoLinks(Structure::Node* node, Structure::Link *linkA, Structure::Link *linkB);
+
 	int totalExecutionTime();
 
 	// Dependency

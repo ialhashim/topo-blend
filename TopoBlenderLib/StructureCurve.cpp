@@ -275,6 +275,9 @@ void Curve::drawWithNames( int nID, int pointIDRange )
 
 void Curve::equalizeControlPoints( Structure::Node * _other )
 {
+	return;
+
+
 	Structure::Curve *other = (Structure::Curve *)_other;
 
 	int targetNumber = other->curve.mNumCtrlPoints;
