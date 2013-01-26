@@ -1,16 +1,22 @@
-// Adapted from WildMagic under Boost Software License - Version 1.0
+// Geometric Tools, LLC
+// Copyright (c) 1998-2012
+// Distributed under the Boost Software License, Version 1.0.
+
 #pragma once
+
 #include "NURBSGlobal.h"
 
 namespace NURBS
 {
 
-class Curve{
-
+template <typename Real>
+class Curve
+{
 public:
     // Abstract base class.
     Curve () {}
     Curve (Real tmin, Real tmax);
+    virtual ~Curve ();
 
     // Interval on which curve parameter is defined.  If you are interested
     // in only a subinterval of the actual domain of the curve, you may set
@@ -33,21 +39,28 @@ public:
     Vector3 GetTangent (Real t) ;
     Vector3 GetNormal (Real t) ;
     Vector3 GetBinormal (Real t) ;
-    void GetFrame (Real t, Vector3& position, Vector3& tangent, Vector3& normal, Vector3& binormal) ;
+    void GetFrame (Real t, Vector3& position, Vector3& tangent,
+        Vector3& normal, Vector3& binormal) ;
     Real GetCurvature (Real t) ;
     Real GetTorsion (Real t) ;
 
     // Inverse mapping of s = Length(t) given by t = Length^{-1}(s).
-    virtual Real GetTime (Real length, int iterations = 32, Real tolerance = (Real)TimeTolerance)  = 0;
+    virtual Real GetTime (Real length, int iterations = 32,
+        Real tolerance = (Real)1e-06)  = 0;
 
     // Subdivision.
-    void SubdivideByTime (int numPoints, std::vector<Vector3> & points) ;
-    void SubdivideByLength (int numPoints, std::vector<Vector3> & points) ;
-	void SubdivideByLengthTime (int numPoints, std::vector<Real> & times);
+    void SubdivideByTime (int numPoints, Array1D_Vector3& points) ;
+    void SubdivideByLength (int numPoints, Array1D_Vector3& points) ;
+
+    void SubdivideByLengthTime(int numPoints, std::vector<Real> &times);
 
 protected:
     // Curve parameter is t where tmin <= t <= tmax.
     Real mTMin, mTMax;
 };
 
+typedef Curve<float> Curvef;
+typedef Curve<double> Curved;
+
 }
+

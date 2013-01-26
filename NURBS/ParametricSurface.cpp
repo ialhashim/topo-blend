@@ -1,11 +1,22 @@
+// Geometric Tools, LLC
+// Copyright (c) 1998-2012
+// Distributed under the Boost Software License, Version 1.0.
+// http://www.boost.org/LICENSE_1_0.txt
+// http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
+//
+// File Version: 5.0.1 (2010/10/01)
+
 #include "ParametricSurface.h"
 #include "Matrix2.h"
 
-//----------------------------------------------------------------------------
-
-ParametricSurface::ParametricSurface (Real umin, Real umax, Real vmin, Real vmax, bool rectangular)
+namespace NURBS
 {
-    assert(umin < umax && vmin < vmax);
+//----------------------------------------------------------------------------
+template <typename Real>
+ParametricSurface<Real>::ParametricSurface (Real umin, Real umax,
+   Real vmin, Real vmax, bool rectangular)
+{
+    assertion(umin < umax && vmin < vmax, "Invalid domain\n");
 
     mUMin = umin;
     mUMax = umax;
@@ -14,49 +25,50 @@ ParametricSurface::ParametricSurface (Real umin, Real umax, Real vmin, Real vmax
     mRectangular = rectangular;
 }
 //----------------------------------------------------------------------------
-
+template <typename Real>
+ParametricSurface<Real>::~ParametricSurface ()
+{
+}
 //----------------------------------------------------------------------------
-
-Real ParametricSurface::GetUMin ()
+template <typename Real>
+Real ParametricSurface<Real>::GetUMin () const
 {
     return mUMin;
 }
 //----------------------------------------------------------------------------
-
-Real ParametricSurface::GetUMax ()
+template <typename Real>
+Real ParametricSurface<Real>::GetUMax () const
 {
     return mUMax;
 }
 //----------------------------------------------------------------------------
-
-Real ParametricSurface::GetVMin ()
+template <typename Real>
+Real ParametricSurface<Real>::GetVMin () const
 {
     return mVMin;
 }
 //----------------------------------------------------------------------------
-
-Real ParametricSurface::GetVMax ()
+template <typename Real>
+Real ParametricSurface<Real>::GetVMax () const
 {
     return mVMax;
 }
 //----------------------------------------------------------------------------
-
-bool ParametricSurface::IsRectangular ()
+template <typename Real>
+bool ParametricSurface<Real>::IsRectangular () const
 {
     return mRectangular;
 }
 //----------------------------------------------------------------------------
-
-void ParametricSurface::GetFrame (Real u, Real v, Vector3& position, Vector3& tangent0, Vector3& tangent1, Vector3& normal)
+template <typename Real>
+void ParametricSurface<Real>::GetFrame (Real u, Real v,
+    Vector3& position, Vector3& tangent0,
+    Vector3& tangent1, Vector3& normal)
 {
-	Vector3 p(0), PU(0), PV(0);
+    position = P(u, v);
 
-	GetAll(u, v, &p, &PU, &PV);
-
-    position = p;
-    tangent0 = PU;
-    tangent1 = PV;
-
+    tangent0 = PU(u, v);
+    tangent1 = PV(u, v);
     tangent0.normalize();  // T0
     tangent1.normalize();  // temporary T1 just to compute N
     normal = cross(tangent0, tangent1).normalized();  // N
@@ -66,8 +78,10 @@ void ParametricSurface::GetFrame (Real u, Real v, Vector3& position, Vector3& ta
     tangent1 = cross(normal,tangent0);
 }
 //----------------------------------------------------------------------------
-
-void ParametricSurface::ComputePrincipalCurvatureInfo (Real u, Real v, Real& curv0, Real& curv1, Vector3& dir0, Vector3& dir1)
+template <typename Real>
+void ParametricSurface<Real>::ComputePrincipalCurvatureInfo (Real u, Real v,
+    Real& curv0, Real& curv1, Vector3& dir0,
+    Vector3& dir1)
 {
     // Tangents:  T0 = (x_u,y_u,z_u), T1 = (x_v,y_v,z_v)
     // Normal:    N = Cross(T0,T1)/Length(Cross(T0,T1))
@@ -92,14 +106,11 @@ void ParametricSurface::ComputePrincipalCurvatureInfo (Real u, Real v, Real& cur
     // is (k1+k2)/2 and the Gaussian curvature is k1*k2.
 
     // Compute derivatives.
-	Vector3 p(0), PU(0), PV(0), PUU(0), PUV(0), PVV(0);
-	GetAll(u,v,&p,&PU,&PV,&PUU,&PUV,&PVV);
-
-    Vector3 derU = PU;
-    Vector3 derV = PV;
-    Vector3 derUU = PUU;
-    Vector3 derUV = PUV;
-    Vector3 derVV = PVV;
+    Vector3 derU = PU(u,v);
+    Vector3 derV = PV(u,v);
+    Vector3 derUU = PUU(u,v);
+    Vector3 derUV = PUV(u,v);
+    Vector3 derVV = PVV(u,v);
 
     // Compute the metric tensor.
     Matrix2<Real> metricTensor;
@@ -159,3 +170,14 @@ void ParametricSurface::ComputePrincipalCurvatureInfo (Real u, Real v, Real& cur
     dir1 = cross(dir0, normal);
 }
 //----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+// Explicit instantiation.
+//----------------------------------------------------------------------------
+//template
+//class ParametricSurface<float>;
+
+template
+class ParametricSurface<double>;
+//----------------------------------------------------------------------------
+}

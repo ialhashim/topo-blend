@@ -794,7 +794,7 @@ void GraphCorresponder::correspondTwoCurves( Structure::Curve *sCurve, Structure
 		std::reverse(tCtrlPoint.begin(), tCtrlPoint.end());
 		std::reverse(tCtrlWeight.begin(), tCtrlWeight.end());
 
-		NURBSCurve newCurve(tCtrlPoint, tCtrlWeight);
+        NURBS::NURBSCurved newCurve(tCtrlPoint, tCtrlWeight);
 		tCurve->curve = newCurve;
 
 		// Update the coordinates of links
@@ -808,7 +808,7 @@ void GraphCorresponder::correspondTwoCurves( Structure::Curve *sCurve, Structure
 void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure::Sheet *tSheet )
 {
 	// Old properties
-	NURBSRectangle &oldRect = tSheet->surface;
+    NURBS::NURBSRectangled &oldRect = tSheet->surface;
 	int uDegree = oldRect.GetDegree(0);
 	int vDegree = oldRect.GetDegree(1);
 	bool uLoop = oldRect.IsLoop(0);
@@ -954,11 +954,11 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 	// Create a new sheet if need
 	if (isModified)
 	{
-		NURBSRectangle newRect; 
+        NURBS::NURBSRectangled newRect;
 		if (isUVFlipped)
-			newRect = NURBSRectangle(tCtrlPointNew, tCtrlWeightNew, vDegree, uDegree, vLoop, uLoop, vOpen, uOpen);
+            newRect = NURBS::NURBSRectangled(tCtrlPointNew, tCtrlWeightNew, vDegree, uDegree, vLoop, uLoop, vOpen, uOpen);
 		else
-			newRect = NURBSRectangle(tCtrlPointNew, tCtrlWeightNew, uDegree, vDegree, uLoop, vLoop, uOpen, vOpen);
+            newRect = NURBS::NURBSRectangled(tCtrlPointNew, tCtrlWeightNew, uDegree, vDegree, uLoop, vLoop, uOpen, vOpen);
 
 		tSheet->surface = newRect;
 	}

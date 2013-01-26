@@ -85,7 +85,7 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 	kdtree.build();
 
 	// Project
-	NURBSCurve mycurve;
+    NURBS::NURBSCurved mycurve;
 	#pragma omp parallel for private(mycurve)
 	for(int i = 0; i < (int)points.size(); i++)
 	{
@@ -139,7 +139,7 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * she
 	}
 	kdtree.build();
 
-	NURBSRectangle r;
+    NURBS::NURBSRectangled r;
 
 	#pragma omp parallel for private(r)
 	for(int i = 0; i < (int)points.size(); i++)
@@ -308,7 +308,7 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 
 	qDebug() << "Curve RMF count = " << rmf.U.size() << ", Samples = " << samples.size();
 
-	NURBSCurve mycurve;
+    NURBS::NURBSCurved mycurve;
 	#pragma omp parallel for private(mycurve)
 	for(int i = 0; i < (int)samples.size(); i++)
 	{
@@ -369,7 +369,7 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 		Vector3 X(0), Y(0), Z(0);
 		Vector3 vDirection(0), rayPos(0);
 
-		NURBSRectangle r = sheet->surface;
+        NURBS::NURBSRectangled r = sheet->surface;
 
 		r.GetFrame( sample.u, sample.v, rayPos, X, vDirection, Z );
 		Y = cross(Z, X);

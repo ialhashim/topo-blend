@@ -8,11 +8,11 @@ namespace Structure{
 struct Sheet : public Node
 {
     // Constructors
-    Sheet(const NURBSRectangle & sheet, QString sheetID, QColor color = qRandomColor());
+    Sheet(const NURBS::NURBSRectangled & sheet, QString sheetID, QColor color = qRandomColor());
 	Node * clone();
 
     // Underlaying structure
-    NURBSRectangle surface;
+    NURBS::NURBSRectangled surface;
 
     // Properties
     QString type();

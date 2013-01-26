@@ -46,7 +46,8 @@ HEADERS += StructureNode.h \
     StructureGlobal.h \
     Synthesizer.h \
     Sampler.h \
-    SpherePackSampling.h
+    SpherePackSampling.h \
+    Octree.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -63,15 +64,16 @@ SOURCES += StructureGraph.cpp \
     ARAPCurveDeformer.cpp \
     TimelineSlider.cpp \
     Synthesizer.cpp \
-    Sampler.cpp
+    Sampler.cpp \
+    Octree.cpp
 	
 	
 FORMS += \
     SchedulerWidget.ui
 
 # Morpher related
-HEADERS += Morpher.h BoundingBox.h Octree.h
-SOURCES += Morpher.cpp Octree.cpp
+#HEADERS += Morpher.h BoundingBox.h Octree.h
+#SOURCES += Morpher.cpp Octree.cpp
 
 # OpenMP
 win32 {
