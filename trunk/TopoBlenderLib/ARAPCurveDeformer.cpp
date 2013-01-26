@@ -9,7 +9,7 @@ ARAPCurveDeformer::ARAPCurveDeformer( std::vector<Vec3d> curvePoints, int sizeNe
     this->nVerts = points.size();
     this->isAnchorPoint = std::vector< bool >(false, nVerts);
     this->isControlPoint = std::vector< bool >(false, nVerts);
-	this->neighborhoodSize = qMax(1, sizeNeighborhood);
+	this->neighborhoodSize = qMax(1, qMin((int)points.size() - 1, sizeNeighborhood));
 
 	ClearAll();
 

@@ -1,6 +1,5 @@
 #include "Scheduler.h"
 #include "Task.h"
-#include "ARAPCurveDeformer.h"
 #include <QGraphicsSceneMouseEvent>
 
 #include "Synthesizer.h"
@@ -11,6 +10,10 @@ typedef std::vector< std::pair<double,double> > VectorPairDouble;
 Q_DECLARE_METATYPE(Vector3);
 Q_DECLARE_METATYPE(Vec4d);
 Q_DECLARE_METATYPE(VectorPairDouble);
+
+#include "ARAPCurveDeformer.h"
+int globalArapIterations = 4;
+int globalArapSize = 0;
 Q_DECLARE_METATYPE(ARAPCurveDeformer*);
 
 int globalCount = 0;
@@ -30,8 +33,8 @@ Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, Task
 	this->isReady = false;
 	this->isDone = false;
 
-	this->arapIterations = 4;
-	this->arapAdjSize = 1;
+	this->arapIterations = globalArapIterations;
+	this->arapAdjSize = globalArapSize;
 
 	// Visual properties
 	width = length;
@@ -291,7 +294,7 @@ void Task::deformCurve( int anchorPoint, int controlPoint, Vec3d newControlPos )
 	ARAPCurveDeformer * deformer = NULL;
 
 	if(!property.contains("deformer"))
-		property["deformer"].setValue( deformer = new ARAPCurveDeformer( curve->curve.mCtrlPoint, arapAdjSize ) );
+		property["deformer"].setValue( deformer = new ARAPCurveDeformer( curve->curve.mCtrlPoint ) );
 	else
 		deformer = property["deformer"].value<ARAPCurveDeformer*>();
 
@@ -430,6 +433,7 @@ void Task::prepare()
 		case SPLIT:
 		case MERGE:
 		case MORPH:
+			prepareMorphSheet();
 			break;
 		}
 	}
@@ -445,10 +449,8 @@ void Task::prepareShrinkCurve()
 
 	if( active->isCutNode(n->id) )
 	{
-		active->printLinksInfo();
-
 		property["isCutNode"] = true;
-		prepareShrinkCurveConstrained();
+		prepareShrinkCurveConstraint();
 		return;
 	}
 
@@ -520,7 +522,7 @@ void Task::prepareShrinkCurve()
 		property["cpidxA"].setValue(cpidxA);
 		property["cpidxB"].setValue(cpidxB);
 
-		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint, arapAdjSize ) );
+		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint ) );
 	}
 }
 
@@ -537,7 +539,7 @@ void Task::prepareGrowCurve()
 	if( target->isCutNode(tn->id) )
 	{
 		property["isCutNode"] = true;
-		prepareGrowCurveConstrained();
+		prepareGrowCurveConstraint();
 		return;
 	}
 
@@ -617,7 +619,7 @@ void Task::prepareGrowCurve()
 		property["cpidxB"].setValue(cpidxB);
 
 		std::vector<Vec3d> originalPoints = structure_curve->curve.mCtrlPoint;
-		ARAPCurveDeformer * deformer = new ARAPCurveDeformer( originalPoints, arapAdjSize );
+		ARAPCurveDeformer * deformer = new ARAPCurveDeformer( originalPoints );
 		property["deformer"].setValue( deformer );
 
 		// Initial position of n
@@ -628,7 +630,7 @@ void Task::prepareGrowCurve()
 	}
 }
 
-void Task::prepareShrinkCurveConstrained()
+void Task::prepareShrinkCurveConstraint()
 {
 	Structure::Node * n = node();
 	Structure::Curve* structure_curve = ((Structure::Curve*)n);
@@ -660,7 +662,7 @@ void Task::prepareShrinkCurveConstrained()
 	}
 }
 
-void Task::prepareGrowCurveConstrained()
+void Task::prepareGrowCurveConstraint()
 {
 	Structure::Node *n = node();
 	Structure::Node *tn = targetNode();
@@ -749,7 +751,7 @@ void Task::prepareMorphCurve()
 		property["cpidxA"].setValue(cpidxA);
 		property["cpidxB"].setValue(cpidxB);
 
-		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint, arapAdjSize ) );
+		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint ) );
 	}
 }
 
@@ -807,7 +809,30 @@ void Task::prepareGrowSheet()
 
 void Task::prepareMorphSheet()
 {
+	// Morph
+	Structure::Node * n = node();
+	Structure::Node * tn = targetNode();
+	Structure::Sheet * sheet = (Structure::Sheet *)n;
+	Structure::Sheet * tsheet = (Structure::Sheet *)tn;
+	NURBSRectangle &surface = sheet->surface;
+	NURBSRectangle &tsurface = tsheet->surface;
 
+	int nU = surface.mNumUCtrlPoints;
+	int nV = surface.mNumVCtrlPoints;
+
+	Array2D_Vector3 deltas(nU, Array1D_Vector3(nV, Vec3d()));
+	for (int u = 0; u < nU; u++){
+		for (int v = 0; v < nV; v++)
+			deltas[u][v] = tsurface.mCtrlPoint[u][v] - surface.mCtrlPoint[u][v];
+	}
+
+	property["deltas"].setValue(deltas);
+	property["orgCtrlPoints"].setValue(surface.mCtrlPoint);
+
+
+	// Mark
+	if( active->isCutNode(n->id) )
+		property["isCutNode"] = true;
 }
 
 
@@ -950,7 +975,7 @@ void Task::executeCurveConstrained( double t )
 		int idx_control = other_curve->controlPointIndexFromCoord( edge->getCoord(other_curve->id).front() );
 		int idx_anchor = (idx_control > nCtrl / 2) ? 0 : nCtrl - 1;
 
-		ARAPCurveDeformer * deformer = new ARAPCurveDeformer( other_curve->controlPoints(), arapAdjSize );
+		ARAPCurveDeformer * deformer = new ARAPCurveDeformer( other_curve->controlPoints() );
 
 		deformer->ClearAll();
 		deformer->setControl( idx_control );
@@ -1140,5 +1165,27 @@ void Task::executeMorphCurve( double t )
 
 void Task::executeMorphSheet( double t )
 {
-	
+	Structure::Node * n = node();
+	Structure::Sheet * sheet = (Structure::Sheet *)n;
+
+	Array2D_Vector3 deltas = property["deltas"].value<Array2D_Vector3>();
+	Array2D_Vector3 orgCtrlPoints = property["orgCtrlPoints"].value<Array2D_Vector3>();
+	Array2D_Vector3 cp = orgCtrlPoints;
+
+	for (int u = 0; u < deltas.size(); u++){
+		for (int v = 0; v < deltas.front().size(); v++){
+			cp[u][v] = orgCtrlPoints[u][v] + t * deltas[u][v];
+		}
+	}
+
+	// Replace the control points
+	sheet->surface = NURBSRectangle(cp, sheet->surface.mCtrlWeight, 3, 3, false, false, true, true);
+	sheet->surface.quads.clear();
+
+
+	if (property.contains("isCutNode"))
+		property["isConstraint"] = true;
+	else
+		property["isConstraint"] = false;
 }
+

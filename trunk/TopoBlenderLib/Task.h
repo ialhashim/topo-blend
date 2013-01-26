@@ -36,8 +36,8 @@ public:
 
 	void prepareShrinkCurve();
 	void prepareGrowCurve();
-	void prepareShrinkCurveConstrained();
-	void prepareGrowCurveConstrained();
+	void prepareShrinkCurveConstraint();
+	void prepareGrowCurveConstraint();
 	void prepareMorphCurve();
 
 	void prepareShrinkSheet();
