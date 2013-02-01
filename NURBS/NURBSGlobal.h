@@ -331,5 +331,5 @@ static inline std::vector< std::vector<T> > new2(int y, int x, const T& defaultV
         } \
     } while (false)
 #else
-#   define ASSERT(condition, message) do { } while (false)
+#   define assertion(condition, message) do { } while (false)
 #endif

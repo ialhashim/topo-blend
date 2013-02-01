@@ -19,7 +19,9 @@ INCLUDEPATH += ../TopoBlenderLib
 
 HEADERS += nurbs_plugin.h \
     nurbstools.h \
-    OBB_Volume.h
+    OBB_Volume.h \
+    PCA3.h \
+    LSCM.h
 
 SOURCES += nurbs_plugin.cpp \
     nurbstools.cpp

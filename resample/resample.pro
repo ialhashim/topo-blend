@@ -1,5 +1,6 @@
 load($$[STARLAB])
 load($$[SURFACEMESH])
+load($$[CHOLMOD])
 load($$[EIGEN])
 load($$[NANOFLANN])
 StarlabTemplate(plugin)

@@ -12,6 +12,7 @@ ResampleWidget::ResampleWidget(myresample *resampler, QWidget *parent): QDialog(
     this->r = resampler;
 
     connect(ui->resampleButton, SIGNAL(clicked()), (const QObject*) resampler, SLOT(doResample()));
+    connect(ui->parameterizeButton, SIGNAL(clicked()), (const QObject*) resampler, SLOT(doParameterize()));
 }
 
 ResampleWidget::~ResampleWidget()
