@@ -36,6 +36,13 @@
        </property>
       </spacer>
      </item>
+     <item>
+      <widget class="QPushButton" name="parameterizeButton">
+       <property name="text">
+        <string>Parameterize..</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
   </layout>
