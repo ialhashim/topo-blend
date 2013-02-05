@@ -233,6 +233,19 @@ Vector3 BSplineCurve<Real>::GetThirdDerivative (Real t)
 }
 //----------------------------------------------------------------------------
 
+template <typename Real>
+Array1D_Real NURBS::BSplineCurve<Real>::GetKnotVector(bool isInnerOnly)
+{
+	if(isInnerOnly)
+	{
+		int d = this->GetDegree() + 1;
+		
+		Array1D_Real result(mBasis.mKnot.begin() + d, mBasis.mKnot.end() - d);
+	}
+	else
+		return this->mBasis.mKnot;
+}
+
 //----------------------------------------------------------------------------
 // Explicit instantiation.
 //----------------------------------------------------------------------------

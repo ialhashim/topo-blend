@@ -118,6 +118,11 @@ public:
 		lines.push_back( qMakePair(p1,p2) );
 		lines_colors.push_back(c);
 	}
+
+	void addLines()
+	{
+
+	}
 };
 
 class PointSoup : public RenderObject::Base{

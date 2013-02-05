@@ -29,3 +29,8 @@ int NURBSTools::vCount()
 {
 	return ui->vCount->value();
 }
+
+double NURBSTools::resolution()
+{
+	return ui->resolution->value();
+}

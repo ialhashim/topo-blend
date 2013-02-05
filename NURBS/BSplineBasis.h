@@ -63,7 +63,7 @@ public:
     // Evaluate basis functions and their derivatives.
     void Compute (Real t, unsigned int order, int& minIndex, int& maxIndex);
 
-protected:
+public:
     int Initialize (int numCtrlPoints, int degree, bool open);
 
 	Array2D_Real Allocate();
@@ -75,6 +75,8 @@ protected:
     int mDegree;          // d
     Array1D_Real mKnot;          // knot[n+d+2]
     bool mOpen, mUniform;
+
+	static Array1D_Real uniformKnotVector(int num_ctrl_points, int degree = 3);
 
     // Storage for the basis functions and their derivatives first three
     // derivatives.  The basis array is always allocated by the constructor

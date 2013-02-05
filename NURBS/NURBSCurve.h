@@ -46,6 +46,10 @@ public:
     NURBSCurve (){}
     NURBSCurve (const Array1D_Vector3 & ctrlPoint, const Array1D_Real & ctrlWeight, int degree = 3, bool loop = false, bool open = true);
 
+	static Array1D_Real uniformWeights(int n){ return Array1D_Real(n,1.0); }
+	static NURBSCurve<Real> createCurveFromPoints( const Array1D_Vector3 & ctrlPoint ) 
+	{ return NURBSCurve<Real>( ctrlPoint, uniformWeights( ctrlPoint.size() ) ); }
+
     static NURBSCurve<Real> createCurve(Vector3 from, Vector3 to, int steps = 5);
 
     // Open, nonuniform spline.  The knot array must have n-d elements.  The
@@ -73,6 +77,23 @@ public:
     // are not satisfied, GetKnot returns MAX_REAL.
     void SetKnot (int i, Real knot);
     Real GetKnot (int i) const;
+
+	Array1D_Real GetKnotVector(bool isInnerOnly = false);
+
+	// Refinement:
+	void refine( Array1D_Real & insKnts, Array1D_Vector3 & Qw, Array1D_Real & Ubar );
+	int findSpan( int n, int p, Real u, Array1D_Real & U );
+	int findSpan( Real u );
+	
+	Array1D_Vector3 midPointRefined();
+	void computeMidPointRefine( Array1D_Vector3 & Qw, Array1D_Real & Ubar );
+
+	Array1D_Real insertKnot(Real u, int k, int s, int r, Array1D_Vector3 & Qw, int * uq = NULL);
+
+	Array1D_Vector3 simpleRefine(int k); 
+
+	Array1D_Vector3 removeKnots( int iterations = 1 );
+	Real KnotRemovalError( int r, int s );
 
     // The spline is defined for 0 <= t <= 1.  If a t-value is outside [0,1],
     // an open spline clamps t to [0,1].  That is, if t > 1, t is set to 1;
@@ -124,4 +145,3 @@ typedef NURBSCurve<float> NURBSCurvef;
 typedef NURBSCurve<double> NURBSCurved;
 
 }
-
