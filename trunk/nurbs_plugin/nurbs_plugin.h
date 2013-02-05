@@ -17,6 +17,7 @@ class nurbs_plugin : public SurfaceMeshModePlugin{
     Q_INTERFACES(ModePlugin)
 
 public:
+	nurbs_plugin() { widget = NULL; }
     QIcon icon(){ return QIcon(":/images/nurbs_icon.png"); }
 
     /// Functions part of the EditPlugin system
@@ -37,6 +38,8 @@ public:
     void basicCurveFit(NURBS::NURBSCurved & curve, std::vector<Vec3d> pnts);
     void basicCurveFitRecursive(NURBS::NURBSCurved & curve, std::vector<Vec3d> pnts, int high, int low);
 
+	bool keyPressEvent( QKeyEvent* event );
+
 public slots:
     void doFitCurve();
     void doFitSurface();
@@ -46,4 +49,6 @@ public slots:
 
 	void clearAll();
 	void saveAll();
+
+	void buildSamples();
 };

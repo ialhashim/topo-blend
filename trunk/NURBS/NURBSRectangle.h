@@ -58,6 +58,7 @@ public:
 
     static NURBSRectangle<Real> createSheet(Scalar width, Scalar length, Vector3 center, Vector3 dU, Vector3 dV, int nU = 5, int nV = 5);
     static NURBSRectangle<Real> createSheet(Vec3d corner1, Vec3d corner2, int stepsU = 5, int stepsV = 5);
+	static NURBSRectangle<Real> createSheetFromPoints( Array2D_Vector3 ctrlPoint );
 
     int GetNumCtrlPoints (int dim) const;
     int GetDegree (int dim) const;

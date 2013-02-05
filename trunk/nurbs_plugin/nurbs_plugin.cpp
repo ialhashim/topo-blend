@@ -14,8 +14,12 @@
 
 #include "../CustomDrawObjects.h"
 
+QVector<QColor> randColors;
+
 void nurbs_plugin::create()
 {
+	if(widget) return;
+
     ModePluginDockWidget * dockwidget = new ModePluginDockWidget(mainWindow());
     widget = new NURBSTools(this);
     dockwidget->setWidget(widget);
@@ -23,6 +27,11 @@ void nurbs_plugin::create()
     mainWindow()->addDockWidget(Qt::RightDockWidgetArea,dockwidget);
 
     points = mesh()->vertex_property<Vector3>("v:point");
+
+	for(int i = 0; i < 10; i++)
+		randColors.push_back(qRandomColor());
+
+	buildSamples();
 }
 
 void nurbs_plugin::decorate()
@@ -32,12 +41,12 @@ void nurbs_plugin::decorate()
 
 	for(int i = 0; i < (int)curves.size(); i++)
 	{
-		NURBS::CurveDraw::draw( &curves[i], QColor(0,255,255), true );
+		NURBS::CurveDraw::draw( &curves[i], randColors[i%randColors.size()], true );
 	}
 
 	for(int i = 0; i < (int)rects.size(); i++)
 	{
-		NURBS::SurfaceDraw::draw( &rects[i], QColor(0,255,255), true );
+		NURBS::SurfaceDraw::draw( &rects[i], randColors[i%randColors.size()], true );
 	}
 }
 
@@ -125,6 +134,8 @@ void nurbs_plugin::basicCurveFitRecursive( NURBS::NURBSCurved & curve, std::vect
 
 void nurbs_plugin::doFitSurface()
 {
+	this->rects.clear();
+
 	// Pick a side by clustering normals
 
 	// 1) Find edge with flat dihedral angle
@@ -202,7 +213,7 @@ void nurbs_plugin::doFitSurface()
 	SurfaceMeshModel * submesh = NULL;
 	
 	bool isOpen = false;
-	foreach(Vertex v, inner){
+	foreach(Vertex v, mesh()->vertices()){
 		if(mesh()->is_boundary(v)){
 			isOpen = true;
 			break;
@@ -253,15 +264,41 @@ void nurbs_plugin::doFitSurface()
 		document()->addModel(submesh);
 
 	// Find 4 corners of a NURBS rect on mesh boundary
-	BoundaryFitting bf( submesh );
+	submesh->updateBoundingBox();
+	double resolution = submesh->bbox().size().length() * widget->resolution();
+	BoundaryFitting bf( submesh, resolution );
 
 	PointSoup * ps = new PointSoup;
 	foreach(Vertex v, submesh->vertices())
 		ps->addPoint( pos_submesh[v], qtJetColorMap(1.0 - bf.dists[v]) );
-	drawArea()->addRenderObject(ps);
+	//drawArea()->addRenderObject(ps);
 
 	// Construct rectangle
+	LineSegments * ls = new LineSegments;
+	for(int j = 0; j < (int)bf.lines.size(); j++)
+	{
+		std::vector<Vec3d> line = bf.lines[j];
 
+		for(int i = 0; i < (int)line.size(); i++)
+		{
+			if(i < (int)line.size() - 1)
+				ls->addLine(line[i],line[i+1]);
+			
+			if(j < (int)bf.lines.size() - 1)
+				ls->addLine(bf.lines[j][i], bf.lines[j+1][i], Qt::red);
+		}
+	}
+	//drawArea()->addRenderObject(ls);
+
+	// Visualize corners:
+	//foreach(Vec3d v, bf.debugPoints)
+	//	drawArea()->drawPoint(v, 20, Qt::green);
+
+	Array2D_Vector3 cp = bf.lines;
+	Array2D_Real cw(cp.size(), Array1D_Real(cp.front().size(), 1.0));
+	int degree = 3;
+
+	rects.push_back( NURBS::NURBSRectangled(cp,cw,degree,degree,false,false,true,true) );
 
 	drawArea()->updateGL();
 }
@@ -339,6 +376,92 @@ void nurbs_plugin::basicSurfaceFit_old( NURBS::NURBSRectangled & surface, std::v
 			cp = closestPoint;
 		}
 	}
+}
+
+bool nurbs_plugin::keyPressEvent( QKeyEvent* event )
+{
+	bool used = false;
+
+	if(event->key() == Qt::Key_E)
+	{
+		NURBS::NURBSCurved & c = curves.back();
+
+		NURBS::NURBSCurved newCurve = NURBS::NURBSCurved::createCurveFromPoints( c.simpleRefine(1) );
+
+		if(curves.size() == 1)
+			curves.push_back( newCurve );
+		else
+			c = newCurve;
+
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_R)
+	{
+		NURBS::NURBSCurved & c = curves.back();
+
+		c = NURBS::NURBSCurved::createCurveFromPoints( c.removeKnots(2) ) ;
+
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_Space)
+	{
+		buildSamples();
+		used = true;
+	}
+
+	drawArea()->updateGL();
+
+	return used;
+}
+
+void nurbs_plugin::buildSamples()
+{
+
+	// Curve example
+	int degree = 3;
+	std::vector<Vec3d> cps;
+	int steps = 10;
+	double theta = M_PI * 5 / steps;
+	double r = M_PI;
+
+	for(int i = 0; i <= steps; i++){
+		double x = (double(i) / steps) * r;
+		double y = sin(i * theta) * r * 0.25;
+
+		cps.push_back(Vec3d(x - r * 0.5, y, cos(i*theta)));
+	}
+
+	std::vector<Scalar> weight(cps.size(), 1.0);
+
+	curves.push_back(NURBS::NURBSCurved(cps, weight, degree, false, true));
+
+	// Rectangular surface
+	double w = 1;
+	double l = 2;
+
+	int width = w * 5;
+	int length = l * 5;
+
+	std::vector< std::vector<Vec3d> > cpts( width, std::vector<Vec3d>(length, 1.0) );
+	std::vector< std::vector<Scalar> > weights( width, std::vector<Scalar>(length, 1.0) );
+
+	double omega = M_PI * 3 / qMin(width, length);
+
+	Vec3d surface_pos(0,1,0);
+
+	for(int i = 0; i < width; i++)
+		for(int j = 0; j < length; j++){
+			double x = double(i) / width;
+			double y = double(j) / length;
+
+			double delta = sqrt(x*x + y*y) * 0.5;
+
+			cpts[i][j] = Vec3d(surface_pos.x() + x * w, surface_pos.y() + y * l, delta + sin(j * omega) * qMin(width, length) * 0.02);
+		}
+
+	rects.push_back( NURBS::NURBSRectangled(cpts, weights, degree, degree, false, false, true, true) );
 }
 
 Q_EXPORT_PLUGIN (nurbs_plugin)

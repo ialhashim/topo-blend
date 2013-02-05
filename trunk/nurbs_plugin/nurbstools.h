@@ -22,6 +22,8 @@ public:
 	int uCount();
 	int vCount();
 
+	double resolution();
+
 private:
     Ui::NURBSTools *ui;
 };

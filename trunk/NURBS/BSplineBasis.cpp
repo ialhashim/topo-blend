@@ -54,6 +54,29 @@ void BSplineBasis<Real>::Create (int numCtrlPoints, int degree, bool open)
         }
     }
 }
+
+template <typename Real>
+Array1D_Real BSplineBasis<Real>::uniformKnotVector(int num_ctrl_points, int degree)
+{
+	Real factor = ((Real)1)/(num_ctrl_points - degree);
+	int numKnots = num_ctrl_points + degree + 1;
+
+	Array1D_Real knot(numKnots,0);
+
+	int i=0;
+
+	for (i = 0; i <= degree; ++i)	knot[i] = 0.0;
+
+	for (/**/; i < num_ctrl_points; ++i)
+	{
+		knot[i] = (i - degree) * factor;
+	}
+
+	for (/**/; i < numKnots; ++i)	knot[i] = 1.0;
+
+	return knot;
+}
+
 //----------------------------------------------------------------------------
 template <typename Real>
 BSplineBasis<Real>::BSplineBasis (int numCtrlPoints, int degree,

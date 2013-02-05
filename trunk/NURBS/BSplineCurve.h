@@ -62,6 +62,7 @@ public:
     // are not satisfied, GetKnot returns MAX_REAL.
     void SetKnot (int i, Real knot);
     Real GetKnot (int i) const;
+	Array1D_Real GetKnotVector(bool isInnerOnly = true);
 
     // The spline is defined for 0 <= t <= 1.  If a t-value is outside [0,1],
     // an open spline clamps t to [0,1].  That is, if t > 1, t is set to 1;

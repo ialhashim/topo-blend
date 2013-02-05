@@ -209,6 +209,16 @@ NURBSRectangle<Real> NURBSRectangle<Real>::createSheet( Vec3d corner1, Vec3d cor
 
     return NURBSRectangle<Real>(pts, weights, degree, degree, false, false, true, true);
 }
+
+template <typename Real>
+NURBSRectangle<Real> NURBS::NURBSRectangle<Real>::createSheetFromPoints( Array2D_Vector3 ctrlPoint )
+{
+	int degree = 3;
+	int nU = ctrlPoint.size(), nV = ctrlPoint.front().size();
+	std::vector< std::vector<Scalar> > weights( nU, std::vector<Scalar>( nV, 1.0 ) );
+	return NURBSRectangle<Real>(ctrlPoint, weights, degree, degree, false, false, true, true); 
+}
+
 //----------------------------------------------------------------------------
 template <typename Real>
 void NURBSRectangle<Real>::CreateControl (Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight)
@@ -661,12 +671,11 @@ void NURBSRectangle<Real>::uniformCoordinates( std::vector<Real> & valU, std::ve
 
     double lengthU = curveU.GetLength(0,1), lengthV = curveV.GetLength(0,1);
 
-    // In case of zero sheet, which is a curve
+    // In case of zero sheet, which could be a curve
     if (lengthU < resolution || lengthV < resolution)
         return;
 
-    double resU = resolution;
-    double resV = resolution;
+    double resU = resolution, resV = resolution;
 
     int nU = lengthU / resolution;
     int nV = lengthV / resolution;
