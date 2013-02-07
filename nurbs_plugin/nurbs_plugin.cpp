@@ -31,7 +31,7 @@ void nurbs_plugin::create()
 	for(int i = 0; i < 10; i++)
 		randColors.push_back(qRandomColor());
 
-	buildSamples();
+	//buildSamples();
 }
 
 void nurbs_plugin::decorate()
@@ -268,31 +268,10 @@ void nurbs_plugin::doFitSurface()
 	double resolution = submesh->bbox().size().length() * widget->resolution();
 	BoundaryFitting bf( submesh, resolution );
 
-	PointSoup * ps = new PointSoup;
-	foreach(Vertex v, submesh->vertices())
-		ps->addPoint( pos_submesh[v], qtJetColorMap(1.0 - bf.dists[v]) );
+	//PointSoup * ps = new PointSoup;
+	//foreach(Vertex v, submesh->vertices())
+	//	ps->addPoint( pos_submesh[v], qtJetColorMap(1.0 - bf.dists[v]) );
 	//drawArea()->addRenderObject(ps);
-
-	// Construct rectangle
-	LineSegments * ls = new LineSegments;
-	for(int j = 0; j < (int)bf.lines.size(); j++)
-	{
-		std::vector<Vec3d> line = bf.lines[j];
-
-		for(int i = 0; i < (int)line.size(); i++)
-		{
-			if(i < (int)line.size() - 1)
-				ls->addLine(line[i],line[i+1]);
-			
-			if(j < (int)bf.lines.size() - 1)
-				ls->addLine(bf.lines[j][i], bf.lines[j+1][i], Qt::red);
-		}
-	}
-	//drawArea()->addRenderObject(ls);
-
-	// Visualize corners:
-	//foreach(Vec3d v, bf.debugPoints)
-	//	drawArea()->drawPoint(v, 20, Qt::green);
 
 	Array2D_Vector3 cp = bf.lines;
 	Array2D_Real cw(cp.size(), Array1D_Real(cp.front().size(), 1.0));
@@ -401,6 +380,57 @@ bool nurbs_plugin::keyPressEvent( QKeyEvent* event )
 		NURBS::NURBSCurved & c = curves.back();
 
 		c = NURBS::NURBSCurved::createCurveFromPoints( c.removeKnots(2) ) ;
+
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_Q)
+	{
+		NURBS::NURBSRectangled & r = rects.back();
+
+		r = NURBS::NURBSRectangled::createSheetFromPoints( r.midPointRefined() );
+
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_W)
+	{
+
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_Z)
+	{
+		NURBS::NURBSRectangled & r = rects.back();
+
+		r = NURBS::NURBSRectangled::createSheetFromPoints( r.simpleRefine(1,0) );
+
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_X)
+	{
+		NURBS::NURBSRectangled & r = rects.back();
+
+		r = NURBS::NURBSRectangled::createSheetFromPoints( r.simpleRefine(1,1) );
+
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_C)
+	{
+		NURBS::NURBSRectangled & r = rects.back();
+
+		r = NURBS::NURBSRectangled::createSheetFromPoints( r.simpleRemove(r.mNumUCtrlPoints * 0.5,0) );
+
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_V)
+	{
+		NURBS::NURBSRectangled & r = rects.back();
+
+		r = NURBS::NURBSRectangled::createSheetFromPoints( r.simpleRemove(r.mNumVCtrlPoints * 0.5,1) );
 
 		used = true;
 	}

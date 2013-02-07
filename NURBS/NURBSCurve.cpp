@@ -633,7 +633,7 @@ Array1D_Vector3 NURBSCurve<Real>::simpleRefine( int k )
 		double maxDist = -DBL_MAX;
 
 		// Find longest segment
-		for(int j = 0; j < curCurve.mCtrlPoint.size() - 1; j++)
+		for(int j = 0; j < (int)(curCurve.mCtrlPoint.size() - 1); j++)
 		{
 			double dist = (curCurve.mCtrlPoint[j+1] - curCurve.mCtrlPoint[j]).norm();
 
