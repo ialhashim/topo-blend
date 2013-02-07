@@ -80,6 +80,18 @@ public:
     void SetKnot (int dim, int i, Real knot);
     Real GetKnot (int dim, int i) const;
 
+	void refineU(Array1D_Real & insknts, Array2D_Vector3 & Qw);
+	void refine(Array1D_Real & insknts, Array2D_Vector3 & Qw, int dir);
+	Array2D_Vector3 midPointRefined();
+
+	static Array2D_Vector3 swapUV( const Array2D_Vector3 & controlPoints );
+
+	Array1D_Real GetKnotVectorU(bool isInnerOnly = false);
+	Array1D_Real GetKnotVectorV(bool isInnerOnly = false);
+
+	Array2D_Vector3 simpleRefine( int k = 1, int dir = 0 );
+	Array2D_Vector3 simpleRemove( int idx, int dir = 0 );
+
     // The spline is defined for 0 <= u <= 1 and 0 <= v <= 1.  The input
     // values should be in this domain.  Any inputs smaller than 0 are clamped
     // to 0.  Any inputs larger than 1 are clamped to 1.
@@ -146,4 +158,3 @@ typedef NURBSRectangle<float> NURBSRectanglef;
 typedef NURBSRectangle<double> NURBSRectangled;
 
 }
-

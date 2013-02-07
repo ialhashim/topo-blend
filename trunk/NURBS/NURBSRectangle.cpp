@@ -1040,6 +1040,171 @@ void NURBSRectangle<Real>::scale( Scalar scaleFactor )
             mCtrlPoint[y][x] *= scaleFactor;
 }
 
+template <typename Real>
+Array2D_Vector3 NURBSRectangle<Real>::swapUV( const Array2D_Vector3 & controlPoints )
+{
+	Array2D_Vector3 tmp(controlPoints.front().size(), Array1D_Vector3(controlPoints.size(), Vector3(0)));
+
+	for(int i = 0; i < (int)tmp.size(); i++)
+		for(int j = 0; j < (int)tmp.front().size(); j++)
+			tmp[i][j] = controlPoints[j][i];
+	
+	return tmp;
+}
+
+template <typename Real>
+void NURBSRectangle<Real>::refineU( Array1D_Real & insknts, Array2D_Vector3 & Qw )
+{
+	Qw.clear();
+	Qw.resize( mNumUCtrlPoints + insknts.size(), Array1D_Vector3(mNumVCtrlPoints, Vector3(0)) );
+
+	for(int v = 0; v < mNumVCtrlPoints; v++)
+	{
+		NURBSCurve<Real> curveU = NURBSCurve<Real>::createCurveFromPoints( GetControlPointsU(v) );
+		
+		Array1D_Vector3 _Qw;
+		Array1D_Real _Ubar;
+		curveU.refine(insknts, _Qw, _Ubar);
+
+		for(int i = 0; i < (int)_Qw.size(); i++)
+			Qw[i][v] = _Qw[i];
+	}
+}
+
+template <typename Real>
+void NURBSRectangle<Real>::refine( Array1D_Real & insknts, Array2D_Vector3 & Qw, int dir )
+{
+	NURBSRectangle<Real> rect = *this;
+
+	// Swap on V
+	if(dir != 0) rect = NURBSRectangle<Real>::createSheetFromPoints( swapUV(rect.mCtrlPoint) );
+	
+	rect.refineU(insknts, Qw);
+}
+
+template <typename Real>
+Array2D_Vector3 NURBSRectangle<Real>::midPointRefined()
+{
+	Array2D_Vector3 Qw = mCtrlPoint;
+
+	std::vector<Real> inskntsU;
+	Array1D_Real oldKnotVecU = GetKnotVectorU(true);
+	for(int i = 0; i < (int)oldKnotVecU.size() - 1; i++){
+		double range = (oldKnotVecU[i+1] - oldKnotVecU[i]);
+		inskntsU.push_back( (0.5 * range) + oldKnotVecU[i] );
+	}
+	refine(inskntsU, Qw, 0);
+
+	NURBSRectangle<Real> rectRefinedU = NURBSRectangle<Real>::createSheetFromPoints( Qw );
+
+	std::vector<Real> inskntsV;
+	Array1D_Real oldKnotVecV = rectRefinedU.GetKnotVectorV(true);
+	for(int i = 0; i < (int)oldKnotVecV.size() - 1; i++){
+		double range = (oldKnotVecV[i+1] - oldKnotVecV[i]);
+		inskntsV.push_back( (0.5 * range) + oldKnotVecV[i] );
+	}
+	rectRefinedU.refine(inskntsV, Qw, 1);
+
+	return swapUV(Qw);
+}
+
+template <typename Real>
+Array1D_Real NURBSRectangle<Real>::GetKnotVectorU(bool isInnerOnly)
+{
+	BSplineBasis<Real> b = mBasis[0];
+	if(isInnerOnly){
+		int d = this->GetDegree(0);
+		Array1D_Real result(b.mKnot.begin() + d, b.mKnot.end() - d);
+		return result;
+	}
+	else
+		return b.mKnot;
+}
+
+template <typename Real>
+Array1D_Real NURBSRectangle<Real>::GetKnotVectorV(bool isInnerOnly)
+{
+	BSplineBasis<Real> b = mBasis[1];
+	if(isInnerOnly){
+		int d = this->GetDegree(1);
+		Array1D_Real result(b.mKnot.begin() + d, b.mKnot.end() - d);
+		return result;
+	}
+	else
+		return b.mKnot;
+}
+
+template <typename Real>
+Array2D_Vector3 NURBSRectangle<Real>::simpleRefine( int k, int dir )
+{
+	NURBSRectangle<Real> curRect = *this;
+
+	for(int i = 0; i < k; i++)
+	{
+		Array1D_Real knotVector = curRect.GetKnotVectorU(true);
+		if(dir == 1) knotVector = curRect.GetKnotVectorV(true);
+
+		Array1D_Vector3 midSegments = curRect.GetControlPointsU( 0.5 * curRect.mNumVCtrlPoints );
+		if(dir == 1) midSegments = curRect.GetControlPointsV( 0.5 * curRect.mNumUCtrlPoints );
+
+		// Find longest segment
+		int segment = 0;
+		double maxDist = -DBL_MAX;
+		for(int j = 0; j < (int)midSegments.size() - 1; j++)
+		{
+			double dist = (midSegments[j+1] - midSegments[j]).norm();
+			if(dist > maxDist){
+				maxDist = dist;
+				segment = j;
+			}
+		}
+
+		double t = double(segment) / (midSegments.size()-2);
+
+		int idx = t * (knotVector.size()-2);
+		double range = knotVector[idx+1] - knotVector[idx];
+		double u = (0.5 * range) + knotVector[idx];
+
+		Array2D_Vector3 newPts;
+
+		curRect.refine(Array1D_Real(1,u), newPts, dir);
+		if(dir == 1) newPts = NURBSRectangle<Real>::swapUV( newPts );
+
+		curRect = NURBSRectangle<Real>::createSheetFromPoints( newPts );
+	}
+
+	return curRect.mCtrlPoint;
+}
+
+template <typename Real>
+Array2D_Vector3 NURBS::NURBSRectangle<Real>::simpleRemove( int idx, int dir )
+{
+	int nU = mNumUCtrlPoints;
+	int nV = mNumVCtrlPoints;
+
+	Array2D_Vector3 Qw( nU - (dir == 0 ? 1 : 0), Array1D_Vector3(nV - (dir == 1 ? 1 : 0), Vector3(0)) );
+
+	int REMOVE_ROW = (dir == 0 ? idx : -1);
+	int REMOVE_COLUMN = (dir == 1 ? idx : -1);
+
+	int p = 0;
+	for( int i = 0; i < nU; ++i){
+		if (i == REMOVE_ROW) continue;
+
+		int q = 0;
+		for( int j = 0; j < nV; ++j){
+			if (j == REMOVE_COLUMN)	continue;
+
+			Qw[p][q] = mCtrlPoint[i][j];
+			++q;
+		}
+
+		++p;
+	}
+
+	return Qw;
+}
+
 //----------------------------------------------------------------------------
 // Explicit instantiation.
 //----------------------------------------------------------------------------
