@@ -156,6 +156,8 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	if(resolution < 0) 
 		resolution = g->bbox().size().length() * 0.01;
 
+	this->used_resolution = resolution;
+
 	CloseMap closestStart;
 	foreach(Vector3 p, startingPoints) 
 		closestStart[closestStart.size()] = std::make_pair(-1,DBL_MAX);
@@ -365,4 +367,43 @@ Structure::Node * GraphDistance::closestNeighbourNode( Vector3 to, double resolu
 		}
 	}
 	return closestNode;
+}
+
+double GraphDistance::smoothPathCoordTo( Vector3 point, QVector< PathPointPair > & smooth_path )
+{
+	QVector< QPair<QString, Vec4d> > path;
+	double dist = this->pathCoordTo( point, path );
+
+	for(int i = 0; i < (int)path.size(); i++){
+		if(i < 1){
+			smooth_path.push_back( PathPointPair(path[i]) );
+			continue;
+		}
+
+		// Jump case
+		if(path[i-1].first != path[i].first)
+		{
+			PathPoint a = path[i-1], b = path[i];
+
+			Vector3 start = g->position(a.first, a.second);
+			Vector3 end = g->position(b.first, b.second);
+			
+			double dist = (start - end).norm();
+			
+			// Add virtual path points if needed
+			if(dist > used_resolution)
+			{
+				int steps = dist / used_resolution;
+				for(int i = 1; i < steps; i++)
+				{
+					double alpha = double(i) / steps;
+					smooth_path.push_back(PathPointPair( a, b, alpha ));
+				}
+			}
+		}
+
+		smooth_path.push_back( PathPointPair(path[i]) );
+	}
+
+	return dist;
 }

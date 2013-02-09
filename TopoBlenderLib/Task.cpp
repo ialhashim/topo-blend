@@ -1174,8 +1174,8 @@ void Task::executeMorphSheet( double t )
 	Array2D_Vector3 orgCtrlPoints = property["orgCtrlPoints"].value<Array2D_Vector3>();
 	Array2D_Vector3 cp = orgCtrlPoints;
 
-	for (int u = 0; u < deltas.size(); u++){
-		for (int v = 0; v < deltas.front().size(); v++){
+	for (int u = 0; u < (int)deltas.size(); u++){
+		for (int v = 0; v < (int)deltas.front().size(); v++){
 			cp[u][v] = orgCtrlPoints[u][v] + t * deltas[u][v];
 		}
 	}
