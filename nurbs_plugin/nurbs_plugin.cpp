@@ -16,6 +16,8 @@
 
 QVector<QColor> randColors;
 
+#include "LinABF.h"
+
 void nurbs_plugin::create()
 {
 	if(widget) return;
@@ -395,6 +397,12 @@ bool nurbs_plugin::keyPressEvent( QKeyEvent* event )
 
 	if(event->key() == Qt::Key_W)
 	{
+		QElapsedTimer timer; timer.start();
+
+		LinABF linabf(mesh());
+		mainWindow()->setStatusBarMessage(QString("LinABF time = %1 ms").arg(timer.elapsed()),512);
+
+		linabf.applyUVToMesh();
 
 		used = true;
 	}
