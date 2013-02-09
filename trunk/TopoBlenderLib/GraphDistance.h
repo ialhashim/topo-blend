@@ -12,6 +12,8 @@ struct GraphDistanceNode{
 		pos(position),n(node),idx(index),gid(globalID){}
 };
 
+typedef QPair<QString, Vec4d> PathPoint;
+
 class GraphDistance
 {
 public:
@@ -28,11 +30,12 @@ public:
 
 	double distance( Vector3 point );
     double pathTo( Vector3 point, std::vector<Vector3> & path );
-	double pathCoordTo( Vector3 point, QVector< QPair<QString, Vec4d> > & path );
+	double pathCoordTo( Vector3 point, QVector< PathPoint > & path );
 	Structure::Node * closestNeighbourNode( Vector3 to, double resolution = 0.25 );
 	void clear();
 
 	Structure::Graph * g;
+	double used_resolution;
 
 	adjacency_list_t adjacency_list;
 	std::vector<weight_t> min_distance;
@@ -50,6 +53,27 @@ public:
 	QVector<QString> excludeNodes;
 
 	bool isReady;
+
+	// Jump free paths
+	struct PathPointPair{
+		PathPoint a,b;
+		double wA,wB;
+		PathPointPair(PathPoint a = PathPoint("",Vec4d(0))){
+			a = b;
+			wA = 1.0; wB = 0.0;
+		}
+		PathPointPair(PathPoint a, PathPoint b, double alpha){
+			a = b;
+			alpha = qMax(0.0,qMin(alpha,1.0));
+			wA = 1 - alpha; wB = alpha;
+		}
+		Vector3 position(Structure::Graph * graph){
+			Vector3 posA = graph->position(a.first, a.second);
+			Vector3 posB = graph->position(b.first, b.second);
+			return (posA * wA) + (posB * wB);
+		}
+	};
+	double smoothPathCoordTo( Vector3 point, QVector< PathPointPair > & smooth_path );
 
 	// DEBUG:
 	void draw();
