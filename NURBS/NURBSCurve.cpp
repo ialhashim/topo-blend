@@ -625,6 +625,8 @@ Array1D_Real NURBSCurve<Real>::insertKnot(Real u, int k, int s, int r, Array1D_V
 template <typename Real>
 Array1D_Vector3 NURBSCurve<Real>::simpleRefine( int k )
 {
+	if(k <= 0) return this->mCtrlPoint;
+
 	NURBSCurve<Real> curCurve = *this;
 
 	for(int i = 0; i < k ; i++)

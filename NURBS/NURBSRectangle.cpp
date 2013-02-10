@@ -1137,6 +1137,8 @@ Array1D_Real NURBSRectangle<Real>::GetKnotVectorV(bool isInnerOnly)
 template <typename Real>
 Array2D_Vector3 NURBSRectangle<Real>::simpleRefine( int k, int dir )
 {
+	if(k <= 0) return this->mCtrlPoint;
+
 	NURBSRectangle<Real> curRect = *this;
 
 	for(int i = 0; i < k; i++)

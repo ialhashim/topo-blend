@@ -275,14 +275,13 @@ void Curve::drawWithNames( int nID, int pointIDRange )
 
 void Curve::equalizeControlPoints( Structure::Node * _other )
 {
-	return;
-
-
 	Structure::Curve *other = (Structure::Curve *)_other;
 
 	int targetNumber = other->curve.mNumCtrlPoints;
+	int diff = targetNumber - curve.mNumCtrlPoints;
+	if(diff == 0.0) return;
 
-	std::vector<Vec3d> newPnts = refineByNumber(curve.mCtrlPoint, targetNumber);
+	std::vector<Vec3d> newPnts = this->curve.simpleRefine( diff );
 
     this->curve = NURBS::NURBSCurved(newPnts, std::vector<double>( newPnts.size(), 1.0 ));
 }

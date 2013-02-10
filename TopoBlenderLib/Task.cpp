@@ -13,6 +13,9 @@ Q_DECLARE_METATYPE(Vector3);
 Q_DECLARE_METATYPE(Vec4d);
 Q_DECLARE_METATYPE(VectorPairDouble);
 
+Q_DECLARE_METATYPE( GraphDistance::PathPointPair );
+Q_DECLARE_METATYPE( QVector< GraphDistance::PathPointPair > );
+
 #include "ARAPCurveDeformer.h"
 int globalArapIterations = 4;
 int globalArapSize = 0;
@@ -318,15 +321,15 @@ void Task::deformCurve( int anchorPoint, int controlPoint, Vec3d newControlPos )
 
 void Task::weldMorphPath()
 {
-	QVector< NodeCoord > cleanPath;
-	QVector< NodeCoord > oldPath = property["path"].value< QVector< NodeCoord > >();
+	QVector< GraphDistance::PathPointPair > cleanPath;
+	QVector< GraphDistance::PathPointPair > oldPath = property["path"].value< QVector< GraphDistance::PathPointPair > >();
 	
 	// Find spatial position
 	std::vector<Vec3d> spatialPath;
 	QSet<int> allPath;
-	foreach(NodeCoord nc, oldPath) 
+	foreach(GraphDistance::PathPointPair nc, oldPath) 
 	{
-		spatialPath.push_back( active->position(nc.first, nc.second) );
+		spatialPath.push_back( nc.position(active) );
 		allPath.insert( allPath.size() );
 	}
 
@@ -489,15 +492,15 @@ void Task::prepareShrinkCurve()
 		Vec3d pointB = linkB->position( n->id );
 
 		// Geodesic distance between two link positions on the active graph excluding the running tasks
-		QVector< NodeCoord > path;
+		QVector< GraphDistance::PathPointPair > path;
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
 		GraphDistance gd( active, exclude );
 		gd.computeDistances( pointA );
-		gd.pathCoordTo( pointB, path);
+		gd.smoothPathCoordTo(pointB, path);
 
 		// Use the center of the path as the end point
-		NodeCoord endPointCoord = path[path.size() / 2];
-		Vec3d endPoint = active->position(endPointCoord.first, endPointCoord.second);
+		GraphDistance::PathPointPair endPointCoord = path[path.size() / 2];
+		Vec3d endPoint = endPointCoord.position(active);
 
 		// Separate the path into two for linkA and linkB
 		int N = path.size(), hN = N / 2;
@@ -506,7 +509,7 @@ void Task::prepareShrinkCurve()
 			N++;
 		}
 
-		QVector<NodeCoord> pathA, pathB;
+		QVector< GraphDistance::PathPointPair > pathA, pathB;
 		for (int i = 0; i < N/2; i++)
 		{
 			pathA.push_back(path[i]);
@@ -589,17 +592,17 @@ void Task::prepareGrowCurve()
 		Vec3d pointB = otherB->position(othercoordB);
 
 		// Geodesic distance between two link positions on the active graph excluding the running tasks
-		QVector< NodeCoord > path;
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
 		GraphDistance gd( active, exclude );
 		gd.computeDistances( pointA );
-		gd.pathCoordTo( pointB, path);
+		QVector< GraphDistance::PathPointPair > path;
+		gd.smoothPathCoordTo(pointB, path);
 
 		// Separate the path into two for linkA and linkB
 		int N = path.size(), hN = N / 2;
 		if (N %2 == 0) path.insert(hN, path[hN]);
 
-		QVector<NodeCoord> pathA, pathB;
+		QVector<GraphDistance::PathPointPair> pathA, pathB;
 		for (int i = 0; i < hN; i++)
 		{
 			pathA.push_back(path[hN-1-i]);
@@ -611,8 +614,8 @@ void Task::prepareGrowCurve()
 		property["pathB"].setValue(pathB);
 
 		// Use the center of the path as the start point
-		NodeCoord startPointCoord = path[path.size() / 2];
-		Vec3d startPoint = active->position(startPointCoord.first, startPointCoord.second);
+		GraphDistance::PathPointPair startPointCoord = path[path.size() / 2];
+		Vec3d startPoint = startPointCoord.position(active);
 
 		// ARAP curve deformation
 		int cpidxA = t_structure_curve->controlPointIndexFromCoord( tlinkA->getCoord(tn->id).front() );
@@ -712,10 +715,10 @@ void Task::prepareMorphCurve()
 
 		// Compute path
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
-		GraphDistance graphDist(active, exclude);
-		QVector< NodeCoord > path;
-		graphDist.computeDistances( link->positionOther( node()->id ) );
-		graphDist.pathCoordTo( startPoint, path);
+		GraphDistance gd(active, exclude);
+		gd.computeDistances( link->positionOther( node()->id ) );
+		QVector< GraphDistance::PathPointPair > path;
+		gd.smoothPathCoordTo(startPoint, path);
 
 		property["path"].setValue( path );
 		property["cpIDX"] = structure_curve->controlPointIndexFromCoord( link->getCoord(node()->id).front() );
@@ -734,12 +737,12 @@ void Task::prepareMorphCurve()
 		Vec3d endB = futureLinkPosition(linkB);
 
 		// Geodesic distances on the active graph excluding the running tasks
-		QVector< NodeCoord > pathA, pathB;	
+		QVector< GraphDistance::PathPointPair > pathA, pathB;	
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
-		GraphDistance gd( active, exclude );
+		GraphDistance gdA( active, exclude ), gdB( active, exclude );
 
-		gd.computeDistances( endA );	gd.pathCoordTo( startA, pathA);
-		gd.computeDistances( endB );	gd.pathCoordTo( startB, pathB);
+		gdA.computeDistances( endA );	gdA.smoothPathCoordTo( startA, pathA );
+		gdB.computeDistances( endB );	gdB.smoothPathCoordTo( startB, pathB );
 
 		property["pathA"].setValue(pathA);
 		property["pathB"].setValue(pathB);
@@ -998,7 +1001,6 @@ void Task::executeGrowShrinkSheet( double t )
 	QVector<Structure::Link*> edges = active->getEdges(n->id);
 	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
 
-
 	if ((type == SHRINK && edges.size() == 1)
 		|| (type == GROW && tedges.size() == 1))
 	{
@@ -1049,14 +1051,14 @@ void Task::executeMorphCurve( double t )
 		Structure::Curve* target_curve = targetCurve();
 
 		weldMorphPath();
-		QVector< NodeCoord > path = property["path"].value< QVector< NodeCoord > >();
+		QVector< GraphDistance::PathPointPair > path = property["path"].value< QVector< GraphDistance::PathPointPair > >();
 
 		int cpIDX = property["cpIDX"].toInt();
 
 		if(path.size() > 0) 
 		{
 			int current = t * (path.size() - 1);
-			Vec3d newPos = active->position(path[current].first,path[current].second);
+			Vec3d newPos = path[current].position(active);
 
 			// Move end with a link
 			current_curve->curve.translateTo( newPos, cpIDX );
@@ -1087,8 +1089,8 @@ void Task::executeMorphCurve( double t )
 
 		ARAPCurveDeformer * deformer = property["deformer"].value<ARAPCurveDeformer*>();
 
-		QVector< NodeCoord > pathA = property["pathA"].value< QVector< NodeCoord > >();
-		QVector< NodeCoord > pathB = property["pathB"].value< QVector< NodeCoord > >();
+		QVector< GraphDistance::PathPointPair > pathA = property["pathA"].value< QVector< GraphDistance::PathPointPair > >();
+		QVector< GraphDistance::PathPointPair > pathB = property["pathB"].value< QVector< GraphDistance::PathPointPair > >();
 
 		int idxA = t * (pathA.size() - 1);
 		int idxB = t * (pathB.size() - 1);
@@ -1096,13 +1098,12 @@ void Task::executeMorphCurve( double t )
 		// Move point A to next step
 		if(idxA > 0 && pathA.size() > 2)
 		{
-			NodeCoord stepA = pathA[idxA];
 			deformer->ClearAll();
 			deformer->setControl(cpidxA);
 			deformer->SetAnchor(cpidxB);
 			deformer->MakeReady();
 
-			Vec3d newPosA = active->position(stepA.first, stepA.second);
+			Vec3d newPosA = pathA[idxA].position(active);
 			deformer->UpdateControl(cpidxA, newPosA);
 			deformer->Deform( arapIterations );
 			structure_curve->setControlPoints( deformer->points );
@@ -1111,13 +1112,12 @@ void Task::executeMorphCurve( double t )
 		// Move point B to next step
 		if(idxB > 0 && pathB.size() > 2)
 		{
-			NodeCoord stepB = pathB[idxB];
 			deformer->ClearAll();
 			deformer->setControl(cpidxB);
 			deformer->SetAnchor(cpidxA);
 			deformer->MakeReady();
 
-			Vec3d newPosB = active->position(stepB.first, stepB.second);
+			Vec3d newPosB = pathB[idxB].position(active);
 			deformer->UpdateControl(cpidxB, newPosB);
 			deformer->Deform( arapIterations );
 			structure_curve->setControlPoints( deformer->points );
