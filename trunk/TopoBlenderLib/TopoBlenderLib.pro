@@ -24,6 +24,8 @@ QT += opengl xml
 TARGET = TopoBlenderLib
 DESTDIR = $$PWD/lib
 
+RESOURCES += shaders.qrc
+
 HEADERS += StructureNode.h \
     StructureGraph.h \
     StructureCurve.h \
@@ -47,7 +49,9 @@ HEADERS += StructureNode.h \
     Synthesizer.h \
     Sampler.h \
     SpherePackSampling.h \
-    Octree.h
+    Octree.h \
+    PointCloudRenderer.h \
+    PointCloudRenderer.h \
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -65,7 +69,8 @@ SOURCES += StructureGraph.cpp \
     TimelineSlider.cpp \
     Synthesizer.cpp \
     Sampler.cpp \
-    Octree.cpp
+    Octree.cpp \
+    PointCloudRenderer.cpp
 	
 	
 FORMS += \

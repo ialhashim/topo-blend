@@ -3,6 +3,7 @@
 #include <QDialog>
 #include <QStack>
 #include <QQueue>
+#include <QtConcurrentRun>
 
 #include "topo-blend.h"
 #include "StarlabMainWindow.h"
@@ -61,8 +62,10 @@ void topoblend::create()
 		points = mesh()->vertex_property<Vector3>("v:point");
 
 		loadModel();
-	}
 
+		// Events
+		this->connect(this,SIGNAL(statusBarMessage(QString)),SLOT(setStatusBarMessage(QString)));
+	}
 
 	drawArea()->setSelectRegionHeight(20);
 	drawArea()->setSelectRegionWidth(20);
@@ -138,7 +141,7 @@ void topoblend::decorate()
 	{
 		glPushMatrix();
 		glTranslatef(posX, 0, 0);
-		graphs[g]->draw();
+		graphs[g]->draw( drawArea()->camera() );
 		glPopMatrix();
 
 		posX += deltaX;
@@ -930,11 +933,14 @@ void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 	drawArea()->updateGL();
 }
 
-void topoblend::generateSynthesisData()
+void topoblend::genSynData()
 {
-	if(!blender) return;
+	qApp->setOverrideCursor(Qt::WaitCursor);
 
 	QElapsedTimer timer; timer.start();
+
+	int numNodes = blender->active->nodes.size();
+	int n = 0;
 
 	foreach(Structure::Node * node, blender->active->nodes)
 	{
@@ -960,11 +966,30 @@ void topoblend::generateSynthesisData()
 					Synthesizer::prepareSynthesizeSheet((Structure::Sheet*)node, (Structure::Sheet*)blender->tg->getNode(tnodeID), sampling_method);
 			}
 		}
+
+		int percent = (double(n) / (numNodes-1) * 100);
+		emit( statusBarMessage(QString("Generating data.. [ %1 % ]").arg(percent)) );
+		n++;
 	}
 
 	QString timingString = QString("Synthesis data [ %1 ms ]").arg(timer.elapsed());
 	qDebug() << timingString;
-	mainWindow()->setStatusBarMessage(timingString,125);
+	emit( statusBarMessage(timingString) );
+
+	qApp->restoreOverrideCursor();
+}
+
+void topoblend::setStatusBarMessage(QString message)
+{
+	mainWindow()->setStatusBarMessage(message, 1000);
+	drawArea()->updateGL();
+}
+
+void topoblend::generateSynthesisData()
+{
+	if(!blender) return;
+
+	QtConcurrent::run( this, &topoblend::genSynData );
 }
 
 void topoblend::saveSynthesisData()

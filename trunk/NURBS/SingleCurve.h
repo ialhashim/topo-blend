@@ -20,14 +20,12 @@ public:
 
     // Length-from-time and time-from-length.
     virtual Real GetLength (Real t0, Real t1);
-    virtual Real GetTime (Real length, int iterations = 32,
-        Real tolerance = (Real)1e-06);
+    virtual Real GetTime (Real length, int iterations = 32, Real tolerance = (Real)1e-06);
 
-protected:
-    using Curve<Real>::mTMin;
-    using Curve<Real>::mTMax;
-    using Curve<Real>::GetSpeed;
-    using Curve<Real>::GetTotalLength;
+    Curve<Real>::mTMin;
+    Curve<Real>::mTMax;
+    Curve<Real>::GetSpeed;
+    Curve<Real>::GetTotalLength;
 
     static Real GetSpeedWithData (Real t, void* data);
 };

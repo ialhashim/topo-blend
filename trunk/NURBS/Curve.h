@@ -39,14 +39,12 @@ public:
     Vector3 GetTangent (Real t) ;
     Vector3 GetNormal (Real t) ;
     Vector3 GetBinormal (Real t) ;
-    void GetFrame (Real t, Vector3& position, Vector3& tangent,
-        Vector3& normal, Vector3& binormal) ;
+    void GetFrame (Real t, Vector3& position, Vector3& tangent, Vector3& normal, Vector3& binormal) ;
     Real GetCurvature (Real t) ;
     Real GetTorsion (Real t) ;
 
     // Inverse mapping of s = Length(t) given by t = Length^{-1}(s).
-    virtual Real GetTime (Real length, int iterations = 32,
-        Real tolerance = (Real)1e-06)  = 0;
+    virtual Real GetTime (Real length, int iterations = 32, Real tolerance = (Real)1e-06)  = 0;
 
     // Subdivision.
     void SubdivideByTime (int numPoints, Array1D_Vector3& points) ;
@@ -54,7 +52,6 @@ public:
 
     void SubdivideByLengthTime(int numPoints, std::vector<Real> &times);
 
-protected:
     // Curve parameter is t where tmin <= t <= tmax.
     Real mTMin, mTMax;
 };

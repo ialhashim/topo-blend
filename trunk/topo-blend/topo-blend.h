@@ -84,11 +84,13 @@ public slots:
 	void saveSynthesisData();
 	void loadSynthesisData();
 	void outputPointCloud();
+	void genSynData();
 
 	void renderAll();
 	void renderCurrent();
 	void renderGraph(Structure::Graph *, QString filename);
 
+	void setStatusBarMessage(QString);
 signals:
-
+	void statusBarMessage(QString);
 };

@@ -673,7 +673,6 @@ Real NURBSCurve<Real>::KnotRemovalError( int r, int s )
 
 	Array1D_Vector3 temp(P.size(), Vector3(0.0)) ;
 	
-	int p = this->GetDegree();
 	int deg_ = GetDegree();
 
 	int ord = deg_+1 ;

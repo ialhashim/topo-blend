@@ -15,6 +15,9 @@ using namespace Structure;
 
 #include "QuickMeshDraw.h"
 
+#include "PointCloudRenderer.h"
+Q_DECLARE_METATYPE(PointCloudRenderer*);
+
 Graph::Graph()
 {
 	property["embeded2D"] = false;
@@ -255,7 +258,7 @@ Link* Structure::Graph::getEdge( QString linkID )
 }
 
 
-void Graph::draw()
+void Graph::draw( qglviewer::Camera* camera )
 {
 	vs.draw();
 	ps.draw();
@@ -316,14 +319,35 @@ void Graph::draw()
 				normals = n->property["cached_normals"].value< QVector<Vec3d> >();
 			}
 
-			glPointSize(3.0);
-			glEnable(GL_LIGHTING);
-			glBegin(GL_POINTS);
-			for(int i = 0; i < (int)points.size(); i++){
+			if(normals.size())
+			{
+				PointCloudRenderer * pc_render = NULL;
+
+				if( !n->property.contains("point_cloud_renderer") )
+					n->property["point_cloud_renderer"].setValue( new PointCloudRenderer( points, normals, 1.0 ) );
+				pc_render = n->property["point_cloud_renderer"].value<PointCloudRenderer*>();
+
+				glEnable(GL_LIGHTING);
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
+				glEnable(GL_DEPTH_TEST);
+
+				glEnable(GL_POINT_SMOOTH);
+				glEnable(GL_BLEND);
+
+				pc_render->draw( camera );
+
+				/*glPointSize(3.0);
+				glEnable(GL_LIGHTING);
+				glBegin(GL_POINTS);
+				for(int i = 0; i < (int)points.size(); i++){
 				glNormal3(normals[i]);
 				glVector3(points[i]);
+				}
+				glEnd();*/
+
+				glDisable(GL_CULL_FACE);
 			}
-			glEnd();
 		}
 		else
 		{

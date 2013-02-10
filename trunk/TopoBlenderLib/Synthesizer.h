@@ -31,7 +31,7 @@ struct Synthesizer{
 
 	static QVector<ParameterCoord> genFeatureCoords( Structure::Node * node );
 	static QVector<ParameterCoord> genEdgeCoords( Structure::Node * node, double sampling_resolution = -1 );
-    static QVector<ParameterCoord> genRandomCoords( Structure::Node * node, double sampling_resolution = -1);
+    static QVector<ParameterCoord> genRandomCoords( Structure::Node * node, int samples_count );
 	static QVector<ParameterCoord> genUniformCoords( Structure::Node * node, double sampling_resolution = -1);
 
 	// Compute the geometry on given samples in the parameter domain
