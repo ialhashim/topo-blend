@@ -14,11 +14,14 @@ typedef std::pair<ParameterCoord,int> ParameterCoordInt;
 bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCoordInt& r)
 { return l.first < r.first; }
 
+// Parameters
 #define CURVE_FRAME_RESOLUTION 0.01
 #define SHEET_FRAME_RESOLUTION 0.01
 
+#define OCTREE_NODE_SIZE 40
+
 // Sampling
-#define RANDOM_COUNT 1e4
+#define RANDOM_COUNT 1e2
 #define UNIFORM_RESOLUTION 0.01
 #define EDGE_RESOLUTION 0.05
 
@@ -85,11 +88,13 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 	kdtree.build();
 
 	// Project
-    NURBS::NURBSCurved mycurve;
-	#pragma omp parallel for private(mycurve)
-	for(int i = 0; i < (int)points.size(); i++)
+	const std::vector<Vector3> curvePnts = curve->curve.mCtrlPoint;
+	int N = points.size();
+
+	#pragma omp parallel for
+	for(int i = 0; i < N; i++)
 	{
-		mycurve = curve->curve;
+		NURBS::NURBSCurved mycurve = NURBS::NURBSCurved::createCurveFromPoints( curvePnts );
 
 		double theta, psi;
 
@@ -139,12 +144,13 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * she
 	}
 	kdtree.build();
 
-    NURBS::NURBSRectangled r;
+	const Array2D_Vector3 sheetPnts = sheet->surface.mCtrlPoint;
+	int N = points.size();
 
-	#pragma omp parallel for private(r)
-	for(int i = 0; i < (int)points.size(); i++)
+	#pragma omp parallel for
+	for(int i = 0; i < N; i++)
 	{
-		r = sheet->surface;
+		NURBS::NURBSRectangled r = NURBS::NURBSRectangled::createSheetFromPoints(sheetPnts);
 
 		Vec3d point = points[i];
 
@@ -218,12 +224,11 @@ QVector<ParameterCoord> Synthesizer::genEdgeCoords( Structure::Node * node, doub
 		return genPointCoordsSheet((Structure::Sheet*)node, samplePoints);
 }
 
-QVector<ParameterCoord> Synthesizer::genRandomCoords(Node *node, double sampling_resolution)
+QVector<ParameterCoord> Synthesizer::genRandomCoords(Node *node, int samples_count)
 {
 	SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
 
 	// Sample mesh surface
-	int samples_count = RANDOM_COUNT;
 	std::vector<Vec3d> samplePoints;
 	samplePoints = SpherePackSampling::getRandomSamples(model, samples_count);
 
@@ -284,7 +289,7 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 	SurfaceMeshModel * model = curve->property["mesh"].value<SurfaceMeshModel*>();
 	model->update_face_normals();
 	Vector3FaceProperty fnormals = model->face_property<Vec3d>("f:normal");
-	Octree octree(20, model);
+	Octree octree(OCTREE_NODE_SIZE, model);
 
 	offsets.clear();
 	offsets.resize(samples.size());
@@ -304,15 +309,17 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 	RMF rmf(samplePoints);
 	rmf.compute();
 
-	ParameterCoord * samplesArray = samples.data();
+	const ParameterCoord * samplesArray = samples.data();
 
 	qDebug() << "Curve RMF count = " << rmf.U.size() << ", Samples = " << samples.size();
 
-    NURBS::NURBSCurved mycurve;
-	#pragma omp parallel for private(mycurve)
-	for(int i = 0; i < (int)samples.size(); i++)
+	const std::vector<Vector3> curvePnts = curve->curve.mCtrlPoint;
+	int N = samples.size();
+
+	#pragma omp parallel for
+	for(int i = 0; i < N; i++)
 	{
-		mycurve = curve->curve;
+		NURBS::NURBSCurved mycurve = NURBS::NURBSCurved::createCurveFromPoints(curvePnts);
 
 		ParameterCoord sample = samplesArray[i];
 		
@@ -349,7 +356,7 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 	SurfaceMeshModel * model = sheet->property["mesh"].value<SurfaceMeshModel*>();
 	model->update_face_normals();
 	Vector3FaceProperty fnormals = model->face_property<Vec3d>("f:normal");
-	Octree octree(20, model);
+	Octree octree(OCTREE_NODE_SIZE, model);
 
 	offsets.clear();
 	offsets.resize( samples.size() );
@@ -359,17 +366,20 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 
 	qDebug() << "Sheet samples = " << samples.size();
 
-	ParameterCoord * samplesArray = samples.data();
+	const ParameterCoord * samplesArray = samples.data();
+
+	const Array2D_Vector3 sheetPnts = sheet->surface.mCtrlPoint;
+	int N = samples.size();
 
 	#pragma omp parallel for
-	for(int i = 0; i < (int)samples.size(); i++)
+	for(int i = 0; i < N; i++)
 	{
+		NURBS::NURBSRectangled r = NURBS::NURBSRectangled::createSheetFromPoints(sheetPnts);
+
 		ParameterCoord sample = samplesArray[i];
 
 		Vector3 X(0), Y(0), Z(0);
 		Vector3 vDirection(0), rayPos(0);
-
-        NURBS::NURBSRectangled r = sheet->surface;
 
 		r.GetFrame( sample.u, sample.v, rayPos, X, vDirection, Z );
 		Y = cross(Z, X);
@@ -516,7 +526,7 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 
 	if (s & Synthesizer::Features)	samples += genFeatureCoords(curve1) + genFeatureCoords(curve2);
 	if (s & Synthesizer::Edges)	samples += genEdgeCoords(curve1) + genEdgeCoords(curve2);
-	if (s & Synthesizer::Random)	samples += genRandomCoords(curve1) + genRandomCoords(curve2);
+	if (s & Synthesizer::Random)	samples += genRandomCoords(curve1, RANDOM_COUNT) + genRandomCoords(curve2, RANDOM_COUNT);
 	if (s & Synthesizer::Uniform)	samples += genUniformCoords(curve1) + genUniformCoords(curve2);
 
 	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());timer.restart();
@@ -555,7 +565,7 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 
 	if (s & Synthesizer::Features)	samples += genFeatureCoords(sheet1) + genFeatureCoords(sheet2);
 	if (s & Synthesizer::Edges)	samples += genEdgeCoords(sheet1) + genEdgeCoords(sheet2);
-	if (s & Synthesizer::Random)	samples += genRandomCoords(sheet1) + genRandomCoords(sheet2);
+	if (s & Synthesizer::Random)	samples += genRandomCoords(sheet1, RANDOM_COUNT) + genRandomCoords(sheet2, RANDOM_COUNT);
 	if (s & Synthesizer::Uniform)	samples += genUniformCoords(sheet1) + genUniformCoords(sheet2);
 
     qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());

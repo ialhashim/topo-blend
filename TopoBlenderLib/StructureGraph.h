@@ -11,6 +11,8 @@ using namespace DynamicVoxelLib;
 // DEBUG:
 #include "../CustomDrawObjects.h"
 
+#include "qglviewer/camera.h"
+
 namespace Structure{
 
 typedef QPair<Node*,Node*> QPairNodes;
@@ -66,7 +68,7 @@ struct Graph
 	void loadFromFile(QString fileName);
 
 	// Visualization
-    void draw();
+    void draw( qglviewer::Camera* );
 	void drawAABB();
     void draw2D(int width, int height);
 	QImage fontImage;

@@ -241,6 +241,7 @@ Array1D_Real NURBS::BSplineCurve<Real>::GetKnotVector(bool isInnerOnly)
 		int d = this->GetDegree() + 1;
 		
 		Array1D_Real result(mBasis.mKnot.begin() + d, mBasis.mKnot.end() - d);
+		return result;
 	}
 	else
 		return this->mBasis.mKnot;
