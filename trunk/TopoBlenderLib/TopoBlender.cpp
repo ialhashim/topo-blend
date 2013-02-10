@@ -390,7 +390,6 @@ void TopoBlender::equalizeResolutions()
 			}
 		}
 
-
 		// Equalize resolution to the best one
 		foreach( QString sid, sNodes)
 		{

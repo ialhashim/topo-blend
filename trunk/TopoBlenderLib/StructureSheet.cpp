@@ -315,25 +315,38 @@ void Sheet::equalizeControlPoints( Structure::Node * _other )
 {
 	Structure::Sheet *other = (Structure::Sheet*) _other;
 
-	int nU = other->surface.mNumUCtrlPoints;
-	int nV = other->surface.mNumVCtrlPoints;
-
-	Array2D_Vector3 cp(nU, Array1D_Vector3(nV, Vec3d(0)));
+	int nU = qMax(other->surface.mNumUCtrlPoints,surface.mNumUCtrlPoints);
+	int nV = qMax(other->surface.mNumVCtrlPoints,surface.mNumVCtrlPoints);
 	Array2D_Real cw(nU, Array1D_Real(nV, 1.0));
-	int degree = 3;
 
-	for(int u = 0; u < nU; u++)
-	{
-		for(int v = 0; v < nV; v++)
-		{
-			double U = double(u) / (nU-1);
-			double V = double(v) / (nV-1);
+	Array2D_Vector3 my_cp, other_cp;
 
-			cp[u][v] = position(Vec4d(U,V,0,0));
-		}
-	}
+	NURBS::NURBSRectangled mySurface = surface;
+	NURBS::NURBSRectangled otherSurface = other->surface;
 
-    surface = NURBS::NURBSRectangled(cp, cw, degree, degree, false, false, true, true);
+	int k = 0;
+
+	// Refine U
+	k = nU - mySurface.mNumUCtrlPoints;
+	my_cp = mySurface.simpleRefine(k, 0);
+
+	k = nU - otherSurface.mNumUCtrlPoints;
+	other_cp = otherSurface.simpleRefine(k, 0);
+
+	// Both now have same number of U control points
+	mySurface = NURBS::NURBSRectangled::createSheetFromPoints(my_cp);
+	otherSurface = NURBS::NURBSRectangled::createSheetFromPoints(other_cp);
+
+	// Refine V
+	k = nV - mySurface.mNumVCtrlPoints;
+	my_cp = mySurface.simpleRefine(k, 1);
+
+	k = nV - otherSurface.mNumVCtrlPoints;
+	other_cp = otherSurface.simpleRefine(k, 1);
+
+	// Both have exactly same number of control points
+	surface = NURBS::NURBSRectangled::createSheetFromPoints(my_cp);
+	other->surface = NURBS::NURBSRectangled::createSheetFromPoints(other_cp);
 }
 
 int Sheet::numCtrlPnts()

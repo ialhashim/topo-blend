@@ -58,12 +58,13 @@ public:
 	struct PathPointPair{
 		PathPoint a,b;
 		double wA,wB;
-		PathPointPair(PathPoint a = PathPoint("",Vec4d(0))){
-			a = b;
+		PathPointPair(PathPoint A = PathPoint("",Vec4d(0))){
+			a = b = A;
 			wA = 1.0; wB = 0.0;
 		}
-		PathPointPair(PathPoint a, PathPoint b, double alpha){
-			a = b;
+		PathPointPair(PathPoint A, PathPoint B, double alpha){
+			a = A;
+			b = B;
 			alpha = qMax(0.0,qMin(alpha,1.0));
 			wA = 1 - alpha; wB = alpha;
 		}
