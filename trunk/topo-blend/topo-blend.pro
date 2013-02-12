@@ -5,20 +5,27 @@ load($$[EIGEN])
 load($$[NANOFLANN])
 StarlabTemplate(plugin)
 
+# Build flag
+CONFIG(debug, debug|release) {
+    CFG = debug
+} else {
+    CFG = release
+}
+
 # NURBS library
-LIBS += -L$$PWD/../NURBS/lib -lNURBS
+LIBS += -L$$PWD/../NURBS/$$CFG/lib -lNURBS
 INCLUDEPATH += ../NURBS
 
 # VOXEL library
-LIBS += -L$$PWD/../DynamicVoxel/lib -lDynamicVoxel
+LIBS += -L$$PWD/../DynamicVoxel/$$CFG/lib -lDynamicVoxel
 INCLUDEPATH += ../DynamicVoxel
 
 # Surface Reconstruction library
-LIBS += -L$$PWD/../Reconstruction/lib -lReconstruction
+LIBS += -L$$PWD/../Reconstruction/$$CFG/lib -lReconstruction
 INCLUDEPATH += ../Reconstruction
 
 # TopoBlender library
-LIBS += -L$$PWD/../TopoBlenderLib/lib -lTopoBlenderLib
+LIBS += -L$$PWD/../TopoBlenderLib/$$CFG/lib -lTopoBlenderLib
 INCLUDEPATH += ../TopoBlenderLib
 
 HEADERS += topo-blend.h \ 

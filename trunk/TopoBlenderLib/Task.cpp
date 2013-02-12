@@ -246,6 +246,8 @@ void Task::setStart( int newStart )
 
 void Task::geometryMorph( double t )
 {
+	if(t < 0.0 || t > 1.0) return;
+
 	// Geometry morph:
 	if(node()->property.contains("samples"))
 	{
@@ -861,7 +863,7 @@ void Task::execute( double t )
 			executeGrowCurve(t);
 			break;
 		case SHRINK:
-			executeShrinkCurve( t );
+			executeShrinkCurve(t);
 			break;
 		case MORPH:
 			executeMorphCurve(t);
@@ -874,15 +876,13 @@ void Task::execute( double t )
 		{
 		case GROW:
 		case SHRINK:
-			executeGrowShrinkSheet( t );
+			executeGrowShrinkSheet(t);
 			break;
 		case MORPH:
 			executeMorphSheet(t);
 			break;
 		}
 	}
-
-
 
 	if(t == 1.0)
 	{

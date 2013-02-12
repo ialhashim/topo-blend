@@ -4,8 +4,15 @@ load($$[CHOLMOD])
 load($$[EIGEN])
 StarlabTemplate(plugin)
 
+# Build flag
+CONFIG(debug, debug|release) {
+    CFG = debug
+} else {
+    CFG = release
+}
+
 # DynamicVoxel library
-LIBS += -L$$PWD/../DynamicVoxel/lib -lDynamicVoxel
+LIBS += -L$$PWD/../DynamicVoxel/$$CFG/lib -lDynamicVoxel
 INCLUDEPATH += ../DynamicVoxel
 
 HEADERS += dynamic_voxel.h

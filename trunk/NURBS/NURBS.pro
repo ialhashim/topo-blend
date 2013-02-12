@@ -4,9 +4,16 @@ load($$[SURFACEMESH])
 TEMPLATE = lib
 CONFIG += staticlib
 
+# Build flag
+CONFIG(debug, debug|release) {
+    CFG = debug
+} else {
+    CFG = release
+}
+
 # Library name and destination
 TARGET = NURBS
-DESTDIR = $$PWD/lib
+DESTDIR = $$PWD/$$CFG/lib
 
 SOURCES += \
     ParametricSurface.cpp \

@@ -66,9 +66,9 @@ Polynomial<Degree+1> Polynomial<Degree>::integral(void) const{
 	for(int i=0;i<=Degree;i++){p.coefficients[i+1]=coefficients[i]/(i+1);}
 	return p;
 }
-template<> double Polynomial< 0 >::operator() ( double t ) const { return coefficients[0]; }
-template<> double Polynomial< 1 >::operator() ( double t ) const { return coefficients[0]+coefficients[1]*t; }
-template<> double Polynomial< 2 >::operator() ( double t ) const { return coefficients[0]+(coefficients[1]+coefficients[2]*t)*t; }
+template<> double Polynomial< 0 >::operator() ( double t ) const { t = t; return coefficients[0]; }
+template<> double Polynomial< 1 >::operator() ( double t ) const { t = t; return coefficients[0]+coefficients[1]*t; }
+template<> double Polynomial< 2 >::operator() ( double t ) const { t = t; return coefficients[0]+(coefficients[1]+coefficients[2]*t)*t; }
 template<int Degree>
 double Polynomial<Degree>::operator() ( double t ) const{
 	double v=coefficients[Degree];
@@ -291,6 +291,7 @@ void Polynomial<Degree>::getSolutions(double c,std::vector<double>& roots,double
 template< >
 Polynomial< 0 > Polynomial< 0 >::BSplineComponent( int i )
 {
+    i = i;
 	Polynomial p;
 	p.coefficients[0] = 1.;
 	return p;

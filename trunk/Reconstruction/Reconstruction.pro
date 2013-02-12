@@ -1,9 +1,16 @@
 TEMPLATE = lib
 CONFIG += staticlib
 
+# Build flag
+CONFIG(debug, debug|release) {
+    CFG = debug
+} else {
+    CFG = release
+}
+
 # Library name and destination
 TARGET = Reconstruction
-DESTDIR = $$PWD/lib
+DESTDIR = $$PWD/$$CFG/lib
 
 HEADERS += \
     Src/Vector.h \
@@ -63,3 +70,6 @@ unix {
     QMAKE_CXXFLAGS += -fopenmp
     LIBS += -lgomp
 }
+
+# Windows specific
+win32: DEFINES += _CRT_SECURE_NO_WARNINGS # disable 'unsafe' warnings

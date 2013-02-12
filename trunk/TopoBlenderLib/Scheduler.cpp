@@ -297,7 +297,7 @@ QVector<QString> Scheduler::activeTasks( double globalTime )
 	return aTs;
 }
 
-void Scheduler::relink( double t)
+void Scheduler::relink( double t )
 {
 	QVector<QString> currTasks = activeTasks(t);
 	foreach(QString curr_nid, currTasks)
