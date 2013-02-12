@@ -296,18 +296,22 @@ void Graph::draw( qglviewer::Camera* camera )
 		{
 			QVector<Vec3d> points, normals;
 
+			QVector<ParameterCoord> samples = n->property["samples"].value< QVector<ParameterCoord> >();
+			QVector<double> offsets = n->property["offsets"].value< QVector<double> >();
+			QVector<Vec2d> in_normals = n->property["normals"].value< QVector<Vec2d> >();
+
 			if(!n->property.contains("cached_points"))
 			{
 				// Without blending!
 				if(n->type() == Structure::CURVE)
 				{
 					Structure::Curve * curve = (Structure::Curve *)n;
-					Synthesizer::blendGeometryCurves(curve,curve,0,points,normals);
+					Synthesizer::reconstructGeometryCurve(curve,samples,offsets,in_normals,points,normals);
 				}
 				if(n->type() == Structure::SHEET)
 				{
 					Structure::Sheet * sheet = (Structure::Sheet *)n;
-					Synthesizer::blendGeometrySheets(sheet,sheet,0,points,normals);
+					Synthesizer::reconstructGeometrySheet(sheet,samples,offsets,in_normals,points,normals);
 				}
 
 				n->property["cached_points"].setValue(points);
@@ -321,11 +325,6 @@ void Graph::draw( qglviewer::Camera* camera )
 
 			if(normals.size())
 			{
-				PointCloudRenderer * pc_render = NULL;
-
-				if( !n->property.contains("point_cloud_renderer") )
-					n->property["point_cloud_renderer"].setValue( new PointCloudRenderer( points, normals, 1.0 ) );
-				pc_render = n->property["point_cloud_renderer"].value<PointCloudRenderer*>();
 
 				glEnable(GL_LIGHTING);
 				glEnable(GL_CULL_FACE);
@@ -335,16 +334,23 @@ void Graph::draw( qglviewer::Camera* camera )
 				glEnable(GL_POINT_SMOOTH);
 				glEnable(GL_BLEND);
 
-				pc_render->draw( camera );
+				// Using splat rendering:
+				//PointCloudRenderer * pc_render = NULL;
+				//if( !n->property.contains("point_cloud_renderer") )
+				//	n->property["point_cloud_renderer"].setValue( new PointCloudRenderer( points, normals, 1.0 ) );
+				//pc_render = n->property["point_cloud_renderer"].value<PointCloudRenderer*>();
 
-				/*glPointSize(3.0);
+				//pc_render->draw( camera );
+
+				// Using basic rendering:
+				glPointSize(3.0);
 				glEnable(GL_LIGHTING);
 				glBegin(GL_POINTS);
 				for(int i = 0; i < (int)points.size(); i++){
 				glNormal3(normals[i]);
 				glVector3(points[i]);
 				}
-				glEnd();*/
+				glEnd();
 
 				glDisable(GL_CULL_FACE);
 			}

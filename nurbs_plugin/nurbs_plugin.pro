@@ -5,16 +5,23 @@ load($$[EIGEN])
 load($$[NANOFLANN])
 StarlabTemplate(plugin)
 
+# Build flag
+CONFIG(debug, debug|release) {
+    CFG = debug
+} else {
+    CFG = release
+}
+
 # NURBS library
-LIBS += -L$$PWD/../NURBS/lib -lNURBS
+LIBS += -L$$PWD/../NURBS/$$CFG/lib -lNURBS
 INCLUDEPATH += ../NURBS
 
 # VOXEL library - Should not be used..
-LIBS += -L$$PWD/../DynamicVoxel/lib -lDynamicVoxel
+LIBS += -L$$PWD/../DynamicVoxel/$$CFG/lib -lDynamicVoxel
 INCLUDEPATH += ../DynamicVoxel
 
 # TopoBlender library
-LIBS += -L$$PWD/../TopoBlenderLib/lib -lTopoBlenderLib
+LIBS += -L$$PWD/../TopoBlenderLib/$$CFG/lib -lTopoBlenderLib
 INCLUDEPATH += ../TopoBlenderLib
 
 HEADERS += nurbs_plugin.h \

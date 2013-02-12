@@ -4,25 +4,32 @@ load($$[CHOLMOD])
 load($$[EIGEN])
 load($$[NANOFLANN])
 
-# NURBS library
-LIBS += -L$$PWD/../NURBS/lib -lNURBS
-INCLUDEPATH += ../NURBS
-
-# VOXEL library
-LIBS += -L$$PWD/../DynamicVoxel/lib -lDynamicVoxel
-INCLUDEPATH += ../DynamicVoxel
-
-# Surface Reconstruction library
-LIBS += -L$$PWD/../Reconstruction/lib -lReconstruction
-INCLUDEPATH += ../Reconstruction
-
 TEMPLATE = lib
 CONFIG += staticlib
 QT += opengl xml
 
+# Build flag
+CONFIG(debug, debug|release) {
+    CFG = debug
+} else {
+    CFG = release
+}
+
 # Library name and destination
 TARGET = TopoBlenderLib
-DESTDIR = $$PWD/lib
+DESTDIR = $$PWD/$$CFG/lib
+
+# NURBS library
+LIBS += -L$$PWD/../NURBS/$$CFG/lib -lNURBS
+INCLUDEPATH += ../NURBS
+
+# VOXEL library
+LIBS += -L$$PWD/../DynamicVoxel/$$CFG/lib -lDynamicVoxel
+INCLUDEPATH += ../DynamicVoxel
+
+# Surface Reconstruction library
+LIBS += -L$$PWD/../Reconstruction/$$CFG/lib -lReconstruction
+INCLUDEPATH += ../Reconstruction
 
 RESOURCES += shaders.qrc
 

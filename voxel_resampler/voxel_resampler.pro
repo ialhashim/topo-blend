@@ -5,12 +5,19 @@ load($$[EIGEN])
 load($$[NANOFLANN])
 StarlabTemplate(plugin)
 
+# Build flag
+CONFIG(debug, debug|release) {
+    CFG = debug
+} else {
+    CFG = release
+}
+
 # Voxeler library
-LIBS += -L$$PWD/../Voxeler/lib -lVoxeler
+LIBS += -L$$PWD/../Voxeler/$$CFG/lib -lVoxeler
 INCLUDEPATH += ../Voxeler
 
 # DynamicVoxel library
-LIBS += -L$$PWD/../DynamicVoxel/lib -lDynamicVoxel
+LIBS += -L$$PWD/../DynamicVoxel/$$CFG/lib -lDynamicVoxel
 INCLUDEPATH += ../DynamicVoxel
 
 HEADERS += voxel_resampler.h

@@ -53,7 +53,7 @@ struct Synthesizer{
 
 	static void prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2, int samplingType = Features | Random );
 	static void prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2, int samplingType = Features | Random );
-
+	
 	// Blend geometries
 	static void blendGeometryCurves( Structure::Curve * curve1, Structure::Curve * curve2, double alpha, QVector<Vector3> &points, QVector<Vector3> &normals);
 	static void blendGeometrySheets( Structure::Sheet * sheet1, Structure::Sheet * sheet2, double alpha, QVector<Vector3> &points, QVector<Vector3> &normals);
@@ -64,9 +64,12 @@ struct Synthesizer{
 	static inline void globalToLocalSpherical(Vector3 X, Vector3 Y, Vector3 Z, double &theta, double &psi, Vector3 v);
 
 	// IO
-	static void saveSynthesisData(Structure::Node *node);
-	static void loadSynthesisData(Structure::Node *node);
+	static void saveSynthesisData(Structure::Node *node, QString prefix = "");
+	static void loadSynthesisData(Structure::Node *node, QString prefix = "");
 	static void writeXYZ( QString filename, QVector<Vector3> &points, QVector<Vector3> &normals );
+
+	static void copySynthData( Structure::Node * fromNode, Structure::Node * toNode );
+	static void clearSynthData( Structure::Node * fromNode );
 };
 
 Q_DECLARE_METATYPE(QVector<double>);

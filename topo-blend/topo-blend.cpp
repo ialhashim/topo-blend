@@ -734,6 +734,10 @@ void topoblend::doBlend()
 	this->connect(scheduler, SIGNAL(renderAll()), SLOT(renderAll()));
 	this->connect(scheduler, SIGNAL(renderCurrent()), SLOT(renderCurrent()));
 
+	this->graphs.clear();
+	this->graphs.push_back(scheduler->activeGraph);
+	this->graphs.push_back(scheduler->targetGraph);
+
 	//graphs.push_back( blender->active );
 
 	//Structure::Graph * blendedGraph = blender->blend();
@@ -939,31 +943,62 @@ void topoblend::genSynData()
 
 	QElapsedTimer timer; timer.start();
 
-	int numNodes = blender->active->nodes.size();
+	int numNodes = scheduler->activeGraph->nodes.size();
 	int n = 0;
 
-	foreach(Structure::Node * node, blender->active->nodes)
+	// Force generate
+	foreach(Structure::Node * node, scheduler->activeGraph->nodes)
 	{
 		if(node->property.contains("correspond"))
 		{
-			if(!node->property.contains("correspond")) continue;
-
 			QString nodeID = node->id;
 			QString tnodeID = node->property["correspond"].toString();
+			Structure::Node * tgNode = scheduler->targetGraph->getNode(tnodeID);
+			Synthesizer::clearSynthData(node); 
+			Synthesizer::clearSynthData(tgNode); 
+		}
+	}
 
-			int sampling_method = Synthesizer::Random | Synthesizer::Features;
-			//int sampling_method = Synthesizer::Features;
+	// Generate synthesis data for each corresponding node
+	foreach(Structure::Node * node, scheduler->activeGraph->nodes)
+	{
+		if(node->property.contains("correspond"))
+		{
+			QString nodeID = node->id;
+			QString tnodeID = node->property["correspond"].toString();
+			Structure::Node * tgNode = scheduler->targetGraph->getNode(tnodeID);
+
+			//int sampling_method = Synthesizer::Random | Synthesizer::Features;
+			int sampling_method = Synthesizer::Features;
 
 			if(node->type() == Structure::CURVE)
 			{
-				if(!node->id.contains("_TG"))
-					Synthesizer::prepareSynthesizeCurve((Structure::Curve*)node, (Structure::Curve*)blender->tg->getNode(tnodeID), sampling_method);
+				Synthesizer::prepareSynthesizeCurve((Structure::Curve*)node, (Structure::Curve*)tgNode, sampling_method);
 			}
 
 			if(node->type() == Structure::SHEET)
 			{
-				if(!node->id.contains("_TG"))
-					Synthesizer::prepareSynthesizeSheet((Structure::Sheet*)node, (Structure::Sheet*)blender->tg->getNode(tnodeID), sampling_method);
+				Synthesizer::prepareSynthesizeSheet((Structure::Sheet*)node, (Structure::Sheet*)tgNode, sampling_method);
+			}
+
+			// Copy samples to clones
+			if(nodeID.contains("_"))
+			{
+				QString id = nodeID.split("_").at(0);
+				foreach(Structure::Node * other_node, scheduler->activeGraph->nodes)
+				{
+					if( other_node->id != nodeID && other_node->id.contains(id) )
+						Synthesizer::copySynthData( node, other_node );
+				}
+			}
+			if(tnodeID.contains("_"))
+			{
+				QString id = tnodeID.split("_").at(0);
+				foreach(Structure::Node * other_node, scheduler->targetGraph->nodes)
+				{
+					if( other_node->id != tnodeID && other_node->id.contains(id) )
+						Synthesizer::copySynthData( tgNode, other_node );
+				}
 			}
 		}
 
@@ -999,16 +1034,15 @@ void topoblend::saveSynthesisData()
 	QString foldername = gcoor->sgName() + "_" + gcoor->tgName();
 	QDir dir; dir.mkdir(foldername); dir.setCurrent(foldername);
 
-	foreach(Structure::Node * node, blender->active->nodes){
-		if(node->property.contains("correspond")){
-			QString nodeID = node->id;
-			QString tnodeID = node->property["correspond"].toString();
-			if(tnodeID.isEmpty()) continue;
+	foreach(Structure::Node * node, scheduler->activeGraph->nodes)
+		Synthesizer::saveSynthesisData(node, "[activeGraph]");
+	
+	foreach(Structure::Node * node, scheduler->targetGraph->nodes)
+		Synthesizer::saveSynthesisData(node, "[targetGraph]");
 
-			Synthesizer::saveSynthesisData(node);
-			Synthesizer::saveSynthesisData(blender->tg->getNode(tnodeID));
-		}
-	}
+	statusBarMessage("Synth data saved.");
+
+	dir.cdUp();
 }
 
 void topoblend::loadSynthesisData()
@@ -1018,21 +1052,23 @@ void topoblend::loadSynthesisData()
 	QString foldername = gcoor->sgName() + "_" + gcoor->tgName();
 	QDir dir; dir.setCurrent(foldername);
 
-	foreach(Structure::Node * node, blender->active->nodes){
-		if(node->property.contains("correspond")){
-			QString nodeID = node->id;
-			QString tnodeID = node->property["correspond"].toString();
-			if(tnodeID.isEmpty()) continue;
-
-			Synthesizer::loadSynthesisData(node);
-
-			Structure::Node * tnode = scheduler->targetGraph->getNode(tnodeID);
-			if(!tnode) continue;
-			Synthesizer::loadSynthesisData(tnode);
-		}
+	foreach(Structure::Node * node, scheduler->activeGraph->nodes)
+	{
+		Synthesizer::clearSynthData(node); // Force load
+		Synthesizer::loadSynthesisData(node, "[activeGraph]");
 	}
 
+	foreach(Structure::Node * node, scheduler->targetGraph->nodes)
+	{
+		Synthesizer::clearSynthData(node);
+		Synthesizer::loadSynthesisData(node, "[targetGraph]");
+	}
+
+	statusBarMessage("Synth data loaded.");
+
 	drawArea()->updateGL();
+
+	dir.cdUp();
 }
 
 void topoblend::outputPointCloud()
@@ -1173,9 +1209,10 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename )
 			finalN.push_back(normal);
 		}
 
-		Synthesizer::writeXYZ("currentGraph.xyz", points, normals);
+		QString node_filename = node->id + "_" + filename;
+		//Synthesizer::writeXYZ(node_filename, points, normals);
 
-		PoissonRecon::makeFromCloud(finalP, finalN, filename);
+		PoissonRecon::makeFromCloud(finalP, finalN, node_filename);
 	}
 }
 

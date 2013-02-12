@@ -25,6 +25,8 @@ bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCo
 #define UNIFORM_RESOLUTION 0.01
 #define EDGE_RESOLUTION 0.05
 
+int global_countt = 0;
+
 // Helper functions
 void Synthesizer::sortSamplesCurve( QVector<ParameterCoord> & samples, QVector<int> & oldIndices )
 {
@@ -422,7 +424,9 @@ void Synthesizer::blendCurveBases( Structure::Curve * curve1, Structure::Curve *
 
 void Synthesizer::blendSheetBases( Structure::Sheet * sheet1, Structure::Sheet * sheet2, double alpha )
 {
-
+    sheet1 = sheet1;
+    sheet2 = sheet2;
+    alpha = alpha;
 }
 
 
@@ -517,35 +521,57 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 
 	QElapsedTimer timer; timer.start();
 	qDebug() << "Generating samples..";
+	
+	QVector<ParameterCoord> samples;
+	QVector<double> offsets1, offsets2;
+	QVector<Vec2d> normals1, normals2;
+	bool c1_isSampled = false, c2_isSampled = false;
+
+	// Skip sampled by using own samples and copying them to sampled
+	if(curve1->property.contains("samples")){
+		samples = curve1->property["samples"].value< QVector<ParameterCoord> >();
+		c1_isSampled = true;
+	}
+	if(curve2->property.contains("samples")){
+		samples = curve2->property["samples"].value< QVector<ParameterCoord> >();
+		c2_isSampled = true;
+	}
 
 	// Sample two curves
-	QVector<ParameterCoord> samples;
+	if( !samples.size() )
+	{
+		if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
+		if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
 
-	if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
-	if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
+		if (s & Synthesizer::Features)	samples += genFeatureCoords(curve1) + genFeatureCoords(curve2);
+		if (s & Synthesizer::Edges)		samples += genEdgeCoords(curve1) + genEdgeCoords(curve2);
+		if (s & Synthesizer::Random)	samples += genRandomCoords(curve1, RANDOM_COUNT) + genRandomCoords(curve2, RANDOM_COUNT);
+		if (s & Synthesizer::Uniform)	samples += genUniformCoords(curve1) + genUniformCoords(curve2);
 
-	if (s & Synthesizer::Features)	samples += genFeatureCoords(curve1) + genFeatureCoords(curve2);
-	if (s & Synthesizer::Edges)	samples += genEdgeCoords(curve1) + genEdgeCoords(curve2);
-	if (s & Synthesizer::Random)	samples += genRandomCoords(curve1, RANDOM_COUNT) + genRandomCoords(curve2, RANDOM_COUNT);
-	if (s & Synthesizer::Uniform)	samples += genUniformCoords(curve1) + genUniformCoords(curve2);
+		// Sort samples by 'u'
+		sort(samples.begin(), samples.end());
+	}
 
 	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());timer.restart();
 
 	qDebug() << "Re-sampling mesh..";
 
 	// Re-sample the meshes
-	QVector<double> offsets1, offsets2;
-	QVector<Vec2d> normals1, normals2;
-	sampleGeometryCurve(samples, curve1, offsets1, normals1);
-	sampleGeometryCurve(samples, curve2, offsets2, normals2);
+	if( !c1_isSampled ) 
+	{	
+		sampleGeometryCurve(samples, curve1, offsets1, normals1);
+		curve1->property["samples"].setValue(samples);
+		curve1->property["offsets"].setValue(offsets1);
+		curve1->property["normals"].setValue(normals1);
+	}
 
-	curve1->property["samples"].setValue(samples);
-	curve1->property["offsets"].setValue(offsets1);
-	curve1->property["normals"].setValue(normals1);
-
-	curve2->property["samples"].setValue(samples);
-	curve2->property["offsets"].setValue(offsets2);
-	curve2->property["normals"].setValue(normals2);
+	if( !c2_isSampled ) 
+	{
+		sampleGeometryCurve(samples, curve2, offsets2, normals2);
+		curve2->property["samples"].setValue(samples);
+		curve2->property["offsets"].setValue(offsets2);
+		curve2->property["normals"].setValue(normals2);
+	}
 
 	qDebug() << QString("Resampling Time [ %1 ms ]\n==\n").arg(timer.elapsed());
 }
@@ -554,41 +580,82 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 {
 	if(!sheet1 || !sheet2 || !sheet1->property.contains("mesh") || !sheet2->property.contains("mesh")) return;
 
-    QElapsedTimer timer; timer.start();
-    qDebug() << "Generating samples..";
+	QElapsedTimer timer; timer.start();
+	qDebug() << "Generating samples..";
 
-	// Sample two sheets
 	QVector<ParameterCoord> samples;
-
-	if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
-	if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
-
-	if (s & Synthesizer::Features)	samples += genFeatureCoords(sheet1) + genFeatureCoords(sheet2);
-	if (s & Synthesizer::Edges)	samples += genEdgeCoords(sheet1) + genEdgeCoords(sheet2);
-	if (s & Synthesizer::Random)	samples += genRandomCoords(sheet1, RANDOM_COUNT) + genRandomCoords(sheet2, RANDOM_COUNT);
-	if (s & Synthesizer::Uniform)	samples += genUniformCoords(sheet1) + genUniformCoords(sheet2);
-
-    qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());
-
-	// Re-sample the meshes
 	QVector<double> offsets1, offsets2;
 	QVector<Vec2d> normals1, normals2;
-	sampleGeometrySheet(samples, sheet1, offsets1, normals1);
-	sampleGeometrySheet(samples, sheet2, offsets2, normals2);
+	bool c1_isSampled = false, c2_isSampled = false;
 
-	sheet1->property["samples"].setValue(samples);
-	sheet1->property["offsets"].setValue(offsets1);
-	sheet1->property["normals"].setValue(normals1);
+	// Skip sampled by using own samples and copying them to sampled
+	if(sheet1->property.contains("samples")){
+		samples = sheet1->property["samples"].value< QVector<ParameterCoord> >();
+		c1_isSampled = true;
+	}
+	if(sheet2->property.contains("samples")){
+		samples = sheet2->property["samples"].value< QVector<ParameterCoord> >();
+		c2_isSampled = true;
+	}
 
-	sheet2->property["samples"].setValue(samples);
-	sheet2->property["offsets"].setValue(offsets2);
-	sheet2->property["normals"].setValue(normals2);
+	// Sample two sheets
+	if( !samples.size() )
+	{
+		if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
+		if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
+
+		if (s & Synthesizer::Features)	samples += genFeatureCoords(sheet1) + genFeatureCoords(sheet2);
+		if (s & Synthesizer::Edges)		samples += genEdgeCoords(sheet1) + genEdgeCoords(sheet2);
+		if (s & Synthesizer::Random)	samples += genRandomCoords(sheet1, RANDOM_COUNT) + genRandomCoords(sheet2, RANDOM_COUNT);
+		if (s & Synthesizer::Uniform)	samples += genUniformCoords(sheet1) + genUniformCoords(sheet2);
+	}
+
+	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());timer.restart();
+
+	qDebug() << "Re-sampling mesh..";
+
+	// Re-sample the meshes
+	if( !c1_isSampled ) 
+	{	
+		sampleGeometrySheet(samples, sheet1, offsets1, normals1);
+		sheet1->property["samples"].setValue(samples);
+		sheet1->property["offsets"].setValue(offsets1);
+		sheet1->property["normals"].setValue(normals1);
+	}
+
+	if( !c2_isSampled ) 
+	{
+		sampleGeometrySheet(samples, sheet2, offsets2, normals2);
+		sheet2->property["samples"].setValue(samples);
+		sheet2->property["offsets"].setValue(offsets2);
+		sheet2->property["normals"].setValue(normals2);
+	}
+
+	qDebug() << QString("Resampling Time [ %1 ms ]\n==\n").arg(timer.elapsed());
 }
 
+void Synthesizer::copySynthData( Structure::Node * fromNode, Structure::Node * toNode )
+{
+	toNode->property["samples"].setValue( fromNode->property["samples"].value< QVector<ParameterCoord> >() );
+	toNode->property["offsets"].setValue( fromNode->property["offsets"].value< QVector<double> >() );
+	toNode->property["normals"].setValue( fromNode->property["normals"].value< QVector<Vec2d> >() );
+}
+
+void Synthesizer::clearSynthData( Structure::Node * fromNode )
+{
+	fromNode->property.remove("samples");
+	fromNode->property.remove("offsets");
+	fromNode->property.remove("normals");
+	
+	// Visualization
+	fromNode->property.remove("cached_points");
+	fromNode->property.remove("cached_normals");
+}
 
 void Synthesizer::blendGeometryCurves( Structure::Curve * curve1, Structure::Curve * curve2, double alpha, QVector<Vector3> &points, QVector<Vector3> &normals )
 {
 	if(!curve1->property.contains("samples") || !curve2->property.contains("samples")) return;
+	alpha = qMax(0.0, qMin(alpha, 1.0));
 
 	QVector<ParameterCoord> samples = curve1->property["samples"].value< QVector<ParameterCoord> >();
 
@@ -657,7 +724,7 @@ void Synthesizer::writeXYZ( QString filename, QVector<Vector3> &points, QVector<
 	file.close();
 }
 
-void Synthesizer::saveSynthesisData( Structure::Node *node )
+void Synthesizer::saveSynthesisData( Structure::Node *node, QString prefix )
 {
 	if(!node || !node->property.contains("samples")) return;
 
@@ -671,7 +738,7 @@ void Synthesizer::saveSynthesisData( Structure::Node *node )
 		return;
 	}
 
-	QFile file(node->id + ".txt");
+	QFile file(prefix + node->id + ".txt");
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
 	QTextStream out(&file);
 
@@ -679,18 +746,18 @@ void Synthesizer::saveSynthesisData( Structure::Node *node )
 
 	for(int i = 0; i < (int) samples.size(); i++)
 	{
-		out << samples[i].u << "\t" << samples[i].v<< "\t" << samples[i].theta<< "\t" << samples[i].psi<< "\t"
-			<< offsets[i]<< "\t" << normals[i][0]<< "\t" << normals[i][1] << "\n";
+		out << samples[i].u << "\t" << samples[i].v << "\t" << samples[i].theta << "\t" << samples[i].psi << "\t"
+			<< offsets[i] << "\t" << normals[i][0] << "\t" << normals[i][1] << "\n";
 	}
 
 	file.close();
 }
 
-void Synthesizer::loadSynthesisData( Structure::Node *node )
+void Synthesizer::loadSynthesisData( Structure::Node *node, QString prefix )
 {
 	if(!node) return;
 
-	QFile file(node->id + ".txt");
+	QFile file(prefix + node->id + ".txt");
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
 	QTextStream inF(&file);
 
