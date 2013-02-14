@@ -302,6 +302,47 @@ public:
 	}
 };
 
+class FrameSoup : public RenderObject::Base{
+	QVector< QVector<QVector3D> > frames;
+public:
+	FrameSoup(float scale, const QColor& c = Qt::green):RenderObject::Base(scale, c){}
+
+	void addFrame(const QVector3D& X, const QVector3D& Y, const QVector3D& Z, const QVector3D& position){
+		QVector<QVector3D> frame;
+		frame.push_back(X);
+		frame.push_back(Y);
+		frame.push_back(Z);
+		frame.push_back(position);
+		frames.push_back(frame);
+	}
+
+	virtual void draw(){
+		glDisable(GL_LIGHTING);
+		glLineWidth(1);
+		glBegin(GL_LINES);
+		for(int i = 0; i < (int) frames.size(); i++){
+			QVector3D X=frames[i][0],Y=frames[i][1],Z=frames[i][2];
+			QVector3D pos=frames[i][3];
+			glColor3d(1,0,0);glVertQt(pos); glVertQt((pos + X * _size));
+			glColor3d(0,1,0);glVertQt(pos); glVertQt((pos + Y * _size));
+			glColor3d(0,0,1);glVertQt(pos); glVertQt((pos + Z * _size));
+		}
+		glEnd();
+
+		glPointSize(3);
+		glBegin(GL_POINTS);
+		for(int i = 0; i < (int) frames.size(); i++){
+			QVector3D X=frames[i][0],Y=frames[i][1],Z=frames[i][2];
+			QVector3D pos=frames[i][3];
+			glColor3d(1,0,0);glVertQt((pos + X * _size));
+			glColor3d(0,1,0);glVertQt((pos + Y * _size));
+			glColor3d(0,0,1);glVertQt((pos + Z * _size));
+		}
+		glEnd();
+		glEnable(GL_LIGHTING);
+	}
+};
+
 static QColor qtColdColor(double value, double min = 0.0, double max = 1.0){
 	unsigned char rgb[3];
 	value-=min;

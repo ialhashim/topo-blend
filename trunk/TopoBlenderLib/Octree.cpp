@@ -2,6 +2,11 @@
 #include "Octree.h"
 #include <stack>
 
+// Ray-triangle acceleration (robust?)
+#define USE_TRI_ACCEL 1
+#include "TriAccel.h"
+typedef TriAccel<double, Vec3d> TriAcceld;
+
 Octree::Octree( int triPerNode, Surface_mesh * useMesh )
 {
 	this->parent = NULL;
@@ -45,6 +50,15 @@ void Octree::initBuild( std::vector<Surface_mesh::Face>& tris, int triPerNode )
 		do{ pnts.push_back(points[vit]); } while(++vit != vend);
 		triangles[Surface_mesh::Face(fit).idx()] = pnts;
 	}
+
+	// Pre-compute per triangle quantities for fast ray-intersection
+#if USE_TRI_ACCEL
+	Surface_mesh::Face_property< TriAcceld > tri_accel = mesh->face_property<TriAcceld>("f:TriAccel");
+	for(fit = mesh->faces_begin(); fit != fend; ++fit){
+		int i = Surface_mesh::Face(fit).idx();
+		tri_accel[fit].load(triangles[i][0], triangles[i][1], triangles[i][2]);
+	}
+#endif
 
 	bb.computeFromTris(triangles);
 
@@ -418,7 +432,7 @@ void Octree::intersectionTestOld( Surface_mesh::Face f, const Ray & ray, HitResu
 	res.hit = false;
 	res.distance = DBL_MAX;
 
-	double EPS = 1e-8;
+	double EPS = 1e-7;
 
 	std::vector<Vec3d> v = triPoints(f);
 	
@@ -545,6 +559,17 @@ void Octree::my_intersectionTest( Surface_mesh::Face ff, const Ray & ray, HitRes
 	else // this means that there is a line intersection
 		// but not a ray intersection
 		return;
+}
+
+void Octree::intersectionTestAccelerated( Surface_mesh::Face f, const Ray & ray, HitResult & res ) const
+{
+	TriAcceld & triAccel = mesh->get_face_property<TriAcceld>("f:TriAccel")[f];
+	double u, v, t;
+	res.hit = triAccel.rayIntersect(TriAcceld::TriAccelRay(ray.origin, ray.direction), 0, DBL_MAX, u, v, t);
+
+	res.distance = t;
+	res.u = u;
+	res.v = v;
 }
 
 //Surface_mesh::Face* Octree::findClosestTri( const Ray & ray, IndexSet & tris, Mesh * mesh, HitResult & hitRes )

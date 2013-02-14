@@ -7,21 +7,23 @@
 #include "SpherePackSampling.h"
 
 #include "Synthesizer.h"
-#include "RMF.h"
 #include "weld.h"
+Q_DECLARE_METATYPE(RMF::Frame);
+Q_DECLARE_METATYPE(std::vector<RMF::Frame>);
 
 typedef std::pair<ParameterCoord,int> ParameterCoordInt;
 bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCoordInt& r)
-{ return l.first < r.first; }
+{ return l.first.u < r.first.u; }
 
 // Parameters
 #define CURVE_FRAME_RESOLUTION 0.01
 #define SHEET_FRAME_RESOLUTION 0.01
+#define CURVE_FRAME_COUNT 100
 
 #define OCTREE_NODE_SIZE 40
 
 // Sampling
-#define RANDOM_COUNT 1e2
+#define RANDOM_COUNT 1e5
 #define UNIFORM_RESOLUTION 0.01
 #define EDGE_RESOLUTION 0.05
 
@@ -47,6 +49,20 @@ void Synthesizer::sortSamplesCurve( QVector<ParameterCoord> & samples, QVector<i
 	samples = sorted_samples;
 }
 
+RMF Synthesizer::consistentFrame( Structure::Curve * curve, Array1D_Vec4d & coords )
+{
+	// Generate consistent frames along curve
+	std::vector<Scalar> times;
+	curve->curve.SubdivideByLengthTime(CURVE_FRAME_COUNT, times);
+	foreach(Scalar t, times) coords.push_back(Vec4d(t,0,0,0));
+	std::vector<Vec3d> samplePoints;
+	foreach(Vec4d c, coords) samplePoints.push_back( curve->position(c) );
+	
+	RMF rmf(samplePoints);
+	rmf.compute();
+	return rmf;
+}
+
 void Synthesizer::localSphericalToGlobal( Vector3 X, Vector3 Y, Vector3 Z, double theta, double psi, Vector3 &v )
 {
 	Q_UNUSED(X);
@@ -59,7 +75,7 @@ void Synthesizer::globalToLocalSpherical( Vector3 X, Vector3 Y, Vector3 Z, doubl
 	// Theta: angle from Z [0, PI]
 	// Psi: angle from X on XY plane [0, 2*PI)
 	double dotZ = dot(v, Z);
-	theta = acos( dotZ );
+	theta = acos( qRanged(-1.0, dotZ, 1.0) );
 
 	double dotX = dot(v, X);
 	double dotY = dot(v, Y);
@@ -71,22 +87,13 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 {
 	QVector<ParameterCoord> samples(points.size());
 
-	// Auto resolution
-	double resolution = curve->bbox().size().length() * CURVE_FRAME_RESOLUTION;
-
-	Array1D_Vec4d curveCoords = curve->discretizedPoints(resolution).front();
-
-	qDebug() << "Curve resolution count = " << curveCoords.size();
-
 	// Generate consistent frames along curve
-	std::vector<Vec3d> samplePoints;
-	foreach(Vec4d c, curveCoords) samplePoints.push_back(curve->position(c));
-	RMF rmf(samplePoints);
-	rmf.compute();
+	Array1D_Vec4d coords;
+	RMF rmf = consistentFrame(curve,coords);
 
 	// Add all curve points to kd-tree
 	NanoKdTree kdtree;
-	foreach(Vec4d c, curveCoords) kdtree.addPoint( curve->position(c) );
+	foreach(Vec3d p, rmf.point) kdtree.addPoint( p );
 	kdtree.build();
 
 	// Project
@@ -105,7 +112,7 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 		KDResults match;
 		kdtree.k_closest(point, 1, match);
 		int closest_idx = match.front().first;
-		Vec4d c = curveCoords[closest_idx];
+		Vec4d c = coords[closest_idx];
 
 		Vec3d X = rmf.U[closest_idx].r.normalized();
 		Vec3d Y = rmf.U[closest_idx].s.normalized();
@@ -245,11 +252,11 @@ QVector<ParameterCoord> Synthesizer::genUniformCoords(Node *node, double samplin
     SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
 
     // Auto resolution
-    if(sampling_resolution < 0) sampling_resolution = node->bbox().size().length() * UNIFORM_RESOLUTION;
+    if(sampling_resolution < 0) sampling_resolution = UNIFORM_RESOLUTION;
 
     // Sample mesh surface
     std::vector<Vec3d> samplePoints, gp;
-    samplePoints = SpherePackSampling::sample(model, 1e5, sampling_resolution, gp, 1);
+    samplePoints = SpherePackSampling::sample(model, 1e4, sampling_resolution, gp, 1);
 
     if(node->type() == Structure::CURVE)
         return genPointCoordsCurve((Structure::Curve*)node, samplePoints);
@@ -259,14 +266,14 @@ QVector<ParameterCoord> Synthesizer::genUniformCoords(Node *node, double samplin
 
 Vec3d Synthesizer::intersectionPoint( const Ray & ray, const Octree * useTree, int * faceIndex )
 {
-	HitResult res;
+	HitResult res, best_res;
 	Vec3d isetpoint(0);
-
 	double minDistance = DBL_MAX;
 
-	foreach( int i, useTree->intersectRay( ray, 0.1, false ) )
+	// Fast, not robust tests
+	foreach( int i, useTree->intersectRay( ray, 0, false ) )
 	{
-		useTree->intersectionTestOld(SurfaceMeshModel::Face(i), ray, res);
+		useTree->intersectionTestAccelerated(SurfaceMeshModel::Face(i), ray, res);
 
 		// find the nearest intersection point
 		if(res.hit)
@@ -276,12 +283,27 @@ Vec3d Synthesizer::intersectionPoint( const Ray & ray, const Octree * useTree, i
 				minDistance = res.distance;
 				isetpoint = ray.origin + (ray.direction * res.distance);
 				if(faceIndex) *faceIndex = i;
+				best_res = res;
 			}
-			return isetpoint;
 		}
 	}
 
-	assert(false);
+	// Slower, more robust tests
+	if(!best_res.hit){
+		foreach( int i, useTree->intersectRay( ray, 0.01, false ) ){
+			useTree->intersectionTestOld(SurfaceMeshModel::Face(i), ray, res);
+			if(res.hit){
+				if (res.distance < minDistance){
+					minDistance = res.distance;
+					isetpoint = ray.origin + (ray.direction * res.distance);
+					if(faceIndex) *faceIndex = i;
+					best_res = res;
+				}
+			}
+		}
+	}
+
+	assert(best_res.hit);
 
 	return isetpoint;
 }
@@ -299,20 +321,11 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 	normals.clear();
 	normals.resize(samples.size());
 
-	// Generate consistent frames along curve
-	QVector<int> oldIndices;
-	sortSamplesCurve(samples, oldIndices);
-
-	// Weld for RMF
-	std::vector<Vec3d> samplePoints;
-	foreach(ParameterCoord s, samples) samplePoints.push_back( curve->position(Vec4d(s.u)) );
-	std::vector<size_t> xrefs;
-	weld(samplePoints, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
-	RMF rmf(samplePoints);
-	rmf.compute();
-
 	const ParameterCoord * samplesArray = samples.data();
 
+	// Generate consistent frames along curve
+	Array1D_Vec4d coords;
+	RMF rmf = consistentFrame(curve,coords);
 	qDebug() << "Curve RMF count = " << rmf.U.size() << ", Samples = " << samples.size();
 
 	const std::vector<Vector3> curvePnts = curve->curve.mCtrlPoint;
@@ -325,7 +338,7 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 
 		ParameterCoord sample = samplesArray[i];
 		
-		int idx = xrefs[i];
+		int idx = sample.u * (rmf.count() - 1);
 		Vec3d X = rmf.U[idx].r.normalized();
 		Vec3d Y = rmf.U[idx].s.normalized();
 		Vec3d Z = rmf.U[idx].t.normalized();
@@ -341,7 +354,7 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 		Vec3d isect = intersectionPoint(ray, &octree, &faceIndex);
 
 		// Store the offset
-		offsets[ oldIndices[i] ] = (isect - rayPos).norm();
+		offsets[ i ] = (isect - rayPos).norm();
 
 		// Code the normal relative to local frame
 		Vec2d normalCoord(0);
@@ -349,7 +362,7 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 
 		globalToLocalSpherical(X, Y, Z, normalCoord[0], normalCoord[1], v);
 
-		normals[ oldIndices[i] ] = normalCoord;
+		normals[ i ] = normalCoord;
 	}
 }
 
@@ -440,16 +453,8 @@ void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVect
 	out_normals.resize(in_samples.size());
 
 	// Generate consistent frames along curve
-	QVector<int> oldIndices;
-	sortSamplesCurve(in_samples, oldIndices);
-
-	std::vector<Vec3d> samplePoints;
-	foreach(ParameterCoord s, in_samples) samplePoints.push_back(base_curve->position(Vec4d(s.u)));
-
-	std::vector<size_t> xrefs;
-	weld(samplePoints, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
-	RMF rmf(samplePoints);
-	rmf.compute();
+	Array1D_Vec4d coords;
+	RMF rmf = consistentFrame(base_curve,coords);
 
 	for(int i = 0; i < (int) in_samples.size(); i++)
 	{
@@ -457,7 +462,8 @@ void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVect
 
 		Vec3d rayPos, rayDir;
 
-		int idx = xrefs[i];
+		int idx = sample.u * (rmf.count() - 1);
+
 		Vec3d X = rmf.U[idx].r.normalized();
 		Vec3d Y = rmf.U[idx].s.normalized();
 		Vec3d Z = rmf.U[idx].t.normalized();
@@ -467,15 +473,18 @@ void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVect
 		localSphericalToGlobal(X, Y, Z, sample.theta, sample.psi, rayDir);
 
 		// Reconstructed point
-		Vec3d isect = rayPos + (rayDir.normalized() * in_offsets[ oldIndices[i] ]);
-		out_points[ oldIndices[i] ] = isect;
+		Vec3d isect = rayPos + (rayDir.normalized() * in_offsets[ i ]);
+		out_points[ i ] = isect;
 
 		// Reconstructed normal
-		Vec2d normalCoord = in_normals[ oldIndices[i] ];
+		Vec2d normalCoord = in_normals[ i ];
 		Vec3d normal;
 		localSphericalToGlobal(X, Y, Z, normalCoord[0], normalCoord[1], normal);
-		out_normals[ oldIndices[i] ] = normal.normalized();
+		out_normals[ i ] = normal.normalized();
 	}
+
+	// Save RMF frames
+	base_curve->property["rmf_frames"].setValue(rmf.U);
 }
 
 void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVector<ParameterCoord> in_samples, QVector<double> &in_offsets,
@@ -710,7 +719,7 @@ void Synthesizer::blendGeometrySheets( Structure::Sheet * sheet1, Structure::She
 
 void Synthesizer::writeXYZ( QString filename, QVector<Vector3> &points, QVector<Vector3> &normals )
 {
-	QFile file(filename);
+	QFile file(filename + ".xyz");
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
 	QTextStream out(&file);
 
@@ -739,15 +748,15 @@ void Synthesizer::saveSynthesisData( Structure::Node *node, QString prefix )
 	}
 
 	QFile file(prefix + node->id + ".txt");
-	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
-	QTextStream out(&file);
+	if (!file.open(QIODevice::WriteOnly)) return;
+	QDataStream out(&file);
 
-	out <<  samples.size() << "\n";
+	out << samples.size();
 
 	for(int i = 0; i < (int) samples.size(); i++)
 	{
-		out << samples[i].u << "\t" << samples[i].v << "\t" << samples[i].theta << "\t" << samples[i].psi << "\t"
-			<< offsets[i] << "\t" << normals[i][0] << "\t" << normals[i][1] << "\n";
+		out << samples[i].u << samples[i].v << samples[i].theta << samples[i].psi << 
+			offsets[i] << normals[i][0] << normals[i][1];
 	}
 
 	file.close();
@@ -758,8 +767,8 @@ void Synthesizer::loadSynthesisData( Structure::Node *node, QString prefix )
 	if(!node) return;
 
 	QFile file(prefix + node->id + ".txt");
-	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
-	QTextStream inF(&file);
+	if (!file.open(QIODevice::ReadOnly)) return;
+	QDataStream inF(&file);
 
 	int num;
 	inF >> num;
@@ -770,8 +779,8 @@ void Synthesizer::loadSynthesisData( Structure::Node *node, QString prefix )
 
 	for(int i = 0; i < num; i++)
 	{
-		inF >> samples[i].u >> samples[i].v >> samples[i].theta >> samples[i].psi
-			>> offsets[i] >> normals[i][0] >> normals[i][1];
+		inF >> samples[i].u >> samples[i].v >> samples[i].theta >> samples[i].psi >> 
+			offsets[i] >> normals[i][0] >> normals[i][1];
 	}
 
 	node->property["samples"].setValue(samples);

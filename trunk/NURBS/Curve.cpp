@@ -188,13 +188,12 @@ void Curve<Real>::SubdivideByLengthTime (int numPoints, std::vector<Real> & time
     assert(numPoints >= 2);
     times.resize(numPoints);
 
-    Real delta = GetTotalLength()/(numPoints - 1);
+    Real delta = GetTotalLength() / (numPoints - 1);
 
     for (int i = 0; i < numPoints; ++i)
     {
-        Real length = delta*i;
-        Real t = GetTime(length);
-        times[i] = t;
+        Real length = delta * i;
+        times[i] = GetTime(length);
     }
 }
 

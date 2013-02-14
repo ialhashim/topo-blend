@@ -43,6 +43,11 @@ ARAPCurveHandle * handle = NULL;
 
 VectorSoup vs1,vs2;
 
+Q_DECLARE_METATYPE(Vec3d);
+#include "RMF.h"
+Q_DECLARE_METATYPE(RMF::Frame);
+Q_DECLARE_METATYPE(std::vector<RMF::Frame>);
+
 topoblend::topoblend(){
 	widget = NULL;
 	gcoor = NULL;
@@ -145,6 +150,27 @@ void topoblend::decorate()
 		glPopMatrix();
 
 		posX += deltaX;
+
+		if(graphs[g]->property.contains("selectedSample"))
+		{
+			glPointSize(20);
+			glColor3d(1,1,0);
+			glDisable(GL_LIGHTING);
+			glBegin(GL_POINTS);
+			glVector3( graphs[g]->property["selectedSample"].value<Vec3d>() );
+			glEnd();
+			glEnable(GL_LIGHTING);
+
+			Structure::Node * node = graphs[g]->getNode(graphs[g]->property["selectedNode"].toString());
+			if(node->property.contains("rmf_frames")){
+				std::vector<RMF::Frame> U = node->property["rmf_frames"].value< std::vector<RMF::Frame> >();
+				FrameSoup * fs = new FrameSoup(0.005f);
+				foreach(RMF::Frame f, U){
+					fs->addFrame(f.r, f.s, f.t, f.center);
+				}
+				fs->draw();
+			}
+		}
 	}
 
 	if(deformer)
@@ -693,6 +719,45 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		used = true;
 	}
 
+	if(event->key() == Qt::Key_T)
+	{
+		qglviewer::Vec q = drawArea()->camera()->revolveAroundPoint();
+		Vec3d p(q[0],q[1],q[2]);
+
+		double minDist = DBL_MAX;
+		QString sample_details = "";
+
+		foreach(Structure::Graph * g, graphs)
+		{
+			foreach(Structure::Node * node, scheduler->activeGraph->nodes)
+			{
+				if(node->property.contains("cached_points"))
+				{
+					QVector<Vec3d> pnts = node->property["cached_points"].value< QVector<Vec3d> >();
+					QVector<ParameterCoord> samples = node->property["samples"].value< QVector<ParameterCoord> >();
+					QVector<double> offsets = node->property["offsets"].value< QVector<double> >();
+
+					for(int i = 0; i < (int)pnts.size(); i++)
+					{
+						double dist = (pnts[i] - p).norm();
+						if(dist < minDist){
+							ParameterCoord s = samples[i];
+							sample_details = QString("[%5] u= %1  v= %2  theta= %3  psi= %4 offset = %6").arg(s.u
+								).arg(s.v).arg(s.theta).arg(s.psi).arg(node->id).arg(offsets[i]);
+							minDist = dist;
+							g->property["selectedSample"].setValue(pnts[i]);
+							g->property["selectedNode"].setValue(node->id);
+						}
+					}
+				}
+			}
+		}
+
+		setStatusBarMessage(sample_details);
+
+		used = true;
+	}
+
 	drawArea()->updateGL();
 
 	return used;
@@ -968,8 +1033,9 @@ void topoblend::genSynData()
 			QString tnodeID = node->property["correspond"].toString();
 			Structure::Node * tgNode = scheduler->targetGraph->getNode(tnodeID);
 
-			//int sampling_method = Synthesizer::Random | Synthesizer::Features;
-			int sampling_method = Synthesizer::Features;
+			int sampling_method = Synthesizer::Random | Synthesizer::Features;
+			//int sampling_method = Synthesizer::Features;
+			//int sampling_method = Synthesizer::Uniform;
 
 			if(node->type() == Structure::CURVE)
 			{
@@ -1149,45 +1215,20 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename )
 	foreach(Structure::Node * node, graph->nodes)
 	{
 		// Skip inactive nodes
-		if(!node->property["isReady"].toBool()) continue;
+		if(!node->property["isReady"].toBool() || !node->property.contains("cached_points")) continue;
 
-		// Retrieve corresponding node
-		if(!node->property.contains("correspond")) continue;
-		Structure::Node * tnode = scheduler->targetGraph->getNode(node->property["correspond"].toString());
-		if(tnode == NULL) continue;
-
-		// Retrieve blending parameter alpha
-		double alpha = 0;
-		if(node->property.contains("t"))
-			alpha = node->property["t"].toDouble();
-		
-		QVector<Vec3d> points, normals;
-
-		if(node->type() == Structure::CURVE)
-		{
-			Structure::Curve * scurve = (Structure::Curve *)node;
-			Structure::Curve * tcurve = (Structure::Curve *)tnode;
-
-			Synthesizer::blendGeometryCurves(scurve, tcurve, alpha, points, normals);
-		}
-
-		if(node->type() == Structure::SHEET)
-		{
-			Structure::Sheet * ssheet = (Structure::Sheet *)node;
-			Structure::Sheet * tsheet = (Structure::Sheet *)tnode;
-
-			Synthesizer::blendGeometrySheets(ssheet, tsheet, alpha, points, normals);
-		}
+		QVector<Vec3d> points = node->property["cached_points"].value< QVector<Vec3d> >();
 
 		if(!points.size()) continue;
-
-		std::vector<Vec3d> clean_points = points.toStdVector();
-
+		std::vector<Vec3d> clean_points;
+		foreach(Vec3d p, points) clean_points.push_back(p);
+			 
 		// Clean up and compute normals
-		int num_nighbours = 16;
-		//std::vector<size_t> xrefs;
-		//weld(clean_points, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
-		normals.clear();
+		int num_nighbours = 10;
+		std::vector<size_t> xrefs;
+		weld(clean_points, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
+
+		QVector<Vec3d> normals;
 		NormalExtrapolation::ExtrapolateNormals(clean_points, normals, num_nighbours);
 
 		// Send to reconstruction
@@ -1210,9 +1251,9 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename )
 		}
 
 		QString node_filename = node->id + "_" + filename;
-		//Synthesizer::writeXYZ(node_filename, points, normals);
 
-		PoissonRecon::makeFromCloud(finalP, finalN, node_filename);
+		Synthesizer::writeXYZ(node_filename, points, normals);
+		//PoissonRecon::makeFromCloud(finalP, finalN, node_filename);
 	}
 }
 

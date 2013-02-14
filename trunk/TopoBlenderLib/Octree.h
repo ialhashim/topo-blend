@@ -54,6 +54,7 @@ public:
 	void intersectionTest( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack = false ) const;
 	void intersectionTestOld( Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack = false ) const;
 	void my_intersectionTest(Surface_mesh::Face f, const Ray & ray, HitResult & res, bool allowBack = false);
+	void intersectionTestAccelerated( Surface_mesh::Face f, const Ray & ray, HitResult & res ) const;
 
 	Octree * parent;
 	Octree * root();

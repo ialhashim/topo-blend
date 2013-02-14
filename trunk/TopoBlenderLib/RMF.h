@@ -47,27 +47,31 @@ public:
 
 			U.push_back(Frame::fromST(sj, tj));
 		}
+
+		// RMF Visualization
+		for(int i = 0; i < (int)point.size(); i++)
+			U[i].center = point[i];
 	}
 
 	inline uint count() { return point.size(); }
 
 	class Frame{ 
 	public:
-		Vec3d r, s, t; 
+		Vec3d r, s, t;
+		Vec3d center; // optional
 
+		Frame(){ r = Vec3d(1,0,0); s = Vec3d(0,1,0); t = Vec3d(0,0,1); }
 		Frame(const Vec3d& R, const Vec3d& S, const Vec3d& T) { r = R; s = S; t = T; normalize(); }
 
 		static Frame fromTR(const Vec3d& T, const Vec3d& R) { return Frame(R, cross(T,R), T); }
 		static Frame fromRS(const Vec3d& R, const Vec3d& S) { return Frame(R, S, cross(R,S)); }
 		static Frame fromST(const Vec3d& S, const Vec3d& T) { return Frame(cross(S,T), S, T); }
-		static Frame fromT(const Vec3d& T) { Vec3d R = orthogonalVector(T).normalized(); return fromTR(T,R); }
+		static Frame fromT(const Vec3d& T) { Vec3d R = orthogonalVector(T.normalized()).normalized(); return fromTR(T,R); }
 
 		static Vec3d orthogonalVector(const Vec3d& n) {
-			if ((abs(n.y()) >= 0.9f * abs(n.x())) && 
-				abs(n.z()) >= 0.9f * abs(n.x())) return Vec3d(0.0f, -n.z(), n.y());
-			else if ( abs(n.x()) >= 0.9f * abs(n.y()) && 
-				abs(n.z()) >= 0.9f * abs(n.y()) ) return Vec3d(-n.z(), 0.0f, n.x());
-			else return Vec3d(-n.y(), n.x(), 0.0f);
+			if ((abs(n.y()) >= 0.9 * abs(n.x())) && abs(n.z()) >= 0.9 * abs(n.x())) return Vec3d(0.0, -n.z(), n.y());
+			else if ( abs(n.x()) >= 0.9 * abs(n.y()) && abs(n.z()) >= 0.9 * abs(n.y()) ) return Vec3d(-n.z(), 0.0, n.x());
+			else return Vec3d(-n.y(), n.x(), 0.0);
 		}
 
 		void normalize() { r.normalize(); s.normalize(); t.normalize(); } ;
