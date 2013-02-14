@@ -1036,6 +1036,7 @@ void topoblend::genSynData()
 			int sampling_method = Synthesizer::Random | Synthesizer::Features;
 			//int sampling_method = Synthesizer::Features;
 			//int sampling_method = Synthesizer::Uniform;
+			//int sampling_method = Synthesizer::Remeshing;
 
 			if(node->type() == Structure::CURVE)
 			{

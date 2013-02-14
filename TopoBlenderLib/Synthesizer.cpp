@@ -5,6 +5,7 @@
 
 #include "NanoKdTree.h"
 #include "SpherePackSampling.h"
+#include "IsotropicRemesher.h"
 
 #include "Synthesizer.h"
 #include "weld.h"
@@ -26,6 +27,9 @@ bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCo
 #define RANDOM_COUNT 1e5
 #define UNIFORM_RESOLUTION 0.01
 #define EDGE_RESOLUTION 0.05
+
+// Remeshing
+#define REMESH_EDGE_LENGTH 0.005
 
 int global_countt = 0;
 
@@ -262,6 +266,46 @@ QVector<ParameterCoord> Synthesizer::genUniformCoords(Node *node, double samplin
         return genPointCoordsCurve((Structure::Curve*)node, samplePoints);
     else
         return genPointCoordsSheet((Structure::Sheet*)node, samplePoints);
+}
+
+QVector<ParameterCoord> Synthesizer::genRemeshCoords( Structure::Node * node )
+{
+	SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
+	SurfaceMeshModel copyModel;
+
+	std::vector<Vec3d> samplePoints;
+
+	Vector3VertexProperty points = model->vertex_property<Vector3>(VPOINT);
+
+	foreach(Vertex v, model->vertices()) copyModel.add_vertex( points[v] );
+	foreach(Face f, model->faces()){
+		std::vector<Vertex> verts;
+		Surface_mesh::Vertex_around_face_circulator vit = model->vertices(f),vend=vit;
+		do{ verts.push_back(vit); } while(++vit != vend);
+		copyModel.add_face(verts);
+	}
+
+	IsotropicRemesher remesher(&copyModel);
+	remesher.doRemesh( REMESH_EDGE_LENGTH );
+	
+	Vector3VertexProperty new_points = copyModel.vertex_property<Vector3>(VPOINT);
+	foreach(Vertex v, copyModel.vertices()) samplePoints.push_back( new_points[v] );
+
+	// Maybe add face centers + edge centers ?
+	//foreach(Face f, copyModel.faces()){
+	//	Vec3d sum(0); int c = 0;
+	//	Surface_mesh::Vertex_around_face_circulator vit = copyModel.vertices(f),vend=vit;
+	//	do{ sum += new_points[vit]; c++; } while(++vit != vend);
+	//	samplePoints.push_back( sum / c );
+	//}
+
+	//foreach(Edge e, copyModel.edges()) 
+	//	samplePoints.push_back( (new_points[copyModel.vertex(e,0)]+new_points[copyModel.vertex(e,1)]) / 2.0 );
+
+	if(node->type() == Structure::CURVE)
+		return genPointCoordsCurve((Structure::Curve*)node, samplePoints);
+	else
+		return genPointCoordsSheet((Structure::Sheet*)node, samplePoints);
 }
 
 Vec3d Synthesizer::intersectionPoint( const Ray & ray, const Octree * useTree, int * faceIndex )
@@ -556,6 +600,7 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 		if (s & Synthesizer::Edges)		samples += genEdgeCoords(curve1) + genEdgeCoords(curve2);
 		if (s & Synthesizer::Random)	samples += genRandomCoords(curve1, RANDOM_COUNT) + genRandomCoords(curve2, RANDOM_COUNT);
 		if (s & Synthesizer::Uniform)	samples += genUniformCoords(curve1) + genUniformCoords(curve2);
+		if (s & Synthesizer::Remeshing)	samples += genRemeshCoords(curve1) + genRemeshCoords(curve2);
 
 		// Sort samples by 'u'
 		sort(samples.begin(), samples.end());
@@ -617,6 +662,7 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 		if (s & Synthesizer::Edges)		samples += genEdgeCoords(sheet1) + genEdgeCoords(sheet2);
 		if (s & Synthesizer::Random)	samples += genRandomCoords(sheet1, RANDOM_COUNT) + genRandomCoords(sheet2, RANDOM_COUNT);
 		if (s & Synthesizer::Uniform)	samples += genUniformCoords(sheet1) + genUniformCoords(sheet2);
+		if (s & Synthesizer::Remeshing)	samples += genRemeshCoords(sheet1) + genRemeshCoords(sheet2);
 	}
 
 	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());timer.restart();

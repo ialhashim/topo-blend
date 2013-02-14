@@ -34,6 +34,7 @@ struct Synthesizer{
 	static QVector<ParameterCoord> genEdgeCoords( Structure::Node * node, double sampling_resolution = -1 );
     static QVector<ParameterCoord> genRandomCoords( Structure::Node * node, int samples_count );
 	static QVector<ParameterCoord> genUniformCoords( Structure::Node * node, double sampling_resolution = -1);
+	static QVector<ParameterCoord> genRemeshCoords( Structure::Node * node );
 
 	// Compute the geometry on given samples in the parameter domain
 	static inline Vec3d intersectionPoint( const Ray & ray, const Octree * useTree, int * faceIndex = 0 );
@@ -50,7 +51,7 @@ struct Synthesizer{
 	static void reconstructGeometrySheet( Structure::Sheet * base_sheet, QVector<ParameterCoord> in_samples, QVector<double> &in_offsets, 
 											QVector<Vec2d> &in_normals, QVector<Vector3> &out_points, QVector<Vector3> &out_normals);
 	// Preparation
-	enum SamplingType{ Features = 1, Edges = 2, Random = 4, Uniform = 8, All = 16, AllNonUniform = 32 };
+	enum SamplingType{ Features = 1, Edges = 2, Random = 4, Uniform = 8, All = 16, AllNonUniform = 32, Remeshing = 64 };
 
 	static void prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2, int samplingType = Features | Random );
 	static void prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2, int samplingType = Features | Random );
