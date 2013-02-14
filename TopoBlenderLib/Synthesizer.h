@@ -4,6 +4,7 @@
 using namespace Structure;
 
 #include "Octree.h"
+#include "RMF.h"
 
 struct ParameterCoord{
 	double u, v;
@@ -59,6 +60,7 @@ struct Synthesizer{
 	static void blendGeometrySheets( Structure::Sheet * sheet1, Structure::Sheet * sheet2, double alpha, QVector<Vector3> &points, QVector<Vector3> &normals);
 
 	// Helper functions
+	static RMF consistentFrame( Structure::Curve * curve, Array1D_Vec4d & coords );
 	static void sortSamplesCurve( QVector<ParameterCoord> & samples, QVector<int> & oldIndices );
 	static inline void localSphericalToGlobal(Vector3 X, Vector3 Y, Vector3 Z, double theta, double psi, Vector3 &v);
 	static inline void globalToLocalSpherical(Vector3 X, Vector3 Y, Vector3 Z, double &theta, double &psi, Vector3 v);
