@@ -1033,7 +1033,7 @@ void topoblend::genSynData()
 			QString tnodeID = node->property["correspond"].toString();
 			Structure::Node * tgNode = scheduler->targetGraph->getNode(tnodeID);
 
-			int sampling_method s= Synthesizer::Random | Synthesizer::Features;
+			int sampling_method = Synthesizer::Random | Synthesizer::Features;
 			//int sampling_method = Synthesizer::Features;
 			//int sampling_method = Synthesizer::Uniform;
 			//int sampling_method = Synthesizer::Remeshing;
