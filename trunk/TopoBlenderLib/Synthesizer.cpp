@@ -6,6 +6,7 @@
 #include "NanoKdTree.h"
 #include "SpherePackSampling.h"
 #include "IsotropicRemesher.h"
+#include "SimilarSampling.h"
 
 #include "Synthesizer.h"
 #include "weld.h"
@@ -27,6 +28,7 @@ bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCo
 #define RANDOM_COUNT 1e5
 #define UNIFORM_RESOLUTION 0.01
 #define EDGE_RESOLUTION 0.05
+#define UNIFORM_TRI_SAMPLES 1e4
 
 // Remeshing
 #define REMESH_EDGE_LENGTH 0.005
@@ -301,6 +303,20 @@ QVector<ParameterCoord> Synthesizer::genRemeshCoords( Structure::Node * node )
 
 	//foreach(Edge e, copyModel.edges()) 
 	//	samplePoints.push_back( (new_points[copyModel.vertex(e,0)]+new_points[copyModel.vertex(e,1)]) / 2.0 );
+
+	if(node->type() == Structure::CURVE)
+		return genPointCoordsCurve((Structure::Curve*)node, samplePoints);
+	else
+		return genPointCoordsSheet((Structure::Sheet*)node, samplePoints);
+}
+
+QVector<ParameterCoord> Synthesizer::genUniformTrisCoords( Structure::Node * node )
+{
+	SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
+
+	// Sample mesh surface
+	QVector<Vec3d> sample_points = SimilarSampler::All( model, UNIFORM_TRI_SAMPLES );
+	std::vector<Vec3d> samplePoints = sample_points.toStdVector();
 
 	if(node->type() == Structure::CURVE)
 		return genPointCoordsCurve((Structure::Curve*)node, samplePoints);
@@ -601,6 +617,7 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 		if (s & Synthesizer::Random)	samples += genRandomCoords(curve1, RANDOM_COUNT) + genRandomCoords(curve2, RANDOM_COUNT);
 		if (s & Synthesizer::Uniform)	samples += genUniformCoords(curve1) + genUniformCoords(curve2);
 		if (s & Synthesizer::Remeshing)	samples += genRemeshCoords(curve1) + genRemeshCoords(curve2);
+		if (s & Synthesizer::TriUniform)samples += genUniformTrisCoords(curve1) + genUniformTrisCoords(curve2);
 
 		// Sort samples by 'u'
 		sort(samples.begin(), samples.end());
@@ -663,6 +680,7 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 		if (s & Synthesizer::Random)	samples += genRandomCoords(sheet1, RANDOM_COUNT) + genRandomCoords(sheet2, RANDOM_COUNT);
 		if (s & Synthesizer::Uniform)	samples += genUniformCoords(sheet1) + genUniformCoords(sheet2);
 		if (s & Synthesizer::Remeshing)	samples += genRemeshCoords(sheet1) + genRemeshCoords(sheet2);
+		if (s & Synthesizer::TriUniform)samples += genUniformTrisCoords(sheet1) + genUniformTrisCoords(sheet2);
 	}
 
 	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());timer.restart();
