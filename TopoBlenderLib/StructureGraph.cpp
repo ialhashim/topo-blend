@@ -17,6 +17,8 @@ using namespace Structure;
 
 #include "PointCloudRenderer.h"
 Q_DECLARE_METATYPE(PointCloudRenderer*);
+Q_DECLARE_METATYPE(Vec3d);
+Q_DECLARE_METATYPE(RMF);
 
 Graph::Graph()
 {
@@ -265,6 +267,29 @@ void Graph::draw( qglviewer::Camera* camera )
 
     foreach(Node * n, nodes)
     {
+		// Task visualization:
+		{
+			glDisable(GL_LIGHTING);
+			glPointSize(20);
+			glBegin(GL_POINTS);
+
+			if(n->property.contains("p1")) glColor3d(1,0,0.7);	glVector3(n->property["p1"].value<Vec3d>());
+			if(n->property.contains("p2")) (1,0,1);	glVector3(n->property["p2"].value<Vec3d>());
+			if(n->property.contains("q1")) glColor3d(1,0.5,0.7);	glVector3(n->property["q1"].value<Vec3d>());
+			if(n->property.contains("q2")) (1,0.5,1);	glVector3(n->property["q2"].value<Vec3d>());
+
+			glEnd();
+			glEnable(GL_LIGHTING);
+
+			if(n->property.contains("rmf"))
+			{
+				RMF rmf = n->property["rmf"].value<RMF>();
+				FrameSoup fs(0.05);
+				foreach(RMF::Frame f, rmf.U) fs.addFrame(f.r, f.s, f.t, f.center);
+				fs.draw();
+			}
+		}
+
 		if (n->property.contains("isReady") && !n->property["isReady"].toBool())
 			continue;
 

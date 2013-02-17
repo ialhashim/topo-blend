@@ -5,6 +5,8 @@
 
 Q_DECLARE_METATYPE(QVector<QString>);
 
+typedef std::vector< Array1D_Real > CurveEncoding;
+
 // red, orange, yellow, green, blue
 // pink, purpule, portage, lacoste, corn
 static QColor TaskColors[] = { QColor(255,97,121),  QColor(255,219,88), 
@@ -59,9 +61,11 @@ public:
 	void geometryMorph( double t );
 
 	// Helper functions
-	void deformCurve(int anchorPoint, int controlPoint, Vec3d newControlPos);
-	void weldMorphPath();
+	QVector< GraphDistance::PathPointPair > weldPath( QVector< GraphDistance::PathPointPair > oldPath );
 	bool isActive(double t);
+	Array1D_Vector3 positionalPath( QVector< GraphDistance::PathPointPair > & from_path, int smoothingIters = 0 );
+	CurveEncoding encodeCurve(Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z);
+	Array1D_Vector3 decodeCurve(Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z);
 
 	Structure::Node * node();
 	Structure::Node * targetNode();
@@ -73,9 +77,6 @@ public:
 
 	// Task properties
 	TaskType type;
-
-	int arapIterations;
-	int arapAdjSize;
 
 	Structure::Graph *active, *target;
 	QMap<QString, QVariant> property;

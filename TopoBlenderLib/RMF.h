@@ -4,6 +4,8 @@
 #include <vector>
 typedef unsigned int uint;
 
+#define ZERO_NORM 1e-10
+
 class RMF{
 public:
 	RMF(){}
@@ -21,8 +23,13 @@ public:
 		std::vector<Vec3d> tangent;
 
 		// Estimate tangents
-		for(uint i = 0; i < point.size() - 1; i++)
-			tangent.push_back((point[i+1] - point[i]).normalized());
+		for(uint i = 0; i < point.size() - 1; i++){
+			Vec3d t = point[i+1] - point[i];
+			if(i > 0 && t.norm() < ZERO_NORM) 
+				tangent.push_back(tangent.back());
+			else
+				tangent.push_back((t).normalized());
+		}
 		tangent.push_back(tangent.back());
 
 		// First frame
@@ -36,7 +43,7 @@ public:
 		{
 			Vec3d ri = U.back().r, ti = U.back().t, tj = tangent[i+1];
 
-			/*1 */ Vec3d v1 = point[i+1] - point[i];
+			/*1 */ Vec3d v1 = point[i+1] - point[i]; if(v1.norm() < ZERO_NORM){ U.push_back(U.back()); continue; }
 			/*2 */ double c1 = dot(v1,v1);
 			/*3 */ Vec3d rLi = ri - (2.0 / c1) * dot(v1, ri) * v1;
 			/*4 */ Vec3d tLi = ti - (2.0 / c1) * dot(v1, ti) * v1;
@@ -76,6 +83,10 @@ public:
 
 		void normalize() { r.normalize(); s.normalize(); t.normalize(); } ;
 	};
+
+	inline Frame frameAt(double t){
+		return U[ (qRanged(0.0, t, 1.0) * (U.size() - 1)) ];
+	}
 
 	std::vector<Vec3d> point;
 	std::vector<Frame> U;

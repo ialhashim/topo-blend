@@ -8,18 +8,17 @@ using namespace NURBS;
 
 #include "weld.h"
 
+#include "LineSegment.h"
+
 typedef std::vector< std::pair<double,double> > VectorPairDouble;
-Q_DECLARE_METATYPE(Vector3);
-Q_DECLARE_METATYPE(Vec4d);
-Q_DECLARE_METATYPE(VectorPairDouble);
+Q_DECLARE_METATYPE( Vector3 );
+Q_DECLARE_METATYPE( Vec4d );
+Q_DECLARE_METATYPE( VectorPairDouble );
 
 Q_DECLARE_METATYPE( GraphDistance::PathPointPair );
 Q_DECLARE_METATYPE( QVector< GraphDistance::PathPointPair > );
-
-#include "ARAPCurveDeformer.h"
-int globalArapIterations = 4;
-int globalArapSize = 0;
-Q_DECLARE_METATYPE(ARAPCurveDeformer*);
+Q_DECLARE_METATYPE( RMF );
+Q_DECLARE_METATYPE( CurveEncoding );
 
 int globalCount = 0;
 
@@ -37,9 +36,6 @@ Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, Task
 	this->currentTime = start;
 	this->isReady = false;
 	this->isDone = false;
-
-	this->arapIterations = globalArapIterations;
-	this->arapAdjSize = globalArapSize;
 
 	// Visual properties
 	width = length;
@@ -294,38 +290,10 @@ Structure::Sheet * Task::targetSheet()
 	return (Structure::Sheet *)n;
 }
 
-void Task::deformCurve( int anchorPoint, int controlPoint, Vec3d newControlPos )
-{
-	Structure::Curve * curve = (Structure::Curve*)node();
-
-	ARAPCurveDeformer * deformer = NULL;
-
-	if(!property.contains("deformer"))
-		property["deformer"].setValue( deformer = new ARAPCurveDeformer( curve->curve.mCtrlPoint ) );
-	else
-		deformer = property["deformer"].value<ARAPCurveDeformer*>();
-
-	// From current state
-	deformer->points = curve->curve.mCtrlPoint;
-
-	deformer->ClearAll();
-	deformer->setControl(controlPoint);
-	deformer->SetAnchor(anchorPoint);
-	deformer->MakeReady();
-
-	// Update and deform
-	deformer->UpdateControl(controlPoint, newControlPos);
-	deformer->Deform( arapIterations );
-
-	// Update curve geometry
-	curve->setControlPoints( deformer->points );
-}
-
-void Task::weldMorphPath()
+QVector< GraphDistance::PathPointPair > Task::weldPath( QVector< GraphDistance::PathPointPair > oldPath )
 {
 	QVector< GraphDistance::PathPointPair > cleanPath;
-	QVector< GraphDistance::PathPointPair > oldPath = property["path"].value< QVector< GraphDistance::PathPointPair > >();
-	
+
 	// Find spatial position
 	std::vector<Vec3d> spatialPath;
 	QSet<int> allPath;
@@ -346,7 +314,8 @@ void Task::weldMorphPath()
 	}
 
 	foreach(int i, goodPath) cleanPath.push_back( oldPath[i] );
-	property["path"].setValue( cleanPath );
+	
+	return cleanPath;
 }
 
 bool Task::isActive( double t )
@@ -394,12 +363,6 @@ void Task::copyTargetEdge( Structure::Link *tlink )
 // PREPARE
 void Task::prepare()
 {
-	// Experiment
-	if(node()->type() == Structure::CURVE)
-	{
-		arapAdjSize = ((Structure::Curve*)node())->numCtrlPnts();
-	}
-
 	this->start = this->x();
 	this->currentTime = start;
 	this->isDone = false;
@@ -440,7 +403,7 @@ void Task::prepare()
 		case SPLIT:
 		case MERGE:
 		case MORPH:
-			prepareMorphSheet();
+			//prepareMorphSheet();
 			break;
 		}
 	}
@@ -521,15 +484,17 @@ void Task::prepareShrinkCurve()
 		property["pathA"].setValue(pathA);
 		property["pathB"].setValue(pathB);
 
-		// ARAP curve deformation
-		Structure::Curve* structure_curve = ((Structure::Curve*)n);
+		// Encode curve
+		RMF rmf(positionalPath(pathA));
+		property["rmf"].setValue( rmf );
+		Vector3 X = rmf.U.front().r, Y = rmf.U.front().s, Z = rmf.U.front().t;
 
-		int cpidxA = structure_curve->controlPointIndexFromCoord(linkA->getCoord(n->id).front());
-		int cpidxB = structure_curve->controlPointIndexFromCoord(linkB->getCoord(n->id).front());
-		property["cpidxA"].setValue(cpidxA);
-		property["cpidxB"].setValue(cpidxB);
+		// Curve encoded, to decode you need two points A,B and a frame XYZ
+		property["cpCoords"].setValue( encodeCurve(pointA, pointB, X,Y,Z) );
 
-		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint ) );
+		// DEBUG frame
+		//node()->property["p1"].setValue( pointA );
+		//node()->property["rmf"].setValue( rmf );
 	}
 }
 
@@ -599,6 +564,7 @@ void Task::prepareGrowCurve()
 		gd.computeDistances( pointA );
 		QVector< GraphDistance::PathPointPair > path;
 		gd.smoothPathCoordTo(pointB, path);
+		path = this->weldPath( path );
 
 		// Separate the path into two for linkA and linkB
 		int N = path.size(), hN = N / 2;
@@ -611,30 +577,85 @@ void Task::prepareGrowCurve()
 			pathB.push_back(path[hN+1+i]);
 		}
 
+		property["pathA"].setValue( pathA );
+		property["pathB"].setValue( pathB );
 
-		property["pathA"].setValue(pathA);
-		property["pathB"].setValue(pathB);
+		// Encode curve
+		RMF rmf( positionalPath(pathA, 2) );
+		property["rmf"].setValue( rmf );
+		Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
+		property["cpCoords"].setValue( encodeCurve(pointA, pointB, X,Y,Z) );
+
+		// DEBUG frames
+		node()->property["rmf"].setValue( rmf );
 
 		// Use the center of the path as the start point
 		GraphDistance::PathPointPair startPointCoord = path[path.size() / 2];
-		Vec3d startPoint = startPointCoord.position(active);
+		Vec3d startPoint = startPointCoord.position( active );
 
-		// ARAP curve deformation
-		int cpidxA = t_structure_curve->controlPointIndexFromCoord( tlinkA->getCoord(tn->id).front() );
-		int cpidxB = t_structure_curve->controlPointIndexFromCoord( tlinkB->getCoord(tn->id).front() );
-		property["cpidxA"].setValue(cpidxA);
-		property["cpidxB"].setValue(cpidxB);
-
-		std::vector<Vec3d> originalPoints = structure_curve->curve.mCtrlPoint;
-		ARAPCurveDeformer * deformer = new ARAPCurveDeformer( originalPoints );
-		property["deformer"].setValue( deformer );
-
-		// Initial position of n
+		// Initial position of curve node
 		structure_curve->foldTo(Vec4d(0.5), true);
 		structure_curve->curve.translate(startPoint - structure_curve->position(Vec4d(0.5)));	
-
-		deformer->points = structure_curve->curve.mCtrlPoint;
 	}
+}
+
+/* Curve encoding, to decode you need two points A,B and a frame XYZ */
+CurveEncoding Task::encodeCurve(Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z)
+{
+	CurveEncoding cpCoords;
+
+	Line segment(start, end);
+	double baseLineLen = segment.length;
+	Array1D_Vector3 controlPoints = node()->controlPoints();
+
+	for(int i = 0; i < (int)controlPoints.size(); i++)
+	{
+		double t;
+		Vector3 p = controlPoints[i], proj;
+		segment.ClosestPoint(p, t, proj);
+
+		Vector3 dir = p - proj;
+
+		// Parameters: t, offset, theta, psi
+		Array1D_Real params(4,0);
+		params[0] = 1 - t;
+		if(dir.norm() > 0){
+			params[1] = dir.norm() / baseLineLen;
+			dir = dir.normalized();
+		}
+		globalToLocalSpherical(X,Y,Z, params[2], params[3], dir);
+
+		cpCoords.push_back(params);
+	}
+
+	return cpCoords;
+}
+
+Array1D_Vector3 Task::decodeCurve( Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
+{
+	Array1D_Vector3 cpnts(node()->numCtrlPnts(), Vector3(0));
+
+	Line segment(start, end);
+	double baseLineLen = segment.length;
+
+	CurveEncoding cpCoords = property["cpCoords"].value<CurveEncoding>();
+	RMF rmf = property["rmf"].value<RMF>();
+
+	for(int i = 0; i < (int)cpnts.size(); i++)
+	{
+		double t = cpCoords[i][0];
+		double offset = cpCoords[i][1];
+		double theta = cpCoords[i][2];
+		double psi = cpCoords[i][3];
+
+		Vector3 dir(0);
+		localSphericalToGlobal(X,Y,Z,theta,psi,dir);
+		dir *= (offset * baseLineLen);
+
+		cpnts[i] = segment.pointAt(t) + dir;
+	}
+
+	return cpnts;
 }
 
 void Task::prepareShrinkCurveConstraint()
@@ -738,6 +759,11 @@ void Task::prepareMorphCurve()
 		Vec3d startB = linkB->position(n->id);
 		Vec3d endB = futureLinkPosition(linkB);
 
+		if(node()->id.contains("BackLegRight")){
+			printf("");
+			
+		}
+
 		// Geodesic distances on the active graph excluding the running tasks
 		QVector< GraphDistance::PathPointPair > pathA, pathB;	
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
@@ -749,16 +775,23 @@ void Task::prepareMorphCurve()
 		property["pathA"].setValue(pathA);
 		property["pathB"].setValue(pathB);
 
+		QVector< GraphDistance::PathPointPair > longestPath = pathA;
+		if(pathB.size() > pathA.size()) longestPath = pathB;
+
+		if(longestPath.size() > 1)
+		{
+			// Encode curve
+			RMF rmf( positionalPath(longestPath, 2) );
+			property["rmf"].setValue( rmf );
+			Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
+			property["cpCoords"].setValue( encodeCurve(startA, startB, X,Y,Z) );
+
+			// DEBUG frames
+			node()->property["rmf"].setValue( rmf );
+		}
+
 		// To-do
 		// Swap the correspondence of two links
-
-		// ARAP curve deformation
-		int cpidxA = structure_curve->controlPointIndexFromCoord(linkA->getCoord(n->id).front());
-		int cpidxB = structure_curve->controlPointIndexFromCoord(linkB->getCoord(n->id).front());
-		property["cpidxA"].setValue(cpidxA);
-		property["cpidxB"].setValue(cpidxB);
-
-		property["deformer"].setValue( new ARAPCurveDeformer( structure_curve->curve.mCtrlPoint ) );
 	}
 }
 
@@ -879,7 +912,7 @@ void Task::execute( double t )
 			executeGrowShrinkSheet(t);
 			break;
 		case MORPH:
-			executeMorphSheet(t);
+			//executeMorphSheet(t);
 			break;
 		}
 	}
@@ -980,17 +1013,7 @@ void Task::executeCurveConstrained( double t )
 		int idx_control = other_curve->controlPointIndexFromCoord( edge->getCoord(other_curve->id).front() );
 		int idx_anchor = (idx_control > nCtrl / 2) ? 0 : nCtrl - 1;
 
-		ARAPCurveDeformer * deformer = new ARAPCurveDeformer( other_curve->controlPoints() );
-
-		deformer->ClearAll();
-		deformer->setControl( idx_control );
-		deformer->SetAnchor( idx_anchor );
-		deformer->MakeReady();
-
 		Vec3d newPosCtrl = edge->position(n->id);
-		deformer->UpdateControl(idx_control, newPosCtrl);
-		deformer->Deform( arapIterations );
-		other_curve->setControlPoints( deformer->points );
 	}
 }
 
@@ -1050,7 +1073,7 @@ void Task::executeMorphCurve( double t )
 		Structure::Curve* current_curve = ((Structure::Curve*)n);
 		Structure::Curve* target_curve = targetCurve();
 
-		weldMorphPath();
+		//weldMorphPath();
 		QVector< GraphDistance::PathPointPair > path = property["path"].value< QVector< GraphDistance::PathPointPair > >();
 
 		int cpIDX = property["cpIDX"].toInt();
@@ -1078,16 +1101,12 @@ void Task::executeMorphCurve( double t )
 			current_curve->curve.GetNumCtrlPoints() - 1 : 0;
 
 		Vec3d freeEndPos = AlphaBlend(pow(t,2), current_curve->controlPoint(freeEnd), target_curve->controlPoint(freeEnd));
-		deformCurve(cpIDX, freeEnd, freeEndPos);
 	}
 
 	// 2) TWO edges
 	if (edges.size() == 2 || type == Task::GROW )
 	{
-		int cpidxA = property["cpidxA"].toInt();
-		int cpidxB = property["cpidxB"].toInt();
-
-		ARAPCurveDeformer * deformer = property["deformer"].value<ARAPCurveDeformer*>();
+		if(!property.contains("pathA")) return;
 
 		QVector< GraphDistance::PathPointPair > pathA = property["pathA"].value< QVector< GraphDistance::PathPointPair > >();
 		QVector< GraphDistance::PathPointPair > pathB = property["pathB"].value< QVector< GraphDistance::PathPointPair > >();
@@ -1095,40 +1114,21 @@ void Task::executeMorphCurve( double t )
 		int idxA = t * (pathA.size() - 1);
 		int idxB = t * (pathB.size() - 1);
 
-		// Move point A to next step
-		if(idxA > 0 && pathA.size() > 2)
+		// Move to next step
+		Vector3 pointA = pathA[idxA].position(active);
+		Vector3 pointB = pathB[idxB].position(active);
+
+		if(property.contains("rmf"))
 		{
-			deformer->ClearAll();
-			deformer->setControl(cpidxA);
-			deformer->SetAnchor(cpidxB);
-			deformer->MakeReady();
-
-			Vec3d newPosA = pathA[idxA].position(active);
-			deformer->UpdateControl(cpidxA, newPosA);
-			deformer->Deform( arapIterations );
-			structure_curve->setControlPoints( deformer->points );
-		}
-
-		// Move point B to next step
-		if(idxB > 0 && pathB.size() > 2)
-		{
-			deformer->ClearAll();
-			deformer->setControl(cpidxB);
-			deformer->SetAnchor(cpidxA);
-			deformer->MakeReady();
-
-			Vec3d newPosB = pathB[idxB].position(active);
-			deformer->UpdateControl(cpidxB, newPosB);
-			deformer->Deform( arapIterations );
-			structure_curve->setControlPoints( deformer->points );
+			RMF rmf = property["rmf"].value<RMF>();
+			Vector3 X = rmf.frameAt(t).r, Y = rmf.frameAt(t).s, Z = rmf.frameAt(t).t;
+			structure_curve->setControlPoints( decodeCurve(pointA, pointB, X,Y,Z) );
 		}
 	}
-
 
 	// When this task is done
 	if (t == 1)
 	{
-
 		// There are two edges in the active should be killed
 		if (type == Task::SHRINK)
 		{
@@ -1161,7 +1161,6 @@ void Task::executeMorphCurve( double t )
 				link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
 			}
 		}
-
 	}
 }
 
@@ -1189,5 +1188,28 @@ void Task::executeMorphSheet( double t )
 		property["isConstraint"] = true;
 	else
 		property["isConstraint"] = false;
+}
+
+Array1D_Vector3 Task::positionalPath( QVector< GraphDistance::PathPointPair > & from_path, int smoothingIters )
+{
+	Array1D_Vector3 pnts;
+
+	foreach(GraphDistance::PathPointPair p, from_path) 
+		pnts.push_back(p.position(active));
+
+	// Laplacian smoothing - fixed ends
+	for(int itr = 0; itr < smoothingIters; itr++)
+	{
+		Array1D_Vector3 newPos(pnts.size(), Vector3(0));
+		newPos[0] = pnts[0];
+
+		for(int i = 1; i < (int)pnts.size() - 1; i++)
+			newPos[i] = (pnts[i-1] + pnts[i+1]) * 0.5;
+
+		newPos.back() = pnts.back();
+		pnts = newPos;
+	}
+
+	return pnts;
 }
 
