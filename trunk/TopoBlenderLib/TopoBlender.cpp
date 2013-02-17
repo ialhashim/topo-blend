@@ -122,13 +122,21 @@ QVector<QString> TopoBlender::cloneGraphNode( Structure::Graph *g, QString nodeI
 
 			// Link other to one of the cloned node
 			QString clonedID = cloned_nodes[currCloned++]->id;
-			g->addEdge(otherID, clonedID);
+			Structure::Node * cnode = g->getNode(clonedID);
+
+			LinkCoords c1 = link->getCoord(other->id);
+			LinkCoords c2 = link->getCoordOther(other->id);
+			g->addEdge(other, cnode, c1, c2, g->linkName(other,cnode));
 		}
 		else
 		{
 			// Link other to all cloned nodes
 			foreach (Structure::Node* cnode, cloned_nodes)
-				g->addEdge(other->id, cnode->id);
+			{
+				LinkCoords c1 = link->getCoord(other->id);
+				LinkCoords c2 = link->getCoordOther(other->id);
+				g->addEdge(other, cnode, c1, c2, g->linkName(other,cnode));
+			}
 		}
 
 		// Remove this link

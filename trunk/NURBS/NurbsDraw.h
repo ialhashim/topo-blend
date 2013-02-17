@@ -46,8 +46,8 @@ public:
         glDisable(GL_LIGHTING);
         glEnable(GL_BLEND);
         glColor4d(curve_color.redF(),curve_color.greenF(),curve_color.blueF(),curve_color.alphaF());
-        glLineWidth (4.0f);
-
+        
+		glLineWidth (4.0f);
         glBegin(GL_LINE_STRIP);
         int nSteps = 60;
         for(int i = 0; i <= nSteps; i++)
@@ -59,11 +59,17 @@ public:
         }
         glEnd();
 
-		// Draw start indicator
-		glColor3d(1,0,0);
-		glBegin(GL_LINES);
-		glVector3(nc->GetPosition( 0 )); glVector3(nc->GetPosition( 0.01 ));
+		// Draw start indicator (thick portion)
+		glLineWidth (8.0f);
+		glBegin(GL_LINE_STRIP);
+		for(int i = 0; i <= nSteps; i++){
+			double u = double(i) / nSteps;
+			if(u > 0.2) break;
+			Vec3d p( nc->GetPosition( u ) );
+			glVertex3d(p.x(), p.y(), p.z());
+		}
 		glEnd();
+
 
         glEnable(GL_LIGHTING);
     }

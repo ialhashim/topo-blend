@@ -4,9 +4,6 @@
 
 #include "SurfaceMeshHelper.h"
 
-extern int globalArapIterations;
-extern int globalArapSize;
-
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <Eigen/CholmodSupport>

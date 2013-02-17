@@ -25,7 +25,7 @@ bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCo
 #define OCTREE_NODE_SIZE 40
 
 // Sampling
-#define RANDOM_COUNT 1e5
+#define RANDOM_COUNT 1e4
 #define UNIFORM_RESOLUTION 0.01
 #define EDGE_RESOLUTION 0.05
 #define UNIFORM_TRI_SAMPLES 1e4
@@ -67,26 +67,6 @@ RMF Synthesizer::consistentFrame( Structure::Curve * curve, Array1D_Vec4d & coor
 	RMF rmf(samplePoints);
 	rmf.compute();
 	return rmf;
-}
-
-void Synthesizer::localSphericalToGlobal( Vector3 X, Vector3 Y, Vector3 Z, double theta, double psi, Vector3 &v )
-{
-	Q_UNUSED(X);
-	v = rotatedVec(Z, theta, Y);
-	v = rotatedVec(v, psi, Z);
-}
-
-void Synthesizer::globalToLocalSpherical( Vector3 X, Vector3 Y, Vector3 Z, double &theta, double &psi, Vector3 v )
-{
-	// Theta: angle from Z [0, PI]
-	// Psi: angle from X on XY plane [0, 2*PI)
-	double dotZ = dot(v, Z);
-	theta = acos( qRanged(-1.0, dotZ, 1.0) );
-
-	double dotX = dot(v, X);
-	double dotY = dot(v, Y);
-	Vec3d proj_v = (dotX * X + dotY * Y).normalized();
-	psi = signedAngle(X, proj_v, Z);
 }
 
 QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * curve, const std::vector<Vec3d> & points )

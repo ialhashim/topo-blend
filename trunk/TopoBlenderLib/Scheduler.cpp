@@ -197,7 +197,7 @@ void Scheduler::executeAll()
 		}
 
 		// Relink
-		relink(globalTime * totalTime);
+		//relink(globalTime * totalTime);
 
 		// Output current active graph:
 		allGraphs.push_back( new Structure::Graph( *(tasks.front()->active) ) );
@@ -423,7 +423,6 @@ void Scheduler::moveNodeByLink(Structure::Node* node, Structure::Link *link)
 void Scheduler::deformCurveByLink( Structure::Node* node, Structure::Link *link )
 {
 	Structure::Curve * curve = (Structure::Curve *)node;
-	ARAPCurveDeformer * deformer = new ARAPCurveDeformer( curve->curve.mCtrlPoint, globalArapSize );
 
 	int cpidxAnchor = curve->controlPointIndexFromCoord( link->getCoord(node->id).front() );
 
@@ -432,15 +431,6 @@ void Scheduler::deformCurveByLink( Structure::Node* node, Structure::Link *link 
 		curve->curve.GetNumCtrlPoints() - 1 : 0;
 
 	Vec3d newPosition = link->positionOther(node->id);
-
-	deformer->ClearAll();
-	deformer->setControl(cpidxControl);
-	deformer->SetAnchor(cpidxAnchor);
-	deformer->MakeReady();
-
-	deformer->UpdateControl(cpidxControl, newPosition);
-	deformer->Deform( globalArapIterations );
-	curve->setControlPoints( deformer->points );
 }
 
 void Scheduler::tranformSheetByTwoLinks( Structure::Node* node, Structure::Link *linkA, Structure::Link *linkB )

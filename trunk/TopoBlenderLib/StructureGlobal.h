@@ -51,6 +51,28 @@ static inline Vec3d rotatedVec(const Vec3d & v, double theta, const Vec3d & axis
 	return (v * cos(theta) + cross(axis, v) * sin(theta) + axis * dot(axis, v) * (1 - cos(theta)));
 }
 
+/// Spherical Coordinates:
+/* From Spherical-coordinates to Vector 'v' */
+static inline void localSphericalToGlobal( Vector3 X, Vector3 Y, Vector3 Z, double theta, double psi, Vector3 &v )
+{
+	Q_UNUSED(X);
+	v = rotatedVec(Z, theta, Y);
+	v = rotatedVec(v, psi, Z);
+}
+
+/* Encode vector 'v' to theta-psi in spherical coordinates of XYZ  */
+static inline void globalToLocalSpherical( Vector3 X, Vector3 Y, Vector3 Z, double &theta, double &psi, Vector3 v )
+{
+	// Theta: angle from Z [0, PI]
+	// Psi: angle from X on XY plane [0, 2*PI)
+	double dotZ = dot(v, Z);
+	theta = acos( qRanged(-1.0, dotZ, 1.0) );
+
+	double dotX = dot(v, X);
+	double dotY = dot(v, Y);
+	Vec3d proj_v = (dotX * X + dotY * Y).normalized();
+	psi = signedAngle(X, proj_v, Z);
+}
 
 #define	POINT_ID_RANGE 1000
 #define NODE_ID_RANGE	100
