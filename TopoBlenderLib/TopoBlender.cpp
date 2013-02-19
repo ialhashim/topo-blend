@@ -217,6 +217,8 @@ void TopoBlender::correspondSuperNodes()
 		Structure::Node * sn = super_sg->getNode(snode);
 		Structure::Node * tn = super_tg->getNode(tnode);
 
+		if(!tn) continue;
+
 		sn->property["correspond"] = tnode;
 		tn->property["correspond"] = snode;
 	}
@@ -245,6 +247,8 @@ void TopoBlender::correspondSuperEdges()
 
 		QString tnodeID = superNodeCorr[snodeID];
 		Structure::Node *tnode = super_tg->getNode(tnodeID);
+		if(!tnode) continue;
+
 		if (isExtraNode(tnode))
 		{
 			foreach (Structure::Link *tl, super_tg->getEdges(tnodeID))
