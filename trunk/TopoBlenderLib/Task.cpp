@@ -483,6 +483,10 @@ void Task::prepareShrinkCurve()
 			pathB.push_back(path[i]);
 		}
 
+		// Smooth transition from start point
+		pathA = smoothStart(linkA->getCoord(n->id).front(), pathA);
+		pathB = smoothStart(linkB->getCoord(n->id).front(), pathB);
+
 		property["pathA"].setValue(pathA);
 		property["pathB"].setValue(pathB);
 
@@ -729,17 +733,23 @@ void Task::prepareMorphCurve()
 	if(edges.size() == 1)
 	{
 		Structure::Link * link = edges.front();
-		Vec3d startPoint = link->position(node()->id);
+		Vec3d startPoint = link->position(n->id);
+		Vec3d endPoint = link->positionOther(n->id);
 
 		// Compute path
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
 		GraphDistance gd(active, exclude);
-		gd.computeDistances( link->positionOther( node()->id ), DIST_RESOLUTION );
+		gd.computeDistances( endPoint, DIST_RESOLUTION );
 		QVector< GraphDistance::PathPointPair > path;
 		gd.smoothPathCoordTo(startPoint, path);
 
-		property["path"].setValue( path );
-		property["cpIDX"] = structure_curve->controlPointIndexFromCoord( link->getCoord(node()->id).front() );
+		path = smoothStart( link->getCoord(n->id).front(), path );
+		
+		if(path.size())
+		{
+			path = this->weldPath( path );
+			property["path"].setValue( path );
+		}
 	}
 
 	// 2) TWO edges
@@ -761,6 +771,14 @@ void Task::prepareMorphCurve()
 
 		gdA.computeDistances( endA, DIST_RESOLUTION );	gdA.smoothPathCoordTo( startA, pathA );
 		gdB.computeDistances( endB, DIST_RESOLUTION );	gdB.smoothPathCoordTo( startB, pathB );
+
+		// Smooth transition from start point
+		pathA = smoothStart(linkA->getCoord(n->id).front(), pathA);
+		pathB = smoothStart(linkB->getCoord(n->id).front(), pathB);
+
+		// Remove redundancy along paths
+		pathA = this->weldPath( pathA );
+		pathB = this->weldPath( pathB );
 
 		property["pathA"].setValue(pathA);
 		property["pathB"].setValue(pathB);
@@ -1159,34 +1177,8 @@ void Task::executeMorphCurve( double t )
 		Structure::Curve* current_curve = ((Structure::Curve*)n);
 		Structure::Curve* target_curve = targetCurve();
 
-		//weldMorphPath();
 		QVector< GraphDistance::PathPointPair > path = property["path"].value< QVector< GraphDistance::PathPointPair > >();
 
-		int cpIDX = property["cpIDX"].toInt();
-
-		if(path.size() > 0) 
-		{
-			int current = t * (path.size() - 1);
-			Vec3d newPos = path[current].position(active);
-
-			// Move end with a link
-			current_curve->curve.translateTo( newPos, cpIDX );
-
-			QString tbaseNode = edge->otherNode(current_curve->id)->property["correspond"].toString();
-			QString tnodeID = current_curve->property["correspond"].toString();
-
-			Structure::Link * tbaseNode_tnode = target->getEdge(tbaseNode, tnodeID);
-
-			int cpIDX_target = target_curve->controlPointIndexFromCoord(tbaseNode_tnode->getCoord(tnodeID).front());
-
-			target_curve->curve.translateTo( newPos, cpIDX_target); // moves along for the ride..
-		}
-
-		// Move free end (linear interpolation)
-		int freeEnd = (cpIDX < current_curve->curve.GetNumCtrlPoints() * 0.5) ? 
-			current_curve->curve.GetNumCtrlPoints() - 1 : 0;
-
-		Vec3d freeEndPos = AlphaBlend(pow(t,2), current_curve->controlPoint(freeEnd), target_curve->controlPoint(freeEnd));
 	}
 
 	// 2) TWO edges
@@ -1300,4 +1292,32 @@ Array1D_Vector3 Task::positionalPath( QVector< GraphDistance::PathPointPair > & 
 		pnts.push_back(p.position(active));
 
 	return smoothPolyline(pnts, smoothingIters);
+}
+
+QVector< GraphDistance::PathPointPair > Task::smoothStart( Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
+{
+	if(!oldPath.size()) return oldPath;
+
+	QVector< GraphDistance::PathPointPair > prefix_path;
+
+	PathPoint a = PathPoint(node()->id, startOnNode), b = oldPath.front().a;
+
+	prefix_path.push_back( GraphDistance::PathPointPair(a) );
+
+	Vector3 start = active->position(a.first, a.second);
+	Vector3 end = active->position(b.first, b.second);
+	double dist = (start - end).norm();
+
+	// Add virtual path points if needed
+	if(dist > DIST_RESOLUTION)
+	{
+		int steps = dist / DIST_RESOLUTION;
+		for(int i = 1; i < steps; i++)
+		{
+			double alpha = double(i) / steps;
+			prefix_path.push_back( GraphDistance::PathPointPair( a, b, alpha ) );
+		}
+	}
+
+	return prefix_path + oldPath;
 }

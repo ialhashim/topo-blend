@@ -320,7 +320,7 @@ void Curve::deformTo( const Vec4d & handle, const Vector3 & to )
 	// Find minimum rotation
 	Vector3 dirFrom = (p - otherEnd).normalized();
 	Vector3 dirTo = (to - otherEnd).normalized();
-	Eigen::Quaterniond rotation = Eigen::Quaterniond::FromTwoVectors(V2E(dirFrom), V2E(dirTo));
+	Eigen::Quaterniond rotation = Eigen::Quaterniond::FromTwoVectors(V2E(dirFrom), V2E(dirTo)).normalized();
 
 	Array1D_Vector3 ctrlPnts = controlPoints();
 

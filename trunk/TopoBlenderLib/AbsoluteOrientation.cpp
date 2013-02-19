@@ -7,7 +7,7 @@ void AbsoluteOrientation::compute( std::vector<Vec3d> &left, std::vector<Vec3d> 
 	Eigen::MatrixXd muLmuR = Eigen::MatrixXd::Zero(3,3), M = Eigen::MatrixXd::Zero(3,3), 
 		curMat = Eigen::MatrixXd::Zero(3,3), N = Eigen::MatrixXd::Zero(4,4);
 
-	Vec3d meanFirst, meanSecond; //assume points set to zero by constructor
+	Vec3d meanFirst(0), meanSecond(0); //assume points set to zero by constructor
 
 	//compute the mean of both point sets
 	for (i=0; i<pairNum; i++) {
