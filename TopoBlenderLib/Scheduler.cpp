@@ -128,6 +128,9 @@ void Scheduler::order()
 		QList<Task*> curTasks = tasksByType.values(Task::TaskType(i));
 		if(!curTasks.size()) continue;
 
+		// Sort tasks by priority
+		curTasks = sortTasksByPriority( curTasks );
+
 		int futureStart = curStart;
 
 		if(i == Task::MORPH)
@@ -187,13 +190,18 @@ void Scheduler::executeAll()
 		{
 			Task * task = allTasks[i];
 			double localTime = task->localT( globalTime * totalTime );
+			task->node()->property["t"] = localTime;
 
 			QVector<QString> rtasks = activeTasks(globalTime * totalTime);
-			activeGraph->property["running_tasks"].setValue(rtasks);
+			activeGraph->property["running_tasks"].setValue( rtasks );
+
+			if(localTime < 0) continue;
+
+			prepare_relink( task );
 
 			task->execute( localTime );
 
-			task->node()->property["t"] = localTime;
+			relink( task );
 		}
 
 		// Relink
@@ -297,10 +305,53 @@ QVector<QString> Scheduler::activeTasks( double globalTime )
 	return aTs;
 }
 
+void Scheduler::prepare_relink( Task * task )
+{
+	Structure::Node * n = task->node();
+	Structure::Node * tn = task->targetNode();
+	QVector<Structure::Link*> edges = activeGraph->getEdges(n->id);
+	QVector<Structure::Link*> tedges = targetGraph->getEdges(tn->id);
+
+	LinksDelta deltas;
+
+	foreach(Structure::Link* link, edges)
+	{
+		Structure::Node * other = link->otherNode(n->id);
+		Task * otherTask = getTaskFromNodeID(other->id);
+
+		if( !otherTask->isDone )
+			deltas[ link ] = link->positionOther(n->id) - link->position(n->id);
+	}
+
+	task->property["linkDeltas"].setValue( deltas );
+}
+
+void Scheduler::relink( Task * task )
+{
+	LinksDelta deltas = task->property["linkDeltas"].value<LinksDelta>();
+	if( !deltas.size() ) return;
+
+	if(task->type != Task::MORPH) return;
+
+	Structure::Node * n = task->node();
+
+	foreach(Structure::Link * link, deltas.keys())
+	{
+		Vec4d handle = link->getCoordOther(n->id).front();
+
+		Vector3 delta = deltas[link];
+		Vector3 newPos = link->position(n->id) + delta;
+
+		link->otherNode(n->id)->deformTo( handle, newPos );
+	}
+}
+
 void Scheduler::relink( double t )
 {
 	QVector<QString> currTasks = activeTasks(t);
-	foreach(QString curr_nid, currTasks)
+
+	// Past code
+	/*foreach(QString curr_nid, currTasks)
 	{
 		Task *task = getTaskFromNodeID(curr_nid);
 
@@ -311,7 +362,7 @@ void Scheduler::relink( double t )
 			else
 				relinkFreeNode(curr_nid);
 		}
-	}
+	}*/
 }
 
 void Scheduler::relinkConstraintNode(QString cnID)
@@ -445,5 +496,33 @@ void Scheduler::tranformSheetByTwoLinks( Structure::Node* node, Structure::Link 
 	Vec3d newMiddle = (newPositionA + newPositionB) / 2;
 
 	node->moveBy(newMiddle - oldMiddle);
+}
+
+QList<Task*> Scheduler::sortTasksByPriority( QList<Task*> currentTasks )
+{
+	QList<Task*> sorted;
+
+	// Sort by type: Sheets before curves
+	QMap<Task*,int> curveTasks, sheetTasks;
+	foreach(Task* t, currentTasks)
+	{
+		if(t->node()->type() == Structure::CURVE) 
+			curveTasks[t] = activeGraph->valence(t->node());
+		if(t->node()->type() == Structure::SHEET) 
+			sheetTasks[t] = activeGraph->valence(t->node());
+	}
+
+	// Sort by valence: Highly connected before individuals
+	QList< QPair<int, Task*> > sortedCurve = sortQMapByValue(curveTasks);
+	QList< QPair<int, Task*> > sortedSheet = sortQMapByValue(sheetTasks);
+
+	// Combine: Curve[low] --> Curve[high] + Sheet[low] --> Sheet[heigh]
+	for (int i = 0; i < (int)sortedCurve.size(); ++i) sorted.push_back( sortedCurve.at(i).second );
+	for (int i = 0; i < (int)sortedSheet.size(); ++i) sorted.push_back( sortedSheet.at(i).second );
+
+	// Reverse
+	for(int k = 0; k < (sorted.size()/2); k++) sorted.swap(k,sorted.size()-(1+k));
+
+	return sorted;
 }
 

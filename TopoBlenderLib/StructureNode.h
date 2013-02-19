@@ -30,6 +30,7 @@ struct Node
 	virtual void scale( Scalar scaleFactor ) = 0;
 	virtual void rotate( double angle, Vector3 axis ) = 0;
 	virtual void equalizeControlPoints( Structure::Node * other ) = 0;
+	virtual void deformTo( const Vec4d & handle, const Vector3 & to ) = 0;
 
 	// Coordinates
     virtual void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame ) = 0;

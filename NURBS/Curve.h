@@ -6,6 +6,10 @@
 
 #include "NURBSGlobal.h"
 
+extern int TIME_ITERATIONS;
+extern double CURVE_TOLERANCE;
+extern int RombergIntegralOrder;
+
 namespace NURBS
 {
 
@@ -44,7 +48,7 @@ public:
     Real GetTorsion (Real t) ;
 
     // Inverse mapping of s = Length(t) given by t = Length^{-1}(s).
-    virtual Real GetTime (Real length, int iterations = 32, Real tolerance = (Real)1e-06)  = 0;
+    virtual Real GetTime (Real length, int iterations, Real tolerance)  = 0;
 
     // Subdivision.
     void SubdivideByTime (int numPoints, Array1D_Vector3& points) ;

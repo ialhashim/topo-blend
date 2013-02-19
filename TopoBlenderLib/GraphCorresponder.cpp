@@ -20,6 +20,9 @@ GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph
 
 	scoreThreshold = 0.4f;
 
+	// Useful for testing
+	if( qMin(source->nodes.size(), target->nodes.size()) < 3 ) scoreThreshold = 1.0f;
+
 	sIsLandmark.resize(sg->nodes.size(), false);
 	tIsLandmark.resize(tg->nodes.size(), false);
 }
@@ -181,7 +184,7 @@ QVector< QVector<double> > GraphCorresponder::computeLandmarkFeatures( Structure
 		Vector3 startpoint = g->nodes[landmark.first]->controlPoint(landmark.second);
 
 		GraphDistance gd(g);
-		gd.computeDistances(startpoint);
+		gd.computeDistances(startpoint, DIST_RESOLUTION);
 
 		for (int nID = 0; nID < (int)g->nodes.size(); nID++)
 		{

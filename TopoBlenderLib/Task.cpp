@@ -5,20 +5,22 @@
 using namespace NURBS;
 
 #include "Synthesizer.h"
-
 #include "weld.h"
-
 #include "LineSegment.h"
+
+#include "AbsoluteOrientation.h"
 
 typedef std::vector< std::pair<double,double> > VectorPairDouble;
 Q_DECLARE_METATYPE( Vector3 );
 Q_DECLARE_METATYPE( Vec4d );
 Q_DECLARE_METATYPE( VectorPairDouble );
-
 Q_DECLARE_METATYPE( GraphDistance::PathPointPair );
 Q_DECLARE_METATYPE( QVector< GraphDistance::PathPointPair > );
 Q_DECLARE_METATYPE( RMF );
+Q_DECLARE_METATYPE( RMF::Frame );
+Q_DECLARE_METATYPE( std::vector<RMF::Frame> );
 Q_DECLARE_METATYPE( CurveEncoding );
+Q_DECLARE_METATYPE( Eigen::Quaterniond );
 
 int globalCount = 0;
 
@@ -403,7 +405,7 @@ void Task::prepare()
 		case SPLIT:
 		case MERGE:
 		case MORPH:
-			//prepareMorphSheet();
+			prepareMorphSheet();
 			break;
 		}
 	}
@@ -460,7 +462,7 @@ void Task::prepareShrinkCurve()
 		QVector< GraphDistance::PathPointPair > path;
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
 		GraphDistance gd( active, exclude );
-		gd.computeDistances( pointA );
+		gd.computeDistances( pointA, DIST_RESOLUTION );
 		gd.smoothPathCoordTo(pointB, path);
 
 		// Use the center of the path as the end point
@@ -477,15 +479,15 @@ void Task::prepareShrinkCurve()
 		QVector< GraphDistance::PathPointPair > pathA, pathB;
 		for (int i = 0; i < N/2; i++)
 		{
-			pathA.push_back(path[i]);
-			pathB.push_back(path[N-1-i]);
+			pathA.push_back(path[N-1-i]);
+			pathB.push_back(path[i]);
 		}
 
 		property["pathA"].setValue(pathA);
 		property["pathB"].setValue(pathB);
 
 		// Encode curve
-		RMF rmf(positionalPath(pathA));
+		RMF rmf( positionalPath(pathA, 3) );
 		property["rmf"].setValue( rmf );
 		Vector3 X = rmf.U.front().r, Y = rmf.U.front().s, Z = rmf.U.front().t;
 
@@ -561,7 +563,7 @@ void Task::prepareGrowCurve()
 		// Geodesic distance between two link positions on the active graph excluding the running tasks
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
 		GraphDistance gd( active, exclude );
-		gd.computeDistances( pointA );
+		gd.computeDistances( pointA, DIST_RESOLUTION );
 		QVector< GraphDistance::PathPointPair > path;
 		gd.smoothPathCoordTo(pointB, path);
 		path = this->weldPath( path );
@@ -573,15 +575,16 @@ void Task::prepareGrowCurve()
 		QVector<GraphDistance::PathPointPair> pathA, pathB;
 		for (int i = 0; i < hN; i++)
 		{
-			pathA.push_back(path[hN-1-i]);
-			pathB.push_back(path[hN+1+i]);
+			pathA.push_back(path[hN+1+i]);
+			pathB.push_back(path[hN-1-i]);
 		}
 
 		property["pathA"].setValue( pathA );
 		property["pathB"].setValue( pathB );
-
+		
 		// Encode curve
-		RMF rmf( positionalPath(pathA, 2) );
+		RMF rmf( positionalPath(pathA, 3) );
+		
 		property["rmf"].setValue( rmf );
 		Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
 		property["cpCoords"].setValue( encodeCurve(pointA, pointB, X,Y,Z) );
@@ -603,10 +606,8 @@ void Task::prepareGrowCurve()
 CurveEncoding Task::encodeCurve(Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z)
 {
 	CurveEncoding cpCoords;
-
-	Line segment(start, end);
-	double baseLineLen = segment.length;
 	Array1D_Vector3 controlPoints = node()->controlPoints();
+	Line segment(start, end);
 
 	for(int i = 0; i < (int)controlPoints.size(); i++)
 	{
@@ -618,30 +619,25 @@ CurveEncoding Task::encodeCurve(Vector3 start, Vector3 end, Vector3 X, Vector3 Y
 
 		// Parameters: t, offset, theta, psi
 		Array1D_Real params(4,0);
-		params[0] = 1 - t;
+		params[0] = t;
 		if(dir.norm() > 0){
-			params[1] = dir.norm() / baseLineLen;
+			params[1] = dir.norm() / segment.length;
 			dir = dir.normalized();
 		}
 		globalToLocalSpherical(X,Y,Z, params[2], params[3], dir);
 
-		cpCoords.push_back(params);
+		cpCoords[i] = params;
 	}
 
 	return cpCoords;
 }
 
-Array1D_Vector3 Task::decodeCurve( Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
+Array1D_Vector3 Task::decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
 {
-	Array1D_Vector3 cpnts(node()->numCtrlPnts(), Vector3(0));
-
+	Array1D_Vector3 controlPoints = node()->controlPoints();
 	Line segment(start, end);
-	double baseLineLen = segment.length;
 
-	CurveEncoding cpCoords = property["cpCoords"].value<CurveEncoding>();
-	RMF rmf = property["rmf"].value<RMF>();
-
-	for(int i = 0; i < (int)cpnts.size(); i++)
+	for(int i = 0; i < (int)controlPoints.size(); i++)
 	{
 		double t = cpCoords[i][0];
 		double offset = cpCoords[i][1];
@@ -650,12 +646,11 @@ Array1D_Vector3 Task::decodeCurve( Vector3 start, Vector3 end, Vector3 X, Vector
 
 		Vector3 dir(0);
 		localSphericalToGlobal(X,Y,Z,theta,psi,dir);
-		dir *= (offset * baseLineLen);
-
-		cpnts[i] = segment.pointAt(t) + dir;
+	
+		controlPoints[i] = segment.pointAt(t) + (dir * (offset * segment.length));
 	}
 
-	return cpnts;
+	return controlPoints;
 }
 
 void Task::prepareShrinkCurveConstraint()
@@ -739,7 +734,7 @@ void Task::prepareMorphCurve()
 		// Compute path
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
 		GraphDistance gd(active, exclude);
-		gd.computeDistances( link->positionOther( node()->id ) );
+		gd.computeDistances( link->positionOther( node()->id ), DIST_RESOLUTION );
 		QVector< GraphDistance::PathPointPair > path;
 		gd.smoothPathCoordTo(startPoint, path);
 
@@ -759,29 +754,23 @@ void Task::prepareMorphCurve()
 		Vec3d startB = linkB->position(n->id);
 		Vec3d endB = futureLinkPosition(linkB);
 
-		if(node()->id.contains("BackLegRight")){
-			printf("");
-			
-		}
-
 		// Geodesic distances on the active graph excluding the running tasks
 		QVector< GraphDistance::PathPointPair > pathA, pathB;	
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
 		GraphDistance gdA( active, exclude ), gdB( active, exclude );
 
-		gdA.computeDistances( endA );	gdA.smoothPathCoordTo( startA, pathA );
-		gdB.computeDistances( endB );	gdB.smoothPathCoordTo( startB, pathB );
+		gdA.computeDistances( endA, DIST_RESOLUTION );	gdA.smoothPathCoordTo( startA, pathA );
+		gdB.computeDistances( endB, DIST_RESOLUTION );	gdB.smoothPathCoordTo( startB, pathB );
 
 		property["pathA"].setValue(pathA);
 		property["pathB"].setValue(pathB);
 
-		QVector< GraphDistance::PathPointPair > longestPath = pathA;
-		if(pathB.size() > pathA.size()) longestPath = pathB;
+		QVector< GraphDistance::PathPointPair > usePath = pathA;
 
-		if(longestPath.size() > 1)
+		if(usePath.size() > 1)
 		{
 			// Encode curve
-			RMF rmf( positionalPath(longestPath, 2) );
+			RMF rmf( positionalPath(usePath, 2) );
 			property["rmf"].setValue( rmf );
 			Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
 			property["cpCoords"].setValue( encodeCurve(startA, startB, X,Y,Z) );
@@ -860,33 +849,127 @@ void Task::prepareMorphSheet()
 	int nU = surface.mNumUCtrlPoints;
 	int nV = surface.mNumVCtrlPoints;
 
-	Array2D_Vector3 deltas(nU, Array1D_Vector3(nV, Vec3d()));
-	for (int u = 0; u < nU; u++){
-		for (int v = 0; v < nV; v++)
-			deltas[u][v] = tsurface.mCtrlPoint[u][v] - surface.mCtrlPoint[u][v];
+	// Get source and target corners
+	RMF::Frame sframe = sheetFrame( sheet );
+	RMF::Frame tframe = sheetFrame( tsheet );
+
+	// Compute rotations between source and target sheet frames
+	std::vector<Vec3d> A,B;
+	Eigen::Quaterniond rotation, eye = Eigen::Quaterniond::Identity();
+	A.push_back(sframe.r); A.push_back(sframe.s); A.push_back(sframe.t);
+	B.push_back(tframe.r); B.push_back(tframe.s); B.push_back(tframe.t);
+	AbsoluteOrientation::compute(A,B, rotation);
+
+	// Parameters needed for morphing
+	property["rotation"].setValue( rotation );
+	property["sframe"].setValue( sframe );
+	property["tframe"].setValue( tframe );
+
+	property["cpCoords"].setValue( encodeSheet(sheet, sframe.center, sframe.r,sframe.s,sframe.t) );
+	property["cpCoordsT"].setValue( encodeSheet(tsheet, tframe.center, tframe.r,tframe.s,tframe.t) );
+
+	// Smooth rotation
+	std::vector<RMF::Frame> frames;
+	for(double alpha = 0; alpha <= 1.0; alpha += 0.01)
+	{
+		Eigen::Vector3d r = V2E(sframe.r), s = V2E(sframe.s), t = V2E(sframe.t);
+		r = eye.slerp(alpha, rotation) * r;
+		s = eye.slerp(alpha, rotation) * s;
+		t = eye.slerp(alpha, rotation) * t;
+
+		RMF::Frame curFrame = RMF::Frame(E2V(r),E2V(s),E2V(t));
+		curFrame.center = sframe.center;
+		frames.push_back(curFrame);
 	}
+	property["frames"].setValue( frames );
 
-	property["deltas"].setValue(deltas);
-	property["orgCtrlPoints"].setValue(surface.mCtrlPoint);
+	// Visualization
+	n->property["frames"].setValue(frames);
+	n->property["sheetFrame"].setValue( sframe );
+	tn->property["sheetFrame"].setValue( tframe );
 
-
-	// Mark
-	if( active->isCutNode(n->id) )
-		property["isCutNode"] = true;
+	// Mark if cut node
+	if( active->isCutNode(n->id) ) property["isCutNode"] = true;
 }
 
+RMF::Frame Task::sheetFrame( Structure::Sheet * sheet )
+{
+	Vector3 corner = sheet->position(Vec4d(0));
+	Vector3 A = sheet->position(Vec4d(0,1,0,0));
+	Vector3 B = sheet->position(Vec4d(1,0,0,0));
+	Vector3 C = sheet->position(Vec4d(1));
+
+	Vector3 X = (A - corner).normalized();
+	Vector3 Y = (B - corner).normalized();
+	Vector3 Z = cross(X,Y);
+
+	RMF::Frame frame = RMF::Frame::fromTR(Z,X);
+	frame.center = (A + B + C + corner) / 4.0;
+	return frame;
+}
+
+Array1D_Vector3 Task::sheetDeltas( Structure::Sheet * sheet )
+{
+	Array1D_Vector3 deltas;
+	RMF::Frame frame = sheetFrame(sheet);
+	Array1D_Vector3 controlPoints = sheet->controlPoints();
+	for(int i = 0; i < (int)controlPoints.size(); i++)
+		deltas.push_back( controlPoints[i] - frame.center );
+	return deltas;
+}
+
+SheetEncoding Task::encodeSheet( Structure::Sheet * sheet, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z )
+{
+	SheetEncoding cpCoords;
+
+	Array1D_Vector3 controlPoints = sheet->controlPoints();
+	
+	for(int i = 0; i < (int)controlPoints.size(); i++)
+	{
+		double t;
+		Vector3 p = controlPoints[i];
+		Vector3 dir = p - origin;
+
+		// Parameters: offset, theta, psi
+		Array1D_Real params(3,0);
+		if(dir.norm() > 0){
+			params[0] = dir.norm();
+			dir = dir.normalized();
+		}
+		globalToLocalSpherical(X,Y,Z, params[1], params[2], dir);
+
+		cpCoords[i] = params;
+	}
+
+	return cpCoords;
+}
+
+Array1D_Vector3 Task::decodeSheet( SheetEncoding cpCoords, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z )
+{
+	Array1D_Vector3 pnts( cpCoords.size(), Vector3(0) );
+
+	for(int i = 0; i < (int)pnts.size(); i++)
+	{
+		double offset = cpCoords[i][0];
+		double theta = cpCoords[i][1];
+		double psi = cpCoords[i][2];
+
+		Vector3 dir(0);
+		localSphericalToGlobal(X,Y,Z,theta,psi,dir);
+
+		pnts[i] = origin + (dir * offset);
+	}
+
+	return pnts;
+}
 
 // EXECUTE
 void Task::execute( double t )
 {	
 	if(!isActive(t)) return;
-
 	if ( !isReady ) prepare();
 
 	currentTime = start + (t * length);
-
-	// Blend geometries
-	geometryMorph( t );
 
 	if (node()->type() == Structure::CURVE)
 	{
@@ -912,10 +995,13 @@ void Task::execute( double t )
 			executeGrowShrinkSheet(t);
 			break;
 		case MORPH:
-			//executeMorphSheet(t);
+			executeMorphSheet(t);
 			break;
 		}
 	}
+
+	// Blend geometries
+	geometryMorph( t );
 
 	if(t == 1.0)
 	{
@@ -1052,7 +1138,7 @@ void Task::executeGrowShrinkSheet( double t )
 
 		if (type == GROW)
 		{
-			copyTargetEdge(tedges.front());
+			if(tedges.size()) copyTargetEdge(tedges.front());
 		}
 	}
 }
@@ -1118,11 +1204,12 @@ void Task::executeMorphCurve( double t )
 		Vector3 pointA = pathA[idxA].position(active);
 		Vector3 pointB = pathB[idxB].position(active);
 
-		if(property.contains("rmf"))
+		if(property.contains("cpCoords"))
 		{
 			RMF rmf = property["rmf"].value<RMF>();
 			Vector3 X = rmf.frameAt(t).r, Y = rmf.frameAt(t).s, Z = rmf.frameAt(t).t;
-			structure_curve->setControlPoints( decodeCurve(pointA, pointB, X,Y,Z) );
+			Array1D_Vector3 decoded = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, X,Y,Z);
+			structure_curve->setControlPoints( decoded );
 		}
 	}
 
@@ -1169,20 +1256,35 @@ void Task::executeMorphSheet( double t )
 	Structure::Node * n = node();
 	Structure::Sheet * sheet = (Structure::Sheet *)n;
 
-	Array2D_Vector3 deltas = property["deltas"].value<Array2D_Vector3>();
-	Array2D_Vector3 orgCtrlPoints = property["orgCtrlPoints"].value<Array2D_Vector3>();
-	Array2D_Vector3 cp = orgCtrlPoints;
+	// Decode
+	SheetEncoding cpCoords = property["cpCoords"].value<SheetEncoding>();
+	SheetEncoding cpCoordsT = property["cpCoordsT"].value<SheetEncoding>();
 
-	for (int u = 0; u < (int)deltas.size(); u++){
-		for (int v = 0; v < (int)deltas.front().size(); v++){
-			cp[u][v] = orgCtrlPoints[u][v] + t * deltas[u][v];
-		}
+	RMF::Frame sframe = property["sframe"].value<RMF::Frame>();
+	RMF::Frame tframe = property["tframe"].value<RMF::Frame>();
+	Eigen::Quaterniond rotation = property["rotation"].value<Eigen::Quaterniond>(), 
+		eye = Eigen::Quaterniond::Identity();
+
+	// Source sheet
+	Eigen::Vector3d R = V2E(sframe.r), S = V2E(sframe.s), T = V2E(sframe.t);
+	R = eye.slerp(t, rotation) * R;
+	S = eye.slerp(t, rotation) * S;
+	T = eye.slerp(t, rotation) * T;
+	RMF::Frame curFrame (E2V(R),E2V(S),E2V(T));
+
+	curFrame.center = tframe.center = AlphaBlend(t, sframe.center, tframe.center);
+
+	Array1D_Vector3 newPnts = decodeSheet( cpCoords, curFrame.center, curFrame.r, curFrame.s, curFrame.t );
+	Array1D_Vector3 newPntsT = decodeSheet( cpCoordsT, tframe.center, tframe.r, tframe.s, tframe.t );
+	
+	Array1D_Vector3 blendedPnts;
+
+	for(int i = 0; i < (int)newPnts.size(); i++)
+	{
+		blendedPnts.push_back( AlphaBlend(t, newPnts[i], newPntsT[i]) );
 	}
 
-	// Replace the control points
-    sheet->surface = NURBSRectangled(cp, sheet->surface.mCtrlWeight, 3, 3, false, false, true, true);
-	sheet->surface.quads.clear();
-
+	sheet->setControlPoints( blendedPnts );
 
 	if (property.contains("isCutNode"))
 		property["isConstraint"] = true;
@@ -1197,19 +1299,5 @@ Array1D_Vector3 Task::positionalPath( QVector< GraphDistance::PathPointPair > & 
 	foreach(GraphDistance::PathPointPair p, from_path) 
 		pnts.push_back(p.position(active));
 
-	// Laplacian smoothing - fixed ends
-	for(int itr = 0; itr < smoothingIters; itr++)
-	{
-		Array1D_Vector3 newPos(pnts.size(), Vector3(0));
-		newPos[0] = pnts[0];
-
-		for(int i = 1; i < (int)pnts.size() - 1; i++)
-			newPos[i] = (pnts[i-1] + pnts[i+1]) * 0.5;
-
-		newPos.back() = pnts.back();
-		pnts = newPos;
-	}
-
-	return pnts;
+	return smoothPolyline(pnts, smoothingIters);
 }
-

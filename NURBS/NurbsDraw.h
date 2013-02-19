@@ -187,7 +187,7 @@ public:
 		{
 			SurfaceQuad quad = nc->quads.front();
 
-			glLineWidth(8);
+			glLineWidth(4);
 
 			glColor3d(1,0,0);
 			glBegin(GL_LINES);
