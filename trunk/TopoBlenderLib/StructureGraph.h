@@ -13,6 +13,10 @@ using namespace DynamicVoxelLib;
 
 #include "qglviewer/camera.h"
 
+// Relink
+typedef QMap<Structure::Link*,Vector3> LinksDelta;
+Q_DECLARE_METATYPE( LinksDelta );
+
 namespace Structure{
 
 typedef QPair<Node*,Node*> QPairNodes;

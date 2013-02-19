@@ -14,7 +14,7 @@ Sheet::Sheet(const NURBS::NURBSRectangled & sheet, QString sheetID, QColor color
 
     this->id = sheetID;
     this->vis_property["color"] = color;
-    this->vis_property["showControl"] = true;
+    this->vis_property["showControl"] = false;
 }
 
 Node * Sheet::clone()
@@ -352,4 +352,9 @@ void Sheet::equalizeControlPoints( Structure::Node * _other )
 int Sheet::numCtrlPnts()
 {
 	return surface.mNumUCtrlPoints * surface.mNumVCtrlPoints;
+}
+
+void Sheet::deformTo( const Vec4d & handle, const Vector3 & to )
+{
+
 }

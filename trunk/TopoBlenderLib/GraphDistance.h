@@ -4,6 +4,9 @@
 
 typedef std::map< int, std::pair<int,double> > CloseMap;
 
+// Assuming normalized geometry
+extern double DIST_RESOLUTION;
+
 struct GraphDistanceNode{
 	Vector3 pos;
 	Structure::Node * n;
@@ -25,8 +28,8 @@ public:
 	void prepareNodes( Scalar resolution, const std::vector<Vector3> & startingPoints, 
 		CloseMap & closestStart, QVector<Structure::Node *> nodes );
 
-	void computeDistances( Vector3 startingPoint, double resolution = -1 );
-	void computeDistances( std::vector<Vector3> startingPoints, double resolution = -1 );
+	void computeDistances( Vector3 startingPoint, double resolution );
+	void computeDistances( std::vector<Vector3> startingPoints, double resolution );
 
 	double distance( Vector3 point );
     double pathTo( Vector3 point, std::vector<Vector3> & path );

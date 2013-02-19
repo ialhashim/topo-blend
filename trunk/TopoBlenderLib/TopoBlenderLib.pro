@@ -59,6 +59,7 @@ HEADERS += StructureNode.h \
     Octree.h \
     PointCloudRenderer.h \
     PointCloudRenderer.h \
+	AbsoluteOrientation.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -77,7 +78,8 @@ SOURCES += StructureGraph.cpp \
     Synthesizer.cpp \
     Sampler.cpp \
     Octree.cpp \
-    PointCloudRenderer.cpp
+    PointCloudRenderer.cpp \
+	AbsoluteOrientation.cpp
 	
 	
 FORMS += \

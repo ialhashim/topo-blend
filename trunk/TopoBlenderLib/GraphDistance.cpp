@@ -1,6 +1,8 @@
 #include "GraphDistance.h"
 using namespace Structure;
 
+double DIST_RESOLUTION = 0.015;
+
 GraphDistance::GraphDistance( Structure::Graph * graph, QVector<QString> exclude_nodes )
 {
     this->g = graph;

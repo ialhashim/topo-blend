@@ -31,7 +31,7 @@ Real SingleCurve<Real>::GetLength (Real t0, Real t1)
     assertion(mTMin <= t1 && t1 <= mTMax, "Invalid input\n");
     assertion(t0 <= t1, "Invalid input\n");
 
-    return Integrate1<Real>::RombergIntegral(8, t0, t1, GetSpeedWithData, (void*)this);
+    return Integrate1<Real>::RombergIntegral(RombergIntegralOrder, t0, t1, GetSpeedWithData, (void*)this);
 }
 //----------------------------------------------------------------------------
 template <typename Real>

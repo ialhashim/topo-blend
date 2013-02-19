@@ -2,10 +2,12 @@
 
 #include <QGraphicsObject>
 #include "TopoBlender.h"
+#include "RMF.h"
 
 Q_DECLARE_METATYPE(QVector<QString>);
 
-typedef std::vector< Array1D_Real > CurveEncoding;
+typedef std::map< int, Array1D_Real > CurveEncoding;
+typedef std::map< int, Array1D_Real > SheetEncoding;
 
 // red, orange, yellow, green, blue
 // pink, purpule, portage, lacoste, corn
@@ -64,8 +66,15 @@ public:
 	QVector< GraphDistance::PathPointPair > weldPath( QVector< GraphDistance::PathPointPair > oldPath );
 	bool isActive(double t);
 	Array1D_Vector3 positionalPath( QVector< GraphDistance::PathPointPair > & from_path, int smoothingIters = 0 );
+	
 	CurveEncoding encodeCurve(Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z);
-	Array1D_Vector3 decodeCurve(Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z);
+	Array1D_Vector3 decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z);
+
+	SheetEncoding encodeSheet( Structure::Sheet * sheet, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z );
+	Array1D_Vector3 decodeSheet( SheetEncoding cpCoords, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z );
+
+	RMF::Frame sheetFrame(Structure::Sheet * sheet);
+	Array1D_Vector3 sheetDeltas(Structure::Sheet * sheet);
 
 	Structure::Node * node();
 	Structure::Node * targetNode();

@@ -4,12 +4,19 @@ using namespace Structure;
 
 #include "GL/GLU.h"
 
+bool IsNumber(double x) {return (x == x); }
+bool IsFiniteNumber(double x) {return (x <= DBL_MAX && x >= -DBL_MAX); } 
+
+#include <Eigen/Geometry>
+#define V2E(vec) ((Eigen::Vector3d(vec[0], vec[1], vec[2])))
+#define E2V(vec) ((Vec3d(vec[0], vec[1], vec[2])))
+
 Curve::Curve(const NURBS::NURBSCurved & newCurve, QString newID, QColor color)
 {
     this->curve = newCurve;
     this->id = newID;
     this->vis_property["color"] = color;
-    this->vis_property["showControl"] = true;
+    this->vis_property["showControl"] = false;
 }
 
 Node * Curve::clone()
@@ -103,6 +110,11 @@ std::vector< std::vector<Vec4d> > Curve::discretizedPoints( Scalar resolution )
 
 	// For singular cases
 	if(curveLength < resolution){
+		result.push_back( std::vector<Vec4d>( 1, Vec4d(0,0,0,0) ) );
+		return result;
+	}
+
+	if(!IsNumber(curveLength) || !IsFiniteNumber(curveLength)){
 		result.push_back( std::vector<Vec4d>( 1, Vec4d(0,0,0,0) ) );
 		return result;
 	}
@@ -286,7 +298,43 @@ void Curve::equalizeControlPoints( Structure::Node * _other )
     this->curve = NURBS::NURBSCurved(newPnts, std::vector<double>( newPnts.size(), 1.0 ));
 }
 
-int Structure::Curve::numCtrlPnts()
+int Curve::numCtrlPnts()
 {
 	return curve.mNumCtrlPoints;
+}
+
+void Curve::deformTo( const Vec4d & handle, const Vector3 & to )
+{
+	Vec4d otherEndCoord = Vec4d((handle[0] > 0.5) ? 0 : 1);
+	
+	Vector3 p = position( handle );
+
+	double diff = (p-to).norm();
+	if(diff < 1e-8) return;
+
+	Vector3 otherEnd = position( otherEndCoord );
+
+	// Find new scale
+	double scale = (to - otherEnd).norm() / (p - otherEnd).norm();
+
+	// Find minimum rotation
+	Vector3 dirFrom = (p - otherEnd).normalized();
+	Vector3 dirTo = (to - otherEnd).normalized();
+	Eigen::Quaterniond rotation = Eigen::Quaterniond::FromTwoVectors(V2E(dirFrom), V2E(dirTo));
+
+	Array1D_Vector3 ctrlPnts = controlPoints();
+
+	// Compute deltas and apply transformations
+	for(int i = 0; i < (int)ctrlPnts.size(); i++)
+	{
+		Vector3 delta = (ctrlPnts[i] - otherEnd);
+		double length = delta.norm() * scale;
+		delta.normalize();
+
+		Vector3 rotated = E2V( (rotation * V2E(delta)) );
+
+		ctrlPnts[i] = (rotated * length) + otherEnd;
+	}
+
+	setControlPoints( ctrlPnts );
 }

@@ -28,7 +28,7 @@ public:
 	void order();
 	void executeAll();
 
-	// Relink stage
+	// Relink stage [OLD]
 	// Propagate the changes made by this task to recover the active graph
 	// Must be called once if current task is a constraint
 	void relink(double t);
@@ -38,6 +38,10 @@ public:
 	void deformCurveByLink(Structure::Node* node, Structure::Link *link);
 	void tranformSheetByTwoLinks(Structure::Node* node, Structure::Link *linkA, Structure::Link *linkB);
 
+	// Relink
+	void prepare_relink( Task * task );
+	void relink( Task * task );
+
 	int totalExecutionTime();
 
 	// Dependency
@@ -46,6 +50,7 @@ public:
 	// Helper functions
 	QVector<Task*> tasksSortedByStart();
 	Task * getTaskFromNodeID( QString nodeID );
+	QList<Task*> sortTasksByPriority( QList<Task*> curTasks );
 
 	// Properties
 	int rulerHeight;

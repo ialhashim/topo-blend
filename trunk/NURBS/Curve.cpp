@@ -8,6 +8,19 @@
 
 #include "Curve.h"
 
+#define CURVE_HIGH_RES 1
+
+#if CURVE_HIGH_RES
+	// Standard resolution
+	int TIME_ITERATIONS			= 32;
+	double CURVE_TOLERANCE		= 1e-06;
+	int RombergIntegralOrder	= 8;
+#else
+	int TIME_ITERATIONS			= 8;
+	double CURVE_TOLERANCE		= 1e-05;
+	int RombergIntegralOrder	= 3;
+#endif
+
 namespace NURBS
 {
 //----------------------------------------------------------------------------
@@ -176,7 +189,7 @@ void Curve<Real>::SubdivideByLength (int numPoints, Array1D_Vector3& points)
     for (int i = 0; i < numPoints; ++i)
     {
         Real length = delta*i;
-        Real t = GetTime(length);
+        Real t = GetTime(length, TIME_ITERATIONS, CURVE_TOLERANCE);
         points[i] = GetPosition(t);
     }
 }
@@ -193,7 +206,7 @@ void Curve<Real>::SubdivideByLengthTime (int numPoints, std::vector<Real> & time
     for (int i = 0; i < numPoints; ++i)
     {
         Real length = delta * i;
-        times[i] = GetTime(length);
+        times[i] = GetTime(length, TIME_ITERATIONS, CURVE_TOLERANCE);
     }
 }
 

@@ -18,13 +18,16 @@ using namespace Structure;
 #include "PointCloudRenderer.h"
 Q_DECLARE_METATYPE(PointCloudRenderer*);
 Q_DECLARE_METATYPE(Vec3d);
-Q_DECLARE_METATYPE(RMF);
+Q_DECLARE_METATYPE( RMF );
+Q_DECLARE_METATYPE( RMF::Frame );
+Q_DECLARE_METATYPE( std::vector<RMF::Frame> );
 
 Graph::Graph()
 {
 	property["embeded2D"] = false;
 	property["showAABB"] = false;
 	property["showMeshes"] = true;
+	property["showEdges"] = false;
 }
 
 Graph::Graph( QString fileName )
@@ -169,7 +172,7 @@ Link * Graph::addEdge(Node *n1, Node *n2, std::vector<Vec4d> coord1, std::vector
 	if(n1->type() == SHEET && n2->type() == SHEET) edgeType = LINE_EDGE;
 
 	Link * e = new Link( n1, n2, coord1, coord2, edgeType, linkName );
-	edges.push_back(e);
+	edges.push_back( e );
 
 	// Add to adjacency list
 	if(adjacency.cols() != nodes.size()) adjacency = MatrixXd::Zero( nodes.size(), nodes.size() );
@@ -269,25 +272,42 @@ void Graph::draw( qglviewer::Camera* camera )
     {
 		// Task visualization:
 		{
-			glDisable(GL_LIGHTING);
-			glPointSize(20);
-			glBegin(GL_POINTS);
+			//glDisable(GL_LIGHTING);
+			//glPointSize(20);
+			//glBegin(GL_POINTS);
 
-			if(n->property.contains("p1")) glColor3d(1,0,0.7);	glVector3(n->property["p1"].value<Vec3d>());
-			if(n->property.contains("p2")) (1,0,1);	glVector3(n->property["p2"].value<Vec3d>());
-			if(n->property.contains("q1")) glColor3d(1,0.5,0.7);	glVector3(n->property["q1"].value<Vec3d>());
-			if(n->property.contains("q2")) (1,0.5,1);	glVector3(n->property["q2"].value<Vec3d>());
+			//if(n->property.contains("p1")) glColor3d(1,0,0.7);	glVector3(n->property["p1"].value<Vec3d>());
+			//if(n->property.contains("p2")) (1,0,1);	glVector3(n->property["p2"].value<Vec3d>());
+			//if(n->property.contains("q1")) glColor3d(1,0.5,0.7);	glVector3(n->property["q1"].value<Vec3d>());
+			//if(n->property.contains("q2")) (1,0.5,1);	glVector3(n->property["q2"].value<Vec3d>());
 
-			glEnd();
-			glEnable(GL_LIGHTING);
+			//glEnd();
+			//glEnable(GL_LIGHTING);
 
-			if(n->property.contains("rmf"))
-			{
-				RMF rmf = n->property["rmf"].value<RMF>();
-				FrameSoup fs(0.05);
-				foreach(RMF::Frame f, rmf.U) fs.addFrame(f.r, f.s, f.t, f.center);
-				fs.draw();
-			}
+			//if(n->property.contains("rmf"))
+			//{
+			//	RMF rmf = n->property["rmf"].value<RMF>();
+			//	FrameSoup fs(0.025);
+			//	foreach(RMF::Frame f, rmf.U) fs.addFrame(f.r, f.s, f.t, f.center);
+			//	fs.draw();
+			//}
+
+			//if(n->property.contains("sheetFrame"))
+			//{
+			//	RMF::Frame f = n->property["sheetFrame"].value<RMF::Frame>();
+			//	FrameSoup fs(0.1);
+			//	fs.addFrame(f.r, f.s, f.t, f.center);
+			//	fs.draw();
+			//}
+
+
+			//if(n->property.contains("frames"))
+			//{
+			//	std::vector<RMF::Frame> frames = n->property["frames"].value< std::vector<RMF::Frame> >();
+			//	FrameSoup fs(0.025);
+			//	foreach(RMF::Frame f, frames) fs.addFrame(f.r, f.s, f.t, f.center);
+			//	fs.draw();
+			//}
 		}
 
 		if (n->property.contains("isReady") && !n->property["isReady"].toBool())
@@ -393,10 +413,13 @@ void Graph::draw( qglviewer::Camera* camera )
 		}
     }
 
-    foreach(Link * e, edges)
-    {
-        e->draw();
-    }
+	if(property["showEdges"].toBool())
+	{
+		foreach(Link * e, edges)
+		{
+			e->draw();
+		}
+	}
 
 	glDisable(GL_LIGHTING);
 	glColor3d(1,1,0); glPointSize(20);
@@ -1000,8 +1023,9 @@ void Graph::printAdjacency()
 
 int Graph::valence( Node * n )
 {
-	int idx = nodes.indexOf(n);
-	return 0.5 * (adjacency.col(idx).sum() + adjacency.row(idx).sum());
+	//int idx = nodes.indexOf(n);
+	//return 0.5 * (adjacency.col(idx).sum() + adjacency.row(idx).sum());
+	return this->getEdges(n->id).size();
 }
 
 Curve* Graph::getCurve( Link * l )
@@ -1166,6 +1190,9 @@ void Graph::normalize()
 	// Normalize the height to be 1
 	QBox3D aabb = bbox();
 	double height = aabb.maximum().z() - aabb.minimum().z();
+
+	if(height == 0.0) height = 1.0;
+
 	double scaleFactor = 1.0 / height;
 
 	foreach (Structure::Node * node, nodes)
