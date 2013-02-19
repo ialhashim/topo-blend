@@ -309,6 +309,8 @@ void Scheduler::prepare_relink( Task * task )
 {
 	Structure::Node * n = task->node();
 	Structure::Node * tn = task->targetNode();
+	if(!tn) return;
+
 	QVector<Structure::Link*> edges = activeGraph->getEdges(n->id);
 	QVector<Structure::Link*> tedges = targetGraph->getEdges(tn->id);
 
