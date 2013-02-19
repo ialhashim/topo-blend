@@ -44,6 +44,14 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 	scheduler->schedule();
 	qApp->restoreOverrideCursor();
 
+	// Visualization - color similar items
+	foreach(Structure::Node * n, scheduler->sourceGraph->nodes)
+	{
+		QString corrId = n->property["correspond"].toString();
+		Structure::Node * other = scheduler->targetGraph->getNode(corrId);
+		if(other) n->vis_property["color"].setValue( other->vis_property["color"] );
+	}
+
 	// Show the scheduler window:
 	SchedulerWidget * sw = new SchedulerWidget( scheduler );
 	QDockWidget *dock = new QDockWidget("Scheduler");

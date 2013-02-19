@@ -66,6 +66,7 @@ public:
 	QVector< GraphDistance::PathPointPair > weldPath( QVector< GraphDistance::PathPointPair > oldPath );
 	bool isActive(double t);
 	Array1D_Vector3 positionalPath( QVector< GraphDistance::PathPointPair > & from_path, int smoothingIters = 0 );
+	QVector< GraphDistance::PathPointPair > smoothStart( Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
 	
 	CurveEncoding encodeCurve(Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z);
 	Array1D_Vector3 decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z);
