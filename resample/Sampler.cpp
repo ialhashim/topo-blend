@@ -1,6 +1,6 @@
 #include "Sampler.h"
 
-Sampler::Sampler(SurfaceMeshModel * srcMesh, SamplingMethod samplingMethod)
+Sampler::Sampler(SurfaceMesh::Model * srcMesh, SamplingMethod samplingMethod)
 {
 	if(srcMesh == NULL) 
 		return;

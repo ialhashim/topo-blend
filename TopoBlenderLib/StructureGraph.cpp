@@ -1,3 +1,6 @@
+#include "GlSplatRenderer.h"
+GlSplatRenderer * splat_renderer = NULL;
+
 #include <QFile>
 #include <QFileInfo>
 #include <QDir>
@@ -15,12 +18,10 @@ using namespace Structure;
 
 #include "QuickMeshDraw.h"
 
-#include "PointCloudRenderer.h"
-Q_DECLARE_METATYPE(PointCloudRenderer*);
-Q_DECLARE_METATYPE(Vec3d);
-Q_DECLARE_METATYPE( RMF );
-Q_DECLARE_METATYPE( RMF::Frame );
-Q_DECLARE_METATYPE( std::vector<RMF::Frame> );
+Q_DECLARE_METATYPE( Vec3d )
+Q_DECLARE_METATYPE( RMF )
+Q_DECLARE_METATYPE( RMF::Frame )
+Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
 
 Graph::Graph()
 {
@@ -263,10 +264,12 @@ Link* Structure::Graph::getEdge( QString linkID )
 }
 
 
-void Graph::draw( qglviewer::Camera* camera )
+void Graph::draw()
 {
 	vs.draw();
 	ps.draw();
+
+	QVector<Vec3d> points, normals;
 
     foreach(Node * n, nodes)
     {
@@ -339,7 +342,7 @@ void Graph::draw( qglviewer::Camera* camera )
 
 		if(n->property.contains("samples"))
 		{
-			QVector<Vec3d> points, normals;
+			QVector<Vec3d> n_points, n_normals;
 
 			QVector<ParameterCoord> samples = n->property["samples"].value< QVector<ParameterCoord> >();
 			QVector<double> offsets = n->property["offsets"].value< QVector<double> >();
@@ -351,53 +354,27 @@ void Graph::draw( qglviewer::Camera* camera )
 				if(n->type() == Structure::CURVE)
 				{
 					Structure::Curve * curve = (Structure::Curve *)n;
-					Synthesizer::reconstructGeometryCurve(curve,samples,offsets,in_normals,points,normals);
+					Synthesizer::reconstructGeometryCurve(curve,samples,offsets,in_normals,n_points,n_normals);
 				}
 				if(n->type() == Structure::SHEET)
 				{
 					Structure::Sheet * sheet = (Structure::Sheet *)n;
-					Synthesizer::reconstructGeometrySheet(sheet,samples,offsets,in_normals,points,normals);
+					Synthesizer::reconstructGeometrySheet(sheet,samples,offsets,in_normals,n_points,n_normals);
 				}
 
-				n->property["cached_points"].setValue(points);
-				n->property["cached_normals"].setValue(normals);
+				n->property["cached_points"].setValue(n_points);
+				n->property["cached_normals"].setValue(n_normals);
 			}
 			else
 			{
-				points = n->property["cached_points"].value< QVector<Vec3d> >();
-				normals = n->property["cached_normals"].value< QVector<Vec3d> >();
+				n_points = n->property["cached_points"].value< QVector<Vec3d> >();
+				n_normals = n->property["cached_normals"].value< QVector<Vec3d> >();
 			}
 
-			if(normals.size())
+			if(n_points.size())
 			{
-
-				glEnable(GL_LIGHTING);
-				glEnable(GL_CULL_FACE);
-				glCullFace(GL_BACK);
-				glEnable(GL_DEPTH_TEST);
-
-				glEnable(GL_POINT_SMOOTH);
-				glEnable(GL_BLEND);
-
-				// Using splat rendering:
-				//PointCloudRenderer * pc_render = NULL;
-				//if( !n->property.contains("point_cloud_renderer") )
-				//	n->property["point_cloud_renderer"].setValue( new PointCloudRenderer( points, normals, 1.0 ) );
-				//pc_render = n->property["point_cloud_renderer"].value<PointCloudRenderer*>();
-
-				//pc_render->draw( camera );
-
-				// Using basic rendering:
-				glPointSize(3.0);
-				glEnable(GL_LIGHTING);
-				glBegin(GL_POINTS);
-				for(int i = 0; i < (int)points.size(); i++){
-				glNormal3(normals[i]);
-				glVector3(points[i]);
-				}
-				glEnd();
-
-				glDisable(GL_CULL_FACE);
+				points += n_points;
+				normals += n_normals;
 			}
 		}
 		else
@@ -407,11 +384,50 @@ void Graph::draw( qglviewer::Camera* camera )
 			{
 				if(n->property.contains("mesh"))
 				{
-					QuickMeshDraw::drawMeshWireFrame( n->property["mesh"].value<SurfaceMeshModel*>() );
+                    QuickMeshDraw::drawMeshWireFrame( n->property["mesh"].value<SurfaceMesh::Model*>() );
 				}
 			}
 		}
     }
+
+	// Splat rendering
+	if( points.size() )
+	{
+		if(!splat_renderer)
+		{
+			splat_renderer = new GlSplatRenderer(points, normals, 0.008);
+		}
+		else
+		{
+			splat_renderer->points = points;
+			splat_renderer->normals = normals;
+		}
+
+		glEnable(GL_LIGHTING);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+		glEnable(GL_DEPTH_TEST);
+
+		glEnable(GL_POINT_SMOOTH);
+		glEnable(GL_BLEND);
+
+		//splat_renderer->draw();
+
+		/// Using basic rendering:
+		{
+			glPointSize(3.0);
+			glEnable(GL_LIGHTING);
+			glBegin(GL_POINTS);
+			for(int i = 0; i < (int)points.size(); i++){
+				glNormal3(normals[i]);
+				glVector3(points[i]);
+			}
+			glEnd();
+		}
+
+		glDisable(GL_CULL_FACE);
+
+	}
 
 	if(property["showEdges"].toBool())
 	{
@@ -733,7 +749,7 @@ void Graph::loadFromFile( QString fileName )
 		// Load node's mesh and make it ready
 		if (mfile.exists())
 		{
-			SurfaceMeshModel * nodeMesh = new SurfaceMeshModel(mesh_filename, id);
+            SurfaceMesh::Model * nodeMesh = new SurfaceMesh::Model(mesh_filename, id);
 			nodeMesh->read( qPrintable(mesh_filename) );
 			nodeMesh->update_face_normals();
 			nodeMesh->update_vertex_normals();
@@ -778,7 +794,7 @@ void Graph::loadFromFile( QString fileName )
 	file.close();
 }
 
-void Graph::materialize( SurfaceMeshModel * m, Scalar voxel_scaling )
+void Graph::materialize( SurfaceMesh::Model * m, Scalar voxel_scaling )
 {
 	QElapsedTimer timer; timer.start();
 
@@ -873,7 +889,7 @@ Node *Graph::rootByValence()
     return nodes[maxIdx];
 }
 
-SurfaceMeshTypes::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
+SurfaceMesh::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 {
 	double s1 = n1->bbox().size().length();
 	double s2 = n2->bbox().size().length();
@@ -1175,7 +1191,7 @@ void Graph::moveBottomCenterToOrigin()
 		if(!node->property.contains("mesh")) continue;
 
 		// Move actual geometry
-		SurfaceMeshModel* model = node->property["mesh"].value<SurfaceMeshModel*>();
+        SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
 		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
 		foreach(Vertex v, model->vertices())
 			points[v] -= bottom_center;
@@ -1202,7 +1218,7 @@ void Graph::normalize()
 		if(!node->property.contains("mesh")) continue;
 
 		// Move actual geometry
-		SurfaceMeshModel* model = node->property["mesh"].value<SurfaceMeshModel*>();
+        SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
 		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
 		foreach(Vertex v, model->vertices())
 			points[v] *= scaleFactor;
@@ -1230,7 +1246,7 @@ void Graph::rotate( double angle, Vector3 axis )
 		if(!node->property.contains("mesh")) continue;
 
 		// Move actual geometry
-		SurfaceMeshModel* model = node->property["mesh"].value<SurfaceMeshModel*>();
+        SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
 		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
 		model->updateBoundingBox();
 
@@ -1261,7 +1277,7 @@ void Graph::scale( double scaleFactor )
 		if(!node->property.contains("mesh")) continue;
 
 		// Move actual geometry
-		SurfaceMeshModel* model = node->property["mesh"].value<SurfaceMeshModel*>();
+        SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
 		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
 		foreach(Vertex v, model->vertices())
 			points[v] *= relative_scale;

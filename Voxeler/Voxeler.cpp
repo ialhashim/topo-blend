@@ -7,11 +7,11 @@ using namespace VoxelerLibrary;
 
 #include "voxel_weld.h"
 
-Voxeler::Voxeler( SurfaceMeshModel * src_mesh, double voxel_size, bool verbose /*= false*/ )
+Voxeler::Voxeler( SurfaceMesh::Model * src_mesh, double voxel_size, bool verbose /*= false*/ )
 {
 	this->mesh = src_mesh;
 
-	points = mesh->vertex_property<Point>(SurfaceMeshTypes::VPOINT);
+    points = mesh->vertex_property<Point>(SurfaceMesh::VPOINT);
 
 	this->voxelSize = voxel_size;
 	this->isVerbose = verbose;

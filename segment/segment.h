@@ -5,7 +5,7 @@
 #include "SurfaceMeshModel.h"
 #include "SurfaceMeshHelper.h"
 
-namespace SurfaceMeshTypes{
+namespace SurfaceMesh{
 
 enum FaceClass {CURVE, SHEET};
 typedef QSet<Face> Region;
@@ -50,7 +50,7 @@ public:
 
 	void classifyVertsFromFaces();
 	void collectRing(Vertex v, QSet<Vertex> & set, int level = 0);
-	void setMeshFromRegion(Region & r, SurfaceMeshModel *);
+	void setMeshFromRegion(Region & r, SurfaceMesh::Model *);
 
 	double median(QVector<double> vec);
 

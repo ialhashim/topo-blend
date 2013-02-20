@@ -102,7 +102,7 @@ void Sheet::get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> &
 	surface.GetFrame(u, v, pos, frame[0], frame[1], frame[2]);
 }
 
-SurfaceMeshTypes::Vector3 Sheet::position( const Vec4d& coordinates )
+SurfaceMesh::Vector3 Sheet::position( const Vec4d& coordinates )
 {
     std::vector<Vector3> nf = noFrame();
     Vector3 p(0); get(coordinates,p, nf);
@@ -114,7 +114,7 @@ Vec4d Sheet::approxCoordinates( const Vector3 & pos )
 	return surface.timeAt( pos );
 }
 
-SurfaceMeshTypes::Vector3 Sheet::approxProjection( const Vector3 & point )
+SurfaceMesh::Vector3 Sheet::approxProjection( const Vector3 & point )
 {
 	Vector3 pos(0);
 	Vec4d coords = approxCoordinates(point);
@@ -146,7 +146,7 @@ Vector3 & Sheet::controlPoint( int idx )
 	return surface.mCtrlPoint[u][v];
 }
 
-SurfaceMeshTypes::Scalar Sheet::area()
+SurfaceMesh::Scalar Sheet::area()
 {
 	double factor = 0.5; // distance of first control points
 
@@ -164,7 +164,7 @@ SurfaceMeshTypes::Scalar Sheet::area()
 	return a;
 }
 
-SurfaceMeshTypes::Vector3 Sheet::center()
+SurfaceMesh::Vector3 Sheet::center()
 {
 	Vector3 pos(0);
     std::vector<Vector3> nf = noFrame();

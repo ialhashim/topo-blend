@@ -12,7 +12,7 @@ namespace VoxelerLibrary{
 class Voxeler
 {
 private:
-    SurfaceMeshModel * mesh;
+    SurfaceMesh::Model * mesh;
     NanoKdTree kd;
 	Vector3VertexProperty points;
 
@@ -20,9 +20,9 @@ private:
     NanoKdTree outerVoxels, innerVoxels;
 
 public:
-    Voxeler( SurfaceMeshModel * src_mesh, double voxel_size, bool verbose = false);
+    Voxeler( SurfaceMesh::Model * src_mesh, double voxel_size, bool verbose = false);
 
-	FaceBounds findFaceBounds( SurfaceMeshModel::Face f );
+	FaceBounds findFaceBounds( SurfaceMesh::Model::Face f );
 	bool isVoxelIntersects( const Voxel & v, Surface_mesh::Face f );
 	
 	void update();

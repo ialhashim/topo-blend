@@ -72,13 +72,13 @@ struct Graph
 	void loadFromFile(QString fileName);
 
 	// Visualization
-    void draw( qglviewer::Camera* );
+    void draw();
 	void drawAABB();
     void draw2D(int width, int height);
 	QImage fontImage;
 
 	// Synthesis
-	void materialize( SurfaceMeshModel * m, Scalar voxel_scaling = 1.0 );
+	void materialize( SurfaceMesh::Model * m, Scalar voxel_scaling = 1.0 );
 	DynamicVoxel::QuadMesh cached_mesh;
 
     // Analysis
@@ -106,5 +106,5 @@ struct Graph
 
 }
 
-Q_DECLARE_METATYPE(SurfaceMeshModel *)
+Q_DECLARE_METATYPE(SurfaceMesh::Model *)
 Q_DECLARE_METATYPE(Structure::Graph *)

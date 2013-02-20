@@ -32,7 +32,7 @@ void voxel_resampler::applyFilter(RichParameterSet *pars)
 	vox.end();
 
 	// Build mesh
-	SurfaceMeshModel * m = new SurfaceMeshModel("voxelized.obj", "voxelized");
+	SurfaceMesh::Model * m = new SurfaceMesh::Model("voxelized.obj", "voxelized");
 
 	vox.buildMesh( m );
 	m->triangulate();
@@ -43,18 +43,18 @@ void voxel_resampler::applyFilter(RichParameterSet *pars)
 	if(!keep_inner)
 	{
 		// Find new mesh segments
-		SurfaceMeshModel * outerMesh = new SurfaceMeshModel("voxelized_outer.obj", "voxelized_outer_shell");
+		SurfaceMesh::Model * outerMesh = new SurfaceMesh::Model("voxelized_outer.obj", "voxelized_outer_shell");
 		Vector3VertexProperty points = m->vertex_property<Vector3>(VPOINT);
 
 		QVector< QSet<int> > segments;
-		SurfaceMeshModel::Face_property<bool> fvisited = m->add_face_property<bool>("f:visited", false);
+		SurfaceMesh::Model::Face_property<bool> fvisited = m->add_face_property<bool>("f:visited", false);
 		int visitedCount = 0;
 
 		while(visitedCount < (int)m->n_faces()){
-			QStack<SurfaceMeshModel::Face> tovisit;
+			QStack<SurfaceMesh::Model::Face> tovisit;
 
 			// Seed face
-			foreach(SurfaceMeshModel::Face f, m->faces()){
+			foreach(SurfaceMesh::Model::Face f, m->faces()){
 				if(!fvisited[f]){
 					tovisit.push(f);
 					break;
@@ -64,8 +64,8 @@ void voxel_resampler::applyFilter(RichParameterSet *pars)
 			segments.push_back( QSet<int>() );
 
 			while( !tovisit.isEmpty() )	{
-				SurfaceMeshModel::Face f = tovisit.pop();
-				SurfaceMeshModel::Halfedge_around_face_circulator adjE(m, f), eend = adjE;
+				SurfaceMesh::Model::Face f = tovisit.pop();
+				SurfaceMesh::Model::Halfedge_around_face_circulator adjE(m, f), eend = adjE;
 				fvisited[f] = true;
 				segments.back().insert(f.idx());
 

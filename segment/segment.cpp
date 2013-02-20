@@ -6,19 +6,19 @@
 #include "Graph.h"
 
 using namespace std;
-using namespace SurfaceMeshTypes;
+using namespace SurfaceMesh;
 
 #define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )
 #define RADIANS(deg)    ((deg)/180.0 * M_PI)
 #define DEGREES(rad)    ((rad)/M_PI * 180.0)
 
-typedef SurfaceMeshModel::Halfedge_around_face_circulator HalfedgeFaceIter;
-typedef SurfaceMeshModel::Vertex_around_face_circulator VertFaceIter;
-typedef SurfaceMeshModel::Face_around_vertex_circulator FaceVertIter;
-typedef SurfaceMeshModel::Vertex_around_vertex_circulator VertIter;
+typedef SurfaceMesh::Model::Halfedge_around_face_circulator HalfedgeFaceIter;
+typedef SurfaceMesh::Model::Vertex_around_face_circulator VertFaceIter;
+typedef SurfaceMesh::Model::Face_around_vertex_circulator FaceVertIter;
+typedef SurfaceMesh::Model::Vertex_around_vertex_circulator VertIter;
 
-uint qHash( const SurfaceMeshModel::Face &key ){return qHash(key.idx()); }
-uint qHash( const SurfaceMeshModel::Vertex &key ){return qHash(key.idx()); }
+uint qHash( const SurfaceMesh::Model::Face &key ){return qHash(key.idx()); }
+uint qHash( const SurfaceMesh::Model::Vertex &key ){return qHash(key.idx()); }
 
 void segment::initParameters(RichParameterSet* pars){
 	pars->addParam( new RichFloat("angle_threshold", 10.0f, "Angle threshold"));
@@ -29,7 +29,7 @@ void segment::initParameters(RichParameterSet* pars){
 
 	// Create helper object to access points and edge lengths
 	SurfaceMeshHelper h(mesh());
-	points = h.getVector3VertexProperty(SurfaceMeshTypes::VPOINT);
+	points = h.getVector3VertexProperty(SurfaceMesh::VPOINT);
 	farea = h.computeFaceAreas();
 	elen = h.computeEdgeLengths();
 }
@@ -151,7 +151,7 @@ void segment::performCurveSheetSegmentation(double theta, double minRadius, int 
 		{
 			if(!curve_regions[i].size()) continue;
 
-			SurfaceMeshModel * m = new SurfaceMeshModel("", QString("%1_curve%2").arg(mesh()->name).arg(cid++));
+			SurfaceMesh::Model * m = new SurfaceMesh::Model("", QString("%1_curve%2").arg(mesh()->name).arg(cid++));
 			setMeshFromRegion(curve_regions[i], m);
 			m->updateBoundingBox();
 			document()->addModel(m);
@@ -162,7 +162,7 @@ void segment::performCurveSheetSegmentation(double theta, double minRadius, int 
 		{
 			if(!sheet_regions[i].size()) continue;
 
-			SurfaceMeshModel * m = new SurfaceMeshModel("", QString("%1_sheet%2").arg(mesh()->name).arg(sid++));
+			SurfaceMesh::Model * m = new SurfaceMesh::Model("", QString("%1_sheet%2").arg(mesh()->name).arg(sid++));
 			setMeshFromRegion(sheet_regions[i], m);
 			m->updateBoundingBox();
 			document()->addModel(m);
@@ -349,7 +349,7 @@ void segment::invertRegion( Region & r )
 		fclass[f] = toClass;
 }
 
-void segment::setMeshFromRegion( Region & r, SurfaceMeshModel * m)
+void segment::setMeshFromRegion( Region & r, SurfaceMesh::Model * m)
 {
 	// Get set of vertices
 	QSet<Vertex> verts; QMap< Face, QVector<Vertex> > adjV;
@@ -383,8 +383,8 @@ void segment::setMeshFromRegion( Region & r, SurfaceMeshModel * m)
 	}
 
 	// Mapping to original surface
-	SurfaceMeshModel::Vertex_property<Vertex> surface_vmap = m->vertex_property<Vertex>("v:original", Vertex());
-	SurfaceMeshModel::Face_property<Face> surface_fmap = m->face_property<Face>("f:original", Face());
+	SurfaceMesh::Model::Vertex_property<Vertex> surface_vmap = m->vertex_property<Vertex>("v:original", Vertex());
+	SurfaceMesh::Model::Face_property<Face> surface_fmap = m->face_property<Face>("f:original", Face());
 
 	foreach(Vertex v, m->vertices())
 		surface_vmap[v] = inv_vmap[v];
@@ -449,25 +449,25 @@ using namespace CurveskelTypes;
 
 void segment::splitCurveRegion(Region & r)
 {
-	SurfaceMeshModel m;
+	SurfaceMesh::Model m;
 	setMeshFromRegion(r, &m);
-	SurfaceMeshTypes::Vector3VertexProperty m_points = m.vertex_property<SurfaceMeshTypes::Vector3>(SurfaceMeshTypes::VPOINT);
-	SurfaceMeshModel::Face_property<Face> original_face = m.face_property<Face>("f:original", Face());
+	SurfaceMesh::Vector3VertexProperty m_points = m.vertex_property<SurfaceMesh::Vector3>(SurfaceMesh::VPOINT);
+	SurfaceMesh::Model::Face_property<Face> original_face = m.face_property<Face>("f:original", Face());
 
 	// Perform edge collapses until we get 1D curves:
 	CurveskelModel skel("");
 
 	// 1) Transfer vertices
-	foreach(SurfaceMeshTypes::Vertex v, m.vertices()){
-		SurfaceMeshTypes::Point p = m_points[v];
+	foreach(SurfaceMesh::Vertex v, m.vertices()){
+		SurfaceMesh::Point p = m_points[v];
 		skel.add_vertex(CurveskelTypes::Point(p[0], p[1], p[2]) );
 	}
 
 	// 2) Faces
-	foreach(SurfaceMeshTypes::Face f, m.faces()){
+	foreach(SurfaceMesh::Face f, m.faces()){
 		std::vector<CurveskelTypes::Vertex> m_vertices;
         Surface_mesh::Vertex_around_face_circulator vit = m.vertices(f),vend=vit;
-		do{ m_vertices.push_back(CurveskelTypes::Vertex( SurfaceMeshTypes::Vertex(vit).idx() )); } while(++vit != vend);
+		do{ m_vertices.push_back(CurveskelTypes::Vertex( SurfaceMesh::Vertex(vit).idx() )); } while(++vit != vend);
 		skel.add_face( m_vertices );
 	}
 
@@ -575,7 +575,7 @@ void segment::splitCurveRegion(Region & r)
 	RegionVector sub_regions;
 	sub_regions.resize( branch_id );
 
-	SurfaceMeshModel::Face_property<bool> face_assigned = m.face_property<bool>("f:assignedID", false);
+	SurfaceMesh::Model::Face_property<bool> face_assigned = m.face_property<bool>("f:assignedID", false);
 
 	foreach(CurveskelModel::Vertex skel_v, skel.vertices()){
 		int curr_id = branchID[ skel_v ];

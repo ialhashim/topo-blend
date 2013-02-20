@@ -4,7 +4,7 @@
 #include "SurfaceMeshModel.h"
 #include "SurfaceMeshHelper.h"
 
-using namespace SurfaceMeshTypes;
+using namespace SurfaceMesh;
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>

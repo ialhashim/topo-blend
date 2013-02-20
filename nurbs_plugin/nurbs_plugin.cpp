@@ -152,9 +152,9 @@ void nurbs_plugin::doFitSurface()
 	}
 
 	// 2) Grow region by comparing difference of adjacent dihedral angles
-	SurfaceMeshModel::Vertex_property<bool> vvisited = mesh()->add_vertex_property<bool>("v:visited", false);
+	SurfaceMesh::Model::Vertex_property<bool> vvisited = mesh()->add_vertex_property<bool>("v:visited", false);
 
-	QStack<SurfaceMeshModel::Vertex> to_visit;
+	QStack<SurfaceMesh::Model::Vertex> to_visit;
 	to_visit.push( mesh()->to_vertex(startEdge) );
 
 	while(!to_visit.empty())
@@ -212,7 +212,7 @@ void nurbs_plugin::doFitSurface()
 		}
 	}
 
-	SurfaceMeshModel * submesh = NULL;
+	SurfaceMesh::Model * submesh = NULL;
 	
 	bool isOpen = false;
 	foreach(Vertex v, mesh()->vertices()){
@@ -238,7 +238,7 @@ void nurbs_plugin::doFitSurface()
 		}
 
 		// Create sub-mesh
-		submesh = new SurfaceMeshModel("SideFlat.obj","SideFlat");
+		submesh = new SurfaceMesh::Model("SideFlat.obj","SideFlat");
 	
 		// Add vertices
 		std::map<Vertex,Vertex> vmap;

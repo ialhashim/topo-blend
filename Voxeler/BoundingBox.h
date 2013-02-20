@@ -2,8 +2,7 @@
 #pragma once
 
 #include "SurfaceMeshModel.h"
-#include "SurfaceMeshHelper.h"
-using namespace SurfaceMeshTypes;
+using namespace SurfaceMesh;
 
 /**
 * BoundingBox defines an axis-aligned cube that defines a

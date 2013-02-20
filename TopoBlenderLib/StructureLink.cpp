@@ -138,7 +138,7 @@ Node * Link::getNodeHasProperty( QString propertyName, QVariant propertyValue )
 	return NULL;
 }
 
-SurfaceMeshTypes::Vector3 Link::position( QString nodeID )
+SurfaceMesh::Vector3 Link::position( QString nodeID )
 {
 	Node * n = n1->id == nodeID ? n1 : n2;
 	assert(n->id == nodeID);
@@ -151,7 +151,7 @@ SurfaceMeshTypes::Vector3 Link::position( QString nodeID )
 	return pos;
 }
 
-SurfaceMeshTypes::Vector3 Link::positionOther( QString nodeID )
+SurfaceMesh::Vector3 Link::positionOther( QString nodeID )
 {
 	return position(otherNode(nodeID)->id);
 }

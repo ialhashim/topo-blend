@@ -1,5 +1,5 @@
 #include "ARAPCurveDeformer.h"
-using namespace SurfaceMeshTypes;
+using namespace SurfaceMesh;
 
 ARAPCurveDeformer::ARAPCurveDeformer( std::vector<Vec3d> curvePoints, int sizeNeighborhood )
 {

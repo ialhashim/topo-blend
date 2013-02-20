@@ -1,12 +1,16 @@
 #include <QElapsedTimer>
-#include "SurfaceMeshHelper.h"
-#include "DoubleTupleMap.h"
+
 #include "DynamicVoxel.h"
+
+#include "SurfaceMeshModel.h"
+#include "SurfaceMeshHelper.h"
+using namespace SurfaceMesh;
+
+#include "DoubleTupleMap.h"
 
 #include "weld.h"
 #include "PolygonArea.h"
 
-using namespace SurfaceMeshTypes;
 using namespace DynamicVoxelLib;
 
 // Eigen Library
@@ -328,13 +332,13 @@ void DynamicVoxel::end()
     qDebug() << "Voxel weld operation " << timer.elapsed() << " ms";
 }
 
-void DynamicVoxel::buildMesh(SurfaceMeshModel * mesh)
+void DynamicVoxel::buildMesh(SurfaceMesh::Model * mesh)
 {
     QuadMesh qmesh;
     buildMesh(mesh, qmesh);
 }
 
-void DynamicVoxel::buildMesh(SurfaceMeshModel * mesh, QuadMesh & m)
+void DynamicVoxel::buildMesh(SurfaceMesh::Model * mesh, QuadMesh & m)
 {
 	QElapsedTimer timer;
 	timer.start();
@@ -450,7 +454,7 @@ void DynamicVoxel::buildMesh(SurfaceMeshModel * mesh, QuadMesh & m)
 	}
 }
 
-void DynamicVoxel::MeanCurvatureFlow(SurfaceMeshModel * m, double dt)
+void DynamicVoxel::MeanCurvatureFlow(SurfaceMesh::Model * m, double dt)
 {
 	QElapsedTimer timer; timer.start();
 
@@ -541,7 +545,7 @@ void DynamicVoxel::MeanCurvatureFlow(SurfaceMeshModel * m, double dt)
 	qDebug() << "MCF smoothing " << timer.elapsed() << " ms";
 }
 
-void DynamicVoxel::LaplacianSmoothing(SurfaceMeshModel * m, bool protectBorders)
+void DynamicVoxel::LaplacianSmoothing(SurfaceMesh::Model * m, bool protectBorders)
 {
     Surface_mesh::Vertex_iterator vit, vend = m->vertices_end();
     Surface_mesh::Vertex_around_vertex_circulator vvit, vvend;
@@ -576,7 +580,7 @@ void DynamicVoxel::LaplacianSmoothing(SurfaceMeshModel * m, bool protectBorders)
     m->remove_vertex_property(newPositions);
 }
 
-void DynamicVoxel::FillHoles( SurfaceMeshModel *mesh, double voxel_length )
+void DynamicVoxel::FillHoles( SurfaceMesh::Model *mesh, double voxel_length )
 {
 	Vector3VertexProperty mesh_points = mesh->vertex_property<Vector3>(VPOINT);
 
@@ -654,7 +658,7 @@ void DynamicVoxel::FillHoles( SurfaceMeshModel *mesh, double voxel_length )
 	mesh->garbage_collection();
 }
 
-bool DynamicVoxel::hasHoles( SurfaceMeshModel *m )
+bool DynamicVoxel::hasHoles( SurfaceMesh::Model *m )
 {
 	foreach(Edge e, m->edges())
 		if(m->is_boundary(e))
