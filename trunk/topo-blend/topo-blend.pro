@@ -61,3 +61,6 @@ unix {
 	QMAKE_CXXFLAGS += -fopenmp 
 	LIBS += -lgomp
 }
+mac {
+    LIBS += -framework CoreFoundation
+}

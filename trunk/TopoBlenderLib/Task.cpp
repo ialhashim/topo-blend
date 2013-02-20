@@ -601,8 +601,9 @@ void Task::prepareGrowCurve()
 		Vec3d startPoint = startPointCoord.position( active );
 
 		// Initial position of curve node
-		structure_curve->foldTo(Vec4d(0.5), true);
-		structure_curve->curve.translate(startPoint - structure_curve->position(Vec4d(0.5)));	
+        Vec4d midCoord(0.5);
+        structure_curve->foldTo(midCoord, true);
+        structure_curve->curve.translate(startPoint - structure_curve->position(midCoord));
 	}
 }
 

@@ -200,8 +200,8 @@ static inline std::vector<T> concat(const std::vector<T> & A, const std::vector<
 template<typename T>
 static inline std::vector<T> subvec(const std::vector<T> & V, int start, int length = -1){
 	if(length < 0) length = V.size() - start;
-	std::vector<T>::const_iterator first = V.begin() + start;
-	std::vector<T>::const_iterator last = V.begin() + qMin(start + length, (int)V.size());
+    typename std::vector<T>::const_iterator first = V.begin() + start;
+    typename std::vector<T>::const_iterator last = V.begin() + qMin(start + length, (int)V.size());
 	return std::vector<T> (first, last);
 }
 

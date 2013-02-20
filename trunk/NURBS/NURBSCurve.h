@@ -82,7 +82,7 @@ public:
 
 	// Refinement:
 	void refine( Array1D_Real & insKnts, Array1D_Vector3 & Qw, Array1D_Real & Ubar );
-	int findSpan( int n, int p, Real u, Array1D_Real & U );
+    int findSpan(int n, int p, Real u, Array1D_Real U );
 	int findSpan( Real u );
 	
 	Array1D_Vector3 midPointRefined();

@@ -1169,7 +1169,8 @@ Array2D_Vector3 NURBSRectangle<Real>::simpleRefine( int k, int dir )
 
 		Array2D_Vector3 newPts;
 
-		curRect.refine(Array1D_Real(1,u), newPts, dir);
+        Array1D_Real insk = Array1D_Real(1,u);
+        curRect.refine(insk, newPts, dir);
 		if(dir == 1) newPts = NURBSRectangle<Real>::swapUV( newPts );
 
 		curRect = NURBSRectangle<Real>::createSheetFromPoints( newPts );
