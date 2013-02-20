@@ -2,7 +2,11 @@
 #include "LineSegment.h"
 using namespace Structure;
 
-#include "GL/GLU.h"
+#if defined(Q_OS_MAC)
+#include <OpenGL/glu.h>
+#else
+#include <GL/glu.h>
+#endif
 
 bool IsNumber(double x) {return (x == x); }
 bool IsFiniteNumber(double x) {return (x <= DBL_MAX && x >= -DBL_MAX); } 

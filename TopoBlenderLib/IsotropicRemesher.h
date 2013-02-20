@@ -1,3 +1,4 @@
+#include <float.h>
 #include "SurfaceMeshHelper.h"
 
 #define M_PI       3.14159265358979323846
@@ -62,7 +63,7 @@ struct IsotropicRemesher{
 
 
 		// Check if the triangle is degenerated
-		if (d < FLT_MIN && d > -FLT_MIN) {
+        if (d < FLT_MIN && d > -FLT_MIN) {
 			std::cerr << "distPointTriangleSquared: Degenerated triangle !\n";
 			return -1.0;
 		}

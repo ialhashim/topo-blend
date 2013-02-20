@@ -64,7 +64,7 @@ public:
 
 	void print( FILE* fp=stdout ) const
 	{
-		for( int i=0 ; i<size() ; i++ )
+        for( int i=0 ; i< std::vector< BSplineElementCoefficients< Degree > >::size() ; i++ )
 		{
 			printf( "%d]" , i );
 			for( int j=0 ; j<=Degree ; j++ ) printf( " %d" , (*this)[i][j] );

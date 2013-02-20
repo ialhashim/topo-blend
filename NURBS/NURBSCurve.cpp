@@ -325,7 +325,7 @@ Vector3 NURBSCurve<Real>::GetThirdDerivative (Real t)
     return der3;
 }
 //----------------------------------------------------------------------------
-
+template <typename Real>
 std::vector<Vector3> NURBSCurve<Real>::getControlPoints()
 {
     return mCtrlPoint;
@@ -338,7 +338,7 @@ Real NURBSCurve<Real>::timeAt( const Vector3 & pos )
 
     double timeStep = 0.1;
 
-    SubdivideByLength(1 + (1.0 / timeStep), curvePoints);
+    Curve<Real>::SubdivideByLength(1 + (1.0 / timeStep), curvePoints);
 
     int minIdx = 0;
     double t = 0.0;
@@ -451,7 +451,7 @@ Array1D_Real NURBSCurve<Real>::GetKnotVector(bool isInnerOnly)
 }
 
 template <typename Real>
-int NURBSCurve<Real>::findSpan(int n, int p, Real u, Array1D_Real & U) 
+int NURBSCurve<Real>::findSpan(int n, int p, Real u, Array1D_Real U)
 {
 	int low, high, mid;
 
@@ -656,7 +656,8 @@ Array1D_Vector3 NURBSCurve<Real>::simpleRefine( int k )
 
 		Array1D_Vector3 newPnts;
 		Array1D_Real Ubar;
-		curCurve.refine(Array1D_Real(1,u), newPnts, Ubar);
+        Array1D_Real insk = Array1D_Real(1,u);
+        curCurve.refine(insk, newPnts, Ubar);
 
 		// Update control points
 		curCurve = NURBSCurve<Real>::createCurveFromPoints(newPnts);

@@ -1,5 +1,8 @@
 #include "poissonrecon.h"
 
+// This is needed for template issue in non-windows
+#include "Src/MultiGridOctest.cpp"
+
 char **PoissonRecon::convertArguments(QStringList args)
 {
     char ** argsv = new char*[args.size()];

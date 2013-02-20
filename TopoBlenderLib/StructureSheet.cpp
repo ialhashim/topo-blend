@@ -2,7 +2,12 @@
 #include "NanoKdTree.h"
 #include "GraphDistance.h"
 #include "PCA.h"
+
+#if defined(Q_OS_MAC)
+#include <OpenGL/glu.h>
+#else
 #include <GL/glu.h>
+#endif
 
 #include "StructureSheet.h"
 using namespace Structure;
