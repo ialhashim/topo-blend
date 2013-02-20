@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SurfaceMeshTypes.h"
+#include "SurfaceMeshModel.h"
 
 #include <Eigen/Core>
 #include <Eigen/Eigen>
@@ -27,7 +27,7 @@ struct PCA{
 
 		Vec3d mean = Vec3d(0);
 
-		foreach(SurfaceMeshTypes::Point p, points){
+        foreach(SurfaceMesh::Point p, points){
 			mean += p;
 			x = p.x();	y = p.y();	z = p.z();
 

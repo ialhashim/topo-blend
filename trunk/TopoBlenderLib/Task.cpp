@@ -11,16 +11,16 @@ using namespace NURBS;
 #include "AbsoluteOrientation.h"
 
 typedef std::vector< std::pair<double,double> > VectorPairDouble;
-Q_DECLARE_METATYPE( Vector3 );
-Q_DECLARE_METATYPE( Vec4d );
-Q_DECLARE_METATYPE( VectorPairDouble );
-Q_DECLARE_METATYPE( GraphDistance::PathPointPair );
-Q_DECLARE_METATYPE( QVector< GraphDistance::PathPointPair > );
-Q_DECLARE_METATYPE( RMF );
-Q_DECLARE_METATYPE( RMF::Frame );
-Q_DECLARE_METATYPE( std::vector<RMF::Frame> );
-Q_DECLARE_METATYPE( CurveEncoding );
-Q_DECLARE_METATYPE( Eigen::Quaterniond );
+Q_DECLARE_METATYPE( Vector3 )
+Q_DECLARE_METATYPE( Vec4d )
+Q_DECLARE_METATYPE( VectorPairDouble )
+Q_DECLARE_METATYPE( GraphDistance::PathPointPair )
+Q_DECLARE_METATYPE( QVector< GraphDistance::PathPointPair > )
+Q_DECLARE_METATYPE( RMF )
+Q_DECLARE_METATYPE( RMF::Frame )
+Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
+Q_DECLARE_METATYPE( CurveEncoding )
+Q_DECLARE_METATYPE( Eigen::Quaterniond )
 
 int globalCount = 0;
 

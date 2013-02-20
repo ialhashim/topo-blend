@@ -6,7 +6,7 @@
 
 #include "SurfaceMeshHelper.h"
 
-using namespace SurfaceMeshTypes;
+using namespace SurfaceMesh;
 
 static inline Scalar deg_to_rad(const Scalar& _angle)
 { return M_PI*(_angle/180.0); }

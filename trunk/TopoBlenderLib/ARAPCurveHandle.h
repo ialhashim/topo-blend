@@ -1,7 +1,7 @@
 #include "SurfaceMeshHelper.h"
 #include "qglviewer/manipulatedFrame.h"
 using namespace qglviewer;
-using namespace SurfaceMeshTypes;
+using namespace SurfaceMesh;
 
 class ARAPCurveHandle: public ManipulatedFrame{
 	Q_OBJECT

@@ -22,7 +22,7 @@ public:
 
         mean = Vec3d(0);
 
-        foreach(SurfaceMeshTypes::Point p, points){
+        foreach(SurfaceMesh::Point p, points){
             mean += p;
             x = p.x();	y = p.y();	z = p.z();
 

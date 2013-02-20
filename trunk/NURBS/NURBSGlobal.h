@@ -4,15 +4,13 @@
 #include <set>
 
 #include "SurfaceMeshModel.h"
-#include "SurfaceMeshHelper.h"
-#include "SurfaceMeshTypes.h"
-using namespace SurfaceMeshTypes;
+using namespace SurfaceMesh;
 
 #include "weld.h"
 
 typedef Scalar Real;
 
-#define MAX_REAL std::numeric_limits<SurfaceMeshTypes::Scalar>::max()
+#define MAX_REAL std::numeric_limits<SurfaceMesh::Scalar>::max()
 #define REAL_ZERO_TOLERANCE 1e-6
 
 typedef std::vector< Vector3 > Array1D_Vector3;

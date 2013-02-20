@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>shaders/Finalization.glsl</file>
+        <file>shaders/Raycasting.glsl</file>
+    </qresource>
+</RCC>

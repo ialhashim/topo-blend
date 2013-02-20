@@ -175,7 +175,7 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * she
 
 QVector<ParameterCoord> Synthesizer::genFeatureCoords( Structure::Node * node )
 {
-	SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
+	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
 
 	// Collect original mesh points
 	Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
@@ -190,7 +190,7 @@ QVector<ParameterCoord> Synthesizer::genFeatureCoords( Structure::Node * node )
 
 QVector<ParameterCoord> Synthesizer::genEdgeCoords( Structure::Node * node, double sampling_resolution /*= -1 */ )
 {
-	SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
+	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
 	Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
 
 	// Auto resolution
@@ -221,7 +221,7 @@ QVector<ParameterCoord> Synthesizer::genEdgeCoords( Structure::Node * node, doub
 
 QVector<ParameterCoord> Synthesizer::genRandomCoords(Node *node, int samples_count)
 {
-	SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
+	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
 
 	// Sample mesh surface
 	std::vector<Vec3d> samplePoints;
@@ -235,7 +235,7 @@ QVector<ParameterCoord> Synthesizer::genRandomCoords(Node *node, int samples_cou
 
 QVector<ParameterCoord> Synthesizer::genUniformCoords(Node *node, double sampling_resolution)
 {
-    SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
+    SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
 
     // Auto resolution
     if(sampling_resolution < 0) sampling_resolution = UNIFORM_RESOLUTION;
@@ -252,8 +252,8 @@ QVector<ParameterCoord> Synthesizer::genUniformCoords(Node *node, double samplin
 
 QVector<ParameterCoord> Synthesizer::genRemeshCoords( Structure::Node * node )
 {
-	SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
-	SurfaceMeshModel copyModel;
+	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
+	SurfaceMesh::Model copyModel;
 
 	std::vector<Vec3d> samplePoints;
 
@@ -292,7 +292,7 @@ QVector<ParameterCoord> Synthesizer::genRemeshCoords( Structure::Node * node )
 
 QVector<ParameterCoord> Synthesizer::genUniformTrisCoords( Structure::Node * node )
 {
-	SurfaceMeshModel * model = node->property["mesh"].value<SurfaceMeshModel*>();
+	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
 
 	// Sample mesh surface
 	QVector<Vec3d> sample_points = SimilarSampler::All( model, UNIFORM_TRI_SAMPLES );
@@ -313,7 +313,7 @@ Vec3d Synthesizer::intersectionPoint( const Ray & ray, const Octree * useTree, i
 	// Fast, not robust tests
 	foreach( int i, useTree->intersectRay( ray, 0, false ) )
 	{
-		useTree->intersectionTestAccelerated(SurfaceMeshModel::Face(i), ray, res);
+		useTree->intersectionTestAccelerated(SurfaceMesh::Model::Face(i), ray, res);
 
 		// find the nearest intersection point
 		if(res.hit)
@@ -331,7 +331,7 @@ Vec3d Synthesizer::intersectionPoint( const Ray & ray, const Octree * useTree, i
 	// Slower, more robust tests
 	if(!best_res.hit){
 		foreach( int i, useTree->intersectRay( ray, 0.01, false ) ){
-			useTree->intersectionTestOld(SurfaceMeshModel::Face(i), ray, res);
+			useTree->intersectionTestOld(SurfaceMesh::Model::Face(i), ray, res);
 			if(res.hit){
 				if (res.distance < minDistance){
 					minDistance = res.distance;
@@ -350,7 +350,7 @@ Vec3d Synthesizer::intersectionPoint( const Ray & ray, const Octree * useTree, i
 
 void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structure::Curve * curve, QVector<double> &offsets, QVector<Vec2d> &normals )
 {
-	SurfaceMeshModel * model = curve->property["mesh"].value<SurfaceMeshModel*>();
+	SurfaceMesh::Model * model = curve->property["mesh"].value<SurfaceMesh::Model*>();
 	model->update_face_normals();
 	Vector3FaceProperty fnormals = model->face_property<Vec3d>("f:normal");
 	Octree octree(OCTREE_NODE_SIZE, model);
@@ -398,7 +398,7 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 
 		// Code the normal relative to local frame
 		Vec2d normalCoord(0);
-		Vec3d v = fnormals[ SurfaceMeshModel::Face(faceIndex) ];
+		Vec3d v = fnormals[ SurfaceMesh::Model::Face(faceIndex) ];
 
 		globalToLocalSpherical(X, Y, Z, normalCoord[0], normalCoord[1], v);
 
@@ -408,7 +408,7 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 
 void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structure::Sheet * sheet, QVector<double> &offsets, QVector<Vec2d> &normals )
 {
-	SurfaceMeshModel * model = sheet->property["mesh"].value<SurfaceMeshModel*>();
+	SurfaceMesh::Model * model = sheet->property["mesh"].value<SurfaceMesh::Model*>();
 	model->update_face_normals();
 	Vector3FaceProperty fnormals = model->face_property<Vec3d>("f:normal");
 	Octree octree(OCTREE_NODE_SIZE, model);
@@ -451,7 +451,7 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 
 		// Code the normal relative to local frame
 		Vec2d normalCoord;
-		Vec3d v = fnormals[SurfaceMeshModel::Face(faceIndex)];
+		Vec3d v = fnormals[SurfaceMesh::Model::Face(faceIndex)];
 
 		globalToLocalSpherical(X, Y, Z, normalCoord[0], normalCoord[1], v);
 		normals[i] = normalCoord;

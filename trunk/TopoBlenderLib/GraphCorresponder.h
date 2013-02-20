@@ -1,6 +1,6 @@
 #pragma once;
 
-#include "SurfaceMeshTypes.h"
+#include "SurfaceMeshModel.h"
 #include "StructureGraph.h"
 
 #include <vector>

@@ -4,6 +4,7 @@ load($$[CHOLMOD])
 load($$[EIGEN])
 load($$[NANOFLANN])
 
+
 TEMPLATE = lib
 CONFIG += staticlib
 QT += opengl xml
@@ -31,7 +32,10 @@ INCLUDEPATH += ../DynamicVoxel
 LIBS += -L$$PWD/../Reconstruction/$$CFG/lib -lReconstruction
 INCLUDEPATH += ../Reconstruction
 
-RESOURCES += shaders.qrc
+# Splat Rendering library
+LIBS += -L$$PWD/../GLSplatRendererLib/$$CFG/lib -lGLSplatRendererLib
+INCLUDEPATH += ../GLSplatRendererLib
+
 
 HEADERS += StructureNode.h \
     StructureGraph.h \
@@ -57,9 +61,7 @@ HEADERS += StructureNode.h \
     Sampler.h \
     SpherePackSampling.h \
     Octree.h \
-    PointCloudRenderer.h \
-    PointCloudRenderer.h \
-	AbsoluteOrientation.h
+    AbsoluteOrientation.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -78,16 +80,11 @@ SOURCES += StructureGraph.cpp \
     Synthesizer.cpp \
     Sampler.cpp \
     Octree.cpp \
-    PointCloudRenderer.cpp \
-	AbsoluteOrientation.cpp
+    AbsoluteOrientation.cpp
 	
-	
-FORMS += \
-    SchedulerWidget.ui
+FORMS +=  SchedulerWidget.ui
 
-# Morpher related
-#HEADERS += Morpher.h BoundingBox.h Octree.h
-#SOURCES += Morpher.cpp Octree.cpp
+RESOURCES +=
 
 # OpenMP
 win32 {

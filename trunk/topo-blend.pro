@@ -7,6 +7,7 @@ SUBDIRS += DynamicVoxel
 SUBDIRS += Voxeler
 SUBDIRS += TopoBlenderLib
 SUBDIRS += Reconstruction
+SUBDIRS += GlSplatRendererLib
 
 # Plugins
 SUBDIRS += resample
@@ -22,7 +23,7 @@ SUBDIRS += topo-blend # Main UI for topo-blending
 nurbs_plugin.depends = NURBS
 dynamic_voxel.depends = DynamicVoxel
 geometry_morph.depends = MorpherLib
-topo-blend.depends = NURBS DynamicVoxel TopoBlenderLib MorpherLib
+topo-blend.depends = NURBS DynamicVoxel TopoBlenderLib MorpherLib GlSplatRendererLib
 
 # OpenMP
 win32 {

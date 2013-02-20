@@ -1,9 +1,9 @@
 #pragma once
 
 #include "SurfaceMeshModel.h"
-#include "SurfaceMeshTypes.h"
+#include "SurfaceMeshModel.h"
 
-using namespace SurfaceMeshTypes;
+using namespace SurfaceMesh;
 
 #include "PCA3.h"
 
@@ -14,7 +14,7 @@ using namespace Eigen;
 
 struct LSCM
 {
-	LSCM( SurfaceMeshModel * useMesh )
+	LSCM( SurfaceMesh::Model * useMesh )
 	{
 		if(!useMesh->is_triangle_mesh()){
 			qDebug() << "WARNING: mesh has been triangulated!";
@@ -215,7 +215,7 @@ struct LSCM
 
 	Halfedge largest_border() 
 	{
-		SurfaceMeshModel::Halfedge_property<bool> is_visited = mesh->add_halfedge_property<bool>("h:visited", false);
+		SurfaceMesh::Model::Halfedge_property<bool> is_visited = mesh->add_halfedge_property<bool>("h:visited", false);
 
 		Halfedge result;
 		int max_size = 0 ;
@@ -298,14 +298,14 @@ struct LSCM
 	}
 
 	// Data
-	SurfaceMeshModel * mesh;
+	SurfaceMesh::Model * mesh;
 	Vector3VertexProperty points;
 	Vector3VertexProperty uv;
 	BoolVertexProperty is_locked;
 	int num_locked;
 
 	// Output
-	SurfaceMeshModel::Vertex_property<Vec2d> tex_coord;
+	SurfaceMesh::Model::Vertex_property<Vec2d> tex_coord;
 
 	// Linear system
 	Eigen::SparseMatrix<double> Mf, Mp;

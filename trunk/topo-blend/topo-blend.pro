@@ -28,6 +28,10 @@ INCLUDEPATH += ../Reconstruction
 LIBS += -L$$PWD/../TopoBlenderLib/$$CFG/lib -lTopoBlenderLib
 INCLUDEPATH += ../TopoBlenderLib
 
+# Splat Rendering library
+LIBS += -L$$PWD/../GLSplatRendererLib/$$CFG/lib -lGLSplatRendererLib
+INCLUDEPATH += ../GLSplatRendererLib
+
 HEADERS += topo-blend.h \ 
     QuickMesh.h \
     QuickViewer.h \

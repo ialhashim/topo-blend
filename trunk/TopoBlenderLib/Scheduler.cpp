@@ -480,10 +480,8 @@ void Scheduler::deformCurveByLink( Structure::Node* node, Structure::Link *link 
 	int cpidxAnchor = curve->controlPointIndexFromCoord( link->getCoord(node->id).front() );
 
 	// Move free end (linear interpolation)
-	int cpidxControl = (cpidxAnchor < curve->curve.GetNumCtrlPoints() * 0.5) ? 
-		curve->curve.GetNumCtrlPoints() - 1 : 0;
-
-	Vec3d newPosition = link->positionOther(node->id);
+    //int cpidxControl = (cpidxAnchor < curve->curve.GetNumCtrlPoints() * 0.5) ? curve->curve.GetNumCtrlPoints() - 1 : 0;
+    //Vec3d newPosition = link->positionOther(node->id);
 }
 
 void Scheduler::tranformSheetByTwoLinks( Structure::Node* node, Structure::Link *linkA, Structure::Link *linkB )

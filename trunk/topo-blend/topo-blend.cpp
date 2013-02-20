@@ -23,10 +23,6 @@ using namespace NURBS;
 // Graph Correspondence
 #include "GraphCorresponder.h"
 
-// Temporary solution
-#include "surface_mesh/IO.h"
-#include "surface_mesh/IO_off.cpp"
-
 // Temp
 TopoBlender * blender = NULL;
 Scheduler * scheduler = NULL;
@@ -146,7 +142,7 @@ void topoblend::decorate()
 	{
 		glPushMatrix();
 		glTranslatef(posX, 0, 0);
-		graphs[g]->draw( drawArea()->camera() );
+        graphs[g]->draw();
 		glPopMatrix();
 
 		posX += deltaX;
@@ -646,7 +642,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		{
 			graphs[g]->cached_mesh.clear();
 
-			SurfaceMeshModel * m = new SurfaceMeshModel( QString("Voxel_%1.obj").arg(g), QString("Voxel_%1").arg(g) );
+			SurfaceMesh::Model * m = new SurfaceMesh::Model( QString("Voxel_%1.obj").arg(g), QString("Voxel_%1").arg(g) );
 			graphs[g]->materialize(m);
 			DynamicVoxel::MeanCurvatureFlow(m, 0.05);
 			//DynamicVoxel::LaplacianSmoothing(m);
@@ -1004,6 +1000,8 @@ void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 
 void topoblend::genSynData()
 {
+	drawArea()->camera()->setType(qglviewer::Camera::PERSPECTIVE);
+
 	qApp->setOverrideCursor(Qt::WaitCursor);
 
 	QElapsedTimer timer; timer.start();
@@ -1116,6 +1114,8 @@ void topoblend::saveSynthesisData()
 void topoblend::loadSynthesisData()
 {
 	if(!blender) return;
+
+	drawArea()->camera()->setType(qglviewer::Camera::PERSPECTIVE);
 
 	QString foldername = gcoor->sgName() + "_" + gcoor->tgName();
 	QDir dir; dir.setCurrent(foldername);

@@ -1,7 +1,5 @@
 #pragma once
 
-using namespace SurfaceMeshTypes;
-
 // Functions from paper entitled "Fast Polygon Area and Newell Normal Computation",
 // Daniel Sunday, journal of graphics tools, 7(2):9-13, 2002.
 // http://www.acm.org/jgt/papers/Sunday02/FastArea.html

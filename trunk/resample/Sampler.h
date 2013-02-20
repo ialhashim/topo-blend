@@ -3,7 +3,7 @@
 #include "SurfaceMeshModel.h"
 #include "SurfaceMeshHelper.h"
 
-using namespace SurfaceMeshTypes;
+using namespace SurfaceMesh;
 
 // Helper structures
 struct SamplePoint{
@@ -47,13 +47,13 @@ public:
 	
 	SamplingMethod method;
 
-    Sampler(SurfaceMeshModel * srcMesh = NULL, SamplingMethod samplingMethod = RANDOM_BARYCENTRIC );
+    Sampler(SurfaceMesh::Model * srcMesh = NULL, SamplingMethod samplingMethod = RANDOM_BARYCENTRIC );
 	Sampler(void * srcMesh, SamplingMethod samplingMethod);
 	// Get samples
 	SamplePoint getSample(double weight = 0.0);
     std::vector<SamplePoint> getSamples(int numberSamples, double weight = 0.0);
 
-    SurfaceMeshModel * mesh;
+    SurfaceMesh::Model * mesh;
 	double totalMeshArea;
 
 	// For Monte Carlo
