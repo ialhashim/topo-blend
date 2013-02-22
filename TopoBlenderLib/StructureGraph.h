@@ -66,7 +66,8 @@ struct Graph
 	QList<Link*> furthermostEdges( QString nodeID );
 	Vector3 position( QString nodeID, Vec4d coord );
 	void replaceCoords( QString nodeA, QString nodeB, std::vector<Vec4d> coordA, std::vector<Vec4d> coordB );
-	
+	int indexOfNode( Node * node );
+
 	// Input / Output
 	void saveToFile(QString fileName) const;
 	void loadFromFile(QString fileName);
@@ -84,7 +85,10 @@ struct Graph
     // Analysis
     Node * rootBySize();
     Node * rootByValence();
+	int numCanVisit( Structure::Node * node );
+	bool isConnected();
 	bool isCutNode(QString nodeID);
+	bool isBridgeEdge( Structure::Link * link );
 
 	// Modifier
 	void moveBottomCenterToOrigin();

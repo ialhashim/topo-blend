@@ -199,7 +199,7 @@ void Graph::removeEdge( Node * n1, Node * n2 )
 	{
 		Link * e = edges[i];
 
-		if((e->n1 == n1 && e->n2 == n2) || (e->n2 == n1 && e->n1 == n2)){
+		if((e->n1->id == n1->id && e->n2->id == n2->id) || (e->n2->id == n1->id && e->n1->id == n2->id)){
 			edge_idx = i;
 			break;
 		}
@@ -209,8 +209,15 @@ void Graph::removeEdge( Node * n1, Node * n2 )
 
 	edges.remove(edge_idx);
 
-	adjacency(nodes.indexOf(n1), nodes.indexOf(n2)) = 0;
-	adjacency(nodes.indexOf(n2), nodes.indexOf(n1)) = 0;
+	adjacency(indexOfNode(n1), indexOfNode(n2)) = 0;
+	adjacency(indexOfNode(n2), indexOfNode(n1)) = 0;
+}
+
+int Graph::indexOfNode( Node * node )
+{
+	for(int i = 0; i < (int) nodes.size(); i++)
+		if(nodes[i]->id == node->id) return i;
+	return -1;
 }
 
 QString Graph::linkName(Node *n1, Node *n2)
@@ -1113,6 +1120,36 @@ QList<Link*> Graph::furthermostEdges( QString nodeID )
 	return sortedLinks.values();
 }
 
+int Graph::numCanVisit( Structure::Node * node )
+{
+	QMap<QString, bool> visitedNodes;
+	QStack<QString> nodesToVisit;
+
+	nodesToVisit.push( node->id );
+
+	// Visit all nodes without going through a deleted edge
+	while(! nodesToVisit.isEmpty() )
+	{
+		QString id = nodesToVisit.pop();
+		visitedNodes[id] = true;
+
+		foreach(Link * l, getEdges(id))
+		{
+			QString adjID = l->otherNode(id)->id;
+
+			if( !visitedNodes.contains(adjID) && !nodesToVisit.contains(adjID))
+				nodesToVisit.push(adjID);
+		}
+	}
+
+	return visitedNodes.size();
+}
+
+bool Graph::isConnected()
+{
+	return numCanVisit( nodes.front() ) == nodes.size();
+}
+
 bool Graph::isCutNode( QString nodeID )
 {
 	QSet<Link*> isDeleted;
@@ -1160,6 +1197,19 @@ bool Graph::isCutNode( QString nodeID )
 		return true;
 	else
 		return false;
+}
+
+bool Graph::isBridgeEdge( Structure::Link * link )
+{
+	Structure::Graph g = *this;
+	
+	int beforeCount = g.numCanVisit( link->n1 );
+
+	g.removeEdge(link->n1, link->n2);
+
+	int afterCount = g.numCanVisit( link->n1 );
+
+	return beforeCount != afterCount;
 }
 
 void Graph::replaceCoords( QString nodeA, QString nodeB, std::vector<Vec4d> coordA, std::vector<Vec4d> coordB )

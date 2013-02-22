@@ -425,7 +425,6 @@ void Task::prepareShrinkCurve()
 		prepareShrinkCurveConstraint();
 		return;
 	}
-
 	
 	if(edges.size() == 1)
 	{
@@ -663,7 +662,7 @@ void Task::prepareShrinkCurveConstraint()
 	Structure::Node * n = node();
 	Structure::Curve* structure_curve = ((Structure::Curve*)n);
 
-	if (property.contains("isCutNode"))
+	if ( property.contains("isCutNode") )
 	{
 		// Find first link to a sheet
 		QVector<Structure::Link*> my_edges = active->getEdges(n->id); 
@@ -729,25 +728,26 @@ void Task::prepareMorphCurve()
 	Structure::Curve* structure_curve = ((Structure::Curve*)node());
 	Structure::Node * tn = targetNode();
 	QVector<Structure::Link*> edges = active->getEdges(n->id);
-
+	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
+	
 	// 1) SINGLE edge
 	if(edges.size() == 1)
 	{
 		Structure::Link * link = edges.front();
 		Vec3d startPoint = link->position(n->id);
-		Vec3d endPoint = link->positionOther(n->id);
+		Vec3d endPoint = futureLinkPosition(link);
 
 		// Compute path
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
 		GraphDistance gd(active, exclude);
 		gd.computeDistances( endPoint, DIST_RESOLUTION );
 		QVector< GraphDistance::PathPointPair > path;
-		gd.smoothPathCoordTo(startPoint, path);
+		gd.smoothPathCoordTo( startPoint, path );
 
-		path = smoothStart( link->getCoord(n->id).front(), path );
-		
 		if(path.size())
 		{
+			path = smoothStart( link->getCoord(n->id).front(), path );
+		
 			path = this->weldPath( path );
 			property["path"].setValue( path );
 		}
@@ -985,7 +985,7 @@ Array1D_Vector3 Task::decodeSheet( SheetEncoding cpCoords, Vector3 origin, Vecto
 // EXECUTE
 void Task::execute( double t )
 {	
-	if(!isActive(t)) return;
+	if( !isActive(t) ) return;
 	if ( !isReady ) prepare();
 
 	currentTime = start + (t * length);
@@ -1033,12 +1033,10 @@ void Task::executeShrinkCurve( double t )
 	Structure::Node *n = node();
 	QVector<Structure::Link*> edges = active->getEdges(n->id);
 
-
 	// Cut node
 	if (property.contains("isCutNode"))
 	{
 		executeCurveConstrained(t);
-		n->property["isReady"] = false;
 		return;
 	}
 
@@ -1097,29 +1095,20 @@ void Task::executeCurveConstrained( double t )
 	Structure::Node * n = node();
 	Structure::Curve* current_curve = ((Structure::Curve*)n);
 
-	// Grow / shrink the node
+	// Grow / shrink parameters
 	Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
 	Array1D_Vector3 deltas = property["deltas"].value<Array1D_Vector3>();
 	QString anchorNode = property["anchorNode"].toString();
 
 	// Grow / shrink curve
+	Array1D_Vector3 newPts;
 	for(int u = 0; u < current_curve->curve.mNumCtrlPoints; u++)
-		current_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);
-
-	// Re-link:
-	foreach( Structure::Link * edge, active->getEdges(n->id) )
 	{
-		Structure::Node * otherNode = edge->otherNode(n->id);
-		if(otherNode->id == anchorNode) continue;
-
-		Structure::Curve* other_curve = ((Structure::Curve*) otherNode);
-
-		int nCtrl = other_curve->curve.GetNumCtrlPoints();
-		int idx_control = other_curve->controlPointIndexFromCoord( edge->getCoord(other_curve->id).front() );
-		int idx_anchor = (idx_control > nCtrl / 2) ? 0 : nCtrl - 1;
-
-		Vec3d newPosCtrl = edge->position(n->id);
+		Vec3d delta = deltas[u] * t;
+		newPts.push_back( cpts[u] + delta );
 	}
+
+	n->setControlPoints( newPts );
 }
 
 void Task::executeGrowShrinkSheet( double t )
@@ -1180,6 +1169,12 @@ void Task::executeMorphCurve( double t )
 
 		QVector< GraphDistance::PathPointPair > path = property["path"].value< QVector< GraphDistance::PathPointPair > >();
 
+		if(path.size())
+		{
+			int idx = t * (path.size() - 1);
+
+			n->deformTo( edge->getCoord(n->id).front(), path[idx].position(active) );
+		}
 	}
 
 	// 2) TWO edges
