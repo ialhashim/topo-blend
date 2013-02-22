@@ -79,7 +79,8 @@ void Curve::get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> &
 SurfaceMesh::Vector3 Curve::position( const Vec4d& coordinates )
 {
     std::vector<Vec3d> nf = noFrame();
-    Vector3 p(0); get(coordinates, p, nf);
+    Vector3 p(0); 
+	get(coordinates, p, nf);
 	return p;
 }
 
@@ -314,12 +315,14 @@ void Curve::deformTo( const Vec4d & handle, const Vector3 & to )
 	Vector3 p = position( handle );
 
 	double diff = (p-to).norm();
-	if(diff < 1e-8) return;
+	if(diff < 1e-7) return;
 
 	Vector3 otherEnd = position( otherEndCoord );
 
 	// Find new scale
-	double scale = (to - otherEnd).norm() / (p - otherEnd).norm();
+	double d = (p - otherEnd).norm();
+
+	double scale = (to - otherEnd).norm() / d;
 
 	// Find minimum rotation
 	Vector3 dirFrom = (p - otherEnd).normalized();

@@ -44,7 +44,11 @@ public:
 	bool isExtraEdge(Structure::Link *link);
 	void tagEdge(Structure::Link *link, QString tag);
 	bool taggedEdge(Structure::Link *link, QString tag);
+	bool isCorrespondedEdge(Structure::Link *link);
+	bool isShareCorrespondedNode( Structure::Link * slink, Structure::Link * tlink );
 	QVector<QString> cloneGraphNode(Structure::Graph *g, QString nodeID, int N);
+	QMap<Structure::Link*, int> linkCounts(QVector<Structure::Link*> edgeGroupA, 
+		QVector<Structure::Link*> edgeGroupB, Structure::Graph * graphB);
 
 	// Tasks
 	void generateTasks();

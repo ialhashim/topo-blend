@@ -181,6 +181,24 @@ void Scheduler::executeAll()
 
 	QVector<Task*> allTasks = tasksSortedByStart();
 
+	// Early preparations needed for cut nodes
+	for(int i = 0; i < (int)allTasks.size(); i++)
+	{
+		Task * task = allTasks[i];
+		Structure::Node * node = task->node();
+
+		if( task->type == Task::GROW && targetGraph->isCutNode(task->targetNode()->id) )
+		{
+			task->prepare();
+			task->property["cutNodeGrow"] = true;
+		}
+
+		if( task->type == Task::SHRINK && sourceGraph->isCutNode(task->node()->id) )
+		{
+			task->property["cutNodeShrink"] = true;
+		}
+	}
+
 	// Execute all tasks
 	for(double globalTime = 0; globalTime <= (1.0 + timeStep); globalTime += timeStep)
 	{
@@ -195,7 +213,7 @@ void Scheduler::executeAll()
 			QVector<QString> rtasks = activeTasks(globalTime * totalTime);
 			activeGraph->property["running_tasks"].setValue( rtasks );
 
-			if(localTime < 0) continue;
+			if( localTime < 0 || task->isDone ) continue;
 
 			prepare_relink( task );
 
@@ -204,7 +222,7 @@ void Scheduler::executeAll()
 			relink( task );
 		}
 
-		// Relink
+		// OLD: Relink
 		//relink(globalTime * totalTime);
 
 		// Output current active graph:
@@ -222,6 +240,70 @@ void Scheduler::executeAll()
 	emit( progressDone() );
 
 	qApp->restoreOverrideCursor();
+}
+
+void Scheduler::prepare_relink( Task * task )
+{
+	if(task->property.contains("linkDeltas")) return;
+
+	Structure::Node * n = task->node();
+	QVector<Structure::Link*> edges = activeGraph->getEdges(n->id);
+
+	LinksDelta deltas;
+
+	if( task->property.contains("cutNodeGrow") )
+	{
+		foreach(Structure::Link* link, edges)
+		{
+			Structure::Node * other = link->otherNode(n->id);
+			Task * otherTask = getTaskFromNodeID(other->id);
+
+			otherTask->isDone = false;
+		}
+	}
+
+	foreach(Structure::Link* link, edges)
+	{
+		Structure::Node * other = link->otherNode(n->id);
+		Task * otherTask = getTaskFromNodeID(other->id);
+
+		if( !otherTask->isDone )
+		{
+			Vec3d delta = link->positionOther(n->id) - link->position(n->id);
+			if(delta.norm() < 1e-7) delta = Vector3(0);
+
+			deltas[ link ] = delta;
+		}
+	}
+
+	task->property["linkDeltas"].setValue( deltas );
+}
+
+void Scheduler::relink( Task * task )
+{
+	LinksDelta deltas = task->property["linkDeltas"].value<LinksDelta>();
+	if( !deltas.size() ) return;
+
+	if( task->type != Task::MORPH && 
+		!task->property.contains("cutNodeGrow") && 
+		!task->property.contains("cutNodeShrink"))
+		return;
+
+	Structure::Node * n = task->node();
+
+	foreach(Structure::Link * link, deltas.keys())
+	{
+		if( !link->hasNode(n->id) ) continue;
+
+		Structure::Node * other = link->otherNode(n->id);
+
+		Vec4d handle = link->getCoordOther(n->id).front();
+
+		Vector3 delta = deltas[link];
+		Vector3 newPos = link->position(n->id) + delta;
+
+		other->deformTo( handle, newPos );
+	}
 }
 
 void Scheduler::drawDebug()
@@ -303,49 +385,6 @@ QVector<QString> Scheduler::activeTasks( double globalTime )
 	}
 
 	return aTs;
-}
-
-void Scheduler::prepare_relink( Task * task )
-{
-	Structure::Node * n = task->node();
-	Structure::Node * tn = task->targetNode();
-	if(!tn) return;
-
-	QVector<Structure::Link*> edges = activeGraph->getEdges(n->id);
-	QVector<Structure::Link*> tedges = targetGraph->getEdges(tn->id);
-
-	LinksDelta deltas;
-
-	foreach(Structure::Link* link, edges)
-	{
-		Structure::Node * other = link->otherNode(n->id);
-		Task * otherTask = getTaskFromNodeID(other->id);
-
-		if( !otherTask->isDone )
-			deltas[ link ] = link->positionOther(n->id) - link->position(n->id);
-	}
-
-	task->property["linkDeltas"].setValue( deltas );
-}
-
-void Scheduler::relink( Task * task )
-{
-	LinksDelta deltas = task->property["linkDeltas"].value<LinksDelta>();
-	if( !deltas.size() ) return;
-
-	if(task->type != Task::MORPH) return;
-
-	Structure::Node * n = task->node();
-
-	foreach(Structure::Link * link, deltas.keys())
-	{
-		Vec4d handle = link->getCoordOther(n->id).front();
-
-		Vector3 delta = deltas[link];
-		Vector3 newPos = link->position(n->id) + delta;
-
-		link->otherNode(n->id)->deformTo( handle, newPos );
-	}
 }
 
 void Scheduler::relink( double t )
@@ -506,6 +545,8 @@ QList<Task*> Scheduler::sortTasksByPriority( QList<Task*> currentTasks )
 	QMap<Task*,int> curveTasks, sheetTasks;
 	foreach(Task* t, currentTasks)
 	{
+		if(!t->node()) continue;
+
 		if(t->node()->type() == Structure::CURVE) 
 			curveTasks[t] = activeGraph->valence(t->node());
 		if(t->node()->type() == Structure::SHEET) 
