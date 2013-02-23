@@ -57,8 +57,8 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 	DynamicGraph sdg(scheduler->activeGraph);
 	DynamicGraph tdg(scheduler->targetGraph);
 
-	toGraphviz(sdg, "_sourceGraph", true, "super", "source graph");
-	toGraphviz(tdg, "_targetGraph", true, "super", "target graph");
+	toGraphviz(sdg, "_sourceGraph", true, QString("V = %1, E = %2").arg(sdg.nodes.size()).arg(sdg.edges.size()), "super source graph");
+	toGraphviz(tdg, "_targetGraph", true, QString("V = %1, E = %2").arg(tdg.nodes.size()).arg(tdg.edges.size()), "super target graph");
 
 	// Show the scheduler window:
 	SchedulerWidget * sw = new SchedulerWidget( scheduler );
@@ -449,12 +449,19 @@ void TopoBlender::correspondSuperEdges()
 	}
 
 	// Store correspondences in the graphs
-	foreach (QString slink, superEdgeCorr.keys())
+	foreach (QString slinkID, superEdgeCorr.keys())
 	{
-		QString tlink = superEdgeCorr[slink];
+		QString tlinkID = superEdgeCorr[slinkID];
 
-		if (!slink.contains("null")) super_sg->getEdge(slink)->property["correspond"] = tlink;
-		if (!tlink.contains("null")) super_tg->getEdge(tlink)->property["correspond"] = slink;
+		Structure::Link * slink = super_sg->getEdge(slinkID);
+		Structure::Link * tlink = super_tg->getEdge(tlinkID);
+
+		// Add missing links from extra nodes
+		if(!slink) slink = addMissingLink(super_sg, tlink);
+		if(!tlink) tlink = addMissingLink(super_tg, slink);
+
+		slink->property["correspond"] = tlinkID;
+		tlink->property["correspond"] = slinkID;
 	}
 }
 
@@ -529,8 +536,6 @@ void TopoBlender::generateTasks()
 
 void TopoBlender::equalizeResolutions()
 {
-	qDebug() << "Equalizing resolutions...";
-
 	foreach (PART_LANDMARK vec2vec, gcoor->correspondences)
 	{
 		QVector<QString> sNodes = vec2vec.first;
@@ -573,6 +578,15 @@ void TopoBlender::equalizeResolutions()
 			if (tnode != bestNode) tnode->equalizeControlPoints(bestNode);
 		}
 	}
+}
 
-	qDebug() << "Equalizing resolution is done.";
+Structure::Link * TopoBlender::addMissingLink( Structure::Graph *g, Structure::Link * link )
+{
+	Structure::Node * bn1 = link->n1;
+	Structure::Node * bn2 = link->n2;
+	Structure::Node * an1 = g->getNode(bn1->property["correspond"].toString());
+	Structure::Node * an2 = g->getNode(bn2->property["correspond"].toString());
+	LinkCoords c1 = link->getCoord(bn1->id);
+	LinkCoords c2 = link->getCoordOther(bn1->id);
+	return g->addEdge(an1, an2, c1, c2, g->linkName(an1, an2));
 }
