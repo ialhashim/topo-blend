@@ -211,6 +211,8 @@ void Graph::removeEdge( Node * n1, Node * n2 )
 
 	adjacency(indexOfNode(n1), indexOfNode(n2)) = 0;
 	adjacency(indexOfNode(n2), indexOfNode(n1)) = 0;
+
+	qDebug() << QString("[%1]->removeEdge( %2, %3 )").arg(name()).arg(n1->id).arg(n2->id);
 }
 
 int Graph::indexOfNode( Node * node )
@@ -1354,14 +1356,15 @@ QVector<POINT_ID> Graph::selectedControlPointsByColor(QColor color)
 	return result;
 }
 
-void Structure::Graph::clearSelections()
+void Graph::clearSelections()
 {
 	foreach(Structure::Node *node, nodes)
 		node->selections.clear();
 }
 
-void Structure::Graph::printLinksInfo()
+void Graph::printLinksInfo()
 {
+	qDebug() << QString("Graph [%1]").arg(name());
 	foreach(Link * e, edges)
 	{
 		QStringList c_string;
@@ -1375,4 +1378,9 @@ void Structure::Graph::printLinksInfo()
 
 		qDebug() << e->id << "\t=> c1 [ " << c_string.front() << " ] \t c2 [ " << c_string.back() << " ]" ;
 	}
+}
+
+QString Graph::name()
+{
+	return property["name"].toString().section('\\', -1).section('.', 0, 0);
 }

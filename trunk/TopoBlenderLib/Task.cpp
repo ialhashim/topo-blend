@@ -1225,15 +1225,18 @@ void Task::executeMorphCurve( double t )
 		}
 
 		// There are one or two edges need to be updated
-		if (type == Task::MORPH)
+		if (edges.size() < 3)
 		{
-			foreach(Structure::Link *link, edges)
+			if (type == Task::MORPH)
 			{
-				QString otherNode = link->otherNode(n->id)->id;
+				foreach(Structure::Link *link, edges)
+				{
+					QString otherNode = link->otherNode(n->id)->id;
 
-				NodeCoord fnc = futureOtherNodeCoord(link);
+					NodeCoord fnc = futureOtherNodeCoord(link);
 
-				link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
+					link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
+				}
 			}
 		}
 	}

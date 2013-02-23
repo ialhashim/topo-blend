@@ -177,7 +177,6 @@ void Scheduler::executeAll()
 
 	double timeStep = 0.01;
 	int totalTime = totalExecutionTime();
-	isForceStop = false;
 
 	QVector<Task*> allTasks = tasksSortedByStart();
 
@@ -222,13 +221,8 @@ void Scheduler::executeAll()
 			relink( task );
 		}
 
-		// OLD: Relink
-		//relink(globalTime * totalTime);
-
 		// Output current active graph:
-		allGraphs.push_back( new Structure::Graph( *(tasks.front()->active) ) );
-
-		if(isForceStop) break;
+		allGraphs.push_back( new Structure::Graph( *activeGraph ) );
 
 		// UI - visual indicator:
 		int percent = globalTime * 100;

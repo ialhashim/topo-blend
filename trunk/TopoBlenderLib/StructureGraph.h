@@ -32,6 +32,7 @@ struct Graph
     QMap< QString, QVariant > property;
 	Eigen::MatrixXd adjacency;
 	QMap< QString, void* > misc;
+	QString name();
 
 	int valence(Node * n);
 	

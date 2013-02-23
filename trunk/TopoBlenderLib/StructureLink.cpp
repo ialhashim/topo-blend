@@ -58,7 +58,10 @@ void Link::replace(QString oldNodeID, Node *newNode, std::vector<Vec4d> newCoord
 	}
 
 	// Change my ID
-	id = id.replace(oldNodeID, newNode->id);
+	QString oldID = id;
+	id = id.replace( oldNodeID, newNode->id );
+
+	if(id != oldID) qDebug() << QString("Link replace [%1] to [%2]").arg(oldID, id);
 }
 
 Node * Link::otherNode( QString nodeID )

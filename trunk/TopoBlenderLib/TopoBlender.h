@@ -47,6 +47,7 @@ public:
 	bool isCorrespondedEdge(Structure::Link *link);
 	bool isShareCorrespondedNode( Structure::Link * slink, Structure::Link * tlink );
 	QVector<QString> cloneGraphNode(Structure::Graph *g, QString nodeID, int N);
+	Structure::Link * addMissingLink( Structure::Graph *g, Structure::Link * link );
 	QMap<Structure::Link*, int> linkCounts(QVector<Structure::Link*> edgeGroupA, 
 		QVector<Structure::Link*> edgeGroupB, Structure::Graph * graphB);
 
