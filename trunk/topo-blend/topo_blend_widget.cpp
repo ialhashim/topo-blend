@@ -23,9 +23,10 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 
 	// Save / load graphs
     topo_blend->connect(ui->loadButton, SIGNAL(clicked()), SLOT(loadModel()));
-	topo_blend->connect(ui->saveButton, SIGNAL(clicked()), SLOT(saveModel()));
-	topo_blend->connect(ui->linksButton, SIGNAL(clicked()), SLOT(modifyModel()));
-	topo_blend->connect(ui->clearButton, SIGNAL(clicked()), SLOT(clearGraphs()));
+    topo_blend->connect(ui->saveButton, SIGNAL(clicked()), SLOT(saveModel()));
+    topo_blend->connect(ui->clearButton, SIGNAL(clicked()), SLOT(clearGraphs()));
+    topo_blend->connect(ui->linksButton, SIGNAL(clicked()), SLOT(modifyModel()));
+    topo_blend->connect(ui->alignButton, SIGNAL(clicked()), SLOT(quickAlign()));
 
 	// Animation widget
 	topo_blend->connect(ui->button4, SIGNAL(clicked()), SLOT(currentExperiment()));

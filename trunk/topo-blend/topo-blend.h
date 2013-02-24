@@ -60,8 +60,9 @@ public slots:
 	// Graphs
     void loadModel();
 	void saveModel();
-	void modifyModel();
-	void clearGraphs();
+    void clearGraphs();
+    void modifyModel();
+    void quickAlign();
 
 	void experiment1();
 	void currentExperiment();

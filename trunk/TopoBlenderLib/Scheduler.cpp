@@ -203,12 +203,14 @@ void Scheduler::executeAll()
 	{
 		QElapsedTimer timer; timer.start();
 
+		activeGraph->setPropertyAll("isActive", false);
+
 		for(int i = 0; i < (int)allTasks.size(); i++)
 		{
 			Task * task = allTasks[i];
 			double localTime = task->localT( globalTime * totalTime );
 			task->node()->property["t"] = localTime;
-
+	
 			QVector<QString> rtasks = activeTasks(globalTime * totalTime);
 			activeGraph->property["running_tasks"].setValue( rtasks );
 
@@ -219,6 +221,15 @@ void Scheduler::executeAll()
 			task->execute( localTime );
 
 			relink( task );
+
+			if(localTime >= 0.0 && localTime < 1.0) task->node()->property["isActive"] = true;
+		}
+
+		// Geometry morphing
+		foreach(Task * task, allTasks){
+			double localTime = task->localT( globalTime * totalTime );
+			if( localTime < 0 ) continue;
+			task->geometryMorph( localTime );
 		}
 
 		// Output current active graph:
