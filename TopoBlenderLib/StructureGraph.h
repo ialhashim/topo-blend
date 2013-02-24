@@ -55,6 +55,10 @@ struct Graph
 	QString linkName( QString n1_id, QString n2_id );
     QString linkName( Node * n1, Node * n2 );
 
+	// Node-wide Operations
+	void setPropertyAll( QString prop_name, QVariant value );
+	void setPropertyFor( QVector<QString> nodeIDs, QString prop_name, QVariant value );
+
     // Accessors
     Node* getNode(QString nodeID);
 	Link* getEdge(QString linkID);
@@ -94,8 +98,10 @@ struct Graph
 	// Modifier
 	void moveBottomCenterToOrigin();
 	void normalize();
+	void translate(Vector3 delta);
 	void rotate(double angle, Vector3 axis);
 	void scale(double scaleFactor);
+	void transform(QMatrix4x4 mat);
 
 	// Point Landmarks
 	QVector<POINT_ID> selectedControlPointsByColor(QColor color);

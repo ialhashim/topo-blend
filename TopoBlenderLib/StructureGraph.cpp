@@ -272,6 +272,17 @@ Link* Structure::Graph::getEdge( QString linkID )
 	return NULL;
 }
 
+void Structure::Graph::setPropertyAll( QString prop_name, QVariant value )
+{
+	foreach(Node* n, nodes) 
+		n->property[prop_name].setValue(value);
+}
+
+void Structure::Graph::setPropertyFor( QVector<QString> nodeIDs, QString prop_name, QVariant value )
+{
+	foreach(QString nodeID, nodeIDs) 
+		(getNode(nodeID))->property[prop_name].setValue(value);
+}
 
 void Graph::draw()
 {
@@ -282,27 +293,52 @@ void Graph::draw()
 
     foreach(Node * n, nodes)
     {
+		if (n->property.contains("isReady") && !n->property["isReady"].toBool())
+			continue;
+
+		// Morph-time coloring
+		if( n->property.contains("isActive")  )
+		{
+			if(n->property["isActive"].toBool())
+				n->vis_property["color"] = QColor(150,150,255);
+			else
+				n->vis_property["color"] = QColor(150,255,150);
+		}
+		 
+		n->draw();
+
 		// Task visualization:
 		{
-			//glDisable(GL_LIGHTING);
+			glDisable(GL_LIGHTING);
+
 			//glPointSize(20);
 			//glBegin(GL_POINTS);
-
 			//if(n->property.contains("p1")) glColor3d(1,0,0.7);	glVector3(n->property["p1"].value<Vec3d>());
 			//if(n->property.contains("p2")) (1,0,1);	glVector3(n->property["p2"].value<Vec3d>());
 			//if(n->property.contains("q1")) glColor3d(1,0.5,0.7);	glVector3(n->property["q1"].value<Vec3d>());
 			//if(n->property.contains("q2")) (1,0.5,1);	glVector3(n->property["q2"].value<Vec3d>());
-
 			//glEnd();
-			//glEnable(GL_LIGHTING);
 
-			//if(n->property.contains("rmf"))
-			//{
-			//	RMF rmf = n->property["rmf"].value<RMF>();
-			//	FrameSoup fs(0.025);
-			//	foreach(RMF::Frame f, rmf.U) fs.addFrame(f.r, f.s, f.t, f.center);
-			//	fs.draw();
-			//}
+			if( n->property.contains("isActive") && n->property["isActive"].toBool() )
+			{
+				if( n->property.contains("rmf") )
+				{
+					RMF rmf = n->property["rmf"].value<RMF>();
+					FrameSoup fs(0.01);
+					foreach(RMF::Frame f, rmf.U) fs.addFrame(f.r, f.s, f.t, f.center);
+					fs.draw();
+				}
+
+				if( n->property.contains("path") )
+				{
+					PointSoup ps;
+					foreach(Vector3 p, n->property["path"].value<Array1D_Vector3>())
+						ps.addPoint(p);
+					ps.draw();
+				}
+			}
+
+			glEnable(GL_LIGHTING);
 
 			//if(n->property.contains("sheetFrame"))
 			//{
@@ -321,11 +357,6 @@ void Graph::draw()
 			//	fs.draw();
 			//}
 		}
-
-		if (n->property.contains("isReady") && !n->property["isReady"].toBool())
-			continue;
-
-        n->draw();
 
 		if(n->type() == SHEET)
 		{
@@ -1230,59 +1261,17 @@ Vector3 Graph::position( QString nodeID, Vec4d coord )
 	return getNode(nodeID)->position(coord);
 }
 
-void Graph::moveBottomCenterToOrigin()
+void Graph::translate( Vector3 delta )
 {
-	QBox3D aabb = bbox();
-	double height = aabb.maximum().z() - aabb.minimum().z();
-	Vec3d bottom_center(aabb.center().x(), aabb.center().y(), aabb.center().z() - height/2);
-
 	foreach (Structure::Node * node, nodes)
 	{
-		node->moveBy( -bottom_center );
-		
+		node->moveBy( delta );
+
+		// Apply to actual geometry
 		if(!node->property.contains("mesh")) continue;
-
-		// Move actual geometry
-        SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
+		SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
 		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
-		foreach(Vertex v, model->vertices())
-			points[v] -= bottom_center;
-	}
-
-	// Update the bounding box
-	property["AABB"].setValue(bbox());
-}
-
-void Graph::normalize()
-{
-	// Normalize the height to be 1
-	QBox3D aabb = bbox();
-	double height = aabb.maximum().z() - aabb.minimum().z();
-
-	if(height == 0.0) height = 1.0;
-
-	double scaleFactor = 1.0 / height;
-
-	foreach (Structure::Node * node, nodes)
-	{
-		node->scale(scaleFactor);
-		
-		if(!node->property.contains("mesh")) continue;
-
-		// Move actual geometry
-        SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
-		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
-		foreach(Vertex v, model->vertices())
-			points[v] *= scaleFactor;
-	}
-
-	// Rebuild visualization geometry
-	foreach (Structure::Node * node, nodes){
-		if(node->type() == Structure::SHEET)
-		{
-			Structure::Sheet * sheet = (Structure::Sheet *)node;
-			sheet->surface.quads.clear();
-		}
+		foreach(Vertex v, model->vertices()) points[v] -= delta;
 	}
 
 	// Update the bounding box
@@ -1309,11 +1298,6 @@ void Graph::rotate( double angle, Vector3 axis )
 	}
 }
 
-void Graph::removeEdge( QString n1_id, QString n2_id )
-{
-	removeEdge( getNode(n1_id),getNode(n2_id) );
-}
-
 void Graph::scale( double scaleFactor )
 {
 	double current_scale = 1.0;
@@ -1338,6 +1322,82 @@ void Graph::scale( double scaleFactor )
 	property["scale"] = scaleFactor;
 
 	property["AABB"].setValue(bbox());
+}
+
+void Graph::transform( QMatrix4x4 mat )
+{
+	Vector3 c = bbox().center();
+
+	foreach (Structure::Node * node, nodes)
+	{
+		Array1D_Vector3 controlPoints = node->controlPoints();
+		for(int i = 0; i < (int)controlPoints.size(); i++)
+			controlPoints[i] = mat * controlPoints[i];
+		node->setControlPoints(controlPoints);
+		
+		// Update needed for Sheets
+		if(node->type() == Structure::SHEET)
+			((Structure::Sheet*)node)->surface.quads.clear();
+		
+
+		// Transform actual geometry
+		//if(!node->property.contains("mesh")) continue;
+		//SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
+		//Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+		//foreach(Vertex v, model->vertices()) points[v] = mat * points[v];
+	}
+}
+
+void Graph::moveBottomCenterToOrigin()
+{
+	QBox3D aabb = bbox();
+	double height = aabb.maximum().z() - aabb.minimum().z();
+	Vec3d bottom_center(aabb.center().x(), aabb.center().y(), aabb.center().z() - height/2);
+
+	translate( -bottom_center );
+
+	// Update the bounding box
+	property["AABB"].setValue(bbox());
+}
+
+void Graph::normalize()
+{
+	// Normalize the height to be 1
+	QBox3D aabb = bbox();
+	double height = aabb.maximum().z() - aabb.minimum().z();
+
+	if(height == 0.0) height = 1.0;
+
+	double scaleFactor = 1.0 / height;
+
+	foreach (Structure::Node * node, nodes)
+	{
+		node->scale(scaleFactor);
+
+		// Apply to actual geometry
+		if(!node->property.contains("mesh")) continue;
+		SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
+		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+		foreach(Vertex v, model->vertices())
+			points[v] *= scaleFactor;
+	}
+
+	// Rebuild visualization geometry
+	foreach (Structure::Node * node, nodes){
+		if(node->type() == Structure::SHEET)
+		{
+			Structure::Sheet * sheet = (Structure::Sheet *)node;
+			sheet->surface.quads.clear();
+		}
+	}
+
+	// Update the bounding box
+	property["AABB"].setValue(bbox());
+}
+
+void Graph::removeEdge( QString n1_id, QString n2_id )
+{
+	removeEdge( getNode(n1_id),getNode(n2_id) );
 }
 
 QVector<POINT_ID> Graph::selectedControlPointsByColor(QColor color)

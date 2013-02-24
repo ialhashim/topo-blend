@@ -11,6 +11,7 @@
 #include "interfaces/ModePluginDockWidget.h"
 #include "../CustomDrawObjects.h"
 #include "graph_modify_dialog.h"
+#include "QuickAlignment.h"
 
 using namespace NURBS;
 
@@ -39,10 +40,11 @@ ARAPCurveHandle * handle = NULL;
 
 VectorSoup vs1,vs2;
 
-Q_DECLARE_METATYPE(Vec3d);
+Q_DECLARE_METATYPE(Vec3d)
+
 #include "RMF.h"
-Q_DECLARE_METATYPE(RMF::Frame);
-Q_DECLARE_METATYPE(std::vector<RMF::Frame>);
+Q_DECLARE_METATYPE(RMF::Frame)
+Q_DECLARE_METATYPE(std::vector<RMF::Frame>)
 
 topoblend::topoblend(){
 	widget = NULL;
@@ -615,7 +617,19 @@ void topoblend::modifyModel()
 	
     GraphModifyDialog modifyDialog(graphs.back());
 	drawArea()->connect(&modifyDialog, SIGNAL(updateView()), SLOT(updateGL()));
-	modifyDialog.exec();
+    modifyDialog.exec();
+}
+
+void topoblend::quickAlign()
+{
+    if (graphs.size() < 1){
+        qDebug() << "Please load a graph";
+        return;
+    }
+
+    QuickAlignment alignmentDialog(graphs[0], graphs[1]);
+    drawArea()->connect(&alignmentDialog, SIGNAL(updateView()), SLOT(updateGL()));
+    alignmentDialog.exec();
 }
 
 bool topoblend::keyPressEvent( QKeyEvent* event )

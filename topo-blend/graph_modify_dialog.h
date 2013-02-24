@@ -1,5 +1,4 @@
-#ifndef GRAPH_MODIFY_DIALOG_H
-#define GRAPH_MODIFY_DIALOG_H
+#pragma once
 
 #include <QDialog>
 #include "StructureGraph.h"
@@ -30,4 +29,3 @@ signals:
 	void updateView();
 };
 
-#endif // GRAPH_MODIFY_DIALOG_H

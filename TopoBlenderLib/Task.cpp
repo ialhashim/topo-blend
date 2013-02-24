@@ -375,6 +375,10 @@ void Task::prepare()
 	foreach(QString id, runningTasks) qDebug() << id;
 	qDebug() << "---";
 
+	if(node()->id.contains("WeavyLegBackRight")){
+		printf("");
+	}
+
 	if (node()->type() == Structure::CURVE)
 	{
 		switch(type)
@@ -497,9 +501,8 @@ void Task::prepareShrinkCurve()
 		// Curve encoded, to decode you need two points A,B and a frame XYZ
 		property["cpCoords"].setValue( encodeCurve(pointA, pointB, X,Y,Z) );
 
-		// DEBUG frame
-		//node()->property["p1"].setValue( pointA );
-		//node()->property["rmf"].setValue( rmf );
+		// DEBUG:
+		node()->property["rmf"].setValue( rmf );
 	}
 }
 
@@ -727,9 +730,21 @@ void Task::prepareMorphCurve()
 	Structure::Node * n = node();
 	Structure::Curve* structure_curve = ((Structure::Curve*)node());
 	Structure::Node * tn = targetNode();
+	
 	QVector<Structure::Link*> edges = active->getEdges(n->id);
 	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
 	
+	// 0) Filter edges
+	edges.clear();
+	QVector<Structure::Link*> all_edges = active->getEdges(n->id);
+	foreach(Structure::Link* edge, all_edges)
+	{
+		Structure::Node * other = edge->otherNode(n->id);
+		if( other->id.contains("null") && !other->property["taskIsDone"].toBool() ) 
+			continue;
+		edges.push_back(edge);
+	}
+
 	// 1) SINGLE edge
 	if(edges.size() == 1)
 	{
@@ -750,6 +765,9 @@ void Task::prepareMorphCurve()
 		
 			path = this->weldPath( path );
 			property["path"].setValue( path );
+
+			// DEBUG:
+			node()->property["path"].setValue( positionalPath(path) );
 		}
 	}
 
@@ -794,7 +812,7 @@ void Task::prepareMorphCurve()
 			Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
 			property["cpCoords"].setValue( encodeCurve(startA, startB, X,Y,Z) );
 
-			// DEBUG frames
+			// DEBUG:
 			node()->property["rmf"].setValue( rmf );
 		}
 
@@ -1019,12 +1037,10 @@ void Task::execute( double t )
 		}
 	}
 
-	// Blend geometries
-	geometryMorph( t );
-
 	if(t == 1.0)
 	{
 		this->isDone = true;
+		node()->property["taskIsDone"] = true;
 	}
 }
 
@@ -1084,6 +1100,8 @@ void Task::foldCurve( double t )
 
 	Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
 	Array1D_Vector3 deltas = property["deltas"].value<Array1D_Vector3>();
+
+	if(cpts.size() != deltas.size()) return;
 
 	// Grow curve
 	for(int u = 0; u < structure_curve->curve.mNumCtrlPoints; u++)
@@ -1286,6 +1304,7 @@ void Task::executeMorphSheet( double t )
 Array1D_Vector3 Task::positionalPath( QVector< GraphDistance::PathPointPair > & from_path, int smoothingIters )
 {
 	Array1D_Vector3 pnts;
+	if(!from_path.size()) return pnts;
 
 	foreach(GraphDistance::PathPointPair p, from_path) 
 		pnts.push_back(p.position(active));
