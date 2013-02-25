@@ -441,7 +441,6 @@ void Task::prepareShrinkCurve()
 		Vec4d coordSelf = l->getCoord(n->id).front();
 
 		Vector3 linkPositionBase = l->position( base->id );
-		int cpIDX = structure_curve->controlPointIndexFromCoord( coordSelf );
 
 		// Curve folding
 		Array1D_Vector3 deltas = structure_curve->foldTo( coordSelf, false );
@@ -482,16 +481,16 @@ void Task::prepareShrinkCurve()
 		QVector< GraphDistance::PathPointPair > pathA, pathB;
 		for (int i = 0; i < N/2; i++)
 		{
-			pathA.push_back(path[N-1-i]);
-			pathB.push_back(path[i]);
+			pathA.push_back( path[N-1-i] );
+			pathB.push_back( path[i] );
 		}
 
 		// Smooth transition from start point
-		pathA = smoothStart(linkA->getCoord(n->id).front(), pathA);
-		pathB = smoothStart(linkB->getCoord(n->id).front(), pathB);
+		pathA = smoothStart( linkA->getCoord(n->id).front(), pathA );
+		pathB = smoothStart( linkB->getCoord(n->id).front(), pathB );
 
-		property["pathA"].setValue(pathA);
-		property["pathB"].setValue(pathB);
+		property["pathA"].setValue( pathA );
+		property["pathB"].setValue( pathB );
 
 		// Encode curve
 		RMF rmf( positionalPath(pathA, 3) );
@@ -499,7 +498,7 @@ void Task::prepareShrinkCurve()
 		Vector3 X = rmf.U.front().r, Y = rmf.U.front().s, Z = rmf.U.front().t;
 
 		// Curve encoded, to decode you need two points A,B and a frame XYZ
-		property["cpCoords"].setValue( encodeCurve(pointA, pointB, X,Y,Z) );
+		property["cpCoords"].setValue( encodeCurve((Structure::Curve*)n, pointA, pointB, X,Y,Z) );
 
 		// DEBUG:
 		node()->property["rmf"].setValue( rmf );
@@ -512,9 +511,7 @@ void Task::prepareGrowCurve()
 	Structure::Node * tn = targetNode();
 	QVector<Structure::Link*> edges = active->getEdges(n->id);
 	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
-
-	Structure::Curve* structure_curve = ((Structure::Curve*)n);
-	Structure::Curve* t_structure_curve = ((Structure::Curve*)tn);
+	Structure::Curve * structure_curve = (Structure::Curve *)n;
 
 	if( target->isCutNode(tn->id) )
 	{
@@ -593,7 +590,7 @@ void Task::prepareGrowCurve()
 		
 		property["rmf"].setValue( rmf );
 		Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
-		property["cpCoords"].setValue( encodeCurve(pointA, pointB, X,Y,Z) );
+		property["cpCoords"].setValue( encodeCurve((Structure::Curve*)tn, tlinkA->position(tn->id), tlinkB->position(tn->id), X,Y,Z) );
 
 		// DEBUG frames
 		node()->property["rmf"].setValue( rmf );
@@ -610,10 +607,10 @@ void Task::prepareGrowCurve()
 }
 
 /* Curve encoding, to decode you need two points A,B and a frame XYZ */
-CurveEncoding Task::encodeCurve(Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z)
+CurveEncoding Task::encodeCurve( Structure::Curve * curve, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
 {
 	CurveEncoding cpCoords;
-	Array1D_Vector3 controlPoints = node()->controlPoints();
+	Array1D_Vector3 controlPoints = curve->controlPoints();
 	Line segment(start, end);
 
 	for(int i = 0; i < (int)controlPoints.size(); i++)
@@ -641,7 +638,8 @@ CurveEncoding Task::encodeCurve(Vector3 start, Vector3 end, Vector3 X, Vector3 Y
 
 Array1D_Vector3 Task::decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
 {
-	Array1D_Vector3 controlPoints = node()->controlPoints();
+	Array1D_Vector3 controlPoints (cpCoords.size(), Vector3(0));
+
 	Line segment(start, end);
 
 	for(int i = 0; i < (int)controlPoints.size(); i++)
@@ -725,18 +723,10 @@ void Task::prepareGrowCurveConstraint()
 	}
 }
 
-void Task::prepareMorphCurve()
+QVector<Structure::Link*> Task::filteredEdges(Structure::Node * n, QVector<Structure::Link*> & all_edges)
 {
-	Structure::Node * n = node();
-	Structure::Curve* structure_curve = ((Structure::Curve*)node());
-	Structure::Node * tn = targetNode();
-	
-	QVector<Structure::Link*> edges = active->getEdges(n->id);
-	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
-	
-	// 0) Filter edges
-	edges.clear();
-	QVector<Structure::Link*> all_edges = active->getEdges(n->id);
+	QVector<Structure::Link*> edges;
+
 	foreach(Structure::Link* edge, all_edges)
 	{
 		Structure::Node * other = edge->otherNode(n->id);
@@ -745,30 +735,58 @@ void Task::prepareMorphCurve()
 		edges.push_back(edge);
 	}
 
+	return edges;
+}
+
+void Task::prepareMorphCurve()
+{
+	Structure::Node * n = node();
+	Structure::Node * tn = targetNode();
+	
+	// 0) Filter edges (remove edges with null since these nodes will grow in future)
+	QVector<Structure::Link*> edges = filteredEdges(n, active->getEdges(n->id));
+	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
+	
 	// 1) SINGLE edge
 	if(edges.size() == 1)
 	{
 		Structure::Link * link = edges.front();
-		Vec3d startPoint = link->position(n->id);
+
+		Vec4d coordA = link->getCoord(n->id).front();
+		Vec4d coordB = Vec4d( (coordA[0] > 0.5) ? 0 : 1 );
+
+		// Compute path for the edge
+		Vec3d startPoint = n->position( coordA );
 		Vec3d endPoint = futureLinkPosition(link);
 
-		// Compute path
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
 		GraphDistance gd(active, exclude);
 		gd.computeDistances( endPoint, DIST_RESOLUTION );
 		QVector< GraphDistance::PathPointPair > path;
 		gd.smoothPathCoordTo( startPoint, path );
-
-		if(path.size())
-		{
-			path = smoothStart( link->getCoord(n->id).front(), path );
 		
-			path = this->weldPath( path );
-			property["path"].setValue( path );
+		path = smoothStart( link->getCoord(n->id).front(), path );
+		path = weldPath( path );
+		property["path"].setValue( path );
 
-			// DEBUG:
-			node()->property["path"].setValue( positionalPath(path) );
-		}
+		RMF rmf( positionalPath(path, 2) );
+		property["rmf"].setValue( rmf );
+		Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
+
+		// Encode source curve
+		Vec3d startA = startPoint;
+		Vec3d startB = n->position( coordB );
+		property["cpCoords"].setValue( encodeCurve((Structure::Curve*)n, startA, startB, X,Y,Z) );
+		property["endPointDelta"].setValue( startB - startA );
+
+		// Encode target curve
+		Vec3d tstartA = tn->position( coordA );
+		Vec3d tstartB = tn->position( coordB );
+		property["cpCoordsT"].setValue( encodeCurve((Structure::Curve*)tn, tstartA, tstartB, X,Y,Z) );
+		property["endPointDeltaT"].setValue( tstartB - tstartA );
+
+		// DEBUG:
+		node()->property["path"].setValue( positionalPath(path) );
 	}
 
 	// 2) TWO edges
@@ -810,15 +828,13 @@ void Task::prepareMorphCurve()
 			RMF rmf( positionalPath(usePath, 2) );
 			property["rmf"].setValue( rmf );
 			Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
-			property["cpCoords"].setValue( encodeCurve(startA, startB, X,Y,Z) );
+			property["cpCoords"].setValue( encodeCurve((Structure::Curve*)n, startA, startB, X,Y,Z) );
 
 			// DEBUG:
 			node()->property["rmf"].setValue( rmf );
 		}
-
-		// To-do
-		// Swap the correspondence of two links
 	}
+
 }
 
 void Task::prepareShrinkSheet()
@@ -859,7 +875,7 @@ void Task::prepareGrowSheet()
 		Structure::Node * tbase = tl->otherNode(tn->id);
 
 		QString baseID = tbase->property["correspond"].toString();
-		Structure::Node * base = active->getNode(baseID);
+		//Structure::Node * base = active->getNode(baseID);
 
 		// Placement:
 		//structure_sheet->moveBy( l->position( base->id ) - l->position( n->id ) );
@@ -880,11 +896,6 @@ void Task::prepareMorphSheet()
 	Structure::Node * tn = targetNode();
 	Structure::Sheet * sheet = (Structure::Sheet *)n;
 	Structure::Sheet * tsheet = (Structure::Sheet *)tn;
-    NURBSRectangled &surface = sheet->surface;
-    NURBSRectangled &tsurface = tsheet->surface;
-
-	int nU = surface.mNumUCtrlPoints;
-	int nV = surface.mNumVCtrlPoints;
 
 	// Get source and target corners
 	RMF::Frame sframe = sheetFrame( sheet );
@@ -963,7 +974,6 @@ SheetEncoding Task::encodeSheet( Structure::Sheet * sheet, Vector3 origin, Vecto
 	
 	for(int i = 0; i < (int)controlPoints.size(); i++)
 	{
-		double t;
 		Vector3 p = controlPoints[i];
 		Vector3 dir = p - origin;
 
@@ -1172,8 +1182,9 @@ void Task::executeGrowShrinkSheet( double t )
 void Task::executeMorphCurve( double t )
 {
 	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = active->getEdges(n->id);			
 	Structure::Node * tn = targetNode();
+
+	QVector<Structure::Link*> edges = filteredEdges(n, active->getEdges(n->id));
 	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
 
 	Structure::Curve* structure_curve = ((Structure::Curve*)n);
@@ -1181,18 +1192,28 @@ void Task::executeMorphCurve( double t )
 	// 1) SINGLE edge
 	if(edges.size() == 1)
 	{
-		Structure::Link * edge = edges.front();
-		Structure::Curve* current_curve = ((Structure::Curve*)n);
-		Structure::Curve* target_curve = targetCurve();
-
+		// Parameters
 		QVector< GraphDistance::PathPointPair > path = property["path"].value< QVector< GraphDistance::PathPointPair > >();
+		CurveEncoding cpCoords = property["cpCoords"].value<CurveEncoding>();
+		CurveEncoding cpCoordsT = property["cpCoordsT"].value<CurveEncoding>();
+		Vec3d endPointDelta = property["endPointDelta"].value<Vec3d>();
+		Vec3d endPointDeltaT = property["endPointDeltaT"].value<Vec3d>();
+		RMF rmf = property["rmf"].value<RMF>();
 
-		if(path.size())
-		{
-			int idx = t * (path.size() - 1);
+		int idx = t * (path.size() - 1);
+		Vec3d newHandlePos = path[idx].position(active);
+		//n->deformTo( edge->getCoord(n->id).front(), newHandlePos );
+		
+		Vector3 X = rmf.frameAt(t).r, Y = rmf.frameAt(t).s, Z = rmf.frameAt(t).t;
 
-			n->deformTo( edge->getCoord(n->id).front(), path[idx].position(active) );
-		}
+		Array1D_Vector3 newPnts = decodeCurve( cpCoords, newHandlePos, newHandlePos + endPointDelta, X, Y, Z );
+		Array1D_Vector3 newPntsT = decodeCurve( cpCoordsT, newHandlePos, newHandlePos + endPointDeltaT, X, Y, Z );
+		Array1D_Vector3 blendedPnts;
+
+		for(int i = 0; i < (int)newPnts.size(); i++)
+			blendedPnts.push_back( AlphaBlend(t, newPnts[i], newPntsT[i]) );
+
+		n->setControlPoints( blendedPnts );
 	}
 
 	// 2) TWO edges
@@ -1210,12 +1231,16 @@ void Task::executeMorphCurve( double t )
 		Vector3 pointA = pathA[idxA].position(active);
 		Vector3 pointB = pathB[idxB].position(active);
 
-		if(property.contains("cpCoords"))
+		if( property.contains("cpCoords") )
 		{
 			RMF rmf = property["rmf"].value<RMF>();
 			Vector3 X = rmf.frameAt(t).r, Y = rmf.frameAt(t).s, Z = rmf.frameAt(t).t;
 			Array1D_Vector3 decoded = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, X,Y,Z);
 			structure_curve->setControlPoints( decoded );
+
+			// DEBUG:
+			active->debugPoints.push_back( pointA );
+			active->debugPoints.push_back( pointB );
 		}
 	}
 
@@ -1309,6 +1334,10 @@ Array1D_Vector3 Task::positionalPath( QVector< GraphDistance::PathPointPair > & 
 	foreach(GraphDistance::PathPointPair p, from_path) 
 		pnts.push_back(p.position(active));
 
+	// To ensure unique points
+	std::vector<size_t> xrefs;
+	weld(pnts, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
+
 	return smoothPolyline(pnts, smoothingIters);
 }
 
@@ -1338,4 +1367,10 @@ QVector< GraphDistance::PathPointPair > Task::smoothStart( Vec4d startOnNode, QV
 	}
 
 	return prefix_path + oldPath;
+}
+
+Structure::Link * Task::getCoorespondingEdge( Structure::Link * link, Structure::Graph * otherGraph )
+{
+	QString correspondID = link->property["correspond"].toString();
+	return otherGraph->getEdge(correspondID);
 }

@@ -59,6 +59,10 @@ Graph::Graph( const Graph & other )
 	property = other.property;
 	adjacency = other.adjacency;
 	misc = other.misc;
+
+	debugPoints = other.debugPoints;
+	debugPoints2 = other.debugPoints2;
+	debugPoints3 = other.debugPoints3;
 }
 
 Graph::~Graph()
@@ -324,7 +328,7 @@ void Graph::draw()
 				if( n->property.contains("rmf") )
 				{
 					RMF rmf = n->property["rmf"].value<RMF>();
-					FrameSoup fs(0.01);
+					FrameSoup fs(0.01f);
 					foreach(RMF::Frame f, rmf.U) fs.addFrame(f.r, f.s, f.t, f.center);
 					fs.draw();
 				}

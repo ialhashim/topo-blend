@@ -14,7 +14,13 @@ public:
 	{
 		point = fromPoints;
 
-		compute();
+		if(fromPoints.size() > 1 && (fromPoints[0] - fromPoints[1]).norm() > ZERO_NORM)
+			compute();
+		else
+		{
+			U.push_back(Frame::fromRS(Vec3d(1,0,0), Vec3d(0,1,0)));
+			U.back().center = fromPoints.front();
+		}
 	}
 
 	void compute()
