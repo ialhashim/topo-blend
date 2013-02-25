@@ -184,7 +184,6 @@ void Scheduler::executeAll()
 	for(int i = 0; i < (int)allTasks.size(); i++)
 	{
 		Task * task = allTasks[i];
-		Structure::Node * node = task->node();
 
 		if( task->type == Task::GROW && targetGraph->isCutNode(task->targetNode()->id) )
 		{
@@ -202,6 +201,9 @@ void Scheduler::executeAll()
 	for(double globalTime = 0; globalTime <= (1.0 + timeStep); globalTime += timeStep)
 	{
 		QElapsedTimer timer; timer.start();
+
+		// DEBUG - per pass
+		activeGraph->debugPoints.clear();
 
 		activeGraph->setPropertyAll("isActive", false);
 
@@ -231,7 +233,7 @@ void Scheduler::executeAll()
 			if( localTime < 0 ) continue;
 			task->geometryMorph( localTime );
 		}
-
+		
 		// Output current active graph:
 		allGraphs.push_back( new Structure::Graph( *activeGraph ) );
 
@@ -521,7 +523,7 @@ void Scheduler::deformCurveByLink( Structure::Node* node, Structure::Link *link 
 {
 	Structure::Curve * curve = (Structure::Curve *)node;
 
-	int cpidxAnchor = curve->controlPointIndexFromCoord( link->getCoord(node->id).front() );
+	//int cpidxAnchor = curve->controlPointIndexFromCoord( link->getCoord(node->id).front() );
 
 	// Move free end (linear interpolation)
     //int cpidxControl = (cpidxAnchor < curve->curve.GetNumCtrlPoints() * 0.5) ? curve->curve.GetNumCtrlPoints() - 1 : 0;
