@@ -31,7 +31,7 @@ struct Sheet : public Node
 	void rotate( double angle, Vector3 axis );
     std::vector< std::vector<Vec3d> > foldTo( const std::vector<Vec4d> & curve, bool isApply = false );
 	void equalizeControlPoints( Structure::Node * other );
-	void deformTo( const Vec4d & handle, const Vector3 & to );
+	void deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid );
 
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
 	std::vector< std::vector<Vec4d> > discretizedPoints(Scalar resolution);

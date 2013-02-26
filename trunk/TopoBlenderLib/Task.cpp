@@ -375,10 +375,6 @@ void Task::prepare()
 	foreach(QString id, runningTasks) qDebug() << id;
 	qDebug() << "---";
 
-	if(node()->id.contains("WeavyLegBackRight")){
-		printf("");
-	}
-
 	if (node()->type() == Structure::CURVE)
 	{
 		switch(type)
@@ -502,6 +498,7 @@ void Task::prepareShrinkCurve()
 
 		// DEBUG:
 		node()->property["rmf"].setValue( rmf );
+		node()->property["rmf2"].setValue( RMF ( positionalPath(pathB, 3) ) );
 	}
 }
 
@@ -547,19 +544,17 @@ void Task::prepareGrowCurve()
 
 	if (tedges.size() == 2)
 	{
-		// Links, nodes and positions on the target
+		// Links, nodes and positions on the TARGET
 		Structure::Link *tlinkA = tedges.front();
 		Structure::Link *tlinkB = tedges.back();
-		Structure::Node *totherA = tlinkA->otherNode(tn->id);
-		Structure::Node *totherB = tlinkB->otherNode(tn->id);
+		Structure::Node *totherA = tlinkA->otherNode( tn->id );
+		Structure::Node *totherB = tlinkB->otherNode( tn->id );
 		Vec4d othercoordA = tlinkA->getCoord(totherA->id).front();
 		Vec4d othercoordB = tlinkB->getCoord(totherB->id).front();
 
-		// Corresponding stuff on active
-		QString otherAID = totherA->property["correspond"].toString();
-		QString otherBID = totherB->property["correspond"].toString();
-		Structure::Node *otherA = active->getNode(otherAID);
-		Structure::Node *otherB = active->getNode(otherBID);
+		// Corresponding stuff on ACTIVE
+		Structure::Node *otherA = active->getNode( totherA->property["correspond"].toString() );
+		Structure::Node *otherB = active->getNode( totherB->property["correspond"].toString() );
 		Vec3d pointA = otherA->position(othercoordA);
 		Vec3d pointB = otherB->position(othercoordB);
 
@@ -569,7 +564,16 @@ void Task::prepareGrowCurve()
 		gd.computeDistances( pointA, DIST_RESOLUTION );
 		QVector< GraphDistance::PathPointPair > path;
 		gd.smoothPathCoordTo(pointB, path);
-		path = this->weldPath( path );
+		path = weldPath( path );
+
+		if(n->id.contains("RightBar_") || n->id.contains("LeftBar_"))
+		{
+			qDebug() << n->id << " : size of path = " << path.size();
+		}
+
+		// Use the center of the path as the start point
+		GraphDistance::PathPointPair startPointCoord = path[path.size() / 2];
+		Vec3d startPoint = startPointCoord.position( active );
 
 		// Separate the path into two for linkA and linkB
 		int N = path.size(), hN = N / 2;
@@ -587,17 +591,14 @@ void Task::prepareGrowCurve()
 		
 		// Encode curve
 		RMF rmf( positionalPath(pathA, 3) );
-		
 		property["rmf"].setValue( rmf );
+
 		Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
 		property["cpCoords"].setValue( encodeCurve((Structure::Curve*)tn, tlinkA->position(tn->id), tlinkB->position(tn->id), X,Y,Z) );
 
 		// DEBUG frames
 		node()->property["rmf"].setValue( rmf );
-
-		// Use the center of the path as the start point
-		GraphDistance::PathPointPair startPointCoord = path[path.size() / 2];
-		Vec3d startPoint = startPointCoord.position( active );
+		node()->property["rmf2"].setValue( RMF ( positionalPath(pathB, 3) ) );
 
 		// Initial position of curve node
         Vec4d midCoord(0.5);

@@ -34,12 +34,12 @@ Graph::Graph()
 Graph::Graph( QString fileName )
 {
 	property["embeded2D"] = false;
+	property["showAABB"] = false;
+	property["showMeshes"] = true;
+	property["showEdges"] = false;
 
 	loadFromFile( fileName );
 	property["name"] = fileName;
-
-	property["showAABB"] = false;
-	property["showMeshes"] = true;
 }
 
 Graph::Graph( const Graph & other )
@@ -300,28 +300,19 @@ void Graph::draw()
 		if (n->property.contains("isReady") && !n->property["isReady"].toBool())
 			continue;
 
-		// Morph-time coloring
-		if( n->property.contains("isActive")  )
-		{
-			if(n->property["isActive"].toBool())
-				n->vis_property["color"] = QColor(150,150,255);
-			else
-				n->vis_property["color"] = QColor(150,255,150);
-		}
-		 
-		n->draw();
-
 		// Task visualization:
+		if(true)
 		{
-			glDisable(GL_LIGHTING);
+			// Morph-time coloring
+			if( n->property.contains("isActive")  )
+			{
+				if(n->property["isActive"].toBool())
+					n->vis_property["color"] = QColor(150,150,255);
+				else
+					n->vis_property["color"] = QColor(150,255,150);
+			}
 
-			//glPointSize(20);
-			//glBegin(GL_POINTS);
-			//if(n->property.contains("p1")) glColor3d(1,0,0.7);	glVector3(n->property["p1"].value<Vec3d>());
-			//if(n->property.contains("p2")) (1,0,1);	glVector3(n->property["p2"].value<Vec3d>());
-			//if(n->property.contains("q1")) glColor3d(1,0.5,0.7);	glVector3(n->property["q1"].value<Vec3d>());
-			//if(n->property.contains("q2")) (1,0.5,1);	glVector3(n->property["q2"].value<Vec3d>());
-			//glEnd();
+			glDisable(GL_LIGHTING);
 
 			if( n->property.contains("isActive") && n->property["isActive"].toBool() )
 			{
@@ -329,6 +320,14 @@ void Graph::draw()
 				{
 					RMF rmf = n->property["rmf"].value<RMF>();
 					FrameSoup fs(0.01f);
+					foreach(RMF::Frame f, rmf.U) fs.addFrame(f.r, f.s, f.t, f.center);
+					fs.draw();
+				}
+
+				if( n->property.contains("rmf2") )
+				{
+					RMF rmf = n->property["rmf2"].value<RMF>();
+					FrameSoup fs(0.01f, true);
 					foreach(RMF::Frame f, rmf.U) fs.addFrame(f.r, f.s, f.t, f.center);
 					fs.draw();
 				}
@@ -343,36 +342,14 @@ void Graph::draw()
 			}
 
 			glEnable(GL_LIGHTING);
-
-			//if(n->property.contains("sheetFrame"))
-			//{
-			//	RMF::Frame f = n->property["sheetFrame"].value<RMF::Frame>();
-			//	FrameSoup fs(0.1);
-			//	fs.addFrame(f.r, f.s, f.t, f.center);
-			//	fs.draw();
-			//}
-
-
-			//if(n->property.contains("frames"))
-			//{
-			//	std::vector<RMF::Frame> frames = n->property["frames"].value< std::vector<RMF::Frame> >();
-			//	FrameSoup fs(0.025);
-			//	foreach(RMF::Frame f, frames) fs.addFrame(f.r, f.s, f.t, f.center);
-			//	fs.draw();
-			//}
 		}
+
+		// Default node draw
+		n->draw();
 
 		if(n->type() == SHEET)
 		{
 			Sheet * s = (Sheet*) n;
-
-			glPointSize(3);
-			glDisable(GL_LIGHTING);
-
-			glColor3d(0,1,0);
-			glBegin(GL_POINTS);
-			foreach(Vector3 p, s->surface.debugPoints)	glVector3(p);
-			glEnd();
 
 			//glBegin(GL_TRIANGLES);
 			//foreach(std::vector<Vector3> tri, s->surface.generateSurfaceTris(0.4))

@@ -23,6 +23,7 @@ public slots:
     void link();
     void unlink();
     void remove();
+	void removeAll();
 	void visualizeSelections();
 
 signals:

@@ -308,7 +308,7 @@ int Curve::numCtrlPnts()
 	return curve.mNumCtrlPoints;
 }
 
-void Curve::deformTo( const Vec4d & handle, const Vector3 & to )
+void Curve::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
 {
 	Vec4d otherEndCoord = Vec4d((handle[0] > 0.5) ? 0 : 1);
 	
@@ -316,6 +316,13 @@ void Curve::deformTo( const Vec4d & handle, const Vector3 & to )
 
 	double diff = (p-to).norm();
 	if(diff < 1e-7) return;
+
+	if( isRigid )
+	{
+		Vec3d delta = to - p;
+		this->moveBy( delta );
+		return;
+	}
 
 	Vector3 otherEnd = position( otherEndCoord );
 
