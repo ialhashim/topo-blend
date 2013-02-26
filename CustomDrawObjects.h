@@ -304,14 +304,28 @@ public:
 
 class FrameSoup : public RenderObject::Base{
 	QVector< QVector<QVector3D> > frames;
+	bool isFlip;
+
 public:
-	FrameSoup(float scale, const QColor& c = Qt::green):RenderObject::Base(scale, c){}
+	FrameSoup(float scale, bool flip = false, const QColor& c = Qt::green):RenderObject::Base(scale, c)
+	{
+		this->isFlip = flip;
+	}
 
 	void addFrame(const QVector3D& X, const QVector3D& Y, const QVector3D& Z, const QVector3D& position){
 		QVector<QVector3D> frame;
-		frame.push_back(X);
-		frame.push_back(Y);
-		frame.push_back(Z);
+		if(isFlip)
+		{
+			frame.push_back(Z);
+			frame.push_back(Y);
+			frame.push_back(X);
+		}
+		else
+		{
+			frame.push_back(X);
+			frame.push_back(Y);
+			frame.push_back(Z);
+		}
 		frame.push_back(position);
 		frames.push_back(frame);
 	}

@@ -211,10 +211,8 @@ void Scheduler::executeAll()
 		{
 			Task * task = allTasks[i];
 			double localTime = task->localT( globalTime * totalTime );
-			task->node()->property["t"] = localTime;
-	
-			QVector<QString> rtasks = activeTasks(globalTime * totalTime);
-			activeGraph->property["running_tasks"].setValue( rtasks );
+
+			activeGraph->property["running_tasks"].setValue( activeTasks(globalTime * totalTime) );
 
 			if( localTime < 0 || task->isDone ) continue;
 
@@ -309,7 +307,9 @@ void Scheduler::relink( Task * task )
 		Vector3 delta = deltas[link];
 		Vector3 newPos = link->position(n->id) + delta;
 
-		other->deformTo( handle, newPos );
+		Task * otherTask = getTaskFromNodeID(other->id);
+
+		other->deformTo( handle, newPos, otherTask->isDone );
 	}
 }
 

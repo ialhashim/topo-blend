@@ -359,7 +359,7 @@ int Sheet::numCtrlPnts()
 	return surface.mNumUCtrlPoints * surface.mNumVCtrlPoints;
 }
 
-void Sheet::deformTo( const Vec4d & handle, const Vector3 & to )
+void Sheet::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
 {
 
 }
