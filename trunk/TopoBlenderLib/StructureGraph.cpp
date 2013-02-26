@@ -247,6 +247,17 @@ Node *Graph::getNode(QString nodeID)
     return NULL;
 }
 
+Node* Structure::Graph::auxNode( QString auxNodeID )
+{
+	foreach(Node* n, aux_nodes)
+	{
+		if(n->id == auxNodeID) 
+			return n;
+	}
+
+	return NULL;
+}
+
 Link *Graph::getEdge(QString id1, QString id2)
 {
 	for(int i = 0; i < (int)edges.size(); i++)
@@ -301,7 +312,7 @@ void Graph::draw()
 			continue;
 
 		// Task visualization:
-		if(true)
+		if( false )
 		{
 			// Morph-time coloring
 			if( n->property.contains("isActive")  )
@@ -1239,7 +1250,10 @@ void Graph::replaceCoords( QString nodeA, QString nodeB, std::vector<Vec4d> coor
 
 Vector3 Graph::position( QString nodeID, Vec4d coord )
 {
-	return getNode(nodeID)->position(coord);
+	Structure::Node * node = getNode(nodeID);
+	if(!node) node = auxNode( nodeID );
+
+	return node->position(coord);
 }
 
 void Graph::translate( Vector3 delta )

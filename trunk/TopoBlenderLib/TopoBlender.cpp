@@ -242,6 +242,20 @@ void TopoBlender::correspondSuperNodes()
 		Structure::Node * sn = super_sg->getNode(snode);
 		Structure::Node * tn = super_tg->getNode(tnode);
 
+		// WARINING: Temporary code
+		if(!tn){
+			tn = sn->clone();
+			tn->id = tnode;
+			super_tg->addNode( tn );
+			qDebug() << "Temporary code!";
+		}
+		if(!sn){
+			sn = tn->clone();
+			sn->id = snode;
+			super_sg->addNode( sn );
+			qDebug() << "Temporary code!";
+		}
+
 		sn->property["correspond"] = tnode;
 		tn->property["correspond"] = snode;
 	}
