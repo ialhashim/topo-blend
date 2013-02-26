@@ -2,8 +2,6 @@
 #include "Task.h"
 #include <QGraphicsSceneMouseEvent>
 
-using namespace NURBS;
-
 #include "Synthesizer.h"
 #include "weld.h"
 #include "LineSegment.h"
@@ -23,6 +21,9 @@ Q_DECLARE_METATYPE( CurveEncoding )
 Q_DECLARE_METATYPE( Eigen::Quaterniond )
 
 int globalCount = 0;
+
+using namespace NURBS;
+using namespace Structure;
 
 Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, TaskType taskType, int ID )
 {
@@ -482,8 +483,8 @@ void Task::prepareShrinkCurve()
 		}
 
 		// Smooth transition from start point
-		pathA = smoothStart( linkA->getCoord(n->id).front(), pathA );
-		pathB = smoothStart( linkB->getCoord(n->id).front(), pathB );
+		pathA = smoothStart( node(), linkA->getCoord(n->id).front(), pathA );
+		pathB = smoothStart( node(), linkB->getCoord(n->id).front(), pathB );
 
 		property["pathA"].setValue( pathA );
 		property["pathB"].setValue( pathB );
@@ -566,12 +567,8 @@ void Task::prepareGrowCurve()
 		gd.smoothPathCoordTo(pointB, path);
 		path = weldPath( path );
 
-		if(n->id.contains("RightBar_") || n->id.contains("LeftBar_"))
-		{
-			qDebug() << n->id << " : size of path = " << path.size();
-		}
-
 		// Use the center of the path as the start point
+		if(path.size() < 1) return;
 		GraphDistance::PathPointPair startPointCoord = path[path.size() / 2];
 		Vec3d startPoint = startPointCoord.position( active );
 
@@ -585,6 +582,16 @@ void Task::prepareGrowCurve()
 			pathA.push_back(path[hN+1+i]);
 			pathB.push_back(path[hN-1-i]);
 		}
+
+		// Add smooth ending on both paths
+		Vec3d endDeltaA = tn->position(tlinkA->getCoord(tn->id).front()) - totherA->position(othercoordA);
+		Vec3d endDeltaB = tn->position(tlinkB->getCoord(tn->id).front()) - totherB->position(othercoordB);
+		Node * auxA = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, pointA + endDeltaA ) ), "auxA_" + n->id);
+		Node * auxB = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, pointB + endDeltaB ) ), "auxB_" + n->id);
+		active->aux_nodes.push_back( auxA );
+		active->aux_nodes.push_back( auxB );
+		pathA = smoothEnd(auxA, Vec4d(0), pathA);
+		pathB = smoothEnd(auxB, Vec4d(0), pathB);
 
 		property["pathA"].setValue( pathA );
 		property["pathB"].setValue( pathB );
@@ -668,6 +675,7 @@ void Task::prepareShrinkCurveConstraint()
 	{
 		// Find first link to a sheet
 		QVector<Structure::Link*> my_edges = active->getEdges(n->id); 
+		if(my_edges.size() < 1) return;
 
 		Structure::Link * baseLink = my_edges.front();
 		foreach(Structure::Link * edge, my_edges){
@@ -765,8 +773,17 @@ void Task::prepareMorphCurve()
 		gd.computeDistances( endPoint, DIST_RESOLUTION );
 		QVector< GraphDistance::PathPointPair > path;
 		gd.smoothPathCoordTo( startPoint, path );
-		
-		path = smoothStart( link->getCoord(n->id).front(), path );
+
+		// Smooth transition from start point
+		path = smoothStart( node(), link->getCoord(n->id).front(), path );
+
+		// Smooth transition to end point
+		//Structure::Link * tlink = target->getEdge(link->property["correspond"].toString());
+		//Vec3d endDelta = tlink->position(tn->id) - tlink->positionOther(tn->id);
+		//Node * aux = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, link->otherNode(n->id)->position(tlink->getCoordOther(tn->id).front()) + endDelta ) ), "auxA_" + n->id);
+		//active->aux_nodes.push_back( aux );
+		//path = smoothEnd( aux, Vec4d(0), path );
+
 		path = weldPath( path );
 		property["path"].setValue( path );
 
@@ -811,8 +828,24 @@ void Task::prepareMorphCurve()
 		gdB.computeDistances( endB, DIST_RESOLUTION );	gdB.smoothPathCoordTo( startB, pathB );
 
 		// Smooth transition from start point
-		pathA = smoothStart(linkA->getCoord(n->id).front(), pathA);
-		pathB = smoothStart(linkB->getCoord(n->id).front(), pathB);
+		pathA = smoothStart(node(), linkA->getCoord(n->id).front(), pathA);
+		pathB = smoothStart(node(), linkB->getCoord(n->id).front(), pathB);
+
+		// Prepare end point parameters
+		Structure::Link * tlinkA = target->getEdge(linkA->property["correspond"].toString());
+		Structure::Link * tlinkB = target->getEdge(linkB->property["correspond"].toString());
+		Vec3d endDeltaA = tlinkA->position(tn->id) - tlinkA->positionOther(tn->id);
+		Vec3d endDeltaB = tlinkB->position(tn->id) - tlinkB->positionOther(tn->id);
+		Node * auxA = new Structure::Curve(NURBSCurved::createCurveFromPoints( 
+			Array1D_Vector3 ( 4, linkA->otherNode(n->id)->position(tlinkA->getCoordOther(tn->id).front()) + endDeltaA ) ), "auxA_" + n->id);
+		Node * auxB = new Structure::Curve(NURBSCurved::createCurveFromPoints( 
+			Array1D_Vector3 ( 4, linkB->otherNode(n->id)->position(tlinkB->getCoordOther(tn->id).front()) + endDeltaB ) ), "auxB_" + n->id);
+		active->aux_nodes.push_back( auxA );
+		active->aux_nodes.push_back( auxB );
+
+		// Smooth transition to end point
+		pathA = smoothEnd(auxA, Vec4d(0), pathA);
+		pathB = smoothEnd(auxB, Vec4d(0), pathB);
 
 		// Remove redundancy along paths
 		pathA = this->weldPath( pathA );
@@ -1240,8 +1273,8 @@ void Task::executeMorphCurve( double t )
 			structure_curve->setControlPoints( decoded );
 
 			// DEBUG:
-			active->debugPoints.push_back( pointA );
-			active->debugPoints.push_back( pointB );
+			//active->debugPoints.push_back( pointA );
+			//active->debugPoints.push_back( pointB );
 		}
 	}
 
@@ -1342,13 +1375,11 @@ Array1D_Vector3 Task::positionalPath( QVector< GraphDistance::PathPointPair > & 
 	return smoothPolyline(pnts, smoothingIters);
 }
 
-QVector< GraphDistance::PathPointPair > Task::smoothStart( Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
+QVector< GraphDistance::PathPointPair > Task::smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
 {
 	if(!oldPath.size()) return oldPath;
-
 	QVector< GraphDistance::PathPointPair > prefix_path;
-
-	PathPoint a = PathPoint(node()->id, startOnNode), b = oldPath.front().a;
+	PathPoint a = PathPoint(n->id, startOnNode), b = oldPath.front().a;
 
 	prefix_path.push_back( GraphDistance::PathPointPair(a) );
 
@@ -1357,17 +1388,39 @@ QVector< GraphDistance::PathPointPair > Task::smoothStart( Vec4d startOnNode, QV
 	double dist = (start - end).norm();
 
 	// Add virtual path points if needed
-	if(dist > DIST_RESOLUTION)
-	{
+	if(dist > DIST_RESOLUTION){
 		int steps = dist / DIST_RESOLUTION;
-		for(int i = 1; i < steps; i++)
-		{
+		for(int i = 1; i < steps; i++){
 			double alpha = double(i) / steps;
 			prefix_path.push_back( GraphDistance::PathPointPair( a, b, alpha ) );
 		}
 	}
 
 	return prefix_path + oldPath;
+}
+
+QVector< GraphDistance::PathPointPair > Task::smoothEnd( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
+{
+	if(!oldPath.size()) return oldPath;
+	QVector< GraphDistance::PathPointPair > postfix_path;
+	PathPoint a = oldPath.back().a, b = PathPoint(n->id, startOnNode);
+
+	Vector3 start = active->position(a.first, a.second);
+	Vector3 end = active->position(b.first, b.second);
+	double dist = (start - end).norm();
+
+	// Add virtual path points if needed
+	if(dist > DIST_RESOLUTION){
+		int steps = dist / DIST_RESOLUTION;
+		for(int i = 1; i < steps; i++){
+			double alpha = double(i) / steps;
+			postfix_path.push_back( GraphDistance::PathPointPair( a, b, alpha ) );
+		}
+	}
+
+	postfix_path.push_back( GraphDistance::PathPointPair( a, b, 1.0 ) );
+
+	return oldPath + postfix_path;
 }
 
 Structure::Link * Task::getCoorespondingEdge( Structure::Link * link, Structure::Graph * otherGraph )

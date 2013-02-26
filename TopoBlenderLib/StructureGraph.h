@@ -34,6 +34,10 @@ struct Graph
 	QMap< QString, void* > misc;
 	QString name();
 
+	// Special nodes
+	QVector<Node*> aux_nodes;
+	Node* auxNode( QString auxNodeID );
+
 	int valence(Node * n);
 	
 	// Constructors
