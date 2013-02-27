@@ -491,6 +491,8 @@ void Task::prepareShrinkCurve()
 
 		// Encode curve
 		RMF rmf( positionalPath(pathA, 3) );
+		if(!rmf.count()) return;
+
 		property["rmf"].setValue( rmf );
 		Vector3 X = rmf.U.front().r, Y = rmf.U.front().s, Z = rmf.U.front().t;
 
@@ -599,6 +601,7 @@ void Task::prepareGrowCurve()
 		// Encode curve
 		RMF rmf( positionalPath(pathA, 3) );
 		property["rmf"].setValue( rmf );
+		if(!rmf.count()) return;
 
 		Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
 		property["cpCoords"].setValue( encodeCurve((Structure::Curve*)tn, tlinkA->position(tn->id), tlinkB->position(tn->id), X,Y,Z) );
@@ -1233,6 +1236,7 @@ void Task::executeMorphCurve( double t )
 		Vec3d endPointDelta = property["endPointDelta"].value<Vec3d>();
 		Vec3d endPointDeltaT = property["endPointDeltaT"].value<Vec3d>();
 		RMF rmf = property["rmf"].value<RMF>();
+		if(!path.size()) return;
 
 		int idx = t * (path.size() - 1);
 		Vec3d newHandlePos = path[idx].position(active);
@@ -1260,6 +1264,9 @@ void Task::executeMorphCurve( double t )
 
 		int idxA = t * (pathA.size() - 1);
 		int idxB = t * (pathB.size() - 1);
+
+		if(pathA.size() == 0 || pathB.size() == 0)
+			return;
 
 		// Move to next step
 		Vector3 pointA = pathA[idxA].position(active);

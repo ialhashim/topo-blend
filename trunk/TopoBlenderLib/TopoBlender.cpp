@@ -234,6 +234,9 @@ void TopoBlender::correspondSuperNodes()
 		}
 	}
 
+	// Keep tack of missing / extra nodes
+	QVector<QString> missingNodes, extraNodes;
+
 	// Store correspondences in the graphs
 	foreach(QString snode, superNodeCorr.keys())
 	{
@@ -242,23 +245,19 @@ void TopoBlender::correspondSuperNodes()
 		Structure::Node * sn = super_sg->getNode(snode);
 		Structure::Node * tn = super_tg->getNode(tnode);
 
-		// WARINING: Temporary code
-		if(!tn){
-			tn = sn->clone();
-			tn->id = tnode;
-			super_tg->addNode( tn );
-			qDebug() << "Temporary code!";
+		// When does this happen?
+		if(!tn || !sn){
+			continue;
 		}
-		if(!sn){
-			sn = tn->clone();
-			sn->id = snode;
-			super_sg->addNode( sn );
-			qDebug() << "Temporary code!";
-		}
+
+		if(tnode.contains("null")) extraNodes.push_back( snode );
+		if(snode.contains("null")) missingNodes.push_back( tnode );
 
 		sn->property["correspond"] = tnode;
 		tn->property["correspond"] = snode;
 	}
+
+	printf("");
 }
 
 void TopoBlender::correspondSuperEdges()

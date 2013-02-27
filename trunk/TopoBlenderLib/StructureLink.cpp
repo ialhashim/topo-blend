@@ -103,7 +103,7 @@ void Link::draw()
 	for(int i = 0; i < (int)linkPos.size(); i++)
 	{
 		// Blue
-		glPointSize(10.0f);
+		glPointSize(3);
 		if(ns[i]->type() == CURVE) 
 			glColor3d(0,0,1);
 		else
@@ -111,7 +111,7 @@ void Link::draw()
 		glBegin(GL_POINTS);glVector3(linkPos[i]);glEnd();
 
 		// White
-		glPointSize(12.0f);
+		glPointSize(5);
 		glColor3d(1,1,1);glBegin(GL_POINTS);glVector3(linkPos[i]);glEnd();
 	}
 

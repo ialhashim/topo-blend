@@ -26,6 +26,8 @@ public slots:
 	void removeAll();
 	void visualizeSelections();
 
+	void updateLists();
+
 signals:
 	void updateView();
 };
