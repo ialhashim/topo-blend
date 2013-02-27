@@ -12,6 +12,8 @@ public:
 
 	RMF(const std::vector<Vec3d> & fromPoints)
 	{
+		if(fromPoints.size() == 0) return;
+
 		point = fromPoints;
 
 		if(fromPoints.size() > 1 && (fromPoints[0] - fromPoints[1]).norm() > ZERO_NORM)

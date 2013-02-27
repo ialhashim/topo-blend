@@ -4,6 +4,8 @@
 #include <QVariant>
 #include <QMap>
 #include <QSet>
+#include <QFileInfo>
+#include <QDir>
 
 #include "SurfaceMeshHelper.h"
 #include "NurbsDraw.h"
@@ -223,4 +225,26 @@ static inline std::vector<T> reversedvec(const std::vector<T> & V){
 	std::vector<T> reversed = V;
 	std::reverse(reversed.begin(), reversed.end());
 	return reversed;
+}
+
+static void saveOBJ(SurfaceMesh::Model * mesh, QString filename)
+{
+	QFile file(filename);
+	QFileInfo fileInfo(file.fileName());
+	QDir d; d.mkpath(fileInfo.absolutePath());
+
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+	
+	QTextStream out(&file);
+	out << "# NV = " << mesh->n_vertices() << " NF = " << mesh->n_faces() << "\n";
+	Vector3VertexProperty points = mesh->vertex_property<Vec3d>("v:point");
+	foreach( Vertex v, mesh->vertices() )
+		out << "v " << points[v][0] << " " << points[v][1] << " " << points[v][2] << "\n";
+	foreach( Face f, mesh->faces() ){
+		out << "f ";
+		Surface_mesh::Vertex_around_face_circulator fvit=mesh->vertices(f), fvend=fvit;
+		do{	out << (((Surface_mesh::Vertex)fvit).idx()+1) << " ";} while (++fvit != fvend);
+		out << "\n";
+	}
+	file.close();
 }

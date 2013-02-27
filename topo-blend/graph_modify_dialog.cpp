@@ -15,12 +15,7 @@ GraphModifyDialog::GraphModifyDialog(Structure::Graph * graph, QWidget *parent) 
 	this->connect(ui->list1, SIGNAL(itemSelectionChanged()), SLOT(visualizeSelections()));
 	this->connect(ui->list2, SIGNAL(itemSelectionChanged()), SLOT(visualizeSelections()));
 
-    // Populate lists
-    foreach(Structure::Node * n, graph->nodes)
-    {
-        ui->list1->addItem(new QListWidgetItem(n->id));
-        ui->list2->addItem(new QListWidgetItem(n->id));
-    }
+	updateLists();
 }
 
 GraphModifyDialog::~GraphModifyDialog()
@@ -62,9 +57,20 @@ void GraphModifyDialog::unlink()
 void GraphModifyDialog::remove()
 {
     if(ui->list1->selectedItems().size() < 1) return;
-    if(ui->list2->selectedItems().size() < 1) return;
 
-    qDebug() << "Remove node: not coded!";
+	foreach( QListWidgetItem *item, ui->list1->selectedItems())
+	{
+		QString id = item->text();
+		g->removeNode( id );
+		qDebug() << "Removed node: " << id;
+	}
+
+	ui->list1->clear();
+	ui->list2->clear();
+
+	updateLists();
+
+	emit( updateView() );
 }
 
 void GraphModifyDialog::visualizeSelections()
@@ -95,4 +101,14 @@ void GraphModifyDialog::removeAll()
 		g->removeEdge(edge->n1, edge->n2);
 
 	emit( updateView() );
+}
+
+void GraphModifyDialog::updateLists()
+{
+	// Populate lists
+	foreach(Structure::Node * n, g->nodes)
+	{
+		ui->list1->addItem(new QListWidgetItem(n->id));
+		ui->list2->addItem(new QListWidgetItem(n->id));
+	}
 }

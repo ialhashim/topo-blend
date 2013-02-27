@@ -28,7 +28,7 @@ Graph::Graph()
 	property["embeded2D"] = false;
 	property["showAABB"] = false;
 	property["showMeshes"] = true;
-	property["showEdges"] = false;
+	property["showEdges"] = true;
 }
 
 Graph::Graph( QString fileName )
@@ -36,7 +36,7 @@ Graph::Graph( QString fileName )
 	property["embeded2D"] = false;
 	property["showAABB"] = false;
 	property["showMeshes"] = true;
-	property["showEdges"] = false;
+	property["showEdges"] = true;
 
 	loadFromFile( fileName );
 	property["name"] = fileName;
@@ -360,7 +360,7 @@ void Graph::draw()
 
 		if(n->type() == SHEET)
 		{
-			Sheet * s = (Sheet*) n;
+			//Sheet * s = (Sheet*) n;
 
 			//glBegin(GL_TRIANGLES);
 			//foreach(std::vector<Vector3> tri, s->surface.generateSurfaceTris(0.4))
@@ -465,6 +465,9 @@ void Graph::draw()
 	{
 		foreach(Link * e, edges)
 		{
+			if (e->n1->property.contains("isReady") && !e->n1->property["isReady"].toBool()) continue;
+			if (e->n2->property.contains("isReady") && !e->n2->property["isReady"].toBool()) continue;
+
 			e->draw();
 		}
 	}
@@ -652,6 +655,17 @@ void Graph::saveToFile( QString fileName ) const
 		out << QString("\t<id>%1</id>\n").arg(n->id);
 		out << QString("\t<type>%1</type>\n").arg(n->type());
 		out << QString("\t<mesh>%1</mesh>\n\n").arg(n->property["mesh_filename"].toString()); // relative
+
+		if(n->property.contains("mesh_filename")){
+			QString mesh_filename = n->property["mesh_filename"].toString();
+
+			// Save modified mesh
+			SurfaceMesh::Model * mesh = n->property["mesh"].value<SurfaceMesh::Model*>();
+			if(mesh_filename.size() && mesh)
+			{
+				saveOBJ(mesh, mesh_filename);
+			}
+		}
 
 		// Control count
 		out << "\t<controls>\n";
@@ -1334,12 +1348,11 @@ void Graph::transform( QMatrix4x4 mat )
 		if(node->type() == Structure::SHEET)
 			((Structure::Sheet*)node)->surface.quads.clear();
 		
-
 		// Transform actual geometry
-		//if(!node->property.contains("mesh")) continue;
-		//SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
-		//Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
-		//foreach(Vertex v, model->vertices()) points[v] = mat * points[v];
+		if(!node->property.contains("mesh")) continue;
+		SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
+		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+		foreach(Vertex v, model->vertices()) points[v] = mat * points[v];
 	}
 }
 
