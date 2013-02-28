@@ -5,7 +5,7 @@
 #include <QXmlStreamWriter>
 
 // Save to XML based graph file
-static void toGraphML(const DynamicGraph & g, QString fileName = "mygraph")
+static void toGraphML(DynamicGraph g, QString fileName = "mygraph")
 {
 	QFile file(fileName + ".graphml");
 	if (!file.open(QFile::WriteOnly | QFile::Text))	return;
@@ -170,7 +170,7 @@ static void toGraphML(const DynamicGraph & g, QString fileName = "mygraph")
 }
 
 // Save to XML based graph file
-static void toGraphviz(const DynamicGraph & g, QString fileName = "mygraph", bool isOutputImage = true, QString subcaption="", QString caption = "")
+static void toGraphviz(DynamicGraph g, QString fileName = "mygraph", bool isOutputImage = true, QString subcaption="", QString caption = "")
 {
 	QFile file(fileName + ".gv");
 	if (!file.open(QFile::WriteOnly | QFile::Text))	return;
@@ -214,7 +214,17 @@ static void toGraphviz(const DynamicGraph & g, QString fileName = "mygraph", boo
 		const SimpleNode & n1 = g.nodes[e.n[0]];
 		const SimpleNode & n2 = g.nodes[e.n[1]];
 
-		out << "\t\"" << n1.idx << "\" -- \"" << n2.idx << "\";\n";
+		Structure::Link * link = g.mGraph->getEdge(n1.property["original"].toString(),n2.property["original"].toString());
+		
+		QString color = "black";
+		QString lable = "";
+
+		if(link && !link->property.contains("correspond"))
+			color = "red";
+		//else
+		//	lable = link->property["correspond"].toString();
+
+		out << "\t\"" << n1.idx << "\" -- \"" << n2.idx << "\"" << QString(" [color=\"%1\",label=\"%2\"] ").arg(color).arg(lable) << ";\n";
 	}
 
 	// Labels

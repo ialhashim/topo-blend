@@ -48,8 +48,8 @@ public:
 	bool isShareCorrespondedNode( Structure::Link * slink, Structure::Link * tlink );
 	QVector<QString> cloneGraphNode(Structure::Graph *g, QString nodeID, int N);
 	Structure::Link * addMissingLink( Structure::Graph *g, Structure::Link * link );
-	QMap<Structure::Link*, int> linkCounts(QVector<Structure::Link*> edgeGroupA, 
-		QVector<Structure::Link*> edgeGroupB, Structure::Graph * graphB);
+	QVector<Structure::Link*> filterEdgesContain(QVector<Structure::Link*> edges, QString property_name);
+	QVector<Structure::Link*> filterEdgesNotContain(QVector<Structure::Link*> edges, QString property_name);
 
 	// Tasks
 	void generateTasks();
