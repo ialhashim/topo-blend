@@ -1109,6 +1109,14 @@ QVector<Link*> Graph::getEdges( QString nodeID )
 	return mylinks;
 }
 
+QVector<Node*> Structure::Graph::adjNodes( Node * node )
+{
+	QVector<Node*> adj;
+	foreach(Link* edge, getEdges(node->id))
+		adj.push_back( edge->otherNode(node->id) );
+	return adj;
+}
+
 QMap<Link*, std::vector<Vec4d> > Graph::linksCoords( QString nodeID )
 {
     QMap< Link*, std::vector<Vec4d> > coords;

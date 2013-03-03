@@ -72,6 +72,7 @@ struct Graph
 	QVector<Link*> getEdges( QString nodeID );
 	QMap< Link*, std::vector<Vec4d> > linksCoords( QString nodeID );
 	QVector<Link*> nodeEdges( QString nodeID );
+	QVector<Node*> adjNodes( Node * node );
 	QList<Link*> furthermostEdges( QString nodeID );
 	Vector3 position( QString nodeID, Vec4d coord );
 	void replaceCoords( QString nodeA, QString nodeB, std::vector<Vec4d> coordA, std::vector<Vec4d> coordB );

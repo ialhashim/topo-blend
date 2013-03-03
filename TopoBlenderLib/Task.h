@@ -68,6 +68,9 @@ public:
 	Array1D_Vector3 positionalPath( QVector< GraphDistance::PathPointPair > & from_path, int smoothingIters = 0 );
 	QVector< GraphDistance::PathPointPair > smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
 	QVector< GraphDistance::PathPointPair > smoothEnd( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
+	
+	Structure::Node * prepareEnd( Structure::Node * n, Structure::Link * slink );
+	QPair<Structure::Node*,Structure::Node*> prepareEnd2( Structure::Node * n, Structure::Link * linkA, Structure::Link * linkB );
 
 	CurveEncoding encodeCurve(Structure::Curve * curve, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z);
 	Array1D_Vector3 decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z);

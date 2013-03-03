@@ -6,7 +6,9 @@
 struct QuickMeshDraw{
 	static void drawMeshWireFrame( SurfaceMeshModel * mesh )
 	{
-		Surface_mesh::Face_iterator fit, fend=mesh->faces_end();
+		if(!mesh) return;
+
+		Surface_mesh::Face_iterator fit, fend = mesh->faces_end();
 		Surface_mesh::Vertex_around_face_circulator fvit, fvend;
 		Surface_mesh::Vertex_property<Vector3> points = mesh->vertex_property<Vector3>("v:point");
 		Surface_mesh::Face_property<Vector3> fnormals = mesh->face_property<Vector3>("f:normal");
