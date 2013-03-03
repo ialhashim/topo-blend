@@ -196,7 +196,12 @@ static void toGraphviz(DynamicGraph g, QString fileName = "mygraph", bool isOutp
 	{
 		const SimpleNode & n = g.nodes[i];
 
-		out << "\t" << QString("%1 [label = \"%2\", color = %3];").arg(n.idx).arg(n.property["original"].toString()).arg(colors[n.property["state"].toInt()]) << "\n";
+		Structure::Node * node = g.mGraph->getNode(n.property["original"].toString());
+		QColor color = node->vis_property["color"].value<QColor>();
+		QString colorHex;
+		colorHex.sprintf("#%02X%02X%02X", color.red(), color.green(), color.blue());
+
+		out << "\t" << QString("%1 [label = \"%2\", color = \"%3\"];").arg(n.idx).arg(n.property["original"].toString()).arg(colorHex) << "\n";
 
 		// Move virtual cursor
 		x += dx;

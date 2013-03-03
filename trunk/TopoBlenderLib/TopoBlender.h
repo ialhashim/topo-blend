@@ -9,6 +9,7 @@
 class Scheduler;
 
 struct Structure::Graph;
+typedef QSet<Structure::Node*> SetNodes;
 
 class TopoBlender : public QObject
 {
@@ -25,10 +26,7 @@ public:
 
     QMap<QString, QVariant> params;
 
-    // Logging
-    int stepCounter;
-
-	// Super graphs
+	/// Super graphs:
 	Structure::Graph * super_sg;
 	Structure::Graph * active;
 	Structure::Graph * super_tg;
@@ -38,21 +36,36 @@ public:
 	void correspondSuperNodes();
 	void correspondSuperEdges();
 
-	// Helper functions
-	void equalizeResolutions();
-	bool isExtraNode(Structure::Node *node);
-	bool isExtraEdge(Structure::Link *link);
-	void tagEdge(Structure::Link *link, QString tag);
-	bool taggedEdge(Structure::Link *link, QString tag);
-	bool isCorrespondedEdge(Structure::Link *link);
-	bool isShareCorrespondedNode( Structure::Link * slink, Structure::Link * tlink );
+	/// Helper functions:
 	QVector<QString> cloneGraphNode(Structure::Graph *g, QString nodeID, int N);
 	Structure::Link * addMissingLink( Structure::Graph *g, Structure::Link * link );
-	QVector<Structure::Link*> filterEdgesContain(QVector<Structure::Link*> edges, QString property_name);
-	QVector<Structure::Link*> filterEdgesNotContain(QVector<Structure::Link*> edges, QString property_name);
 
-	// Tasks
+	void tagEdge(Structure::Link *link, QString tag);
+	bool taggedEdge(Structure::Link *link, QString tag);
+	QString correspondingNode( Structure::Link *link, int i );
+	
+	void equalizeResolutions();
+
+	// Query
+	bool isExtraNode(Structure::Node *node);
+	bool isExtraEdge(Structure::Link *link);
+	bool isCorrespondedEdge(Structure::Link *link);
+	bool isShareCorrespondedNode( Structure::Link * slink, Structure::Link * tlink );
+
+	// Edge lists filtering
+	QVector<Structure::Link*> edgesContain(QVector<Structure::Link*> edges, QString property_name);
+	QVector<Structure::Link*> edgesNotContain(QVector<Structure::Link*> edges, QString property_name);
+	
+	// Null sets
+	QVector< SetNodes > nullNodeSets( Structure::Graph * graph );
+	void connectNullSet( SetNodes nullSet, Structure::Graph * source, Structure::Graph * target );
+	QVector<Structure::Link*> nonCorrespondEdges( Structure::Node * node, Structure::Graph * graph );
+	
+	/// Tasks:
 	void generateTasks();
+
+	/// Logging
+	int stepCounter;
 
 public slots:
 	void executeBlend();

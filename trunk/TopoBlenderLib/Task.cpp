@@ -758,7 +758,7 @@ void Task::prepareMorphCurve()
 	// 0) Filter edges (remove edges with null since these nodes will grow in future)
 	QVector<Structure::Link*> edges = filteredEdges(n, active->getEdges(n->id));
 	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
-	
+
 	// 1) SINGLE edge
 	if(edges.size() == 1)
 	{
@@ -781,11 +781,12 @@ void Task::prepareMorphCurve()
 		path = smoothStart( node(), link->getCoord(n->id).front(), path );
 
 		// Smooth transition to end point
-		//Structure::Link * tlink = target->getEdge(link->property["correspond"].toString());
-		//Vec3d endDelta = tlink->position(tn->id) - tlink->positionOther(tn->id);
-		//Node * aux = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, link->otherNode(n->id)->position(tlink->getCoordOther(tn->id).front()) + endDelta ) ), "auxA_" + n->id);
-		//active->aux_nodes.push_back( aux );
-		//path = smoothEnd( aux, Vec4d(0), path );
+		path = smoothEnd( prepareEnd(n, link), Vec4d(0), path );
+
+		// Replace coordinates and such
+		QString otherNode = link->otherNode(n->id)->id;
+		NodeCoord fnc = futureOtherNodeCoord(link);
+		link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
 
 		path = weldPath( path );
 		property["path"].setValue( path );
@@ -834,21 +835,17 @@ void Task::prepareMorphCurve()
 		pathA = smoothStart(node(), linkA->getCoord(n->id).front(), pathA);
 		pathB = smoothStart(node(), linkB->getCoord(n->id).front(), pathB);
 
-		// Prepare end point parameters
-		Structure::Link * tlinkA = target->getEdge(linkA->property["correspond"].toString());
-		Structure::Link * tlinkB = target->getEdge(linkB->property["correspond"].toString());
-		Vec3d endDeltaA = tlinkA->position(tn->id) - tlinkA->positionOther(tn->id);
-		Vec3d endDeltaB = tlinkB->position(tn->id) - tlinkB->positionOther(tn->id);
-		Node * auxA = new Structure::Curve(NURBSCurved::createCurveFromPoints( 
-			Array1D_Vector3 ( 4, linkA->otherNode(n->id)->position(tlinkA->getCoordOther(tn->id).front()) + endDeltaA ) ), "auxA_" + n->id);
-		Node * auxB = new Structure::Curve(NURBSCurved::createCurveFromPoints( 
-			Array1D_Vector3 ( 4, linkB->otherNode(n->id)->position(tlinkB->getCoordOther(tn->id).front()) + endDeltaB ) ), "auxB_" + n->id);
-		active->aux_nodes.push_back( auxA );
-		active->aux_nodes.push_back( auxB );
+		// Replace destination
+		foreach(Structure::Link *link, edges){
+			QString otherNode = link->otherNode(n->id)->id;
+			NodeCoord fnc = futureOtherNodeCoord(link);
+			link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
+		}
 
 		// Smooth transition to end point
-		pathA = smoothEnd(auxA, Vec4d(0), pathA);
-		pathB = smoothEnd(auxB, Vec4d(0), pathB);
+		QPair<Node*,Node*> auxAB = prepareEnd2(n,linkA,linkB);
+		pathA = smoothEnd(auxAB.first, Vec4d(0), pathA);
+		pathB = smoothEnd(auxAB.second, Vec4d(0), pathB);
 
 		// Remove redundancy along paths
 		pathA = this->weldPath( pathA );
@@ -1221,13 +1218,10 @@ void Task::executeMorphCurve( double t )
 	Structure::Node * n = node();
 	Structure::Node * tn = targetNode();
 
-	QVector<Structure::Link*> edges = filteredEdges(n, active->getEdges(n->id));
-	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
-
 	Structure::Curve* structure_curve = ((Structure::Curve*)n);
 
 	// 1) SINGLE edge
-	if(edges.size() == 1)
+	if( property.contains("path") )
 	{
 		// Parameters
 		QVector< GraphDistance::PathPointPair > path = property["path"].value< QVector< GraphDistance::PathPointPair > >();
@@ -1255,18 +1249,15 @@ void Task::executeMorphCurve( double t )
 	}
 
 	// 2) TWO edges
-	if (edges.size() == 2 || type == Task::GROW )
+	if( property.contains("pathA") && property.contains("pathB") )
 	{
-		if(!property.contains("pathA")) return;
-
 		QVector< GraphDistance::PathPointPair > pathA = property["pathA"].value< QVector< GraphDistance::PathPointPair > >();
 		QVector< GraphDistance::PathPointPair > pathB = property["pathB"].value< QVector< GraphDistance::PathPointPair > >();
 
+		if(pathA.size() == 0 || pathB.size() == 0)	return;
+
 		int idxA = t * (pathA.size() - 1);
 		int idxB = t * (pathB.size() - 1);
-
-		if(pathA.size() == 0 || pathB.size() == 0)
-			return;
 
 		// Move to next step
 		Vector3 pointA = pathA[idxA].position(active);
@@ -1291,6 +1282,7 @@ void Task::executeMorphCurve( double t )
 		// There are two edges in the active should be killed
 		if (type == Task::SHRINK)
 		{
+			QVector<Link*> edges = active->getEdges(n->id);
 			if (edges.size() == 2)
 			{
 				Structure::Link *linkA = edges.front();
@@ -1302,27 +1294,11 @@ void Task::executeMorphCurve( double t )
 		}
 
 		// There are no edge in active but two in the target
-		if (type == Task::GROW)
-		{
-			copyTargetEdge(tedges.front());
-			copyTargetEdge(tedges.back());
-		}
-
-		// There are one or two edges need to be updated
-		if (edges.size() < 3)
-		{
-			if (type == Task::MORPH)
-			{
-				foreach(Structure::Link *link, edges)
-				{
-					QString otherNode = link->otherNode(n->id)->id;
-
-					NodeCoord fnc = futureOtherNodeCoord(link);
-
-					link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
-				}
-			}
-		}
+		//if (type == Task::GROW)
+		//{
+		//	copyTargetEdge(tedges.front());
+		//	copyTargetEdge(tedges.back());
+		//}
 	}
 }
 
@@ -1434,4 +1410,32 @@ Structure::Link * Task::getCoorespondingEdge( Structure::Link * link, Structure:
 {
 	QString correspondID = link->property["correspond"].toString();
 	return otherGraph->getEdge(correspondID);
+}
+
+Structure::Node * Task::prepareEnd( Structure::Node * n, Structure::Link * slink )
+{
+	Structure::Node * tn = target->getNode(n->property["correspond"].toString());
+	Structure::Link * tlink = target->getEdge(slink->property["correspond"].toString());
+	Vec3d endDelta = tlink->position(tn->id) - tlink->positionOther(tn->id);
+	QString corrBaseNodeID = tlink->otherNode(tn->id)->property["correspond"].toString();
+	Vec3d posOther = active->getNode(corrBaseNodeID)->position(tlink->getCoordOther(tn->id).front());
+	Structure::Node * aux = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, posOther + endDelta ) ), "auxA_" + n->id);
+	active->aux_nodes.push_back( aux );
+	return aux;
+}
+
+QPair<Structure::Node*,Structure::Node*> Task::prepareEnd2( Structure::Node * n, Structure::Link * linkA, Structure::Link * linkB )
+{
+	Structure::Node * tn = target->getNode(n->property["correspond"].toString());
+	Structure::Link * tlinkA = target->getEdge(linkA->property["correspond"].toString());
+	Structure::Link * tlinkB = target->getEdge(linkB->property["correspond"].toString());
+	Vec3d endDeltaA = tlinkA->position(tn->id) - tlinkA->positionOther(tn->id);
+	Vec3d endDeltaB = tlinkB->position(tn->id) - tlinkB->positionOther(tn->id);
+	Node * auxA = new Structure::Curve(NURBSCurved::createCurveFromPoints( 
+		Array1D_Vector3 ( 4, linkA->otherNode(n->id)->position(tlinkA->getCoordOther(tn->id).front()) + endDeltaA ) ), "auxA_" + n->id);
+	Node * auxB = new Structure::Curve(NURBSCurved::createCurveFromPoints( 
+		Array1D_Vector3 ( 4, linkB->otherNode(n->id)->position(tlinkB->getCoordOther(tn->id).front()) + endDeltaB ) ), "auxB_" + n->id);
+	active->aux_nodes.push_back( auxA );
+	active->aux_nodes.push_back( auxB );
+	return qMakePair(auxA, auxB);
 }
