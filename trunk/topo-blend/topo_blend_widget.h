@@ -22,6 +22,7 @@ public slots:
     void loadAnimationModel();
     void doBlend();
 	void loadCorrespondenceModel();
+	void showGroupingDialog();
 
 private:
     Ui::topo_blend_widget *ui;

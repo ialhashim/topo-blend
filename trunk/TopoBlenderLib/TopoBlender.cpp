@@ -10,6 +10,7 @@
 using namespace Structure;
 
 #include "ExportDynamicGraph.h"
+using namespace DynamicGraphs;
 
 #include "Task.h"
 #include "Scheduler.h"
@@ -371,7 +372,6 @@ void TopoBlender::correspondSuperEdges()
 			}
 		}
 	}
-
 }
 
 QVector< SetNodes > TopoBlender::nullNodeSets( Structure::Graph * graph )

@@ -605,7 +605,7 @@ void topoblend::saveModel()
 	QString filename = QFileDialog::getSaveFileName(0, tr("Save Model"), 
 		mainWindow()->settings()->getString("lastUsedDirectory"), tr("Model Files (*.xml)"));
 
-	graphs.back()->saveToFile(filename);
+	graphs.front()->saveToFile(filename);
 }
 
 void topoblend::modifyModel()

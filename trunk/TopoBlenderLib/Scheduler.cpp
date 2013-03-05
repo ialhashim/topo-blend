@@ -7,6 +7,8 @@
 #include "Synthesizer.h"
 #include <QQueue>
 
+#include "TaskGroups.h"
+
 Scheduler::Scheduler()
 {
 	rulerHeight = 25;
@@ -143,30 +145,142 @@ void Scheduler::order()
 		}
 		else
 		{
-			foreach(Task* t, curTasks){
-				t->setStart(curStart);
+			curTasks = sortTasksAsLayers( curTasks, curStart );
+
+			foreach(Task* t, curTasks)
 				futureStart = qMax(futureStart, t->endTime());
-			}
 		}
 
+		// Group events in same group
+		Structure::Graph * g = (i == Task::SHRINK) ? activeGraph : targetGraph;
+		if(g->property.contains("groups"))
+		{
+			NodeGroups groups = g->property["groups"].value<NodeGroups>();
+
+			foreach(QVector<QString> group, groups)
+			{
+				QVector<Task*> tasksInGroup;
+
+				// Check which tasks are in a group
+				foreach(Task * t, curTasks){
+					Structure::Node * n = (i == Task::SHRINK) ? t->node() : t->targetNode();
+					
+					if(group.contains(n->id))
+						tasksInGroup.push_back(t);
+				}
+
+				curStart = futureStart;
+
+				// Assign same start for them				
+				foreach(Task * t, tasksInGroup){
+					curStart = qMin(curStart, t->start);		
+				}
+				foreach(Task * t, tasksInGroup){
+					t->setStart(curStart);
+					futureStart = qMax(futureStart, t->endTime());
+				}
+			}
+		}
+		
 		curStart = futureStart;
 	}
 
-	// Collect morph generated from split together
-	foreach(Task* t, tasks)
-	{
-		if(t->type == Task::SPLIT)
+	// Remove empty spaces between tasks [inefficient?]
+	int curTime = 0;
+	forever{
+		QList<Task*> before, after;
+		splitTasksStartTime(curTime, before, after);
+
+		if(after.empty()) break;
+
+		if(!before.empty())
 		{
-			Task * morphTask = getTaskFromNodeID( t->property["splitFrom"].toString() );
-			morphTask->setStart( t->start );
+			int end = endOf( before );
+			int start = startOf( after );
+
+			int delta = end - start;
+			if(delta < 0) 
+				slideTasksTime(after, delta);
 		}
 
-		if(t->type == Task::MERGE)
-		{
-			Task * morphTask = getTaskFromNodeID( t->property["mergeTo"].toString() );
-			morphTask->setStart( t->start );
+		curTime += 50;
+	}
+
+	// To-do: Collect tasks together?
+}
+
+QList<Task*> Scheduler::sortTasksByPriority( QList<Task*> currentTasks )
+{
+	QList<Task*> sorted;
+
+	// Sort by type: Sheets before curves
+	QMap<Task*,int> curveTasks, sheetTasks;
+	foreach(Task* t, currentTasks)
+	{
+		if(!t->node()) continue;
+
+		if(t->node()->type() == Structure::CURVE) 
+			curveTasks[t] = activeGraph->valence(t->node());
+		if(t->node()->type() == Structure::SHEET) 
+			sheetTasks[t] = activeGraph->valence(t->node());
+	}
+
+	// Sort by valence: Highly connected before individuals
+	QList< QPair<int, Task*> > sortedCurve = sortQMapByValue(curveTasks);
+	QList< QPair<int, Task*> > sortedSheet = sortQMapByValue(sheetTasks);
+
+	// Combine: Curve[low] --> Curve[high] + Sheet[low] --> Sheet[heigh]
+	for (int i = 0; i < (int)sortedCurve.size(); ++i) sorted.push_back( sortedCurve.at(i).second );
+	for (int i = 0; i < (int)sortedSheet.size(); ++i) sorted.push_back( sortedSheet.at(i).second );
+
+	// Reverse
+	for(int k = 0; k < (sorted.size()/2); k++) sorted.swap(k,sorted.size()-(1+k));
+
+	return sorted;
+}
+
+QList<Task*> Scheduler::sortTasksAsLayers( QList<Task*> currentTasks, int startTime )
+{
+	QList<Task*> sorted;
+
+	QVector< QList<Task*> > groups = TaskGroups::split(currentTasks, activeGraph);
+
+	foreach(QList<Task*> group, groups)
+	{
+		TaskGroups::Graph g( group, activeGraph );
+
+		int futureStart = -1;
+
+		foreach(QList<Task*> layer, g.peel()){
+			foreach(Task* t, layer){
+				t->setStart(startTime);
+				futureStart = qMax(futureStart, t->endTime());
+			}
+
+			startTime = futureStart;
+
+			sorted += layer;
 		}
 	}
+
+	if(sorted.front()->type == Task::SHRINK)
+	{
+		// Reverse
+		for(int k = 0; k < (sorted.size()/2); k++) 
+		{
+			int j = sorted.size()-(1+k);
+
+			int startK = sorted[k]->start;
+			int startJ = sorted[j]->start;
+		
+			sorted[k]->setStart(startJ);
+			sorted[j]->setStart(startK);
+
+			sorted.swap(k,j);
+		}
+	}
+
+	return sorted;
 }
 
 void Scheduler::executeAll()
@@ -220,13 +334,14 @@ void Scheduler::executeAll()
 
 			task->execute( localTime );
 
-			relink( task );
+			relink( task, globalTime );
 
 			if(localTime >= 0.0 && localTime < 1.0) task->node()->property["isActive"] = true;
 		}
 
 		// Geometry morphing
-		foreach(Task * task, allTasks){
+		foreach(Task * task, allTasks)
+		{
 			double localTime = task->localT( globalTime * totalTime );
 			if( localTime < 0 ) continue;
 			task->geometryMorph( localTime );
@@ -284,7 +399,7 @@ void Scheduler::prepare_relink( Task * task )
 	task->property["linkDeltas"].setValue( deltas );
 }
 
-void Scheduler::relink( Task * task )
+void Scheduler::relink( Task * task, int globalTime )
 {
 	LinksDelta deltas = task->property["linkDeltas"].value<LinksDelta>();
 	if( !deltas.size() ) return;
@@ -310,6 +425,10 @@ void Scheduler::relink( Task * task )
 		Task * otherTask = getTaskFromNodeID(other->id);
 
 		other->deformTo( handle, newPos, otherTask->isDone );
+
+		// Modify actual geometry
+		double t = task->localT( globalTime * totalExecutionTime() );
+		otherTask->geometryMorph( qRanged(0.0,t,1.0) );
 	}
 }
 
@@ -394,32 +513,33 @@ QVector<QString> Scheduler::activeTasks( double globalTime )
 	return aTs;
 }
 
-QList<Task*> Scheduler::sortTasksByPriority( QList<Task*> currentTasks )
+void Scheduler::splitTasksStartTime( int startTime, QList<Task*> & before, QList<Task*> & after )
 {
-	QList<Task*> sorted;
-
-	// Sort by type: Sheets before curves
-	QMap<Task*,int> curveTasks, sheetTasks;
-	foreach(Task* t, currentTasks)
-	{
-		if(!t->node()) continue;
-
-		if(t->node()->type() == Structure::CURVE) 
-			curveTasks[t] = activeGraph->valence(t->node());
-		if(t->node()->type() == Structure::SHEET) 
-			sheetTasks[t] = activeGraph->valence(t->node());
+	foreach(Task * t, tasks){
+		if(t->start < startTime)
+			before.push_back(t);
+		else
+			after.push_back(t);
 	}
+}
 
-	// Sort by valence: Highly connected before individuals
-	QList< QPair<int, Task*> > sortedCurve = sortQMapByValue(curveTasks);
-	QList< QPair<int, Task*> > sortedSheet = sortQMapByValue(sheetTasks);
+void Scheduler::slideTasksTime( QList<Task*> list_tasks, int delta )
+{
+	foreach(Task * t, list_tasks){
+		t->setStart( t->start + delta );
+	}
+}
 
-	// Combine: Curve[low] --> Curve[high] + Sheet[low] --> Sheet[heigh]
-	for (int i = 0; i < (int)sortedCurve.size(); ++i) sorted.push_back( sortedCurve.at(i).second );
-	for (int i = 0; i < (int)sortedSheet.size(); ++i) sorted.push_back( sortedSheet.at(i).second );
+int Scheduler::startOf( QList<Task*> list_tasks )
+{
+	int start = INT_MAX;
+	foreach(Task * t, list_tasks) start = qMin(start, t->start);
+	return start;
+}
 
-	// Reverse
-	for(int k = 0; k < (sorted.size()/2); k++) sorted.swap(k,sorted.size()-(1+k));
-
-	return sorted;
+int Scheduler::endOf( QList<Task*> list_tasks )
+{
+	int end = -INT_MAX;
+	foreach(Task * t, list_tasks) end = qMax(end, t->endTime());
+	return end;
 }

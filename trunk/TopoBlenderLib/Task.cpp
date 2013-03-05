@@ -1081,7 +1081,7 @@ void Task::execute( double t )
 		}
 	}
 
-	if(t == 1.0)
+	if(t >= 1.0)
 	{
 		this->isDone = true;
 		node()->property["taskIsDone"] = true;

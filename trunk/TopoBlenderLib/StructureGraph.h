@@ -11,17 +11,21 @@ using namespace DynamicVoxelLib;
 // DEBUG:
 #include "../CustomDrawObjects.h"
 
+// For camera
 #include "qglviewer/camera.h"
 
 // Relink
 typedef QMap<Structure::Link*,Vector3> LinksDelta;
-Q_DECLARE_METATYPE( LinksDelta );
+Q_DECLARE_METATYPE( LinksDelta )
 
 namespace Structure{
 
 typedef QPair<Node*,Node*> QPairNodes;
 typedef QPair<Link*,Link*> QPairLink;
 typedef QPair<Scalar, QPairLink> ScalarLinksPair;
+
+typedef QVector< QVector<QString> > NodeGroups;
+Q_DECLARE_METATYPE( NodeGroups )
 
 struct Graph
 {
@@ -48,13 +52,16 @@ struct Graph
 	
 	// Modifiers
     Node * addNode( Node * n );
-	Node * removeNode( QString nodeID );
-
     Link * addEdge( Node * n1, Node * n2 );
 	Link * addEdge( Node *n1, Node *n2, std::vector<Vec4d> coord1, std::vector<Vec4d> coord2, QString linkName = "" );
 	Link * addEdge( QString n1_id, QString n2_id );
+
+    Node * removeNode( QString nodeID );
 	void removeEdge( Node * n1, Node * n2 );
 	void removeEdge( QString n1_id, QString n2_id );
+
+    void addGroup(QVector<QString> nodes);
+    void removeGroup(int groupIDX);
 
 	QString linkName( QString n1_id, QString n2_id );
     QString linkName( Node * n1, Node * n2 );

@@ -25,7 +25,7 @@ bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCo
 #define OCTREE_NODE_SIZE 40
 
 // Sampling
-#define RANDOM_COUNT 1e4
+#define RANDOM_COUNT 1e3
 #define UNIFORM_RESOLUTION 0.01
 #define EDGE_RESOLUTION 0.05
 #define UNIFORM_TRI_SAMPLES 1e4

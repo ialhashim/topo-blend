@@ -3,9 +3,11 @@
 #include "ui_topo_blend_widget.h"
 #include "ui_animationWidget.h"
 #include "landmarks_dialog.h"
+#include "StarlabDrawArea.h"
 
 #include "QuickMesh.h"
 #include "QuickViewer.h"
+#include "QuickGroup.h"
 #include <QFileDialog>
 
 QuickViewer * viewer = NULL;
@@ -38,6 +40,9 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	// Correspondence
 	this->connect(ui->computeCorrButton, SIGNAL(clicked()), SLOT(loadCorrespondenceModel()));
 
+	// Grouping
+	this->connect(ui->groupButton, SIGNAL(clicked()), SLOT(showGroupingDialog()));
+
 	// Synthesis
 	topo_blend->connect(ui->genSynthButton, SIGNAL(clicked()), SLOT(generateSynthesisData()));
 	topo_blend->connect(ui->saveSynthButton, SIGNAL(clicked()), SLOT(saveSynthesisData()));
@@ -55,6 +60,13 @@ void topo_blend_widget::doBlend()
 	tb->params["NUM_STEPS"] = ui->numSteps->value();
 	tb->params["materialize"] = ui->voxelSize->value();
     tb->doBlend();
+}
+
+void topo_blend_widget::showGroupingDialog()
+{
+	QuickGroup groupingDialog(tb->graphs.front());
+	tb->connect(&groupingDialog, SIGNAL(updateView()), SLOT(updateDrawArea()));
+	groupingDialog.exec();
 }
 
 void topo_blend_widget::renderViewer()
