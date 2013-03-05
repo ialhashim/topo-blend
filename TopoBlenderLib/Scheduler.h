@@ -30,7 +30,7 @@ public:
 
 	// Relink
 	void prepare_relink( Task * task );
-	void relink( Task * task );
+	void relink( Task * task, int globalTime );
 
 	int totalExecutionTime();
 
@@ -40,7 +40,15 @@ public:
 	// Helper functions
 	QVector<Task*> tasksSortedByStart();
 	Task * getTaskFromNodeID( QString nodeID );
+
 	QList<Task*> sortTasksByPriority( QList<Task*> curTasks );
+	QList<Task*> sortTasksAsLayers( QList<Task*> currentTasks, int startTime = 0 );
+
+	// Time helpers
+	void splitTasksStartTime( int startTime, QList<Task*> & before, QList<Task*> & after );
+	void slideTasksTime( QList<Task*> list_tasks, int delta );
+	int startOf( QList<Task*> list_tasks );
+	int endOf( QList<Task*> list_tasks );
 
 	// Properties
 	int rulerHeight;

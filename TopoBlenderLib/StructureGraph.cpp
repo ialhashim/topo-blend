@@ -80,7 +80,7 @@ QBox3D Graph::bbox()
         box.unite( n->bbox().maximum() );
     }
 
-	box.transform(QMatrix4x4() * 1.25);
+	//box.transform(QMatrix4x4() * 1.25);
 
     return box;
 }
@@ -707,6 +707,20 @@ void Graph::saveToFile( QString fileName ) const
 		out << "</edge>\n\n";
 	}
 
+    // Save groups
+    if(property.contains("groups"))
+    {
+        NodeGroups groups = property["groups"].value<NodeGroups>();
+
+        foreach(QVector<QString> group, groups){
+            out << "<group>";
+            foreach(QString nid, group){
+                out << QString("\n\t<n>%1</n>").arg(nid);
+            }
+            out << "\n</group>\n\n";
+        }
+    }
+
 	out << "\n</document>\n";
 	file.close();
 }
@@ -836,6 +850,32 @@ void Graph::loadFromFile( QString fileName )
 
 		addEdge(getNode(n1_id), getNode(n2_id), coords.front(), coords.back(), id);
 	}
+
+    // For each group
+    QDomNodeList group_list = mDocument.firstChildElement("document").elementsByTagName("group");
+    int num_groups = group_list.count();
+    for(int i = 0; i < num_groups; i++)
+    {
+        QDomNode group = group_list.at(i);
+
+        // Find elements of group
+        QVector<QString> elements_ids;
+        QDomNodeList elements_list = group.toElement().elementsByTagName("n");
+        for(int c = 0; c < (int)elements_list.size(); c++)
+            elements_ids.push_back( elements_list.at(c).toElement().text() );
+
+		QColor groupColor = qRandomColor();
+
+        QVector<QString> element_nodes;
+        foreach(QString nid, elements_ids){
+			Node * n = getNode(nid);
+			if(n){
+				element_nodes.push_back( nid );
+				n->vis_property["color"].setValue( groupColor );
+			}
+        }
+        addGroup(element_nodes);
+    }
 
 	file.close();
 }
@@ -1288,7 +1328,7 @@ void Graph::translate( Vector3 delta )
 		if(!node->property.contains("mesh")) continue;
 		SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
 		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
-		foreach(Vertex v, model->vertices()) points[v] -= delta;
+		foreach(Vertex v, model->vertices()) points[v] += delta;
 	}
 
 	// Update the bounding box
@@ -1413,7 +1453,37 @@ void Graph::normalize()
 
 void Graph::removeEdge( QString n1_id, QString n2_id )
 {
-	removeEdge( getNode(n1_id),getNode(n2_id) );
+    removeEdge( getNode(n1_id),getNode(n2_id) );
+}
+
+void Graph::addGroup(QVector<QString> newGroup)
+{
+    if(!newGroup.size()) return;
+
+    NodeGroups groups;
+
+    if(property.contains("groups"))
+        groups = property["groups"].value<NodeGroups>();
+
+    // Add
+    groups.push_back( newGroup );
+    property["groups"].setValue( groups );
+}
+
+void Graph::removeGroup(int groupIDX)
+{
+    NodeGroups groups;
+
+    if(property.contains("groups"))
+        groups = property["groups"].value<NodeGroups>();
+    else
+        property["groups"].setValue( groups );
+
+    if(!groups.size()) return;
+
+    // Remove
+    groups.remove(groupIDX);
+    property["groups"].setValue( groups );
 }
 
 QVector<POINT_ID> Graph::selectedControlPointsByColor(QColor color)

@@ -38,13 +38,15 @@ HEADERS += topo-blend.h \
     topo_blend_widget.h \
     graph_modify_dialog.h \
     landmarks_dialog.h \
-    QuickAlignment.h
+    QuickAlignment.h \
+    QuickGroup.h
 
 SOURCES +=  topo-blend.cpp \
             topo_blend_widget.cpp \
             graph_modify_dialog.cpp \
 			landmarks_dialog.cpp \
-    QuickAlignment.cpp
+    QuickAlignment.cpp \
+    QuickGroup.cpp
 	
 RESOURCES += topo-blend.qrc
 
@@ -52,7 +54,8 @@ FORMS +=    topo_blend_widget.ui \
             animationWidget.ui \
             graph_modify_dialog.ui \
 			landmarks_dialog.ui \
-    QuickAlignment.ui
+    QuickAlignment.ui \
+    QuickGroup.ui
 
 # OpenMP
 win32 {

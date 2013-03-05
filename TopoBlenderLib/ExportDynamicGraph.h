@@ -5,7 +5,7 @@
 #include <QXmlStreamWriter>
 
 // Save to XML based graph file
-static void toGraphML(DynamicGraph g, QString fileName = "mygraph")
+static void toGraphML(DynamicGraphs::DynamicGraph g, QString fileName = "mygraph")
 {
 	QFile file(fileName + ".graphml");
 	if (!file.open(QFile::WriteOnly | QFile::Text))	return;
@@ -87,7 +87,7 @@ static void toGraphML(DynamicGraph g, QString fileName = "mygraph")
 	// Write nodes
 	foreach(int i, g.nodes.keys())
 	{
-		const SimpleNode & n = g.nodes[i];
+		const DynamicGraphs::SimpleNode & n = g.nodes[i];
 
 		xml.writeStartElement("node");
 		xml.writeAttribute("id", QString::number(n.idx));
@@ -148,7 +148,7 @@ static void toGraphML(DynamicGraph g, QString fileName = "mygraph")
 	// Write edges
 	foreach(int i, g.edges.keys())
 	{
-		const SimpleEdge & e = g.edges[i];
+		const DynamicGraphs::SimpleEdge & e = g.edges[i];
 
 		xml.writeStartElement("edge");
 		xml.writeAttribute("source", QString::number(g.nodes[e.n[0]].idx));
@@ -170,7 +170,7 @@ static void toGraphML(DynamicGraph g, QString fileName = "mygraph")
 }
 
 // Save to XML based graph file
-static void toGraphviz(DynamicGraph g, QString fileName = "mygraph", bool isOutputImage = true, QString subcaption="", QString caption = "")
+static void toGraphviz(DynamicGraphs::DynamicGraph g, QString fileName = "mygraph", bool isOutputImage = true, QString subcaption="", QString caption = "")
 {
 	QFile file(fileName + ".gv");
 	if (!file.open(QFile::WriteOnly | QFile::Text))	return;
@@ -194,7 +194,7 @@ static void toGraphviz(DynamicGraph g, QString fileName = "mygraph", bool isOutp
 	// Write nodes
 	foreach(int i, g.nodes.keys())
 	{
-		const SimpleNode & n = g.nodes[i];
+		const DynamicGraphs::SimpleNode & n = g.nodes[i];
 
 		Structure::Node * node = g.mGraph->getNode(n.property["original"].toString());
 		QColor color = node->vis_property["color"].value<QColor>();
@@ -214,10 +214,10 @@ static void toGraphviz(DynamicGraph g, QString fileName = "mygraph", bool isOutp
 	// Write edges
 	foreach(int i, g.edges.keys())
 	{
-		const SimpleEdge & e = g.edges[i];
+		const DynamicGraphs::SimpleEdge & e = g.edges[i];
 
-		const SimpleNode & n1 = g.nodes[e.n[0]];
-		const SimpleNode & n2 = g.nodes[e.n[1]];
+		const DynamicGraphs::SimpleNode & n1 = g.nodes[e.n[0]];
+		const DynamicGraphs::SimpleNode & n2 = g.nodes[e.n[1]];
 
 		Structure::Link * link = g.mGraph->getEdge(n1.property["original"].toString(),n2.property["original"].toString());
 		

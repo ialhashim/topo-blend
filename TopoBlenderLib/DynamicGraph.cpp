@@ -1,4 +1,5 @@
 #include "DynamicGraph.h"
+using namespace DynamicGraphs;
 
 DynamicGraph::DynamicGraph(Structure::Graph *fromGraph)
 {
