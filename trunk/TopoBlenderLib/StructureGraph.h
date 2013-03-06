@@ -18,14 +18,14 @@ using namespace DynamicVoxelLib;
 typedef QMap<Structure::Link*,Vector3> LinksDelta;
 Q_DECLARE_METATYPE( LinksDelta )
 
+typedef QVector< QVector<QString> > NodeGroups;
+Q_DECLARE_METATYPE( NodeGroups )
+
 namespace Structure{
 
 typedef QPair<Node*,Node*> QPairNodes;
 typedef QPair<Link*,Link*> QPairLink;
 typedef QPair<Scalar, QPairLink> ScalarLinksPair;
-
-typedef QVector< QVector<QString> > NodeGroups;
-Q_DECLARE_METATYPE( NodeGroups )
 
 struct Graph
 {

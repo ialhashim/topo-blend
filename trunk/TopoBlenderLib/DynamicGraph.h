@@ -5,6 +5,8 @@
 
 typedef QPair<int,int> QPairInt;
 
+static inline uint qHash( const SimpleEdge &key ){return (key.n[0] << 16) ^ key.n[1]; }
+
 namespace DynamicGraphs
 {
 	class DynamicGraph

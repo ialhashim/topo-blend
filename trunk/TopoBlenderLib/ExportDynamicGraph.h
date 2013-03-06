@@ -148,7 +148,7 @@ static void toGraphML(DynamicGraphs::DynamicGraph g, QString fileName = "mygraph
 	// Write edges
 	foreach(int i, g.edges.keys())
 	{
-		const DynamicGraphs::SimpleEdge & e = g.edges[i];
+        const SimpleEdge & e = g.edges[i];
 
 		xml.writeStartElement("edge");
 		xml.writeAttribute("source", QString::number(g.nodes[e.n[0]].idx));
@@ -214,7 +214,7 @@ static void toGraphviz(DynamicGraphs::DynamicGraph g, QString fileName = "mygrap
 	// Write edges
 	foreach(int i, g.edges.keys())
 	{
-		const DynamicGraphs::SimpleEdge & e = g.edges[i];
+        const SimpleEdge & e = g.edges[i];
 
 		const DynamicGraphs::SimpleNode & n1 = g.nodes[e.n[0]];
 		const DynamicGraphs::SimpleNode & n2 = g.nodes[e.n[1]];
