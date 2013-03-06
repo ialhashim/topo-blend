@@ -89,7 +89,7 @@ public:
 	QVector<Structure::Link *> getGoodEdges();
 	QList<Structure::Link*> furthermostGoodEdges();
 	Structure::Link * getCoorespondingEdge( Structure::Link * link, Structure::Graph * otherGraph );
-	QVector<Structure::Link*> filteredEdges(Structure::Node * n, QVector<Structure::Link*> & all_edges);
+    QVector<Structure::Link*> filteredEdges(Structure::Node * n, QVector<Structure::Link*> all_edges);
 
 	// Task properties
 	TaskType type;

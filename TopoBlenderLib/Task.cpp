@@ -737,7 +737,7 @@ void Task::prepareGrowCurveConstraint()
 	}
 }
 
-QVector<Structure::Link*> Task::filteredEdges(Structure::Node * n, QVector<Structure::Link*> & all_edges)
+QVector<Structure::Link*> Task::filteredEdges(Structure::Node * n, QVector<Structure::Link*> all_edges)
 {
 	QVector<Structure::Link*> edges;
 

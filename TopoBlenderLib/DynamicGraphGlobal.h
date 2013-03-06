@@ -3,6 +3,31 @@
 #include <QString>
 #include <QMap>
 
+// Flags
+enum NODE_STATE{ ACTIVE, SLEEP, DONE, DISCONNECTED };
+typedef QVector<QVariant> Flags;
+
+/// Edges
+struct SimpleEdge{
+    int n[2];
+    SimpleEdge(int n1 = -1, int n2 = -1){ n[0] = n1 < n2 ? n1 : n2; n[1] = n1 > n2 ? n1 : n2; }
+    bool operator== ( const SimpleEdge & other ) const{
+        return (n[0] == other.n[0] && n[1] == other.n[1]);
+    }
+    bool hasNode(int node_index){
+        return n[0] == node_index || n[1] == node_index;
+    }
+    int otherNode(int node_index){
+        return n[0] == node_index ? n[1] : n[0];
+    }
+    bool operator< (const SimpleEdge & other) const{
+        if(this->n[0] <= other.n[0] && this->n[1] < other.n[1])
+            return true;
+        else
+            return false;
+    }
+};
+
 namespace DynamicGraphs
 {
 	/// Nodes
@@ -35,31 +60,6 @@ namespace DynamicGraphs
 		}
 		return dbg.space();
 	}
-
-	// Flags
-	enum NODE_STATE{ ACTIVE, SLEEP, DONE, DISCONNECTED };
-	typedef QVector<QVariant> Flags;
-
-	/// Edges
-	struct SimpleEdge{
-		int n[2];
-		SimpleEdge(int n1 = -1, int n2 = -1){ n[0] = n1 < n2 ? n1 : n2; n[1] = n1 > n2 ? n1 : n2; }
-		bool operator== ( const SimpleEdge & other ) const{
-			return (n[0] == other.n[0] && n[1] == other.n[1]);
-		}
-		bool hasNode(int node_index){
-			return n[0] == node_index || n[1] == node_index;
-		}
-		int otherNode(int node_index){
-			return n[0] == node_index ? n[1] : n[0];
-		}
-		bool operator< (const SimpleEdge & other) const{
-			if(this->n[0] <= other.n[0] && this->n[1] < other.n[1]) 
-				return true;
-			else
-				return false;
-		}
-	};
 
 	enum EdgeType{ ANY_EDGE, SAME_SHEET, SAME_CURVE, CURVE_SHEET };
 
@@ -112,8 +112,6 @@ namespace DynamicGraphs
 		}
 	};
 }
-
-static inline uint qHash( const DynamicGraphs::SimpleEdge &key ){return (key.n[0] << 16) ^ key.n[1]; }
 
 // Generate subset combinations
 template <typename Iterator>

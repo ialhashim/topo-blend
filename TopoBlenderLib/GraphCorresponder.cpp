@@ -1041,11 +1041,10 @@ std::vector<QString> GraphCorresponder::nonCorresTarget()
 
 void GraphCorresponder::saveCorrespondences( QString filename )
 {
-
 	std::ofstream outF("correspondences_one2one.txt", std::ios::out);
 
-	outF << "Source shape: " << sg->property["name"].toString().toStdString() << '\n';
-	outF << "Target shape: " << tg->property["name"].toString().toStdString() << "\n\n\n";
+    outF << "Source shape: " << qPrintable(sg->property["name"].toString()) << '\n';
+    outF << "Target shape: " << qPrintable(tg->property["name"].toString()) << "\n\n\n";
 }
 
 void GraphCorresponder::LoadCorrespondences( QString filename )
