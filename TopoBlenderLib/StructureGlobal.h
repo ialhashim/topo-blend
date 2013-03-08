@@ -277,6 +277,22 @@ static inline std::vector<T> reversedvec(const std::vector<T> & V){
 	return reversed;
 }
 
+template <typename T>
+QList<T> reversed( const QList<T> & in ) {
+	QList<T> result;
+	result.reserve( in.size() );
+	std::reverse_copy( in.begin(), in.end(), std::back_inserter( result ) );
+	return result;
+}
+
+template <typename T>
+QVector<T> reversed( const QVector<T> & in ) {
+	QVector<T> result;
+	result.reserve( in.size() );
+	std::reverse_copy( in.begin(), in.end(), std::back_inserter( result ) );
+	return result;
+}
+
 static void saveOBJ(SurfaceMesh::Model * mesh, QString filename)
 {
 	QFile file(filename);

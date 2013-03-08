@@ -245,13 +245,19 @@ QList<Task*> Scheduler::sortTasksAsLayers( QList<Task*> currentTasks, int startT
 
 	QVector< QList<Task*> > groups = TaskGroups::split(currentTasks, activeGraph);
 
+	int futureStart = -1;
+
 	foreach(QList<Task*> group, groups)
 	{
 		TaskGroups::Graph g( group, activeGraph );
 
-		int futureStart = -1;
+		QVector< QList<Task*> > layers = g.peel();
 
-		foreach(QList<Task*> layer, g.peel()){
+		if(currentTasks.front()->type == Task::SHRINK)
+			layers = reversed(layers);
+
+		foreach(QList<Task*> layer, layers)
+		{
 			foreach(Task* t, layer){
 				t->setStart(startTime);
 				futureStart = qMax(futureStart, t->endTime());
@@ -260,23 +266,6 @@ QList<Task*> Scheduler::sortTasksAsLayers( QList<Task*> currentTasks, int startT
 			startTime = futureStart;
 
 			sorted += layer;
-		}
-	}
-
-	if(sorted.front()->type == Task::SHRINK)
-	{
-		// Reverse
-		for(int k = 0; k < (sorted.size()/2); k++) 
-		{
-			int j = sorted.size()-(1+k);
-
-			int startK = sorted[k]->start;
-			int startJ = sorted[j]->start;
-		
-			sorted[k]->setStart(startJ);
-			sorted[j]->setStart(startK);
-
-			sorted.swap(k,j);
 		}
 	}
 
@@ -295,21 +284,19 @@ void Scheduler::executeAll()
 	QVector<Task*> allTasks = tasksSortedByStart();
 
 	// Early preparations needed for cut nodes
-	for(int i = 0; i < (int)allTasks.size(); i++)
-	{
-		Task * task = allTasks[i];
+	//for(int i = 0; i < (int)allTasks.size(); i++)
+	//{
+	//	Task * task = allTasks[i];
 
-		if( task->type == Task::GROW && targetGraph->isCutNode(task->targetNode()->id) )
-		{
-			task->prepare();
-			task->property["cutNodeGrow"] = true;
-		}
+	//	if( task->type == Task::GROW && targetGraph->isCutNode(task->targetNode()->id) )
+	//	{
+	//		task->prepare();
+	//		task->property["cutNodeGrow"] = true;
+	//	}
 
-		if( task->type == Task::SHRINK && sourceGraph->isCutNode(task->node()->id) )
-		{
-			task->property["cutNodeShrink"] = true;
-		}
-	}
+	//	if( task->type == Task::SHRINK && sourceGraph->isCutNode(task->node()->id) )
+	//		task->property["cutNodeShrink"] = true;
+	//}
 
 	// Execute all tasks
 	for(double globalTime = 0; globalTime <= (1.0 + timeStep); globalTime += timeStep)

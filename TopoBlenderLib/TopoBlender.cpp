@@ -249,9 +249,10 @@ void TopoBlender::correspondSuperNodes()
 		Structure::Node * sn = super_sg->getNode(snode);
 		Structure::Node * tn = super_tg->getNode(tnode);
 
-		// When does this happen?
-		if(!tn || !sn){
-			assert( false );
+		// UNDEFINED: When does this happen?
+		{
+			if(!sn) sn = addMissingNode(super_sg, super_tg, tn);
+			if(!tn) tn = addMissingNode(super_tg, super_sg, sn);
 		}
 
 		if(tnode.contains("null")) extraNodes.push_back( snode );
@@ -270,6 +271,7 @@ void TopoBlender::correspondSuperEdges()
 	bool CASE_2 = true;
 	bool CASE_3 = true;
 	bool CASE_4 = true;
+	bool CASE_5 = true;
 
 	/// CASE 1: correspond trivial edges, i.e. both nodes exist on both graphs
 	if( CASE_1 )
@@ -370,6 +372,31 @@ void TopoBlender::correspondSuperEdges()
 				slink->property["correspond"] = tlink->id;
 				tlink->property["correspond"] = slink->id;
 			}
+		}
+	}
+
+	// UNDEFINED: When does this happen?
+	if( CASE_5 )
+	{
+		correspondMissingEdges(super_sg, super_tg);
+		correspondMissingEdges(super_tg, super_sg);
+	}
+}
+
+void TopoBlender::correspondMissingEdges( Structure::Graph * sgraph, Structure::Graph * tgraph )
+{
+	foreach(Structure::Node * snode, sgraph->nodes){
+		Structure::Node * tnode = tgraph->getNode( snode->property["correspond"].toString() );
+
+		QVector<Structure::Link*> sedges = edgesNotContain( sgraph->getEdges(snode->id), "correspond" );
+		if(!sedges.size()) continue;
+
+		foreach(Structure::Link * slink, sedges)
+		{
+			Structure::Link * tlink = addMissingLink(tgraph, slink);
+
+			slink->property["correspond"] = tlink->id;
+			tlink->property["correspond"] = slink->id;
 		}
 	}
 }
@@ -533,6 +560,7 @@ void TopoBlender::generateTasks()
 			task = new Task( active, super_tg, Task::MORPH, scheduler->tasks.size() );
 
 		task->property["nodeID"] = snodeID;
+		task->nodeID = snodeID;
 		scheduler->tasks.push_back( task );
 	}
 }
@@ -582,6 +610,16 @@ void TopoBlender::equalizeResolutions()
 			if (tnode != bestNode) tnode->equalizeControlPoints(bestNode);
 		}
 	}
+}
+
+Structure::Node * TopoBlender::addMissingNode( Structure::Graph *toGraph, Structure::Graph * fromGraph, Structure::Node * fromNode )
+{
+	Structure::Node * newNode = fromNode->clone();
+
+	newNode->id = fromNode->id + "_null";
+	newNode->property["correspond"] = fromNode->id;
+
+	return toGraph->addNode( newNode );
 }
 
 Structure::Link * TopoBlender::addMissingLink( Structure::Graph *g, Structure::Link * link )

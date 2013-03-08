@@ -39,11 +39,12 @@ public:
 	/// Helper functions:
 	QVector<QString> cloneGraphNode(Structure::Graph *g, QString nodeID, int N);
 	Structure::Link * addMissingLink( Structure::Graph *g, Structure::Link * link );
-
+	Structure::Node * addMissingNode( Structure::Graph *toGraph, Structure::Graph * fromGraph, Structure::Node * fromNode );
 	void tagEdge(Structure::Link *link, QString tag);
 	bool taggedEdge(Structure::Link *link, QString tag);
 	QString correspondingNode( Structure::Link *link, int i );
-	
+	void correspondMissingEdges( Structure::Graph * sgraph, Structure::Graph * tgraph );
+
 	void equalizeResolutions();
 
 	// Query

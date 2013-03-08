@@ -52,11 +52,10 @@ public:
 	void execute( double t );
 
 	void foldCurve( double t );
-	void executeShrinkCurve( double t );
-	void executeGrowCurve( double t );
-	void executeCurveConstrained( double t );
 
+	void executeGrowShrinkCurve( double t );
 	void executeGrowShrinkSheet( double t );
+
 	void executeMorphCurve( double t );
 	void executeMorphSheet( double t );
 
@@ -86,8 +85,6 @@ public:
 	Structure::Curve * targetCurve();
 	Structure::Sheet * targetSheet();
 
-	QVector<Structure::Link *> getGoodEdges();
-	QList<Structure::Link*> furthermostGoodEdges();
 	Structure::Link * getCoorespondingEdge( Structure::Link * link, Structure::Graph * otherGraph );
     QVector<Structure::Link*> filteredEdges(Structure::Node * n, QVector<Structure::Link*> all_edges);
 
@@ -96,6 +93,8 @@ public:
 
 	Structure::Graph *active, *target;
 	QMap<QString, QVariant> property;
+
+	QString nodeID;
 
 	// Time related
 	int start;
