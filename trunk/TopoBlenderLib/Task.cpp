@@ -8,7 +8,11 @@
 
 #include "AbsoluteOrientation.h"
 
+using namespace NURBS;
+using namespace Structure;
+
 typedef std::vector< std::pair<double,double> > VectorPairDouble;
+
 Q_DECLARE_METATYPE( Vector3 )
 Q_DECLARE_METATYPE( Vec4d )
 Q_DECLARE_METATYPE( VectorPairDouble )
@@ -20,31 +24,27 @@ Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
 Q_DECLARE_METATYPE( CurveEncoding )
 Q_DECLARE_METATYPE( Eigen::Quaterniond )
 
-int globalCount = 0;
-
-using namespace NURBS;
-using namespace Structure;
-
 Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, TaskType taskType, int ID )
 {
 	// Task properties
 	this->active = activeGraph;
 	this->target = targetGraph;
 
+	this->start = 0;
+	this->length = 80;
+
 	this->type = taskType;
 	this->taskID = ID;
 	this->mycolor = TaskColors[taskType];
-	this->start = 0;
-	this->length = 80;
 	this->currentTime = start;
 	this->isReady = false;
 	this->isDone = false;
 
 	// Visual properties
+	isResizing = false;
 	width = length;
 	height = 17;
-	setFlags(ItemIsMovable | ItemIsSelectable | ItemSendsGeometryChanges);
-	isResizing = false;
+	setFlags( ItemIsMovable | ItemIsSelectable | ItemSendsGeometryChanges );
 }
 
 QRectF Task::boundingRect() const
@@ -193,33 +193,6 @@ int Task::endTime()
 	return start + length;
 }
 
-QVector<Structure::Link *> Task::getGoodEdges()
-{
-	QVector<Structure::Link *> goodEdges;
-
-	foreach(Structure::Link * edge, active->getEdges(node()->id))
-	{
-		if( edge->property.contains("isCut") ) continue;
-
-		goodEdges.push_back(edge);
-	}
-
-	return goodEdges;
-}
-
-QList<Structure::Link*> Task::furthermostGoodEdges()
-{
-	QList<Structure::Link*> allEdges = active->furthermostEdges(node()->id);
-	
-	foreach(Structure::Link * edge, allEdges)
-	{
-		if( edge->property.contains("isCut") )
-			allEdges.removeAll(edge);
-	}
-
-	return allEdges;
-}
-
 double Task::localT( int globalTime )
 {
 	double t = 0;
@@ -241,36 +214,6 @@ void Task::setStart( int newStart )
 	start = newStart;
 	currentTime = 0;
 	setX(newStart);
-}
-
-void Task::geometryMorph( double t )
-{
-	if(t < 0.0 || t > 1.0) return;
-
-	// Geometry morph:
-	if(node()->property.contains("samples"))
-	{
-		QVector<Vec3d> points, normals;
-
-		if(node()->type() == Structure::CURVE)
-		{	
-			Structure::Curve * tcurve = (Structure::Curve *)targetNode();
-			Structure::Curve * curve = (Structure::Curve *)node();
-
-			Synthesizer::blendGeometryCurves(curve, tcurve, t, points, normals);
-		}
-
-        if(node()->type() == Structure::SHEET)
-		{	
-			Structure::Sheet * tsheet = (Structure::Sheet *)targetNode();
-			Structure::Sheet * sheet = (Structure::Sheet *)node();
-
-			Synthesizer::blendGeometrySheets(sheet, tsheet, t, points, normals);
-		}
-
-		node()->property["cached_points"].setValue(points);
-		node()->property["cached_normals"].setValue(normals);
-	}
 }
 
 Structure::Node * Task::targetNode()
@@ -363,6 +306,36 @@ void Task::copyTargetEdge( Structure::Link *tlink )
 	active->addEdge(n, nOther, coord, coordOther);
 }
 
+void Task::geometryMorph( double t )
+{
+	if(t < 0.0 || t > 1.0) return;
+
+	// Geometry morph:
+	if(node()->property.contains("samples"))
+	{
+		QVector<Vec3d> points, normals;
+
+		if(node()->type() == Structure::CURVE)
+		{	
+			Structure::Curve * tcurve = (Structure::Curve *)targetNode();
+			Structure::Curve * curve = (Structure::Curve *)node();
+
+			Synthesizer::blendGeometryCurves(curve, tcurve, t, points, normals);
+		}
+
+		if(node()->type() == Structure::SHEET)
+		{	
+			Structure::Sheet * tsheet = (Structure::Sheet *)targetNode();
+			Structure::Sheet * sheet = (Structure::Sheet *)node();
+
+			Synthesizer::blendGeometrySheets(sheet, tsheet, t, points, normals);
+		}
+
+		node()->property["cached_points"].setValue(points);
+		node()->property["cached_normals"].setValue(normals);
+	}
+}
+
 // PREPARE
 void Task::prepare()
 {
@@ -419,20 +392,12 @@ void Task::prepareShrinkCurve()
 {
 	Structure::Node * n = node();
 	QVector<Structure::Link*> edges = active->getEdges(n->id);
+	Structure::Curve* structure_curve = ((Structure::Curve*)n);
 
-	if( active->isCutNode(n->id) )
-	{
-		property["isCutNode"] = true;
-		prepareShrinkCurveConstraint();
-		return;
-	}
-	
 	if(edges.size() == 1)
 	{
 		Structure::Link * l = edges.front();
 		Structure::Node * base = l->otherNode(n->id);
-
-		Structure::Curve* structure_curve = ((Structure::Curve*)n);
 
 		Vec4d coordBase = l->getCoord(base->id).front();
 		Vec4d coordSelf = l->getCoord(n->id).front();
@@ -511,24 +476,25 @@ void Task::prepareGrowCurve()
 {
 	Structure::Node * n = node();
 	Structure::Node * tn = targetNode();
-	QVector<Structure::Link*> edges = active->getEdges(n->id);
-	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
+	QVector<Structure::Link*> all_tedges = target->getEdges(tn->id);
 	Structure::Curve * structure_curve = (Structure::Curve *)n;
 
-	if( target->isCutNode(tn->id) )
-	{
-		property["isCutNode"] = true;
-		prepareGrowCurveConstraint();
-		return;
+	// Do not consider edges with non-ready nodes
+	QVector<Structure::Link*> tedges;
+	foreach(Structure::Link* edge, all_tedges){
+		Structure::Node * tother = edge->otherNode( tn->id );
+		Structure::Node * other = active->getNode( tother->property["correspond"].toString() );
+		if( other->property.contains("taskIsDone") )
+			tedges.push_back(edge);
 	}
 
 	if (tedges.size() == 1)
 	{
-		Structure::Link * tl = tedges.front();
-		Structure::Node * tbase = tl->otherNode(tn->id);
+		Structure::Link * tlink = tedges.front();
+		Structure::Node * tbase = tlink->otherNode(tn->id);
 
-		Vec4d coordBase = tl->getCoord(tbase->id).front();
-		Vec4d coordSelf = tl->getCoord(tn->id).front();
+		Vec4d coordBase = tlink->getCoord(tbase->id).front();
+		Vec4d coordSelf = tlink->getCoord(tn->id).front();
 
 		QString baseID = tbase->property["correspond"].toString();
 		Structure::Node* base = active->getNode(baseID);
@@ -536,8 +502,18 @@ void Task::prepareGrowCurve()
 		Vector3 linkPositionBase = base->position(coordBase);
 		int cpIDX = structure_curve->controlPointIndexFromCoord( coordSelf );
 
-		// Place curve
-		structure_curve->moveBy( linkPositionBase - structure_curve->controlPoint(cpIDX)  );
+		/// Place curve:
+
+		// Make origin the position on me in which I will grow from
+		structure_curve->moveBy( -n->position(coordSelf)  );
+
+		Structure::Node * tn = target->getNode(n->property["correspond"].toString());
+		Vec3d endDelta = tlink->position(tn->id) - tlink->positionOther(tn->id);
+		QString corrBaseNodeID = tlink->otherNode(tn->id)->property["correspond"].toString();
+		Vec3d posOther = active->getNode(corrBaseNodeID)->position(tlink->getCoordOther(tn->id).front());
+
+		// Move curve to start point computed by looking at target geometry
+		structure_curve->moveBy( posOther + endDelta );
 
 		// Curve folding
 		Array1D_Vector3 deltas = structure_curve->foldTo( coordSelf, true );
@@ -669,72 +645,6 @@ Array1D_Vector3 Task::decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3
 	}
 
 	return controlPoints;
-}
-
-void Task::prepareShrinkCurveConstraint()
-{
-	Structure::Node * n = node();
-	Structure::Curve* structure_curve = ((Structure::Curve*)n);
-
-	if ( property.contains("isCutNode") )
-	{
-		// Find first link to a sheet
-		QVector<Structure::Link*> my_edges = active->getEdges(n->id); 
-		if(my_edges.size() < 1) return;
-
-		Structure::Link * baseLink = my_edges.front();
-		foreach(Structure::Link * edge, my_edges){
-			Structure::Node *othernode = edge->otherNode(n->id);
-			if(othernode->type() == Structure::SHEET){
-				baseLink = edge;
-				break;
-			}
-		}
-
-		Vec4d coordSelf = baseLink->getCoord(n->id).front();
-		Structure::Node *basenode = baseLink->otherNode(n->id);
-
-		// Curve folding
-		Array1D_Vector3 deltas = structure_curve->foldTo( coordSelf, false );
-		deltas = inverseVectors3(deltas);
-
-		property["deltas"].setValue( deltas );
-		property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
-		property["anchorNode"].setValue( basenode->id );
-	}
-}
-
-void Task::prepareGrowCurveConstraint()
-{
-	Structure::Node *n = node();
-	Structure::Node *tn = targetNode();
-	Structure::Curve* structure_curve = ((Structure::Curve*)n);
-
-	if (property.contains("isCutNode"))
-	{
-		// Find first link to a sheet
-		QVector<Structure::Link*> t_my_edges = target->getEdges(tn->id); 
-
-		Structure::Link * tbaseLink = t_my_edges.front();
-		foreach(Structure::Link * tedge, t_my_edges){
-			Structure::Node *tothernode = tedge->otherNode(tn->id);
-			if(tothernode->type() == Structure::SHEET){
-				tbaseLink = tedge;
-				break;
-			}
-		}
-
-		Vec4d coordSelf = tbaseLink->getCoord(tn->id).front();
-		Structure::Node *tbasenode = tbaseLink->otherNode(tn->id);
-		QString basenodeID = tbasenode->property["correspond"].toString();
-		
-		// Curve folding
-		Array1D_Vector3 deltas = structure_curve->foldTo( coordSelf, true );
-
-		property["deltas"].setValue( deltas );
-		property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
-		property["anchorNode"].setValue( basenodeID );
-	}
 }
 
 QVector<Structure::Link*> Task::filteredEdges(Structure::Node * n, QVector<Structure::Link*> all_edges)
@@ -971,9 +881,6 @@ void Task::prepareMorphSheet()
 	n->property["frames"].setValue(frames);
 	n->property["sheetFrame"].setValue( sframe );
 	tn->property["sheetFrame"].setValue( tframe );
-
-	// Mark if cut node
-	if( active->isCutNode(n->id) ) property["isCutNode"] = true;
 }
 
 RMF::Frame Task::sheetFrame( Structure::Sheet * sheet )
@@ -1059,17 +966,16 @@ void Task::execute( double t )
 		switch(type)
 		{
 		case GROW:
-			executeGrowCurve(t);
-			break;
 		case SHRINK:
-			executeShrinkCurve(t);
+			executeGrowShrinkCurve(t);
 			break;
 		case MORPH:
 			executeMorphCurve(t);
 			break;
 		}
 	}
-	else
+	
+	if (node()->type() == Structure::SHEET)
 	{
 		switch(type)
 		{
@@ -1090,54 +996,35 @@ void Task::execute( double t )
 	}
 }
 
-void Task::executeShrinkCurve( double t )
+void Task::executeGrowShrinkCurve( double t )
 {
 	Structure::Node *n = node();
-	QVector<Structure::Link*> edges = active->getEdges(n->id);
-
-	// Cut node
-	if (property.contains("isCutNode"))
-	{
-		executeCurveConstrained(t);
-		return;
-	}
-
+	
 	// Regular shrink
-	if (edges.size() == 1)
+	if (property.contains("deltas"))
 		foldCurve(t);
-	else if (edges.size() == 2)
+	else if (property.contains("pathA") && property.contains("pathB"))
 		executeMorphCurve(t);
-
 	
 	// When task is done
 	if (t == 1)
-	{
-		n->property["isReady"] = false;
+	{	
+		QVector<Structure::Link*> edges = active->getEdges(n->id);
+		
+		if(type == GROW)
+		{
 
-		// Delete all edges
-		foreach(Structure::Link *link, edges)
-			active->removeEdge(link->n1, link->n2);
+		}
+
+		if(type == SHRINK)
+		{
+			n->property["isReady"] = false;
+
+			// Delete all edges
+			foreach(Structure::Link *link, edges)
+				active->removeEdge(link->n1, link->n2);
+		}
 	}
-}
-
-void Task::executeGrowCurve( double t )
-{
-	Structure::Node * tn = targetNode();
-	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
-
-	// Cut node
-	if (property.contains("isCutNode"))
-	{
-		executeCurveConstrained(t);
-		return;
-	}
-
-	// Regular grow
-	if (tedges.size() == 1)
-		foldCurve(t);
-	
-	if (tedges.size() == 2)
-		executeMorphCurve(t);
 }
 
 void Task::foldCurve( double t )
@@ -1152,27 +1039,6 @@ void Task::foldCurve( double t )
 	// Grow curve
 	for(int u = 0; u < structure_curve->curve.mNumCtrlPoints; u++)
 		structure_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);	
-}
-
-void Task::executeCurveConstrained( double t )
-{
-	Structure::Node * n = node();
-	Structure::Curve* current_curve = ((Structure::Curve*)n);
-
-	// Grow / shrink parameters
-	Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
-	Array1D_Vector3 deltas = property["deltas"].value<Array1D_Vector3>();
-	QString anchorNode = property["anchorNode"].toString();
-
-	// Grow / shrink curve
-	Array1D_Vector3 newPts;
-	for(int u = 0; u < current_curve->curve.mNumCtrlPoints; u++)
-	{
-		Vec3d delta = deltas[u] * t;
-		newPts.push_back( cpts[u] + delta );
-	}
-
-	n->setControlPoints( newPts );
 }
 
 void Task::executeGrowShrinkSheet( double t )
@@ -1338,11 +1204,6 @@ void Task::executeMorphSheet( double t )
 	}
 
 	sheet->setControlPoints( blendedPnts );
-
-	if (property.contains("isCutNode"))
-		property["isConstraint"] = true;
-	else
-		property["isConstraint"] = false;
 }
 
 Array1D_Vector3 Task::positionalPath( QVector< GraphDistance::PathPointPair > & from_path, int smoothingIters )

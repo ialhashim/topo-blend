@@ -809,9 +809,9 @@ void topoblend::doBlend()
 	this->connect(scheduler, SIGNAL(renderAll()), SLOT(renderAll()));
 	this->connect(scheduler, SIGNAL(renderCurrent()), SLOT(renderCurrent()));
 
-	this->graphs.clear();
-	this->graphs.push_back(scheduler->activeGraph);
-	this->graphs.push_back(scheduler->targetGraph);
+	//this->graphs.clear();
+	//this->graphs.push_back(scheduler->activeGraph);
+	//this->graphs.push_back(scheduler->targetGraph);
 
 	//graphs.push_back( blender->active );
 
