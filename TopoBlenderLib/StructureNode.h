@@ -55,6 +55,13 @@ struct Node
 
 	// Geometric properties
 	virtual Scalar area() = 0;
+	virtual Array1D_Vector3 geometricDiff( Structure::Node * other ){
+		Array1D_Vector3 cp1 = controlPoints(), cp2 = other->controlPoints(), result = cp1;
+		for(int i = 0; i < (int)cp1.size(); i++){
+			if(i < (int)cp2.size())	result[i] = (cp1[i] - cp2[i]);
+		}
+		return result;
+	}
 
     // Visualization
     virtual void draw() = 0;

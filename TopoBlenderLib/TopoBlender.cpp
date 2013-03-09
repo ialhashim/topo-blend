@@ -380,14 +380,16 @@ void TopoBlender::correspondSuperEdges()
 	{
 		correspondMissingEdges(super_sg, super_tg);
 		correspondMissingEdges(super_tg, super_sg);
+
+		//removeMissingEdges(super_sg);
+		//removeMissingEdges(super_tg);
 	}
 }
 
 void TopoBlender::correspondMissingEdges( Structure::Graph * sgraph, Structure::Graph * tgraph )
 {
-	foreach(Structure::Node * snode, sgraph->nodes){
-		Structure::Node * tnode = tgraph->getNode( snode->property["correspond"].toString() );
-
+	foreach(Structure::Node * snode, sgraph->nodes)
+	{
 		QVector<Structure::Link*> sedges = edgesNotContain( sgraph->getEdges(snode->id), "correspond" );
 		if(!sedges.size()) continue;
 
@@ -398,6 +400,17 @@ void TopoBlender::correspondMissingEdges( Structure::Graph * sgraph, Structure::
 			slink->property["correspond"] = tlink->id;
 			tlink->property["correspond"] = slink->id;
 		}
+	}
+}
+
+void TopoBlender::removeMissingEdges( Structure::Graph * sgraph )
+{
+	foreach(Structure::Node * snode, sgraph->nodes){
+		QVector<Structure::Link*> sedges = edgesNotContain( sgraph->getEdges(snode->id), "correspond" );
+		if(!sedges.size()) continue;
+
+		foreach(Structure::Link * slink, sedges)
+			sgraph->removeEdge(slink->n1,slink->n2);
 	}
 }
 
@@ -444,6 +457,13 @@ QVector< SetNodes > TopoBlender::nullNodeSets( Structure::Graph * graph )
 		if( curSet.size() ) result.push_back( curSet );
 	}
 
+	// Mark set elements
+	for(int i = 0; i < (int)result.size(); i++){
+		foreach(Structure::Node * n, result[i]){
+			n->property["nullSet"] = i;
+		}
+	}
+
 	return result;
 }
 
@@ -461,6 +481,11 @@ void TopoBlender::connectNullSet( SetNodes nullSet, Structure::Graph * source, S
 			if( !nullSet.contains(s1) ) s_outter_nodes.insert(s1);
 			if( !nullSet.contains(s2) ) s_outter_nodes.insert(s2);
 		}
+	}
+
+	// Mark outer nodes for future use
+	foreach(Structure::Node * n, s_outter_nodes){
+		n->property["isNullsetOuter"];
 	}
 
 	// 1) Find external edges = not yet corresponded
@@ -511,6 +536,10 @@ void TopoBlender::connectNullSet( SetNodes nullSet, Structure::Graph * source, S
 
 		slink->property["correspond"] = tlink->id;
 		tlink->property["correspond"] = slink->id;
+
+		// Mark edges
+		slink->property["nullExternal"] = true;
+		tlink->property["nullExternal"] = true;
 	}
 }
 

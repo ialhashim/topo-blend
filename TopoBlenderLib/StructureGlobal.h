@@ -293,6 +293,19 @@ QVector<T> reversed( const QVector<T> & in ) {
 	return result;
 }
 
+template<typename T>
+static inline QVector<T> sumQVec( const QVector<T> & V ){
+	T vector_sum;
+	for(int i = 0; i < (int)V.size(); i++) vector_sum += V[i];
+	return vector_sum;
+}
+template<typename T>
+static inline T sumvec( const std::vector<T> & V ){
+	T vector_sum;
+	for(int i = 0; i < (int)V.size(); i++) vector_sum += V[i];
+	return vector_sum;
+}
+
 static void saveOBJ(SurfaceMesh::Model * mesh, QString filename)
 {
 	QFile file(filename);

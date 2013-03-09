@@ -19,11 +19,12 @@ struct Link
 {
 	// Properties
 	Node *n1, *n2;	
+	std::vector<LinkCoords> coord;
 	QString id;
 	QString type;
-    QMap< QString, QVariant > property;
+	QMap< QString, QVariant > property;
 
-	std::vector<LinkCoords> coord;
+	bool hasProperty(QString propertyName) { return property.contains(propertyName); }
 
 	void setCoord( QString nodeID, std::vector<Vec4d> newCoord );
 	void setCoordOther( QString nodeID, std::vector<Vec4d> newCoord );
@@ -55,6 +56,10 @@ struct Link
     bool operator== ( const Link & other ) const{
         return id == other.id;
     }
+
+	/// Helpers:
+	static QVector<Link*> haveProperty( QVector<Link*> links, QString propertyName );
+	static QVector<Link*> haveProperty( QVector<Link*> links, QString propertyName, QVariant propertyValue );
 };
 
 }

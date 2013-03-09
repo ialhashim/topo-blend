@@ -16,6 +16,8 @@ using namespace Structure;
 #include "GraphEmbed.h"
 #include "GraphDraw2D.h"
 
+#include "GenericGraph.h"
+
 #include "QuickMeshDraw.h"
 
 Q_DECLARE_METATYPE( Vec3d )
@@ -247,7 +249,7 @@ Node *Graph::getNode(QString nodeID)
     return NULL;
 }
 
-Node* Structure::Graph::auxNode( QString auxNodeID )
+Node* Graph::auxNode( QString auxNodeID )
 {
 	foreach(Node* n, aux_nodes)
 	{
@@ -275,7 +277,7 @@ Link *Graph::getEdge(QString id1, QString id2)
 }
 
 
-Link* Structure::Graph::getEdge( QString linkID )
+Link* Graph::getEdge( QString linkID )
 {
 	for(int i = 0; i < (int)edges.size(); i++)
 	{
@@ -287,16 +289,76 @@ Link* Structure::Graph::getEdge( QString linkID )
 	return NULL;
 }
 
-void Structure::Graph::setPropertyAll( QString prop_name, QVariant value )
+void Graph::setPropertyAll( QString prop_name, QVariant value )
 {
 	foreach(Node* n, nodes) 
 		n->property[prop_name].setValue(value);
 }
 
-void Structure::Graph::setPropertyFor( QVector<QString> nodeIDs, QString prop_name, QVariant value )
+void Graph::setPropertyFor( QVector<QString> nodeIDs, QString prop_name, QVariant value )
 {
 	foreach(QString nodeID, nodeIDs) 
 		(getNode(nodeID))->property[prop_name].setValue(value);
+}
+
+QVector<Node*> Graph::nodesWithProperty( QString propertyName )
+{
+	QVector<Node*> result;
+	
+	foreach(Node* n, nodes) {
+		if( n->hasProperty(propertyName) ) 
+			result.push_back(n);
+	}
+
+	return result;
+}
+
+QVector<Node*> Graph::nodesWithProperty( QString propertyName, QVariant value )
+{
+	QVector<Node*> result;
+	QVector<Node*> nodesWithProp = nodesWithProperty(propertyName);
+	
+	foreach(Node* n, nodesWithProp){
+		if( n->property[propertyName] == value )
+			result.push_back(n);
+	}
+
+	return result;
+}
+
+QVector<Node*> Graph::path( Node * from, Node * to )
+{
+	QVector<Node*> result;
+
+	// Add nodes to generic graph
+	GenericGraphs::Graph<int,int> g;
+	QMap<Node*,int> nodeIdxMap;
+	QMap<int,Node*> idxNodeMap;
+	foreach(Node * n, nodes){
+		int idx = nodeIdxMap.size();
+		idxNodeMap[idx] = n;
+		nodeIdxMap[n] = idx;
+		g.AddVertex(idx);
+	}
+
+	// Add edges
+	foreach(Link * e, edges)
+		g.AddEdge(nodeIdxMap[e->n1],nodeIdxMap[e->n2],1);
+
+	// Get path
+	std::list<int> shortestPath = g.DijkstraShortestPath(nodeIdxMap[from], nodeIdxMap[to]);
+
+	foreach(int idx, shortestPath)
+		result.push_back(idxNodeMap[idx]);
+
+	return result;
+}
+
+bool Structure::Graph::shareEdge( Node * n1, Node * n2 )
+{
+	foreach( Node * adj, this->adjNodes(n1) )
+		if( adj->id == n2->id ) return true;
+	return false;
 }
 
 void Graph::draw()
@@ -383,14 +445,14 @@ void Graph::draw()
 			if(!n->property.contains("cached_points"))
 			{
 				// Without blending!
-				if(n->type() == Structure::CURVE)
+				if(n->type() == CURVE)
 				{
-					Structure::Curve * curve = (Structure::Curve *)n;
+					Curve * curve = (Curve *)n;
 					Synthesizer::reconstructGeometryCurve(curve,samples,offsets,in_normals,n_points,n_normals);
 				}
-				if(n->type() == Structure::SHEET)
+				if(n->type() == SHEET)
 				{
-					Structure::Sheet * sheet = (Structure::Sheet *)n;
+					Sheet * sheet = (Sheet *)n;
 					Synthesizer::reconstructGeometrySheet(sheet,samples,offsets,in_normals,n_points,n_normals);
 				}
 
@@ -775,7 +837,7 @@ void Graph::loadFromFile( QString fileName )
 		foreach(QString w, weights) ctrlWeights.push_back(w.toDouble());
 
 		// Add node
-		Structure::Node * new_node = NULL;
+		Node * new_node = NULL;
 
 		if(node_type == CURVE)
 		{
@@ -982,7 +1044,7 @@ SurfaceMesh::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 
 	Scalar r = 0.04 * qMin(s1, s2);
 
-	if(n1->type() == Structure::SHEET && n2->type() == Structure::SHEET)
+	if(n1->type() == SHEET && n2->type() == SHEET)
 		r *= 10;
 
 	std::vector< std::vector<Vector3> > parts1 = n1->discretized(r);
@@ -1132,8 +1194,8 @@ int Graph::valence( Node * n )
 
 Curve* Graph::getCurve( Link * l )
 {
-	Structure::Node *n1 = l->n1, *n2 = l->n2;
-	return (Structure::Curve *) ((n1->type() == Structure::CURVE) ? n1: n2);
+	Node *n1 = l->n1, *n2 = l->n2;
+	return (Curve *) ((n1->type() == CURVE) ? n1: n2);
 }
 
 QVector<Link*> Graph::getEdges( QString nodeID )
@@ -1149,7 +1211,7 @@ QVector<Link*> Graph::getEdges( QString nodeID )
 	return mylinks;
 }
 
-QVector<Node*> Structure::Graph::adjNodes( Node * node )
+QVector<Node*> Graph::adjNodes( Node * node )
 {
 	QVector<Node*> adj;
 	foreach(Link* edge, getEdges(node->id))
@@ -1184,7 +1246,7 @@ QVector<Link*> Graph::nodeEdges( QString nodeID )
 
 Node * Graph::removeNode( QString nodeID )
 {
-	Structure::Node * n = getNode(nodeID);
+	Node * n = getNode(nodeID);
 
 	foreach(Link * e, getEdges(nodeID)){
 		edges.remove(edges.indexOf(e));
@@ -1207,7 +1269,7 @@ QList<Link*> Graph::furthermostEdges( QString nodeID )
 	return sortedLinks.values();
 }
 
-int Graph::numCanVisit( Structure::Node * node )
+int Graph::numCanVisit( Node * node )
 {
 	QMap<QString, bool> visitedNodes;
 	QStack<QString> nodesToVisit;
@@ -1270,7 +1332,7 @@ bool Graph::isCutNode( QString nodeID )
 
 	// Skip flying nodes
 	int countConnectNodes = 0;
-	foreach(Structure::Node * n, nodes)
+	foreach(Node * n, nodes)
 	{
 		if(this->getEdges(n->id).size() > 0)
 		{
@@ -1286,9 +1348,9 @@ bool Graph::isCutNode( QString nodeID )
 		return false;
 }
 
-bool Graph::isBridgeEdge( Structure::Link * link )
+bool Graph::isBridgeEdge( Link * link )
 {
-	Structure::Graph g = *this;
+	Graph g = *this;
 	
 	int beforeCount = g.numCanVisit( link->n1 );
 
@@ -1312,7 +1374,7 @@ void Graph::replaceCoords( QString nodeA, QString nodeB, std::vector<Vec4d> coor
 
 Vector3 Graph::position( QString nodeID, Vec4d coord )
 {
-	Structure::Node * node = getNode(nodeID);
+	Node * node = getNode(nodeID);
 	if(!node) node = auxNode( nodeID );
 
 	return node->position(coord);
@@ -1320,7 +1382,7 @@ Vector3 Graph::position( QString nodeID, Vec4d coord )
 
 void Graph::translate( Vector3 delta )
 {
-	foreach (Structure::Node * node, nodes)
+	foreach (Node * node, nodes)
 	{
 		node->moveBy( delta );
 
@@ -1337,7 +1399,7 @@ void Graph::translate( Vector3 delta )
 
 void Graph::rotate( double angle, Vector3 axis )
 {
-	foreach (Structure::Node * node, nodes)
+	foreach (Node * node, nodes)
 	{
 		node->rotate(angle, axis);
 
@@ -1363,7 +1425,7 @@ void Graph::scale( double scaleFactor )
 
 	double relative_scale = scaleFactor / current_scale;
 
-	foreach (Structure::Node * node, nodes)
+	foreach (Node * node, nodes)
 	{
 		node->scale(relative_scale);
 
@@ -1385,7 +1447,7 @@ void Graph::transform( QMatrix4x4 mat )
 {
 	Vector3 c = bbox().center();
 
-	foreach (Structure::Node * node, nodes)
+	foreach (Node * node, nodes)
 	{
 		Array1D_Vector3 controlPoints = node->controlPoints();
 		for(int i = 0; i < (int)controlPoints.size(); i++)
@@ -1393,8 +1455,8 @@ void Graph::transform( QMatrix4x4 mat )
 		node->setControlPoints(controlPoints);
 		
 		// Update needed for Sheets
-		if(node->type() == Structure::SHEET)
-			((Structure::Sheet*)node)->surface.quads.clear();
+		if(node->type() == SHEET)
+			((Sheet*)node)->surface.quads.clear();
 		
 		// Transform actual geometry
 		if(!node->property.contains("mesh")) continue;
@@ -1426,7 +1488,7 @@ void Graph::normalize()
 
 	double scaleFactor = 1.0 / height;
 
-	foreach (Structure::Node * node, nodes)
+	foreach (Node * node, nodes)
 	{
 		node->scale(scaleFactor);
 
@@ -1439,10 +1501,10 @@ void Graph::normalize()
 	}
 
 	// Rebuild visualization geometry
-	foreach (Structure::Node * node, nodes){
-		if(node->type() == Structure::SHEET)
+	foreach (Node * node, nodes){
+		if(node->type() == SHEET)
 		{
-			Structure::Sheet * sheet = (Structure::Sheet *)node;
+			Sheet * sheet = (Sheet *)node;
 			sheet->surface.quads.clear();
 		}
 	}
@@ -1491,7 +1553,7 @@ QVector<POINT_ID> Graph::selectedControlPointsByColor(QColor color)
 	QVector<POINT_ID> result;
 	for (int nID = 0; nID < (int)nodes.size(); nID++)
 	{
-		Structure::Node *node = nodes[nID];
+		Node *node = nodes[nID];
 		foreach (int pID, node->selections.keys())
 		{
 			if (node->selections[pID] == color)
@@ -1504,7 +1566,7 @@ QVector<POINT_ID> Graph::selectedControlPointsByColor(QColor color)
 
 void Graph::clearSelections()
 {
-	foreach(Structure::Node *node, nodes)
+	foreach(Node *node, nodes)
 		node->selections.clear();
 }
 

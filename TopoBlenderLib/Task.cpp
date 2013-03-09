@@ -285,10 +285,30 @@ NodeCoord Task::futureOtherNodeCoord( Structure::Link *link )
 	return qMakePair(futureOtherID, futureOtherCoord);
 }
 
-Vec3d Task::futureLinkPosition( Structure::Link *link )
+NodeCoord Task::futureLinkCoord( Structure::Link *link )
 {
 	NodeCoord fnc = futureOtherNodeCoord(link);
-	return active->getNode(fnc.first)->position(fnc.second);
+	Structure::Node * n = active->getNode(fnc.first);
+
+	// Special case when connected to null set
+	if(n->property.contains("nullSet") && !n->property["taskIsDone"].toBool())
+	{
+		Structure::Node * otherNode = link->otherNode( node()->id );
+		Structure::Link * bestEdge = NULL;
+
+		QVector<Structure::Node*> nullSet = active->nodesWithProperty("nullSet", n->property["nullSet"]);
+
+		foreach(Structure::Node * nj, nullSet){
+			if( bestEdge = active->getEdge(nj->id, otherNode->id) )
+				break;
+		}
+
+		if( bestEdge ){
+			fnc = NodeCoord( otherNode->id, bestEdge->getCoord(otherNode->id).front() );
+		}
+	}
+
+	return fnc;
 }
 
 void Task::copyTargetEdge( Structure::Link *tlink )
@@ -388,10 +408,34 @@ void Task::prepare()
 	node()->property["isReady"] = true;
 }
 
+QVector<Structure::Link*> Task::filterDissimilar( Structure::Node * n, QVector<Structure::Link*> allEdges )
+{
+	QVector<Structure::Link*> edges;
+
+	for(int i = 0; i < (int)allEdges.size(); i++){
+		Structure::Node * otherI = allEdges[i]->otherNode(n->id);
+
+		for(int j = 0; j < (int)edges.size(); j++){
+			Structure::Node * otherJ = edges[j]->otherNode(n->id);
+			double sumV = sumvec( otherI->geometricDiff(otherJ) ).norm();
+
+			if(sumV < 1e-10)
+			{
+				otherI = NULL;
+				break;
+			}
+		}
+
+		if(otherI) edges.push_back(allEdges[i]);
+	}
+
+	return edges;
+}
+
 void Task::prepareShrinkCurve()
 {
 	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = active->getEdges(n->id);
+	QVector<Structure::Link*> edges = filterDissimilar( n, active->getEdges(n->id) );
 	Structure::Curve* structure_curve = ((Structure::Curve*)n);
 
 	if(edges.size() == 1)
@@ -679,9 +723,12 @@ void Task::prepareMorphCurve()
 		Vec4d coordA = link->getCoord(n->id).front();
 		Vec4d coordB = Vec4d( (coordA[0] > 0.5) ? 0 : 1 );
 
+		NodeCoord fnc = futureOtherNodeCoord(link);
+		NodeCoord ed = futureLinkCoord(link);
+
 		// Compute path for the edge
 		Vec3d startPoint = n->position( coordA );
-		Vec3d endPoint = futureLinkPosition(link);
+		Vec3d endPoint = active->position(ed.first,ed.second);
 
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
 		GraphDistance gd(active, exclude);
@@ -697,7 +744,6 @@ void Task::prepareMorphCurve()
 
 		// Replace coordinates and such
 		QString otherNode = link->otherNode(n->id)->id;
-		NodeCoord fnc = futureOtherNodeCoord(link);
 		link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
 
 		path = weldPath( path );
@@ -729,11 +775,13 @@ void Task::prepareMorphCurve()
 		// Start and end for both links
 		Structure::Link * linkA = edges.front();
 		Vec3d startA = linkA->position(n->id);
-		Vec3d endA = futureLinkPosition(linkA);
+		NodeCoord edA = futureLinkCoord(linkA);
+		Vec3d endA = active->position(edA.first,edA.second);
 
 		Structure::Link * linkB = edges.back();
 		Vec3d startB = linkB->position(n->id);
-		Vec3d endB = futureLinkPosition(linkB);
+		NodeCoord edB = futureLinkCoord(linkB);
+		Vec3d endB = active->position(edB.first,edB.second);
 
 		// Geodesic distances on the active graph excluding the running tasks
 		QVector< GraphDistance::PathPointPair > pathA, pathB;	

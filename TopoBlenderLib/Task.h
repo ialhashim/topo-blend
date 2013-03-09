@@ -32,7 +32,7 @@ public:
 		
 	// Helper functions
 	NodeCoord futureOtherNodeCoord( Structure::Link *link );
-	Vec3d futureLinkPosition( Structure::Link *link );
+	NodeCoord futureLinkCoord( Structure::Link *link );
 	void copyTargetEdge( Structure::Link *tlink );
 
 	// Prepare stage
@@ -87,6 +87,7 @@ public:
 
 	Structure::Link * getCoorespondingEdge( Structure::Link * link, Structure::Graph * otherGraph );
     QVector<Structure::Link*> filteredEdges(Structure::Node * n, QVector<Structure::Link*> all_edges);
+	QVector<Structure::Link*> filterDissimilar( Structure::Node * n, QVector<Structure::Link*> all_edges );
 
 	// Task properties
 	TaskType type;
