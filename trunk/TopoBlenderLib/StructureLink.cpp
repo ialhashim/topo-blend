@@ -158,3 +158,24 @@ SurfaceMesh::Vector3 Link::positionOther( QString nodeID )
 {
 	return position(otherNode(nodeID)->id);
 }
+
+QVector<Link*> Link::haveProperty( QVector<Link*> links, QString propertyName )
+{
+	QVector<Link*> result;
+	foreach(Link* l, links){
+		if(l->hasProperty(propertyName))
+			result.push_back(l);
+	}
+	return result;
+}
+
+QVector<Link*> Link::haveProperty( QVector<Link*> links, QString propertyName, QVariant propertyValue )
+{
+	QVector<Link*> result;
+	QVector<Link*> linksWithProp = Link::haveProperty(links, propertyName);
+	foreach(Link* l, links){
+		if(l->property[propertyName] == propertyValue)
+			result.push_back(l);
+	}
+	return result;
+}

@@ -69,6 +69,13 @@ struct Graph
 	// Node-wide Operations
 	void setPropertyAll( QString prop_name, QVariant value );
 	void setPropertyFor( QVector<QString> nodeIDs, QString prop_name, QVariant value );
+	
+	QVector<Structure::Node*> nodesWithProperty( QString propertyName );
+	QVector<Structure::Node*> nodesWithProperty( QString propertyName,  QVariant value );
+
+	QVector<Structure::Node*> path(Structure::Node * from, Structure::Node * to);
+
+	bool shareEdge( Node * n1, Node * n2 );
 
     // Accessors
     Node* getNode(QString nodeID);

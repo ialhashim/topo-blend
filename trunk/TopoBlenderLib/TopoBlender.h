@@ -44,6 +44,7 @@ public:
 	bool taggedEdge(Structure::Link *link, QString tag);
 	QString correspondingNode( Structure::Link *link, int i );
 	void correspondMissingEdges( Structure::Graph * sgraph, Structure::Graph * tgraph );
+	void removeMissingEdges( Structure::Graph * sgraph );
 
 	void equalizeResolutions();
 
