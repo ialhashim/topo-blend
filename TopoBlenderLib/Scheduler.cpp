@@ -123,66 +123,75 @@ void Scheduler::order()
 		tasksByType.insert(task->type, task);
 
 	int curStart = 0;
-
+	
 	// General layout
 	for(int i = Task::SHRINK; i <= Task::GROW; i++)
 	{
 		QList<Task*> curTasks = tasksByType.values(Task::TaskType(i));
-		if(!curTasks.size()) continue;
 
-		// Sort tasks by priority
-		curTasks = sortTasksByPriority( curTasks );
+		// Special case: Remove already set tasks
+		{
+			QMutableListIterator<Task*> itr(curTasks);
+			while (itr.hasNext()) 
+				if (itr.next()->property.contains("isTaskAlreadyOrdered")) 
+					itr.remove();
+		}
 
 		int futureStart = curStart;
+		Structure::Graph * g = NULL;
 
-		if(i == Task::MORPH)
+		if(curTasks.size()) 
 		{
-			foreach(Task* t, curTasks){
-				t->setStart(curStart);
-				futureStart = qMax(futureStart, t->endTime());
-				curStart = futureStart;
-			}
-		}
-		else
-		{
-			curTasks = sortTasksAsLayers( curTasks, curStart );
+			// Sort tasks by priority
+			curTasks = sortTasksByPriority( curTasks );
 
-			foreach(Task* t, curTasks)
-				futureStart = qMax(futureStart, t->endTime());
-		}
-
-		// Group events in same group
-		Structure::Graph * g = (i == Task::SHRINK) ? activeGraph : targetGraph;
-		if(g->property.contains("groups"))
-		{
-			NodeGroups groups = g->property["groups"].value<NodeGroups>();
-
-			foreach(QVector<QString> group, groups)
+			if(i == Task::MORPH)
 			{
-				QVector<Task*> tasksInGroup;
-
-				// Check which tasks are in a group
-				foreach(Task * t, curTasks){
-					Structure::Node * n = (i == Task::SHRINK) ? t->node() : t->targetNode();
-					
-					if(group.contains(n->id))
-						tasksInGroup.push_back(t);
-				}
-
-				curStart = futureStart;
-
-				// Assign same start for them				
-				foreach(Task * t, tasksInGroup){
-					curStart = qMin(curStart, t->start);		
-				}
-				foreach(Task * t, tasksInGroup){
+				foreach(Task* t, curTasks){
 					t->setStart(curStart);
 					futureStart = qMax(futureStart, t->endTime());
+					curStart = futureStart;
 				}
 			}
+			else
+			{
+				curTasks = sortTasksAsLayers( curTasks, curStart );
+				foreach(Task* t, curTasks) futureStart = qMax(futureStart, t->endTime());
+			}
+
+			// Group events in same group
+			g = (i == Task::SHRINK) ? activeGraph : targetGraph;
+			if(g->property.contains("groups")) groupStart(g, curTasks, curStart, futureStart);		
+
+			curStart = futureStart;
 		}
-		
-		curStart = futureStart;
+
+		// Special case: growing cut null groups
+		if(i == Task::SHRINK)
+		{
+			curTasks = tasksByType.values(Task::GROW);
+
+			QMutableListIterator<Task*> itr(curTasks);
+			while (itr.hasNext()) 
+			{
+				Structure::Node * n = itr.next()->node();
+				if (!n->property.contains("isCutGroup")) itr.remove();
+			}
+
+			if(!curTasks.size()) continue;
+
+			curTasks = sortTasksAsLayers( curTasks, curStart );
+			foreach(Task* t, curTasks) 
+			{
+				futureStart = qMax(futureStart, t->endTime());
+				t->property["isTaskAlreadyOrdered"] = true;
+			}
+
+			g = targetGraph;
+			if(g->property.contains("groups")) groupStart(g, curTasks, curStart, futureStart);
+
+			curStart = futureStart;
+		}
 	}
 
 	// Remove empty spaces between tasks [inefficient?]
@@ -207,6 +216,37 @@ void Scheduler::order()
 	}
 
 	// To-do: Collect tasks together?
+}
+
+void Scheduler::groupStart( Structure::Graph * g, QList<Task*> curTasks, int curStart, int & futureStart )
+{
+	NodeGroups groups = g->property["groups"].value<NodeGroups>();
+
+	int i = curTasks.front()->type;
+
+	foreach(QVector<QString> group, groups)
+	{
+		QVector<Task*> tasksInGroup;
+
+		// Check which tasks are in a group
+		foreach(Task * t, curTasks){
+			Structure::Node * n = (i == Task::SHRINK) ? t->node() : t->targetNode();
+
+			if(group.contains(n->id))
+				tasksInGroup.push_back(t);
+		}
+
+		curStart = futureStart;
+
+		// Assign same start for them				
+		foreach(Task * t, tasksInGroup){
+			curStart = qMin(curStart, t->start);		
+		}
+		foreach(Task * t, tasksInGroup){
+			t->setStart(curStart);
+			futureStart = qMax(futureStart, t->endTime());
+		}
+	}
 }
 
 QList<Task*> Scheduler::sortTasksByPriority( QList<Task*> currentTasks )
@@ -283,21 +323,6 @@ void Scheduler::executeAll()
 
 	QVector<Task*> allTasks = tasksSortedByStart();
 
-	// Early preparations needed for cut nodes
-	//for(int i = 0; i < (int)allTasks.size(); i++)
-	//{
-	//	Task * task = allTasks[i];
-
-	//	if( task->type == Task::GROW && targetGraph->isCutNode(task->targetNode()->id) )
-	//	{
-	//		task->prepare();
-	//		task->property["cutNodeGrow"] = true;
-	//	}
-
-	//	if( task->type == Task::SHRINK && sourceGraph->isCutNode(task->node()->id) )
-	//		task->property["cutNodeShrink"] = true;
-	//}
-
 	// Execute all tasks
 	for(double globalTime = 0; globalTime <= (1.0 + timeStep); globalTime += timeStep)
 	{
@@ -317,12 +342,19 @@ void Scheduler::executeAll()
 
 			if( localTime < 0 || task->isDone ) continue;
 
+			// 1) Prepare task for grow, shrink, morph
+			task->prepare();
+
+			// 2) Prepare linking with other nodes
 			prepare_relink( task );
 
+			// 3) Execute current task at current time
 			task->execute( localTime );
 
+			// 4) Apply relinking
 			relink( task, globalTime );
 
+			// For visualization
 			if(localTime >= 0.0 && localTime < 1.0) task->node()->property["isActive"] = true;
 		}
 
@@ -358,17 +390,6 @@ void Scheduler::prepare_relink( Task * task )
 
 	LinksDelta deltas;
 
-	if( task->property.contains("cutNodeGrow") )
-	{
-		foreach(Structure::Link* link, edges)
-		{
-			Structure::Node * other = link->otherNode(n->id);
-			Task * otherTask = getTaskFromNodeID(other->id);
-
-			otherTask->isDone = false;
-		}
-	}
-
 	foreach(Structure::Link* link, edges)
 	{
 		Structure::Node * other = link->otherNode(n->id);
@@ -391,9 +412,7 @@ void Scheduler::relink( Task * task, int globalTime )
 	LinksDelta deltas = task->property["linkDeltas"].value<LinksDelta>();
 	if( !deltas.size() ) return;
 
-	if( task->type != Task::MORPH && 
-		!task->property.contains("cutNodeGrow") && 
-		!task->property.contains("cutNodeShrink"))
+	if( task->type == Task::SHRINK && !task->node()->property.contains("isCutGroup") )
 		return;
 
 	Structure::Node * n = task->node();

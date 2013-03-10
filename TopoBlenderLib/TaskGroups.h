@@ -140,6 +140,8 @@ struct TaskGroups{
 					removeNode(bnode);
 				}
 				
+				if(!btasks.size()) break;
+
 				layers.push_back( btasks );
 			}
 

@@ -8,8 +8,10 @@
 
 class Scheduler;
 
-struct Structure::Graph;
-typedef QSet<Structure::Node*> SetNodes;
+struct SetNodes{
+	QSet<Structure::Node*> set;
+	QMap<QString,QVariant> property;
+};
 
 class TopoBlender : public QObject
 {
@@ -42,6 +44,7 @@ public:
 	Structure::Node * addMissingNode( Structure::Graph *toGraph, Structure::Graph * fromGraph, Structure::Node * fromNode );
 	void tagEdge(Structure::Link *link, QString tag);
 	bool taggedEdge(Structure::Link *link, QString tag);
+	void correspondTwoEdges(Structure::Link *slink, Structure::Link *tlink);
 	QString correspondingNode( Structure::Link *link, int i );
 	void correspondMissingEdges( Structure::Graph * sgraph, Structure::Graph * tgraph );
 	void removeMissingEdges( Structure::Graph * sgraph );
@@ -59,7 +62,7 @@ public:
 	QVector<Structure::Link*> edgesNotContain(QVector<Structure::Link*> edges, QString property_name);
 	
 	// Null sets
-	QVector< SetNodes > nullNodeSets( Structure::Graph * graph );
+	QVector< SetNodes > nullNodeSets( Structure::Graph * sgraph, Structure::Graph * tgraph );
 	void connectNullSet( SetNodes nullSet, Structure::Graph * source, Structure::Graph * target );
 	QVector<Structure::Link*> nonCorrespondEdges( Structure::Node * node, Structure::Graph * graph );
 	

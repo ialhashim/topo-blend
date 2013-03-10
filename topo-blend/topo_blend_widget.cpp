@@ -16,6 +16,7 @@ QString cur_filename;
 topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : QWidget(parent), ui(new Ui::topo_blend_widget)
 {
     ui->setupUi(this);
+	ui->groupBox1->setVisible(false);
 
     this->tb = topo_blend;
 

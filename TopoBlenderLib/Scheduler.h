@@ -44,6 +44,8 @@ public:
 	QList<Task*> sortTasksByPriority( QList<Task*> curTasks );
 	QList<Task*> sortTasksAsLayers( QList<Task*> currentTasks, int startTime = 0 );
 
+	void groupStart( Structure::Graph * g, QList<Task*> curTasks, int curStart, int & futureStart );
+
 	// Time helpers
 	void splitTasksStartTime( int startTime, QList<Task*> & before, QList<Task*> & after );
 	void slideTasksTime( QList<Task*> list_tasks, int delta );
