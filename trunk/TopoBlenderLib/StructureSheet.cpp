@@ -361,5 +361,15 @@ int Sheet::numCtrlPnts()
 
 void Sheet::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
 {
+	Vector3 p = position( handle );
 
+	double diff = (p - to).norm();
+	if(diff < 1e-7) return;
+
+	//if( isRigid )
+	{
+		Vec3d delta = to - p;
+		this->moveBy( delta );
+		return;
+	}
 }

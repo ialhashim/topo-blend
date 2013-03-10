@@ -359,6 +359,8 @@ void Task::geometryMorph( double t )
 // PREPARE
 void Task::prepare()
 {
+	if ( isReady ) return;
+
 	this->start = this->x();
 	this->currentTime = start;
 	this->isDone = false;
@@ -432,6 +434,27 @@ QVector<Structure::Link*> Task::filterDissimilar( Structure::Node * n, QVector<S
 	return edges;
 }
 
+void Task::prepareShrinkCurveOneEdge( Structure::Link* l )
+{
+	Structure::Node * n = node();
+	Structure::Curve* structure_curve = ((Structure::Curve*)n);
+
+	Structure::Node * base = l->otherNode(n->id);
+
+	Vec4d coordBase = l->getCoord(base->id).front();
+	Vec4d coordSelf = l->getCoord(n->id).front();
+
+	Vector3 linkPositionBase = l->position( base->id );
+
+	// Curve folding
+	Array1D_Vector3 deltas = structure_curve->foldTo( coordSelf, false );
+	deltas = inverseVectors3(deltas);
+
+	// Growing / shrinking instructions
+	property["deltas"].setValue( deltas );
+	property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
+}
+
 void Task::prepareShrinkCurve()
 {
 	Structure::Node * n = node();
@@ -440,24 +463,9 @@ void Task::prepareShrinkCurve()
 
 	if(edges.size() == 1)
 	{
-		Structure::Link * l = edges.front();
-		Structure::Node * base = l->otherNode(n->id);
-
-		Vec4d coordBase = l->getCoord(base->id).front();
-		Vec4d coordSelf = l->getCoord(n->id).front();
-
-		Vector3 linkPositionBase = l->position( base->id );
-
-		// Curve folding
-		Array1D_Vector3 deltas = structure_curve->foldTo( coordSelf, false );
-		deltas = inverseVectors3(deltas);
-
-		// Growing / shrinking instructions
-		property["deltas"].setValue( deltas );
-		property["orgCtrlPoints"].setValue( structure_curve->curve.mCtrlPoint );
+		prepareShrinkCurveOneEdge( edges.front() );
 	}
 
-		
 	if(edges.size() == 2)
 	{
 		// Links and positions (on myself)
@@ -473,7 +481,25 @@ void Task::prepareShrinkCurve()
 		gd.computeDistances( pointA, DIST_RESOLUTION );
 		gd.smoothPathCoordTo(pointB, path);
 
-		if(!path.size()) return;
+		// No path: Cut node case
+		if( !path.size() )
+		{
+			// Pick end with more valence
+			int maxValence = 0;
+			Structure::Link * shrinkLink = edges.front();
+			foreach(Structure::Link* edge, edges){
+				Structure::Node * otherNode = edge->otherNode( n->id );
+				int curValence = active->valence(otherNode);
+				if(curValence > maxValence){
+					maxValence = curValence;
+					shrinkLink = edge;
+				}
+			}
+
+			prepareShrinkCurveOneEdge( shrinkLink );
+
+			return;
+		}
 
 		// Use the center of the path as the end point
 		GraphDistance::PathPointPair endPointCoord = path[path.size() / 2];
@@ -530,6 +556,22 @@ void Task::prepareGrowCurve()
 		Structure::Node * other = active->getNode( tother->property["correspond"].toString() );
 		if( other->property.contains("taskIsDone") )
 			tedges.push_back(edge);
+	}
+
+	// Cut nodes grow case
+	if( tedges.isEmpty() )
+	{
+		int maxValence = 0;
+		Structure::Link * growLink = all_tedges.front();
+		foreach(Structure::Link* edge, all_tedges){
+			Structure::Node * tother = edge->otherNode( tn->id );
+			int curValence = target->valence(tother);
+			if(curValence > maxValence){
+				maxValence = curValence;
+				growLink = edge;
+			}
+		}
+		tedges.push_back( growLink );
 	}
 
 	if (tedges.size() == 1)
@@ -1005,7 +1047,6 @@ Array1D_Vector3 Task::decodeSheet( SheetEncoding cpCoords, Vector3 origin, Vecto
 void Task::execute( double t )
 {	
 	if( !isActive(t) ) return;
-	if ( !isReady ) prepare();
 
 	currentTime = start + (t * length);
 

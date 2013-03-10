@@ -38,6 +38,7 @@ public:
 	// Prepare stage
 	void prepare();
 
+	// Main functions
 	void prepareShrinkCurve();
 	void prepareGrowCurve();
 	void prepareShrinkCurveConstraint();
@@ -47,6 +48,9 @@ public:
 	void prepareShrinkSheet();
 	void prepareGrowSheet();
 	void prepareMorphSheet();
+
+	// Sub routines
+	void prepareShrinkCurveOneEdge(Structure::Link* l);
 
 	// Execution stage
 	void execute( double t );

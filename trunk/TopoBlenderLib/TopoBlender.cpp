@@ -21,11 +21,18 @@ using namespace DynamicGraphs;
 
 typedef std::pair<QString, QString> PairQString;
 
+Q_DECLARE_METATYPE( QSet<Structure::Node*> )
+
 TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent ) : QObject(parent)
 {
     sg = graph1;
     tg = graph2;
 	scheduler = useScheduler;
+
+	// Check for existing landmark file
+	QFileInfo landMarkFile(QString("%1_%2.txt").arg(graph1->name()).arg(graph2->name()));
+	if(landMarkFile.exists()) 
+		useCorresponder->loadLandmarks(landMarkFile.fileName());
 
 	/// STEP 1) Compute correspondences and align mis-aligned nodes
 	this->gcoor = useCorresponder;
@@ -263,15 +270,22 @@ void TopoBlender::correspondSuperNodes()
 	}
 }
 
+void TopoBlender::correspondTwoEdges( Structure::Link *slink, Structure::Link *tlink )
+{
+	if(slink->property.contains("correspond") || tlink->property.contains("correspond")) return;
+	slink->property["correspond"] = tlink->id;
+	tlink->property["correspond"] = slink->id;
+}
+
 // This function could be written with [graphA] and [graphB] but we should 
 // keep it this way to ensure correspondence happen together and once
 void TopoBlender::correspondSuperEdges()
 {
-	bool CASE_1 = true;
-	bool CASE_2 = true;
-	bool CASE_3 = true;
-	bool CASE_4 = true;
-	bool CASE_5 = true;
+	bool CASE_1 = true;		// Trivial edges, both nodes exist on both graphs
+	bool CASE_2 = true;		// Edges between two [extra] or two [missing] nodes
+	bool CASE_3 = true;		// Edges connecting null groups to existing nodes
+	bool CASE_4 = true;		// Edges with changed ends
+	bool CASE_5 = true;		// UNDEFINED: When does this happen?
 
 	/// CASE 1: correspond trivial edges, i.e. both nodes exist on both graphs
 	if( CASE_1 )
@@ -286,8 +300,7 @@ void TopoBlender::correspondSuperEdges()
 
 			if(!tlink) continue;
 
-			slink->property["correspond"] = tlink->id;
-			tlink->property["correspond"] = slink->id;
+			correspondTwoEdges(slink,tlink);
 		}
 
 		// Target graph pass
@@ -300,8 +313,7 @@ void TopoBlender::correspondSuperEdges()
 
 			if(!slink) continue;
 
-			slink->property["correspond"] = tlink->id;
-			tlink->property["correspond"] = slink->id;
+			correspondTwoEdges(slink,tlink);
 		}
 	}
 
@@ -319,8 +331,7 @@ void TopoBlender::correspondSuperEdges()
 			if(!(tn1->id.contains("null") && tn2->id.contains("null"))) continue;
 		
 			Structure::Link * tlink = addMissingLink(super_tg, slink);
-			slink->property["correspond"] = tlink->id;
-			tlink->property["correspond"] = slink->id;
+			correspondTwoEdges(slink,tlink);
 		}
 
 		// Target pass
@@ -334,8 +345,7 @@ void TopoBlender::correspondSuperEdges()
 			if(!(sn1->id.contains("null") && sn2->id.contains("null"))) continue;
 
 			Structure::Link * slink = addMissingLink(super_sg, tlink);
-			slink->property["correspond"] = tlink->id;
-			tlink->property["correspond"] = slink->id;
+			correspondTwoEdges(slink,tlink);
 		}
 	}
 
@@ -343,11 +353,11 @@ void TopoBlender::correspondSuperEdges()
 	if( CASE_3 )
 	{
 		// Source graph pass
-		foreach( SetNodes set, nullNodeSets( super_sg ) )
+		foreach( SetNodes set, nullNodeSets( super_sg, super_tg ) )
 			connectNullSet( set, super_sg, super_tg );
 
 		// Target pass
-		foreach( SetNodes set, nullNodeSets( super_tg ) )
+		foreach( SetNodes set, nullNodeSets( super_tg, super_sg ) )
 			connectNullSet( set, super_tg, super_sg );
 	}
 
@@ -369,8 +379,7 @@ void TopoBlender::correspondSuperEdges()
 				Structure::Link * slink = sedges[i];
 				Structure::Link * tlink = tedges[i];
 
-				slink->property["correspond"] = tlink->id;
-				tlink->property["correspond"] = slink->id;
+				correspondTwoEdges(slink,tlink);
 			}
 		}
 	}
@@ -397,8 +406,7 @@ void TopoBlender::correspondMissingEdges( Structure::Graph * sgraph, Structure::
 		{
 			Structure::Link * tlink = addMissingLink(tgraph, slink);
 
-			slink->property["correspond"] = tlink->id;
-			tlink->property["correspond"] = slink->id;
+			correspondTwoEdges(slink,tlink);
 		}
 	}
 }
@@ -414,19 +422,19 @@ void TopoBlender::removeMissingEdges( Structure::Graph * sgraph )
 	}
 }
 
-QVector< SetNodes > TopoBlender::nullNodeSets( Structure::Graph * graph )
+QVector< SetNodes > TopoBlender::nullNodeSets( Structure::Graph * sgraph, Structure::Graph * tgraph )
 {
 	QVector< SetNodes > result;
 
-	SetNodes visited;
+	QSet<Structure::Node*> visited;
 
-	while( visited.size() < graph->nodes.size() )
+	while( visited.size() < sgraph->nodes.size() )
 	{
 		QStack<Structure::Node*> nodesToVisit;
 		SetNodes curSet;
 
 		// Find a null node to start from
-		foreach(Structure::Node * node, graph->nodes)
+		foreach(Structure::Node * node, sgraph->nodes)
 		{
 			if(visited.contains(node)) continue;
 
@@ -435,7 +443,7 @@ QVector< SetNodes > TopoBlender::nullNodeSets( Structure::Graph * graph )
 			if( node->id.contains("null") )
 			{
 				nodesToVisit.push( node );
-				curSet.insert( node );
+				curSet.set.insert( node );
 				break;
 			}
 		}
@@ -444,22 +452,49 @@ QVector< SetNodes > TopoBlender::nullNodeSets( Structure::Graph * graph )
 		{
 			Structure::Node * cur = nodesToVisit.pop();
 			visited.insert(cur);
-			curSet.insert(cur);
+			curSet.set.insert(cur);
 
-			foreach( Structure::Node * adj, graph->adjNodes(cur) ){
-				if( !visited.contains(adj) && !curSet.contains(adj) ){
+			foreach( Structure::Node * adj, sgraph->adjNodes(cur) ){
+				if( !visited.contains(adj) && !curSet.set.contains(adj) ){
 					if(adj->id.contains("null"))
 						nodesToVisit.push( adj );
 				}
 			}
 		}
 
-		if( curSet.size() ) result.push_back( curSet );
+		// Find outer nodes
+		QSet<Structure::Node*> outerNodes;
+		foreach(Node * sn, curSet.set){
+			Node * tn = tgraph->getNode( sn->property["correspond"].toString() );
+			foreach( Structure::Link * tlink, tgraph->getEdges(tn->id) ){
+				Node * other = tlink->otherNode(tn->id);
+				if( !curSet.set.contains(other) )
+					outerNodes.insert( sgraph->getNode( other->property["correspond"].toString() ) );
+			}
+		}
+
+		// Check if current set share exactly outer nodes with previous sets
+		// If so, add current set to previous set
+		for(int i = 0; i < (int)result.size(); i++){
+			QSet<Structure::Node*> curOuter = result[i].property["outerNodes"].value< QSet<Structure::Node*> >();
+			if(curOuter != outerNodes) continue;
+
+			// Add nodes to previous set
+			result[i].set += curSet.set;
+			curSet.set.clear();
+			break;
+		}
+
+		if( curSet.set.size() ) 
+		{
+			curSet.property["outerNodes"].setValue( outerNodes );
+			result.push_back( curSet );
+		}
 	}
 
 	// Mark set elements
 	for(int i = 0; i < (int)result.size(); i++){
-		foreach(Structure::Node * n, result[i]){
+		foreach(Structure::Node * n, result[i].set){
 			n->property["nullSet"] = i;
 		}
 	}
@@ -469,29 +504,21 @@ QVector< SetNodes > TopoBlender::nullNodeSets( Structure::Graph * graph )
 
 void TopoBlender::connectNullSet( SetNodes nullSet, Structure::Graph * source, Structure::Graph * target )
 {
-	// 0) Find outer nodes 
-	QSet< Structure::Node* > s_outter_nodes;
-	foreach(Structure::Node * snode, nullSet){
+	/// 0) Find outer nodes 
+	QSet< Structure::Node* > s_outter_nodes = nullSet.property["outerNodes"].value< QSet< Structure::Node* > >();
+	foreach(Structure::Node * snode, nullSet.set){
 		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
 		foreach(Structure::Link * tlink, nonCorrespondEdges(tnode, target))
 		{
 			Structure::Node *s1 = source->getNode( correspondingNode(tlink,0) );
 			Structure::Node *s2 = source->getNode( correspondingNode(tlink,1) );
-			
-			if( !nullSet.contains(s1) ) s_outter_nodes.insert(s1);
-			if( !nullSet.contains(s2) ) s_outter_nodes.insert(s2);
 		}
 	}
 
-	// Mark outer nodes for future use
-	foreach(Structure::Node * n, s_outter_nodes){
-		n->property["isNullsetOuter"];
-	}
-
-	// 1) Find external edges = not yet corresponded
+	/// 1) Find external edges = not yet corresponded
 	QSet< Structure::Link* > t_ext_edges, s_ext_edges;
 
-	foreach(Structure::Node * snode, nullSet){
+	foreach(Structure::Node * snode, nullSet.set){
 		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
 		foreach(Structure::Link * tlink, nonCorrespondEdges(tnode, target))
 		{
@@ -510,11 +537,21 @@ void TopoBlender::connectNullSet( SetNodes nullSet, Structure::Graph * source, S
 			}
 		}
 	}
-	if( !t_ext_edges.size() ) return;
+	if( !t_ext_edges.size() ) return; // shouldn't happen?
 
-	// 1.a) If we got only one
+	// Count number of edges toward each outer node on target
+	QMap<Structure::Node*,int> s_outter_counts;
+	foreach( Structure::Link * l, t_ext_edges )
+	{
+		Structure::Node * n1 = source->getNode(l->n1->property["correspond"].toString());
+		Structure::Node * n2 = source->getNode(l->n2->property["correspond"].toString());
+		if(s_outter_nodes.contains(n1)) s_outter_counts[n1]++;
+		if(s_outter_nodes.contains(n2)) s_outter_counts[n2]++;
+	}
 
-	// 2) Classify external edges either as [1-paring] or otherwise
+	bool isCutGroup = false;
+
+	/// 2) Classify external edges either as [1-paring] or otherwise
 	//	a. 1-paring find existing and match
 	//	b. otherwise add edge
 	foreach( Structure::Link * tlink, t_ext_edges )
@@ -524,22 +561,42 @@ void TopoBlender::connectNullSet( SetNodes nullSet, Structure::Graph * source, S
 		// Find candidate edges to match with tlink
 		QVector<Structure::Link *> s_candidates;
 
-		foreach( Structure::Link * otherLink, s_ext_edges ){
+		foreach( Structure::Link * otherLink, s_ext_edges )
+		{
+			if(s_outter_counts[otherLink->n1] > 1) { isCutGroup = true; continue;}
+			if(s_outter_counts[otherLink->n2] > 1) { isCutGroup = true; continue;}
+
 			if( isShareCorrespondedNode( otherLink, tlink ) )
 				s_candidates.push_back( otherLink );
 		}
 
 		if( s_candidates.size() == 1 )
+		{
 			slink = s_candidates.front();
+			isCutGroup = true;
+		}
 		else
+		{
 			slink = addMissingLink( source, tlink );
+		}
 
-		slink->property["correspond"] = tlink->id;
-		tlink->property["correspond"] = slink->id;
+		correspondTwoEdges(slink,tlink);
+	}
 
-		// Mark edges
-		slink->property["nullExternal"] = true;
-		tlink->property["nullExternal"] = true;
+	/// 3) Clean up "redundant" edges
+	foreach( Structure::Link * l, s_ext_edges )
+	{
+		if(!l->property.contains("correspond")){
+			source->removeEdge(l->n1->id, l->n2->id);
+		}
+	}
+
+	foreach(Structure::Node * snode, nullSet.set){
+		if(isCutGroup){
+			Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
+			snode->property["isCutGroup"] = true;
+			tnode->property["isCutGroup"] = true;
+		}
 	}
 }
 
