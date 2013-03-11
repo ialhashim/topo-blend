@@ -8,6 +8,8 @@
 
 #include "AbsoluteOrientation.h"
 
+#include "ExportDynamicGraph.h"
+
 using namespace NURBS;
 using namespace Structure;
 
@@ -431,6 +433,24 @@ QVector<Structure::Link*> Task::filterDissimilar( Structure::Node * n, QVector<S
 		if(otherI) edges.push_back(allEdges[i]);
 	}
 
+	// Bin edges by their coordinates into 4 locations (2 for curves)
+	QMap< int, QVector<Structure::Link*> > bin;
+	foreach(Structure::Link * l, edges){
+		Vec4d coord = l->getCoord(n->id).front();
+		int idx = coord[0] > 0.5 ? (coord[1] > 0.5 ? 3 : 1) : (coord[1] > 0.5 ? 2 : 0);
+		bin[idx].push_back(l);
+	}
+
+	edges.clear();
+	foreach( int i, bin.keys() ){
+		QVector<Structure::Link*> similarEdges = bin[i];
+
+		// Arbitrary choice for now..
+		Structure::Link * furthest = similarEdges.front();
+		
+		if(edges.size() < 2) edges.push_back( furthest );
+	}
+
 	return edges;
 }
 
@@ -761,21 +781,25 @@ void Task::prepareMorphCurve()
 	if(edges.size() == 1)
 	{
 		Structure::Link * link = edges.front();
-
-		Vec4d coordA = link->getCoord(n->id).front();
-		Vec4d coordB = Vec4d( (coordA[0] > 0.5) ? 0 : 1 );
+		QString otherNode = link->otherNode(n->id)->id;
 
 		NodeCoord fnc = futureOtherNodeCoord(link);
 		NodeCoord ed = futureLinkCoord(link);
 
+		Vec4d coordA = link->getCoord(n->id).front();
+		Vec4d coordB = Vec4d( (coordA[0] > 0.5) ? 0 : 1 );
+
+		//visualizeStructureGraph(active, "activeSingleEdge" + n->id);
+
 		// Compute path for the edge
 		Vec3d startPoint = n->position( coordA );
-		Vec3d endPoint = active->position(ed.first,ed.second);
+		Vec3d endPoint = active->position(ed.first, ed.second);
 
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
+		
+		QVector< GraphDistance::PathPointPair > path;
 		GraphDistance gd(active, exclude);
 		gd.computeDistances( endPoint, DIST_RESOLUTION );
-		QVector< GraphDistance::PathPointPair > path;
 		gd.smoothPathCoordTo( startPoint, path );
 
 		// Smooth transition from start point
@@ -785,10 +809,11 @@ void Task::prepareMorphCurve()
 		path = smoothEnd( prepareEnd(n, link), Vec4d(0), path );
 
 		// Replace coordinates and such
-		QString otherNode = link->otherNode(n->id)->id;
 		link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
 
 		path = weldPath( path );
+		if(!path.size()) return;
+
 		property["path"].setValue( path );
 
 		RMF rmf( positionalPath(path, 2) );
@@ -1082,6 +1107,9 @@ void Task::execute( double t )
 	{
 		this->isDone = true;
 		node()->property["taskIsDone"] = true;
+
+		if(type == SHRINK)
+			node()->property["exclude"] = true;
 	}
 }
 
@@ -1110,8 +1138,14 @@ void Task::executeGrowShrinkCurve( double t )
 			n->property["isReady"] = false;
 
 			// Delete all edges
-			foreach(Structure::Link *link, edges)
+			foreach(Structure::Link *link, edges){
+				if(link->property.contains("changingEnd")) 
+					continue;
 				active->removeEdge(link->n1, link->n2);
+			}
+
+			//Structure::Curve* structure_curve = ((Structure::Curve*)node());
+			//structure_curve->foldTo(Vec4d(0),true);
 		}
 	}
 }
@@ -1160,7 +1194,9 @@ void Task::executeGrowShrinkSheet( double t )
 
 			// Delete all edges
 			foreach(Structure::Link *link, edges)
+			{
 				active->removeEdge(link->n1, link->n2);
+			}
 		}
 
 		if (type == GROW)
