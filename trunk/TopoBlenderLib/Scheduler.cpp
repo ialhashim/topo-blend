@@ -383,7 +383,7 @@ void Scheduler::executeAll()
 
 void Scheduler::prepare_relink( Task * task )
 {
-	if(task->property.contains("linkDeltas")) return;
+	if( task->property.contains("linkDeltas") ) return;
 
 	Structure::Node * n = task->node();
 	QVector<Structure::Link*> edges = activeGraph->getEdges(n->id);
@@ -395,7 +395,7 @@ void Scheduler::prepare_relink( Task * task )
 		Structure::Node * other = link->otherNode(n->id);
 		Task * otherTask = getTaskFromNodeID(other->id);
 
-		if( !otherTask->isDone )
+		if( !otherTask->isDone && otherTask->type != Task::GROW && !other->property.contains("isCutGroup") )
 		{
 			Vec3d delta = link->positionOther(n->id) - link->position(n->id);
 			if(delta.norm() < 1e-7) delta = Vector3(0);
@@ -412,30 +412,51 @@ void Scheduler::relink( Task * task, int globalTime )
 	LinksDelta deltas = task->property["linkDeltas"].value<LinksDelta>();
 	if( !deltas.size() ) return;
 
-	if( task->type == Task::SHRINK && !task->node()->property.contains("isCutGroup") )
+	if( !task->node()->property.contains("isCutGroup") && task->type == Task::SHRINK )
 		return;
 
 	Structure::Node * n = task->node();
 
-	foreach(Structure::Link * link, deltas.keys())
+	foreach( Structure::Link * link, deltas.keys() )
 	{
-		if( !link->hasNode(n->id) ) continue;
-
 		Structure::Node * other = link->otherNode(n->id);
 
 		Vec4d handle = link->getCoordOther(n->id).front();
 
+		Vector3 linkPos = link->position(n->id);
+		Vector3 linkPosOther = link->positionOther(n->id);
 		Vector3 delta = deltas[link];
-		Vector3 newPos = link->position(n->id) + delta;
+		Vector3 newPos = linkPos + delta;
 
 		Task * otherTask = getTaskFromNodeID(other->id);
 
+		// Check if relinking not grown branch
+		if( isPartOfGrowingBranch(otherTask) )
+		{
+			return;
+		}
+
 		other->deformTo( handle, newPos, otherTask->isDone );
+
+		//qDebug() << QString("Task [%1] has deltas count = %2, other = %3").arg(task->nodeID).arg(deltas.size()).arg(other->id);
 
 		// Modify actual geometry
 		double t = task->localT( globalTime * totalExecutionTime() );
 		otherTask->geometryMorph( qRanged(0.0,t,1.0) );
 	}
+}
+
+bool Scheduler::isPartOfGrowingBranch( Task* t )
+{
+	return (t->type == Task::GROW) && (!t->node()->property.contains("isCutGroup"));
+}
+
+QVector<Task*> Scheduler::getEntireBranch( Task * t )
+{
+	QVector<Task*> branch;
+	foreach(Structure::Node * n, activeGraph->nodesWithProperty("nullSet", t->node()->property["nullSet"]))
+		branch.push_back( getTaskFromNodeID(n->id) );
+	return branch;
 }
 
 void Scheduler::drawDebug()

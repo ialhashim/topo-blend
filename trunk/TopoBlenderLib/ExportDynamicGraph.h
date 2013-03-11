@@ -246,3 +246,9 @@ static void toGraphviz(DynamicGraphs::DynamicGraph g, QString fileName = "mygrap
 		system(qPrintable(QString("dot %1 -Tpng > %2").arg(fileName+".gv").arg(fileName+".png")));
 	}
 }
+
+static void visualizeStructureGraph(Structure::Graph * graph, QString filename, QString caption = "")
+{
+	DynamicGraphs::DynamicGraph dg( graph );
+	toGraphviz(dg, filename, true, QString("V = %1, E = %2").arg(dg.nodes.size()).arg(dg.edges.size()), caption);
+}

@@ -46,6 +46,9 @@ public:
 
 	void groupStart( Structure::Graph * g, QList<Task*> curTasks, int curStart, int & futureStart );
 
+	bool isPartOfGrowingBranch( Task* t );
+	QVector<Task*> getEntireBranch( Task * t );
+
 	// Time helpers
 	void splitTasksStartTime( int startTime, QList<Task*> & before, QList<Task*> & after );
 	void slideTasksTime( QList<Task*> list_tasks, int delta );

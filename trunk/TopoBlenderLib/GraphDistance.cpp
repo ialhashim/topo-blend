@@ -9,6 +9,14 @@ GraphDistance::GraphDistance( Structure::Graph * graph, QVector<QString> exclude
 	this->excludeNodes = exclude_nodes;
 	this->isReady = false;
 	this->globalID = 0;
+
+	// Exclude nodes that are not connected to anywhere else on the graph
+	if(g->nodes.size() > 1){
+		foreach(Node * node, g->nodes){
+			if(!g->getEdges(node->id).size() || node->property.contains("exclude"))
+				excludeNodes.push_back( node->id );
+		}
+	}
 }
 
 GraphDistance::GraphDistance( Structure::Node * n )
@@ -224,11 +232,17 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	// Find maximum
 	double max_dist = -DBL_MAX;
 	for(int i = 0; i < (int)allPoints.size(); i++)
-		max_dist = qMax(max_dist, min_distance[i]);
+	{
+		if(min_distance[i] < 1e30)
+			max_dist = qMax(max_dist, min_distance[i]);
+	}
 
 	// Normalize
-	for(int i = 0; i < (int)allPoints.size(); i++)
-		dists.push_back(min_distance[i] / max_dist);
+	if(max_dist != 0.0)
+	{
+		for(int i = 0; i < (int)allPoints.size(); i++)
+			dists.push_back(min_distance[i] / max_dist);
+	}
 
 	isReady = true;
 }
@@ -282,7 +296,7 @@ double GraphDistance::pathCoordTo( Vector3 point, QVector< QPair<QString, Vec4d>
 		}
 	}
 
-	Vec3d closestPoint = allPoints[closest];
+	//Vec3d closestPoint = allPoints[closest];
 
 	// Retrieve path 
 	std::list<vertex_t> shortestPath = DijkstraGetShortestPathTo(closest, previous);

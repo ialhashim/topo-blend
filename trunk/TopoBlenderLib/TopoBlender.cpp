@@ -574,6 +574,9 @@ void TopoBlender::connectNullSet( SetNodes nullSet, Structure::Graph * source, S
 		{
 			slink = s_candidates.front();
 			isCutGroup = true;
+
+			slink->property["changingEnd"] = true;
+			tlink->property["changingEnd"] = true;
 		}
 		else
 		{
