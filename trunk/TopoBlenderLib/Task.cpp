@@ -451,6 +451,14 @@ QVector<Structure::Link*> Task::filterDissimilar( Structure::Node * n, QVector<S
 		if(edges.size() < 2) edges.push_back( furthest );
 	}
 
+	// Remove any shrunken edges
+	QVector<Structure::Link*> afterShrink;
+	foreach(Structure::Link * l, edges){
+		if(!l->hasNodeProperty("shrunk", true))
+			afterShrink.push_back(l);
+	}
+	edges = afterShrink;
+
 	return edges;
 }
 
@@ -796,7 +804,7 @@ void Task::prepareMorphCurve()
 		Vec3d endPoint = active->position(ed.first, ed.second);
 
 		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
-		
+
 		QVector< GraphDistance::PathPointPair > path;
 		GraphDistance gd(active, exclude);
 		gd.computeDistances( endPoint, DIST_RESOLUTION );
@@ -812,7 +820,8 @@ void Task::prepareMorphCurve()
 		link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
 
 		path = weldPath( path );
-		if(!path.size()) return;
+		if(!path.size()) 
+			return;
 
 		property["path"].setValue( path );
 
@@ -1108,8 +1117,9 @@ void Task::execute( double t )
 		this->isDone = true;
 		node()->property["taskIsDone"] = true;
 
-		if(type == SHRINK)
-			node()->property["exclude"] = true;
+		if(type == SHRINK){
+			node()->property["shrunk"] = true;
+		}
 	}
 }
 
@@ -1141,7 +1151,7 @@ void Task::executeGrowShrinkCurve( double t )
 			foreach(Structure::Link *link, edges){
 				if(link->property.contains("changingEnd")) 
 					continue;
-				active->removeEdge(link->n1, link->n2);
+				//active->removeEdge(link->n1, link->n2);
 			}
 
 			//Structure::Curve* structure_curve = ((Structure::Curve*)node());
@@ -1195,7 +1205,7 @@ void Task::executeGrowShrinkSheet( double t )
 			// Delete all edges
 			foreach(Structure::Link *link, edges)
 			{
-				active->removeEdge(link->n1, link->n2);
+				//active->removeEdge(link->n1, link->n2);
 			}
 		}
 
@@ -1281,8 +1291,8 @@ void Task::executeMorphCurve( double t )
 				Structure::Link *linkA = edges.front();
 				Structure::Link *linkB = edges.back();
 
-				active->removeEdge(linkA->n1, linkA->n2);
-				active->removeEdge(linkB->n1, linkB->n2);
+				//active->removeEdge(linkA->n1, linkA->n2);
+				//active->removeEdge(linkB->n1, linkB->n2);
 			}
 		}
 

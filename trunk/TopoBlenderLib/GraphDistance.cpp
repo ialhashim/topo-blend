@@ -13,7 +13,7 @@ GraphDistance::GraphDistance( Structure::Graph * graph, QVector<QString> exclude
 	// Exclude nodes that are not connected to anywhere else on the graph
 	if(g->nodes.size() > 1){
 		foreach(Node * node, g->nodes){
-			if(!g->getEdges(node->id).size() || node->property.contains("exclude"))
+			if( !g->getEdges(node->id).size() )
 				excludeNodes.push_back( node->id );
 		}
 	}
