@@ -19,6 +19,8 @@ QuickAlignment::QuickAlignment(Structure::Graph *graphA, Structure::Graph *graph
 
 	// Connections
 	this->connect(ui->alignButton, SIGNAL(clicked()), SLOT(doPartAlignment()));
+	this->connect(ui->list1, SIGNAL(itemSelectionChanged()), SLOT(visualizeSelections()));
+	this->connect(ui->list2, SIGNAL(itemSelectionChanged()), SLOT(visualizeSelections()));
 }
 
 QuickAlignment::~QuickAlignment()
@@ -81,6 +83,33 @@ void QuickAlignment::doPartAlignment()
 	mat.translate( 0, 0, boxB.center().z() - boxA.center().z() );
 	ga->transform( mat );
 
+
+	emit( updateView() );
+}
+
+void QuickAlignment::visualizeSelections()
+{
+	QList<QListWidgetItem *> items1 = ui->list1->selectedItems();
+	QList<QListWidgetItem *> items2 = ui->list2->selectedItems();
+
+	// Set black for all
+	foreach (Structure::Node * node,  ga->nodes)
+	{
+		node->vis_property["color"] = Qt::lightGray;
+		node->vis_property["showControl"] = false;
+	}
+	foreach (Structure::Node * node,  gb->nodes)
+	{
+		node->vis_property["color"] = Qt::lightGray;
+		node->vis_property["showControl"] = false;
+	}
+
+	// Set red for landmark
+	foreach (QListWidgetItem * item, items1)
+		ga->getNode(item->text())->vis_property["color"] = Qt::red;
+	
+	foreach (QListWidgetItem * item, items2)
+		gb->getNode(item->text())->vis_property["color"] = Qt::green;
 
 	emit( updateView() );
 }

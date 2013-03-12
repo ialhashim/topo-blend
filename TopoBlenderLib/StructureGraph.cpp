@@ -1044,11 +1044,24 @@ SurfaceMesh::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 
 	Scalar r = 0.04 * qMin(s1, s2);
 
-	if(n1->type() == SHEET && n2->type() == SHEET)
-		r *= 10;
+	//if(n1->type() == SHEET && n2->type() == SHEET)
+	//	r *= 10;
 
 	std::vector< std::vector<Vector3> > parts1 = n1->discretized(r);
 	std::vector< std::vector<Vector3> > parts2 = n2->discretized(r);
+
+	// Fall back
+	if( !parts1.size() )
+	{
+		if(n1->type() == SHEET && n2->type() == SHEET)
+		{
+			Structure::Sheet * s1 = (Structure::Sheet *)n1;
+			Structure::Sheet * s2 = (Structure::Sheet *)n2;
+
+			parts1 = s1->surface.mCtrlPoint;
+			parts2 = s2->surface.mCtrlPoint;
+		}
+	}
 
 	Scalar minDist = DBL_MAX;
 	int minI = 0, minJ = 0;

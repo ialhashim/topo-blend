@@ -23,7 +23,8 @@ private:
 
 public slots:
 	void doPartAlignment();
-	
+	void visualizeSelections();
+
 signals:
     void updateView();
 
