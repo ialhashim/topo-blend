@@ -15,6 +15,12 @@ class PolygonSoup : public RenderObject::Base{
 public:
 	PolygonSoup():RenderObject::Base(1, Qt::black){}
 
+	void clear(){
+		polys.clear();
+		polys_normals.clear();
+		polys_colors.clear();
+	}
+
 	virtual void draw(){
 
         glEnable(GL_LIGHTING);
@@ -131,6 +137,11 @@ class PointSoup : public RenderObject::Base{
 public:
 	PointSoup():RenderObject::Base(1, Qt::black){}
 
+	void clear(){
+		points.clear();
+		points_colors.clear();
+	}
+
 	virtual void draw(){
 		glDisable(GL_LIGHTING);
 
@@ -161,6 +172,12 @@ class VectorSoup : public RenderObject::Base{
     double maxLen;
 public:
     VectorSoup(const QColor& c = Qt::green):RenderObject::Base(1, c){ maxLen = -DBL_MAX; }
+
+	void clear(){
+		vectors.clear();
+		vectorLengths.clear();
+		maxLen = -DBL_MAX;
+	}
 
     void addVector(const QVector3D& start, const QVector3D& direction){
         vectors.push_back( qMakePair(start,direction) );

@@ -648,8 +648,7 @@ void TopoBlender::generateTasks()
 		else
 			task = new Task( active, super_tg, Task::MORPH, scheduler->tasks.size() );
 
-		task->property["nodeID"] = snodeID;
-		task->nodeID = snodeID;
+		task->setNode( snodeID );
 		scheduler->tasks.push_back( task );
 	}
 }

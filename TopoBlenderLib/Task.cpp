@@ -412,7 +412,7 @@ void Task::prepare()
 	node()->property["isReady"] = true;
 }
 
-QVector<Structure::Link*> Task::filterDissimilar( Structure::Node * n, QVector<Structure::Link*> allEdges )
+QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Structure::Link*> allEdges )
 {
 	QVector<Structure::Link*> edges;
 
@@ -429,6 +429,10 @@ QVector<Structure::Link*> Task::filterDissimilar( Structure::Node * n, QVector<S
 				break;
 			}
 		}
+
+		// Skip edges not yet made
+		if( otherI->property["taskType"] == Task::GROW && !otherI->property.contains("taskIsDone") )
+			continue;
 
 		if(otherI) edges.push_back(allEdges[i]);
 	}
@@ -453,11 +457,15 @@ QVector<Structure::Link*> Task::filterDissimilar( Structure::Node * n, QVector<S
 
 	// Remove any shrunken edges
 	QVector<Structure::Link*> afterShrink;
-	foreach(Structure::Link * l, edges){
-		if(!l->hasNodeProperty("shrunk", true))
-			afterShrink.push_back(l);
+	if(edges.size() > 1)
+	{
+		foreach(Structure::Link * l, edges){
+			if(!l->hasNodeProperty("shrunk", true))
+				afterShrink.push_back(l);
+		}
+
+		edges = afterShrink;
 	}
-	edges = afterShrink;
 
 	return edges;
 }
@@ -486,7 +494,7 @@ void Task::prepareShrinkCurveOneEdge( Structure::Link* l )
 void Task::prepareShrinkCurve()
 {
 	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = filterDissimilar( n, active->getEdges(n->id) );
+	QVector<Structure::Link*> edges = filterEdges( n, active->getEdges(n->id) );
 	Structure::Curve* structure_curve = ((Structure::Curve*)n);
 
 	if(edges.size() == 1)
@@ -761,28 +769,13 @@ Array1D_Vector3 Task::decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3
 	return controlPoints;
 }
 
-QVector<Structure::Link*> Task::filteredEdges(Structure::Node * n, QVector<Structure::Link*> all_edges)
-{
-	QVector<Structure::Link*> edges;
-
-	foreach(Structure::Link* edge, all_edges)
-	{
-		Structure::Node * other = edge->otherNode(n->id);
-		if( other->id.contains("null") && !other->property["taskIsDone"].toBool() ) 
-			continue;
-		edges.push_back(edge);
-	}
-
-	return edges;
-}
-
 void Task::prepareMorphCurve()
 {
 	Structure::Node * n = node();
 	Structure::Node * tn = targetNode();
 	
 	// 0) Filter edges (remove edges with null since these nodes will grow in future)
-	QVector<Structure::Link*> edges = filteredEdges(n, active->getEdges(n->id));
+	QVector<Structure::Link*> edges = filterEdges(n, active->getEdges(n->id));
 	QVector<Structure::Link*> tedges = target->getEdges(tn->id);
 
 	// 1) SINGLE edge
@@ -957,6 +950,7 @@ void Task::prepareGrowSheet()
 		property["deltas"].setValue( deltas );
 		property["orgCtrlPoints"].setValue( structure_sheet->surface.mCtrlPoint );
 	}
+
 }
 
 void Task::prepareMorphSheet()
@@ -1436,4 +1430,11 @@ QPair<Structure::Node*,Structure::Node*> Task::prepareEnd2( Structure::Node * n,
 	active->aux_nodes.push_back( auxA );
 	active->aux_nodes.push_back( auxB );
 	return qMakePair(auxA, auxB);
+}
+
+void Task::setNode( QString node_ID )
+{
+	property["nodeID"] = node_ID;
+	this->nodeID = node_ID;
+	node()->property["taskType"] = type;
 }

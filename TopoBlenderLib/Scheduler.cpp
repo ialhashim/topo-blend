@@ -1,7 +1,6 @@
 #include <QApplication>
 
 #include "Task.h"
-#include "ARAPCurveDeformer.h"
 #include "Scheduler.h"
 
 #include "Synthesizer.h"
@@ -329,10 +328,14 @@ void Scheduler::executeAll()
 		QElapsedTimer timer; timer.start();
 
 		// DEBUG - per pass
-		activeGraph->debugPoints.clear();
+		activeGraph->clearDebug();
+
+		// Relink constraints
+		TasksConstraints constraints;
 
 		activeGraph->setPropertyAll("isActive", false);
 
+		/// Prepare and execute current tasks
 		for(int i = 0; i < (int)allTasks.size(); i++)
 		{
 			Task * task = allTasks[i];
@@ -346,19 +349,19 @@ void Scheduler::executeAll()
 			task->prepare();
 
 			// 2) Prepare linking with other nodes
-			prepare_relink( task );
+			this->prepare_relink( task, constraints );
 
 			// 3) Execute current task at current time
 			task->execute( localTime );
-
-			// 4) Apply relinking
-			relink( task, globalTime );
 
 			// For visualization
 			if(localTime >= 0.0 && localTime < 1.0) task->node()->property["isActive"] = true;
 		}
 
-		// Geometry morphing
+		/// Apply relinking
+		relink(constraints, globalTime);
+
+		/// Geometry morphing
 		foreach(Task * task, allTasks)
 		{
 			double localTime = task->localT( globalTime * totalTime );
@@ -381,68 +384,94 @@ void Scheduler::executeAll()
 	qApp->restoreOverrideCursor();
 }
 
-void Scheduler::prepare_relink( Task * task )
+void Scheduler::prepare_relink( Task * task, TasksConstraints & constraints )
 {
-	if( task->property.contains("linkDeltas") ) return;
-
 	Structure::Node * n = task->node();
 	QVector<Structure::Link*> edges = activeGraph->getEdges(n->id);
-
-	LinksDelta deltas;
 
 	foreach(Structure::Link* link, edges)
 	{
 		Structure::Node * other = link->otherNode(n->id);
 		Task * otherTask = getTaskFromNodeID(other->id);
 
-		if( !otherTask->isDone && otherTask->type != Task::GROW && !other->property.contains("isCutGroup") )
+		if( (!otherTask->isDone) && (otherTask->type != Task::GROW) && (!other->property.contains("isCutGroup")) )
 		{
 			Vec3d delta = link->positionOther(n->id) - link->position(n->id);
 			if(delta.norm() < 1e-7) delta = Vector3(0);
 
-			deltas[ link ] = delta;
+			if( task->type == Task::SHRINK && !task->node()->property.contains("isCutGroup") )
+				continue;
+
+			// Check if relinking not grown branch
+			if( isPartOfGrowingBranch( otherTask ) )
+				continue;
+
+			constraints[ otherTask ].push_back( LinkConstraint(delta, link, task, otherTask) );
 		}
 	}
-
-	task->property["linkDeltas"].setValue( deltas );
 }
 
-void Scheduler::relink( Task * task, int globalTime )
+void Scheduler::relink( TasksConstraints & all_constraints, int globalTime )
 {
-	LinksDelta deltas = task->property["linkDeltas"].value<LinksDelta>();
-	if( !deltas.size() ) return;
-
-	if( !task->node()->property.contains("isCutGroup") && task->type == Task::SHRINK )
-		return;
-
-	Structure::Node * n = task->node();
-
-	foreach( Structure::Link * link, deltas.keys() )
+	foreach(Task * otherTask, all_constraints.keys())
 	{
-		Structure::Node * other = link->otherNode(n->id);
+		Structure::Node * other = otherTask->node();
 
-		Vec4d handle = link->getCoordOther(n->id).front();
+		QVector<LinkConstraint> constraints = all_constraints[otherTask];
+		
+		int N = constraints.size();
 
-		Vector3 linkPos = link->position(n->id);
-		Vector3 linkPosOther = link->positionOther(n->id);
-		Vector3 delta = deltas[link];
-		Vector3 newPos = linkPos + delta;
-
-		Task * otherTask = getTaskFromNodeID(other->id);
-
-		// Check if relinking not grown branch
-		if( isPartOfGrowingBranch(otherTask) )
+		if( N == 1 )
 		{
-			return;
+			LinkConstraint constraint = constraints.front();
+			
+			Task * task = constraint.task;
+			Structure::Link * link = constraint.link;
+			Structure::Node * n = task->node();
+
+			// Check for changing end edges
+			if( !link->hasNode(n->id) || !link->hasNode(other->id) )	continue;
+
+			Vec4d handle = link->getCoordOther(n->id).front();
+
+			Vector3 linkPosOther = link->positionOther(n->id);
+			Vector3 linkPos = link->position(n->id);
+			Vector3 newPos = linkPos + constraint.delta;
+
+			other->deformTo( handle, newPos, otherTask->isDone );
+
+			activeGraph->vs.addVector( linkPos, constraint.delta );
 		}
 
-		other->deformTo( handle, newPos, otherTask->isDone );
+		if(N > 1)
+		{
+			Vector3 delta(0);
 
-		//qDebug() << QString("Task [%1] has deltas count = %2, other = %3").arg(task->nodeID).arg(deltas.size()).arg(other->id);
+			foreach( LinkConstraint constraint, constraints )
+			{
+				Task * task = constraint.task;
+				Structure::Link * link = constraint.link;
+				Structure::Node * n = task->node();
+
+				// Check for changing end edges
+				if( !link->hasNode(n->id) || !link->hasNode(other->id) )	continue;
+
+				Vector3 linkPosOther = link->positionOther(n->id);
+				Vector3 linkPos = link->position(n->id);
+
+				delta += constraint.delta;
+			}
+
+			delta /= N;
+
+			other->moveBy( -delta );
+
+			activeGraph->vs.addVector( other->position(Vec4d(0.5)), delta );
+		}
 
 		// Modify actual geometry
-		double t = task->localT( globalTime * totalExecutionTime() );
-		otherTask->geometryMorph( qRanged(0.0,t,1.0) );
+		double t = otherTask->localT( globalTime * totalExecutionTime() );
+		otherTask->geometryMorph( qRanged(0.0, t, 1.0) );
 	}
 }
 

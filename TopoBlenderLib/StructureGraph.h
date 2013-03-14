@@ -14,10 +14,6 @@ using namespace DynamicVoxelLib;
 // For camera
 #include "qglviewer/camera.h"
 
-// Relink
-typedef QMap<Structure::Link*,Vector3> LinksDelta;
-Q_DECLARE_METATYPE( LinksDelta )
-
 typedef QVector< QVector<QString> > NodeGroups;
 Q_DECLARE_METATYPE( NodeGroups )
 
@@ -128,10 +124,11 @@ struct Graph
 
 	// DEBUG:
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
+	VectorSoup vs,vs2,vs3;
+	PolygonSoup ps,ps2,ps3;
 	void printAdjacency();
-	VectorSoup vs;
-	PolygonSoup ps;
 	void printLinksInfo();
+	void clearDebug();
 };
 
 }
