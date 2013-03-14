@@ -49,6 +49,10 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	topo_blend->connect(ui->saveSynthButton, SIGNAL(clicked()), SLOT(saveSynthesisData()));
 	topo_blend->connect(ui->loadSynthButton, SIGNAL(clicked()), SLOT(loadSynthesisData()));
 	topo_blend->connect(ui->outputCloudButton, SIGNAL(clicked()), SLOT(outputPointCloud()));
+
+	// Visualization & default [true] values
+	this->connect(ui->vizButtonGroup, SIGNAL(buttonClicked(QAbstractButton*)),SLOT(vizButtonClicked(QAbstractButton*)));
+	tb->viz_params["showMeshes"] = true;
 }
 
 topo_blend_widget::~topo_blend_widget()
@@ -134,4 +138,13 @@ void topo_blend_widget::loadCorrespondenceModel()
 		LandmarksDialog dialog(tb);
 		dialog.exec();
 	}
+}
+
+void topo_blend_widget::vizButtonClicked(QAbstractButton* b)
+{
+	tb->viz_params["showEdges"] = ui->linksViz->isChecked();
+	tb->viz_params["showMeshes"] = ui->meshViz->isChecked();
+	tb->viz_params["showTasks"] = ui->tasksViz->isChecked();
+
+	tb->updateDrawArea();
 }

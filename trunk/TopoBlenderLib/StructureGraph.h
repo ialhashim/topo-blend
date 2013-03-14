@@ -45,6 +45,7 @@ struct Graph
 	Graph(QString fileName);
 	Graph(const Graph & other);
     ~Graph();
+	void init();
 	
 	// Modifiers
     Node * addNode( Node * n );
