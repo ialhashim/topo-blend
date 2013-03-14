@@ -2,8 +2,7 @@
 #include "SchedulerWidget.h"
 #include "ui_SchedulerWidget.h"
 
-SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidget(parent),
-    ui(new Ui::SchedulerWidget), s(scheduler)
+SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidget(parent), ui(new Ui::SchedulerWidget), s(scheduler)
 {
     ui->setupUi(this);
     ui->timelineView->setScene(scheduler);
@@ -27,6 +26,8 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
 
 	scheduler->connect( ui->renderCurrentButton, SIGNAL(clicked()), SLOT(doRenderCurrent()) );
 	scheduler->connect( ui->renderAllButton, SIGNAL(clicked()), SLOT(doRenderAll()) );
+
+	scheduler->connect( ui->draftRenderButton, SIGNAL(clicked()), SLOT(doDraftRender()));
 
 	ui->progressBar->setVisible(false);
 }

@@ -289,15 +289,8 @@
          <string>Output</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_3">
-         <item row="0" column="3">
-          <widget class="QPushButton" name="renderAllButton">
-           <property name="text">
-            <string>Render all..</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="4">
-          <spacer name="horizontalSpacer_3">
+         <item row="0" column="1">
+          <spacer name="horizontalSpacer_5">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
            </property>
@@ -309,14 +302,7 @@
            </property>
           </spacer>
          </item>
-         <item row="0" column="1">
-          <widget class="QPushButton" name="renderCurrentButton">
-           <property name="text">
-            <string>Render current</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="2">
+         <item row="0" column="3">
           <spacer name="horizontalSpacer_4">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -329,8 +315,8 @@
            </property>
           </spacer>
          </item>
-         <item row="0" column="0">
-          <spacer name="horizontalSpacer_5">
+         <item row="0" column="5">
+          <spacer name="horizontalSpacer_3">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
            </property>
@@ -341,6 +327,27 @@
             </size>
            </property>
           </spacer>
+         </item>
+         <item row="0" column="4">
+          <widget class="QPushButton" name="renderAllButton">
+           <property name="text">
+            <string>Render all..</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QPushButton" name="renderCurrentButton">
+           <property name="text">
+            <string>Render current</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QPushButton" name="draftRenderButton">
+           <property name="text">
+            <string>Draft Render..</string>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>

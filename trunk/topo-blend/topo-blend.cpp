@@ -768,6 +768,31 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		used = true;
 	}
 
+	if(event->key() == Qt::Key_J)
+	{
+		QString key = "ViewerStateFile";
+		QString value = qApp->applicationDirPath() + "/viewer_state.xml";
+
+		drawArea()->settings()->set( key, value );
+		drawArea()->settings()->sync();
+
+		drawArea()->setStateFileName( value );
+		drawArea()->saveStateToFile();
+		mainWindow()->setStatusBarMessage("Viewer state saved to file.");
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_K)
+	{
+		QString key = "ViewerStateFile";
+		QString value = drawArea()->settings()->getString(key);
+
+		drawArea()->setStateFileName( value );
+		drawArea()->restoreStateFromFile();
+		mainWindow()->setStatusBarMessage("Viewer state loaded.");
+		used = true;
+	}
+
 	drawArea()->updateGL();
 
 	return used;
@@ -808,6 +833,7 @@ void topoblend::doBlend()
 	
 	this->connect(scheduler, SIGNAL(renderAll()), SLOT(renderAll()));
 	this->connect(scheduler, SIGNAL(renderCurrent()), SLOT(renderCurrent()));
+	this->connect(scheduler, SIGNAL(draftRender()), SLOT(draftRender()));
 
 	//this->graphs.clear();
 	//this->graphs.push_back(scheduler->activeGraph);
@@ -1270,6 +1296,34 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename )
 
 		Synthesizer::writeXYZ(node_filename, points, normals);
 		//PoissonRecon::makeFromCloud(finalP, finalN, node_filename);
+	}
+}
+
+void topoblend::draftRender()
+{
+	if(!scheduler) return;
+
+	int N = scheduler->allGraphs.size();
+	if(N < 1) return;
+
+	// Setup camera
+	//qglviewer::Camera * camera = drawArea()->camera();
+
+	QString folderPath = QFileDialog::getExistingDirectory();
+
+	for(int i = 0; i < N; i++)
+	{
+		graphs.clear();
+		this->graphs.push_back( scheduler->allGraphs[i] );
+		drawArea()->updateGL();
+
+		// Save snapshot
+		QString snapshotFile;
+		snapshotFile.sprintf("draft_%05d.png", i);
+		snapshotFile = folderPath + "/" + snapshotFile;
+		drawArea()->saveSnapshot(snapshotFile, true);
+
+		qDebug() << "File saved: " << snapshotFile;
 	}
 }
 

@@ -90,6 +90,7 @@ public slots:
 	void renderAll();
 	void renderCurrent();
 	void renderGraph(Structure::Graph *, QString filename);
+	void draftRender();
 
 	void setStatusBarMessage(QString);
 signals:

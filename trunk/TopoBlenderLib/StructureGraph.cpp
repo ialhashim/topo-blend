@@ -30,7 +30,7 @@ Graph::Graph()
 	property["embeded2D"] = false;
 	property["showAABB"] = false;
 	property["showMeshes"] = true;
-	property["showEdges"] = true;
+	property["showEdges"] = false;
 }
 
 Graph::Graph( QString fileName )
@@ -38,7 +38,7 @@ Graph::Graph( QString fileName )
 	property["embeded2D"] = false;
 	property["showAABB"] = false;
 	property["showMeshes"] = true;
-	property["showEdges"] = true;
+	property["showEdges"] = false;
 
 	loadFromFile( fileName );
 	property["name"] = fileName;
@@ -65,6 +65,9 @@ Graph::Graph( const Graph & other )
 	debugPoints = other.debugPoints;
 	debugPoints2 = other.debugPoints2;
 	debugPoints3 = other.debugPoints3;
+
+	vs = other.vs; vs2 = other.vs2; vs3 = other.vs3;
+	ps = other.ps; ps2 = other.ps2; ps3 = other.ps3;
 }
 
 Graph::~Graph()
@@ -354,17 +357,24 @@ QVector<Node*> Graph::path( Node * from, Node * to )
 	return result;
 }
 
-bool Structure::Graph::shareEdge( Node * n1, Node * n2 )
+bool Graph::shareEdge( Node * n1, Node * n2 )
 {
 	foreach( Node * adj, this->adjNodes(n1) )
 		if( adj->id == n2->id ) return true;
 	return false;
 }
 
+void Graph::clearDebug()
+{
+	debugPoints.clear(); debugPoints2.clear(); debugPoints3.clear();
+	vs.clear(); vs2.clear(); vs3.clear();
+	ps.clear(); ps2.clear(); ps3.clear();
+}
+
 void Graph::draw()
 {
-	vs.draw();
-	ps.draw();
+	vs.draw();	vs2.draw();	vs3.draw();
+	ps.draw();	vs2.draw();	vs3.draw();
 
 	QVector<Vec3d> points, normals;
 
@@ -1055,8 +1065,8 @@ SurfaceMesh::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 	{
 		if(n1->type() == SHEET && n2->type() == SHEET)
 		{
-			Structure::Sheet * s1 = (Structure::Sheet *)n1;
-			Structure::Sheet * s2 = (Structure::Sheet *)n2;
+			Sheet * s1 = (Sheet *)n1;
+			Sheet * s2 = (Sheet *)n2;
 
 			parts1 = s1->surface.mCtrlPoint;
 			parts2 = s2->surface.mCtrlPoint;

@@ -26,6 +26,9 @@ public:
     QRectF boundingRect() const;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
 
+	// Set node
+	void setNode( QString nodeID );
+
 	void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
 	void mousePressEvent(QGraphicsSceneMouseEvent * event);
 	void mouseReleaseEvent(QGraphicsSceneMouseEvent * event);
@@ -90,8 +93,7 @@ public:
 	Structure::Sheet * targetSheet();
 
 	Structure::Link * getCoorespondingEdge( Structure::Link * link, Structure::Graph * otherGraph );
-    QVector<Structure::Link*> filteredEdges(Structure::Node * n, QVector<Structure::Link*> all_edges);
-	QVector<Structure::Link*> filterDissimilar( Structure::Node * n, QVector<Structure::Link*> all_edges );
+	QVector<Structure::Link*> filterEdges( Structure::Node * n, QVector<Structure::Link*> all_edges );
 
 	// Task properties
 	TaskType type;
