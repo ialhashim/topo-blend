@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QWidget>
+#include <QAbstractButton>
 
 namespace Ui {
 class topo_blend_widget;
@@ -23,6 +24,7 @@ public slots:
     void doBlend();
 	void loadCorrespondenceModel();
 	void showGroupingDialog();
+	void vizButtonClicked(QAbstractButton* b);
 
 private:
     Ui::topo_blend_widget *ui;

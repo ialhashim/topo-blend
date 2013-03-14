@@ -142,6 +142,12 @@ void topoblend::decorate()
 
 	for(int g = 0; g < (int) graphs.size(); g++)
 	{
+		// Apply visualization options
+		graphs[g]->property["showEdges"] = viz_params["showEdges"];
+		graphs[g]->property["showMeshes"] = viz_params["showMeshes"];
+		graphs[g]->property["showTasks"] = viz_params["showTasks"];
+
+		// Place and draw graph
 		glPushMatrix();
 		glTranslatef(posX, 0, 0);
         graphs[g]->draw();

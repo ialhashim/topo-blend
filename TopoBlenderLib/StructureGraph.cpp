@@ -27,21 +27,25 @@ Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
 
 Graph::Graph()
 {
-	property["embeded2D"] = false;
-	property["showAABB"] = false;
-	property["showMeshes"] = true;
-	property["showEdges"] = false;
+	init();
 }
 
 Graph::Graph( QString fileName )
 {
-	property["embeded2D"] = false;
-	property["showAABB"] = false;
-	property["showMeshes"] = true;
-	property["showEdges"] = false;
+	init();
 
 	loadFromFile( fileName );
 	property["name"] = fileName;
+}
+
+void Graph::init()
+{
+	property["showNodes"]	= true;
+	property["embeded2D"]	= false;
+	property["showAABB"]	= false;
+	property["showMeshes"]	= true;
+	property["showEdges"]	= false;
+	property["showTasks"]	= false;
 }
 
 Graph::Graph( const Graph & other )
@@ -384,7 +388,7 @@ void Graph::draw()
 			continue;
 
 		// Task visualization:
-		if( false )
+		if( property["showTasks"].toBool() )
 		{
 			// Morph-time coloring
 			if( n->property.contains("isActive")  )
@@ -428,7 +432,8 @@ void Graph::draw()
 		}
 
 		// Default node draw
-		n->draw();
+		if(property["showNodes"].toBool())
+			n->draw();
 
 		if(n->type() == SHEET)
 		{

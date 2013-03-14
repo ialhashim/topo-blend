@@ -31,6 +31,7 @@ public:
 	bool keyPressEvent( QKeyEvent* event );
 
 	QMap<QString, QVariant> params;
+	QMap<QString, QVariant> viz_params;
 
 public:
     topo_blend_widget * widget;
