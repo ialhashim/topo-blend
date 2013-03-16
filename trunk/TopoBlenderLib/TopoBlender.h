@@ -66,6 +66,8 @@ public:
 	void connectNullSet( SetNodes nullSet, Structure::Graph * source, Structure::Graph * target );
 	QVector<Structure::Link*> nonCorrespondEdges( Structure::Node * node, Structure::Graph * graph );
 	
+	void checkIntermediateCuts(Structure::Graph * original, Structure::Graph * super_s, Structure::Graph * super_t);
+
 	/// Tasks:
 	void generateTasks();
 

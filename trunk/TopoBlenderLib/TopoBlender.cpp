@@ -23,7 +23,8 @@ typedef std::pair<QString, QString> PairQString;
 
 Q_DECLARE_METATYPE( QSet<Structure::Node*> )
 
-TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent ) : QObject(parent)
+TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
+	GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent ) : QObject(parent)
 {
     sg = graph1;
     tg = graph2;
@@ -195,6 +196,8 @@ QVector<QString> TopoBlender::cloneGraphNode( Structure::Graph *g, QString nodeI
 void TopoBlender::correspondSuperNodes()
 {
 	// Add virtual corresponding nodes for missing nodes
+
+	// To shrink:
 	foreach(QString snodeID, gcoor->nonCorresSource())
 	{
 		Structure::Node *snode = super_sg->getNode(snodeID);
@@ -203,8 +206,12 @@ void TopoBlender::correspondSuperNodes()
 
 		ctnode->id = snodeID + "_null";
 		superNodeCorr[snodeID] = ctnode->id;
+
+		if(sg->isCutNode(snodeID))
+			ctnode->property["isPossibleCut"] = true;
 	}
 
+	// To grow:
 	foreach(QString tnodeID, gcoor->nonCorresTarget())
 	{
 		Structure::Node *tnode = super_tg->getNode(tnodeID);
@@ -215,6 +222,9 @@ void TopoBlender::correspondSuperNodes()
 		superNodeCorr[csnode->id] = tnodeID;
 
 		csnode->property["isReady"] = false;
+
+		if(tg->isCutNode(tnodeID)) 
+			csnode->property["isPossibleCut"] = true;
 	}
 
 	// Build node correspondence for corresponded nodes
@@ -392,6 +402,45 @@ void TopoBlender::correspondSuperEdges()
 
 		//removeMissingEdges(super_sg);
 		//removeMissingEdges(super_tg);
+	}
+
+	/// Post processing:
+	checkIntermediateCuts(tg, super_sg, super_tg);
+	checkIntermediateCuts(sg, super_tg, super_sg);
+}
+
+void TopoBlender::checkIntermediateCuts(Structure::Graph * original, Structure::Graph * super_s, Structure::Graph * super_t)
+{
+	foreach(Node * n, original->nodes)
+	{
+		Node * tnode = super_t->getNode( n->id );
+		if(!tnode) continue;
+
+		QString snodeID = tnode->property["correspond"].toString();
+		Node * snode = super_s->getNode( snodeID );
+		if(!snode->property.contains("isPossibleCut")) continue;
+
+		// Split original target graph and find if node [n] is part of branch
+		QVector< QVector<Node*> > parts = original->split( tnode->id );
+		foreach(QVector<Node*> part, parts){
+			int null_count = 0;
+			foreach(Node * p, part){
+				QString sid = super_t->getNode(p->id)->property["correspond"].toString();
+				if(sid.contains("null")) null_count++;
+			}
+			if(null_count == part.size()){
+				snode->property.remove("isPossibleCut");
+				foreach(Node * p, part) p->property.remove("isPossibleCut");
+				break;
+			}
+		}
+
+		// Its an actual cut
+		if(snode->property.contains("isPossibleCut"))
+		{
+			snode->property["isCutGroup"] = true;
+			tnode->property["isCutGroup"] = true;
+		}
 	}
 }
 
@@ -594,9 +643,12 @@ void TopoBlender::connectNullSet( SetNodes nullSet, Structure::Graph * source, S
 		}
 	}
 
-	foreach(Structure::Node * snode, nullSet.set){
-		if(isCutGroup){
-			Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
+	foreach(Structure::Node * snode, nullSet.set)
+	{
+		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
+
+		if( isCutGroup )
+		{
 			snode->property["isCutGroup"] = true;
 			tnode->property["isCutGroup"] = true;
 		}

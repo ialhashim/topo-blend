@@ -128,7 +128,7 @@ void Scheduler::order()
 	{
 		QList<Task*> curTasks = tasksByType.values(Task::TaskType(i));
 
-		// Special case: Remove already set tasks
+		// Special case: Remove already set tasks during GROW
 		{
 			QMutableListIterator<Task*> itr(curTasks);
 			while (itr.hasNext()) 
@@ -176,7 +176,6 @@ void Scheduler::order()
 				Structure::Node * n = itr.next()->node();
 				if (!n->property.contains("isCutGroup")) itr.remove();
 			}
-
 			if(!curTasks.size()) continue;
 
 			curTasks = sortTasksAsLayers( curTasks, curStart );
@@ -314,6 +313,7 @@ QList<Task*> Scheduler::sortTasksAsLayers( QList<Task*> currentTasks, int startT
 void Scheduler::executeAll()
 {
 	qApp->setOverrideCursor(Qt::WaitCursor);
+	isForceStop = false;
 
 	emit( progressStarted() );
 
@@ -341,7 +341,7 @@ void Scheduler::executeAll()
 			Task * task = allTasks[i];
 			double localTime = task->localT( globalTime * totalTime );
 
-			activeGraph->property["running_tasks"].setValue( activeTasks(globalTime * totalTime) );
+			activeGraph->property["activeTasks"].setValue( activeTasks(globalTime * totalTime) );
 
 			if( localTime < 0 || task->isDone ) continue;
 
@@ -375,6 +375,8 @@ void Scheduler::executeAll()
 		// UI - visual indicator:
 		int percent = globalTime * 100;
 		emit( progressChanged(percent) );
+
+		if( isForceStop ) break;
 	}
 
 	slider->enable();
@@ -397,9 +399,13 @@ void Scheduler::prepare_relink( Task * task, TasksConstraints & constraints )
 		if( (!otherTask->isDone) && (otherTask->type != Task::GROW) && (!other->property.contains("isCutGroup")) )
 		{
 			Vec3d delta = link->positionOther(n->id) - link->position(n->id);
-			if(delta.norm() < 1e-7) delta = Vector3(0);
+			
+			// Threshold for zero change
+			if(delta.norm() < 1e-7) 
+				delta = Vector3(0);
 
-			if( task->type == Task::SHRINK && !task->node()->property.contains("isCutGroup") )
+			// Skip for shrinking non-cuts
+			if( task->type == Task::SHRINK && !n->property.contains("isCutGroup") )
 				continue;
 
 			// Check if relinking not grown branch
@@ -438,7 +444,14 @@ void Scheduler::relink( TasksConstraints & all_constraints, int globalTime )
 			Vector3 linkPos = link->position(n->id);
 			Vector3 newPos = linkPos + constraint.delta;
 
-			other->deformTo( handle, newPos, otherTask->isDone );
+			bool isRigid = otherTask->isDone;
+
+			if(other->type() == Structure::CURVE){
+				if( abs(handle[0] - 0.5) < 0.1 )
+					isRigid = true;
+			}
+
+			other->deformTo( handle, newPos, isRigid );
 
 			activeGraph->vs.addVector( linkPos, constraint.delta );
 		}
@@ -477,7 +490,7 @@ void Scheduler::relink( TasksConstraints & all_constraints, int globalTime )
 
 bool Scheduler::isPartOfGrowingBranch( Task* t )
 {
-	return (t->type == Task::GROW) && (!t->node()->property.contains("isCutGroup"));
+	return (t->type == Task::GROW) && !(t->node()->property.contains("isCutGroup"));
 }
 
 QVector<Task*> Scheduler::getEntireBranch( Task * t )
@@ -559,10 +572,15 @@ QVector<QString> Scheduler::activeTasks( double globalTime )
 	{
 		Task * task = tasks[i];
 		double localTime = task->localT( globalTime );
-		if ( task->isActive( localTime ) )
+
+		bool isActive = task->isActive( localTime );
+
+		 // Consider future growing cut nodes as active
+		bool isUngrownCut = (!task->isDone) && (task->type == Task::GROW) && (task->node()->property.contains("isCutGroup"));
+
+		if ( isActive || isUngrownCut )
 		{
-			QString nodeID = task->node()->id;
-			aTs.push_back(nodeID);
+			aTs.push_back( task->node()->id );
 		}
 	}
 

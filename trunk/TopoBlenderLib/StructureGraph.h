@@ -110,6 +110,7 @@ struct Graph
 	bool isConnected();
 	bool isCutNode(QString nodeID);
 	bool isBridgeEdge( Structure::Link * link );
+	QVector< QVector<Node*> > split( QString nodeID );
 
 	// Modifier
 	void moveBottomCenterToOrigin();
