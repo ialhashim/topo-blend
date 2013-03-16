@@ -369,7 +369,7 @@ void Task::prepare()
 
 	this->property["orgCtrlPoints"].setValue( node()->controlPoints() );
 
-	QVector<QString> runningTasks = active->property["running_tasks"].value< QVector<QString> >();
+	QVector<QString> runningTasks = active->property["activeTasks"].value< QVector<QString> >();
 	foreach(QString id, runningTasks) qDebug() << id;
 	qDebug() << "---";
 
@@ -431,7 +431,7 @@ QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Struct
 		}
 
 		// Skip edges not yet made
-		if( otherI->property["taskType"] == Task::GROW && !otherI->property.contains("taskIsDone") )
+		if( (!otherI) || (otherI->property["taskType"] == Task::GROW && !otherI->property.contains("taskIsDone")) )
 			continue;
 
 		if(otherI) edges.push_back(allEdges[i]);
@@ -512,7 +512,7 @@ void Task::prepareShrinkCurve()
 
 		// Geodesic distance between two link positions on the active graph excluding the running tasks
 		QVector< GraphDistance::PathPointPair > path;
-		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
+		QVector<QString> exclude = active->property["activeTasks"].value< QVector<QString> >();
 		GraphDistance gd( active, exclude );
 		gd.computeDistances( pointA, DIST_RESOLUTION );
 		gd.smoothPathCoordTo(pointB, path);
@@ -662,7 +662,7 @@ void Task::prepareGrowCurve()
 		Vec3d pointB = otherB->position(othercoordB);
 
 		// Geodesic distance between two link positions on the active graph excluding the running tasks
-		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
+		QVector<QString> exclude = active->property["activeTasks"].value< QVector<QString> >();
 		GraphDistance gd( active, exclude );
 		gd.computeDistances( pointA, DIST_RESOLUTION );
 		QVector< GraphDistance::PathPointPair > path;
@@ -796,7 +796,7 @@ void Task::prepareMorphCurve()
 		Vec3d startPoint = n->position( coordA );
 		Vec3d endPoint = active->position(ed.first, ed.second);
 
-		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
+		QVector<QString> exclude = active->property["activeTasks"].value< QVector<QString> >();
 
 		QVector< GraphDistance::PathPointPair > path;
 		GraphDistance gd(active, exclude);
@@ -854,7 +854,7 @@ void Task::prepareMorphCurve()
 
 		// Geodesic distances on the active graph excluding the running tasks
 		QVector< GraphDistance::PathPointPair > pathA, pathB;	
-		QVector<QString> exclude = active->property["running_tasks"].value< QVector<QString> >();
+		QVector<QString> exclude = active->property["activeTasks"].value< QVector<QString> >();
 		GraphDistance gdA( active, exclude ), gdB( active, exclude );
 
 		gdA.computeDistances( endA, DIST_RESOLUTION );	gdA.smoothPathCoordTo( startA, pathA );

@@ -598,6 +598,8 @@ void topoblend::loadModel()
 		graphs.push_back( g );
 	}
 
+	mainWindow()->setStatusBarMessage( "Loaded: \n" + fileNames.join("\n") );
+
 	setSceneBounds();
 }
 
@@ -799,6 +801,15 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		used = true;
 	}
 
+	if(event->key() == Qt::Key_L)
+	{
+		Structure::Graph * g = graphs.front();
+
+		QVector< QVector<Node*> > parts = g->split("Central");
+
+		used = true;
+	}
+
 	drawArea()->updateGL();
 
 	return used;
@@ -881,67 +892,7 @@ void topoblend::clearGraphs()
 
 void topoblend::currentExperiment()
 {
-	Structure::Graph * sourceGraph = graphs.front();
-	Structure::Graph * targetGraph = graphs.back();
 
-	std::vector<Structure::Curve*> curvesS, curvesT;
-	std::vector<Structure::Sheet*> sheetsS, sheetsT;
-
-	foreach(Structure::Node * n, sourceGraph->nodes)
-	{
-		if(n->type() == Structure::CURVE)
-		{
-			Structure::Curve * ncurve = (Structure::Curve *)n;
-			curvesS.push_back(ncurve);
-		}
-
-		if(n->type() == Structure::SHEET)
-		{
-			Structure::Sheet * nsheet = (Structure::Sheet *)n;
-			sheetsS.push_back(nsheet);
-		}
-	}
-
-	foreach(Structure::Node * n, targetGraph->nodes)
-	{
-		if(n->type() == Structure::CURVE)
-		{
-			Structure::Curve * ncurve = (Structure::Curve *)n;
-			curvesT.push_back(ncurve);
-		}
-
-		if(n->type() == Structure::SHEET)
-		{
-			Structure::Sheet * nsheet = (Structure::Sheet *)n;
-			sheetsT.push_back(nsheet);
-		}
-	}
-
-	QVector<Vec3d> pnts1, normals1;
-	QVector<Vec3d> pnts2, normals2;
-
-	for(int i = 0; i < (int)curvesS.size(); i++)
-	{
-		Synthesizer::prepareSynthesizeCurve( curvesS[i], curvesT[i] );
-		Synthesizer::blendGeometryCurves( curvesS[i], curvesT[i], 0.25, pnts1, normals1);
-		Synthesizer::blendGeometryCurves( curvesT[i], curvesS[i], 0.25, pnts2, normals2);
-
-		Synthesizer::writeXYZ(QString("pointcloud_%1.xyz").arg(curvesS[i]->id), pnts1, normals1);
-	}
-
-	//for(int i = 0; i < (int)sheetsS.size(); i++)
-	//{
-	//	Synthesizer::prepareSynthesizeSheet(sheetsS[i], sheetsT[i]);
-	//	Synthesizer::blendGeometrySheets(sheetsS[i], sheetsT[i], 0.25, pnts1, normals1);
-	//	Synthesizer::blendGeometrySheets(sheetsT[i], sheetsS[i], 0.25, pnts2, normals2);
-	//}
-
-	for(int j = 0; j < (int) pnts1.size(); j++)
-	{
-		double scaling = 1.0;
-		vs1.addVector(pnts1[j], normals1[j] * scaling);
-		vs2.addVector(pnts2[j], normals2[j] * scaling);
-	}
 }
 
 void topoblend::updateDrawArea()

@@ -1337,12 +1337,12 @@ bool Graph::isCutNode( QString nodeID )
 	foreach(Link * l, getEdges(nodeID))
 	{
 		if(nodesToVisit.size() == 0) 
-			nodesToVisit.push(l->otherNode(nodeID)->id);
+			nodesToVisit.push( l->otherNode(nodeID)->id );
 		isDeleted.insert(l);
 	}
 
 	// Visit all nodes without going through a deleted edge
-	while(! nodesToVisit.isEmpty() )
+	while( ! nodesToVisit.isEmpty() )
 	{
 		QString id = nodesToVisit.pop();
 		visitedNodes[id] = true;
@@ -1387,6 +1387,53 @@ bool Graph::isBridgeEdge( Link * link )
 	int afterCount = g.numCanVisit( link->n1 );
 
 	return beforeCount != afterCount;
+}
+
+QVector< QVector<Node*> > Graph::split( QString nodeID )
+{
+	QVector< QVector<Node*> > parts;
+
+	Node * n = getNode(nodeID);
+	if(!n) return parts;
+
+	QMap<QString, bool> visitedNodes;
+	visitedNodes[nodeID] = true;
+
+	foreach( Link * link, this->getEdges(nodeID) )
+	{
+		Node * other = link->otherNode(nodeID);
+
+		QStack<QString> nodesToVisit;
+		nodesToVisit.push(other->id);
+
+		QSet<Node*> curSet;
+
+		while( ! nodesToVisit.isEmpty() )
+		{
+			QString id = nodesToVisit.pop();
+			if(visitedNodes[id]) continue;
+
+			visitedNodes[id] = true;
+
+			curSet.insert(getNode(id));
+
+			foreach( Link * l, getEdges(id) )
+			{
+				if(l == link) continue;
+
+				QString adjID = l->otherNode(id)->id;
+
+				if( !visitedNodes.contains(adjID) && !nodesToVisit.contains(adjID))
+					nodesToVisit.push(adjID);
+			}
+		}
+
+		QVector<Node*> part;
+		foreach(Node* n, curSet) part.push_back(n);
+		if(part.size())	parts.push_back( part );
+	}
+
+	return parts;
 }
 
 void Graph::replaceCoords( QString nodeA, QString nodeB, std::vector<Vec4d> coordA, std::vector<Vec4d> coordB )
@@ -1512,7 +1559,8 @@ void Graph::normalize()
 	QBox3D aabb = bbox();
 	double height = aabb.maximum().z() - aabb.minimum().z();
 
-	if(height == 0.0) height = 1.0;
+	if(height == 0.0) 
+		height = aabb.maximum().x() - aabb.minimum().x();
 
 	double scaleFactor = 1.0 / height;
 
