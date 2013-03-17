@@ -425,7 +425,9 @@ void TopoBlender::checkIntermediateCuts(Structure::Graph * original, Structure::
 		foreach(QVector<Node*> part, parts){
 			int null_count = 0;
 			foreach(Node * p, part){
-				QString sid = super_t->getNode(p->id)->property["correspond"].toString();
+				Node * tn = super_t->getNode(p->id);
+				if(!tn) continue;
+				QString sid = tn->property["correspond"].toString();
 				if(sid.contains("null")) null_count++;
 			}
 			if(null_count == part.size()){
