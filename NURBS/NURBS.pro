@@ -3,6 +3,7 @@ load($$[SURFACEMESH])
 
 TEMPLATE = lib
 CONFIG += staticlib
+QT += opengl
 
 # Build flag
 CONFIG(debug, debug|release) {
@@ -25,7 +26,8 @@ SOURCES += \
     Surface.cpp \
     Curve.cpp \
     BSplineBasis.cpp \
-    LineSegment.cpp
+    LineSegment.cpp \
+    NurbsDraw.cpp
 
 HEADERS += \
     ParametricSurface.h \
@@ -39,7 +41,8 @@ HEADERS += \
     Curve.h \
     BSplineBasis.h \
     Integrate1.h \
-    LineSegment.h
+    LineSegment.h \
+    NurbsDraw.h
 	
 # OpenMP
 win32 {

@@ -575,10 +575,13 @@ QVector<QString> Scheduler::activeTasks( double globalTime )
 
 		bool isActive = task->isActive( localTime );
 
-		 // Consider future growing cut nodes as active
+		// Consider future growing cut nodes as active
 		bool isUngrownCut = (!task->isDone) && (task->type == Task::GROW) && (task->node()->property.contains("isCutGroup"));
 
-		if ( isActive || isUngrownCut )
+		// Consider dead links as active tasks
+		bool isDeadLink = task->isDone && (task->type == Task::SHRINK);
+
+		if ( isActive || isUngrownCut || isDeadLink )
 		{
 			aTs.push_back( task->node()->id );
 		}

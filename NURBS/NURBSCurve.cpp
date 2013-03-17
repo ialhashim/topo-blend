@@ -517,7 +517,7 @@ void NURBSCurve<Real>::refine(Array1D_Real & insknts, Array1D_Vector3 & Qw, Arra
 
 	// Output
 	Qw.resize	( n+s+1, Vector3(0) );
-	Ubar.resize	( m+s+1, 0.0 );
+	Ubar.resize	( m+s+1, 0 );
 
 	int a = findSpan(n,p,X[0],U);
 	int b = findSpan(n,p,X[r],U) + 1;
@@ -531,7 +531,7 @@ void NURBSCurve<Real>::refine(Array1D_Real & insknts, Array1D_Vector3 & Qw, Arra
 	int i = b+p-1;
 	int k = b+p+r;
 
-	double alfa;
+	Real alfa = 0;
 
 	for (int j=r; j>=0; j--) 
 	{

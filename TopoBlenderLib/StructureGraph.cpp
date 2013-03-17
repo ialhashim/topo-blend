@@ -377,6 +377,11 @@ void Graph::clearDebug()
 
 void Graph::draw()
 {
+	// Make sure we draw smooth objects
+	glEnable(GL_MULTISAMPLE_ARB);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	vs.draw();	vs2.draw();	vs3.draw();
 	ps.draw();	vs2.draw();	vs3.draw();
 

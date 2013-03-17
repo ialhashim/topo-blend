@@ -48,12 +48,13 @@ public:
 	void prepareGrowCurveConstraint();
 	void prepareMorphCurve();
 
-	void prepareShrinkSheet();
-	void prepareGrowSheet();
+	void prepareGrowShrinkSheet();
 	void prepareMorphSheet();
 
 	// Sub routines
-	void prepareShrinkCurveOneEdge(Structure::Link* l);
+	void prepareShrinkCurveOneEdge( Structure::Link* l );
+	void prepareSheetOneEdge( Structure::Link * l );
+	void prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link * linkB );
 
 	// Execution stage
 	void execute( double t );
@@ -78,8 +79,9 @@ public:
 	Structure::Node * prepareEnd( Structure::Node * n, Structure::Link * slink );
 	QPair<Structure::Node*,Structure::Node*> prepareEnd2( Structure::Node * n, Structure::Link * linkA, Structure::Link * linkB );
 
+	CurveEncoding encodeCurve(Array1D_Vector3 points, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z);
 	CurveEncoding encodeCurve(Structure::Curve * curve, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z);
-	Array1D_Vector3 decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z);
+	Array1D_Vector3 decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z, double t = 1.0);
 
 	SheetEncoding encodeSheet( Structure::Sheet * sheet, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z );
 	Array1D_Vector3 decodeSheet( SheetEncoding cpCoords, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z );
@@ -87,14 +89,20 @@ public:
 	RMF::Frame sheetFrame(Structure::Sheet * sheet);
 	Array1D_Vector3 sheetDeltas(Structure::Sheet * sheet);
 
+	// Special encoding for sheet growing
+	SheetEncoding encodeSheetAsCurve( Structure::Sheet * sheet, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z );
+	Array1D_Vector3 decodeSheetFromCurve( double t, SheetEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z );
+
+	// Quick access
 	Structure::Node * node();
 	Structure::Node * targetNode();
 	Structure::Curve * targetCurve();
 	Structure::Sheet * targetSheet();
 
+	// Edge helpers
 	Structure::Link * getCoorespondingEdge( Structure::Link * link, Structure::Graph * otherGraph );
 	QVector<Structure::Link*> filterEdges( Structure::Node * n, QVector<Structure::Link*> all_edges );
-
+	Structure::Link * preferredEnd(Structure::Node * n, QVector<Structure::Link*> edges, Structure::Graph * g);
 	// Task properties
 	TaskType type;
 
