@@ -44,11 +44,14 @@ public slots:
     void doFitCurve();
     void doFitSurface();
 
-	 void doFitSurface_old();
-	 void basicSurfaceFit_old( NURBS::NURBSRectangled & surface, std::vector<Vec3d> pnts );
+	void doFitSurface_old();
+	void basicSurfaceFit_old( NURBS::NURBSRectangled & surface, std::vector<Vec3d> pnts );
 
 	void clearAll();
 	void saveAll();
 
 	void buildSamples();
+
+	void skeletonizeMesh();
+	void stepSkeletonizeMesh();
 };

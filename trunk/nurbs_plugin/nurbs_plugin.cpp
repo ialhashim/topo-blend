@@ -9,14 +9,17 @@
 
 #include "interfaces/ModePluginDockWidget.h"
 
-#include "LSCM.h"
 #include "BoundaryFitting.h"
 
 #include "../CustomDrawObjects.h"
 
 QVector<QColor> randColors;
 
-#include "LinABF.h"
+//#include "LSCM.h"
+//#include "LinABF.h"
+
+SurfaceMesh::Model * m = NULL;
+RichParameterSet * mcf_params = NULL;
 
 void nurbs_plugin::create()
 {
@@ -27,8 +30,6 @@ void nurbs_plugin::create()
     dockwidget->setWidget(widget);
     dockwidget->setWindowTitle(widget->windowTitle());
     mainWindow()->addDockWidget(Qt::RightDockWidgetArea,dockwidget);
-
-    points = mesh()->vertex_property<Vector3>("v:point");
 
 	for(int i = 0; i < 10; i++)
 		randColors.push_back(qRandomColor());
@@ -56,12 +57,16 @@ void nurbs_plugin::doFitCurve()
 {
     qDebug() << "Curve fitting..";
 
+	points = mesh()->vertex_property<Vector3>("v:point");
+
 	mesh_obb = OBB_Volume( mesh() );
 
 	std::vector<Vec3d> corners = mesh_obb.corners();
 
-	Vector3 from( corners.front() );
-	Vector3 to( corners.back() );
+	Vec3d diag = mesh_obb.extents();
+
+	Vec3d from = mesh_obb.center() + diag;
+	Vec3d to = mesh_obb.center() - diag;
 
     NURBS::NURBSCurved c = NURBS::NURBSCurved::createCurve( from, to, widget->uCount() );
 
@@ -69,6 +74,8 @@ void nurbs_plugin::doFitCurve()
 	foreach(Vertex v, mesh()->vertices()) mesh_points.push_back( points[v] );
 
 	basicCurveFit(c, mesh_points);
+
+	c.mCtrlPoint = smoothPolyline( c.mCtrlPoint, 2 );
 
 	curves.push_back( c );
 
@@ -137,6 +144,8 @@ void nurbs_plugin::basicCurveFitRecursive( NURBS::NURBSCurved & curve, std::vect
 void nurbs_plugin::doFitSurface()
 {
 	this->rects.clear();
+
+	points = mesh()->vertex_property<Vector3>("v:point");
 
 	// Pick a side by clustering normals
 
@@ -312,6 +321,8 @@ void nurbs_plugin::saveAll()
 
 void nurbs_plugin::doFitSurface_old()
 {
+	points = mesh()->vertex_property<Vector3>("v:point");
+
     qDebug() << "Surface fitting..";
 
 	mesh_obb = OBB_Volume( mesh() );
@@ -397,14 +408,14 @@ bool nurbs_plugin::keyPressEvent( QKeyEvent* event )
 
 	if(event->key() == Qt::Key_W)
 	{
-		QElapsedTimer timer; timer.start();
+		//QElapsedTimer timer; timer.start();
 
-		LinABF linabf(mesh());
-		mainWindow()->setStatusBarMessage(QString("LinABF time = %1 ms").arg(timer.elapsed()),512);
+		//LinABF linabf(mesh());
+		//mainWindow()->setStatusBarMessage(QString("LinABF time = %1 ms").arg(timer.elapsed()),512);
 
-		linabf.applyUVToMesh();
+		//linabf.applyUVToMesh();
 
-		used = true;
+		//used = true;
 	}
 
 	if(event->key() == Qt::Key_Z)
@@ -500,6 +511,68 @@ void nurbs_plugin::buildSamples()
 		}
 
 	rects.push_back( NURBS::NURBSRectangled(cpts, weights, degree, degree, false, false, true, true) );
+}
+
+void nurbs_plugin::skeletonizeMesh()
+{
+	// Pre-process
+	Starlab::Model * prevModel = document()->selectedModel();
+	QMap<QString,FilterPlugin*> plugins = pluginManager()->filterPlugins;
+
+	m = mesh();
+	//SurfaceMeshModel* m = new SurfaceMeshModel(mesh()->path,"original");
+	//m->read( mesh()->path.toStdString() );
+	//m->updateBoundingBox();
+	//document()->addModel(m);
+
+	// Select model to skeletonize
+	document()->setSelectedModel( m );
+
+	// Remesh
+	QString remeshPlugin = "Isotropic Remesher";
+	RichParameterSet * remesh_params = new RichParameterSet;
+	plugins[remeshPlugin]->initParameters( remesh_params );
+	plugins[remeshPlugin]->applyFilter( remesh_params );
+	remesh_params->destructor();
+
+	// Compute MAT
+	QString matPlugin = "Voronoi based MAT";
+	RichParameterSet * mat_params = new RichParameterSet;
+	plugins[matPlugin]->initParameters( mat_params );
+	plugins[matPlugin]->applyFilter( mat_params );
+	mat_params->destructor();
+
+	// Contract using MCF skeletonization
+	for(int i = 0; i < widget->contractIterations(); i++)
+	{
+		stepSkeletonizeMesh();
+	}
+
+	// Post-process
+	{
+		// Clean up
+
+		//document()->setSelectedModel( prevModel );
+		drawArea()->setRenderer(m,"Flat Wire");
+		drawArea()->updateGL();
+	}
+}
+
+void nurbs_plugin::stepSkeletonizeMesh()
+{	
+	QString mcfPlugin = "MCF Skeletonization";
+
+	if(!mcf_params) 
+	{
+		mcf_params = new RichParameterSet;
+		pluginManager()->filterPlugins[mcfPlugin]->initParameters( mcf_params );
+
+		//mcf_params->setValue("omega_P_0", 0.3f);
+	}
+	pluginManager()->filterPlugins[mcfPlugin]->applyFilter( mcf_params );
+
+	drawArea()->setRenderer(m,"Flat Wire");
+	drawArea()->updateGL();
 }
 
 Q_EXPORT_PLUGIN (nurbs_plugin)
