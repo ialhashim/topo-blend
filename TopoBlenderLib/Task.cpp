@@ -1004,7 +1004,7 @@ void Task::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link * link
 void Task::prepareGrowShrinkSheet()
 {
 	Structure::Node * n = node();
-	QVector<Structure::Link*> edges = active->getEdges(n->id);
+	QVector<Structure::Link*> edges = filterEdges(n, active->getEdges(n->id));
 
 	if (edges.size() == 1)
 	{

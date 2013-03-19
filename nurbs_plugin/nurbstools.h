@@ -24,6 +24,8 @@ public:
 
 	double resolution();
 
+	int contractIterations();
+
 private:
     Ui::NURBSTools *ui;
 };
