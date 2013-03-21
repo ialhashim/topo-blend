@@ -24,6 +24,7 @@ public:
 	virtual void draw(){
 
         glEnable(GL_LIGHTING);
+		glEnable(GL_BLEND);
 
         drawTris();
         drawQuads();
@@ -371,6 +372,106 @@ public:
 		}
 		glEnd();
 		glEnable(GL_LIGHTING);
+	}
+};
+
+static void renderSphere(float cx, float cy, float cz, float r)
+{
+	#define M_PI       3.14159265358979323846
+	#define M_PI_2     1.57079632679489661923
+
+	const int p = 24;
+
+	float theta1 = 0.0, theta2 = 0.0, theta3 = 0.0;
+	float ex = 0.0f, ey = 0.0f, ez = 0.0f;
+	float px = 0.0f, py = 0.0f, pz = 0.0f;
+	GLfloat vertices[p*6+6], normals[p*6+6], texCoords[p*4+4];
+
+	for(int i = 0; i < p/2; ++i){
+		theta1 = i * (M_PI*2) / p - M_PI_2;
+		theta2 = (i + 1) * (M_PI*2) / p - M_PI_2;
+
+		for(int j = 0; j <= p; ++j){
+			theta3 = j * (M_PI*2) / p;
+
+			ex = cosf(theta2) * cosf(theta3);
+			ey = sinf(theta2);
+			ez = cosf(theta2) * sinf(theta3);
+			px = cx + r * ex;
+			py = cy + r * ey;
+			pz = cz + r * ez;
+
+			vertices[(6*j)+(0%6)] = px;
+			vertices[(6*j)+(1%6)] = py;
+			vertices[(6*j)+(2%6)] = pz;
+
+			normals[(6*j)+(0%6)] = ex;
+			normals[(6*j)+(1%6)] = ey;
+			normals[(6*j)+(2%6)] = ez;
+
+			texCoords[(4*j)+(0%4)] = -(j/(float)p);
+			texCoords[(4*j)+(1%4)] = 2*(i+1)/(float)p;
+
+			ex = cosf(theta1) * cosf(theta3);
+			ey = sinf(theta1);
+			ez = cosf(theta1) * sinf(theta3);
+			px = cx + r * ex;
+			py = cy + r * ey;
+			pz = cz + r * ez;
+
+			vertices[(6*j)+(3%6)] = px;
+			vertices[(6*j)+(4%6)] = py;
+			vertices[(6*j)+(5%6)] = pz;
+
+			normals[(6*j)+(3%6)] = ex;
+			normals[(6*j)+(4%6)] = ey;
+			normals[(6*j)+(5%6)] = ez;
+
+			texCoords[(4*j)+(2%4)] = -(j/(float)p);
+			texCoords[(4*j)+(3%4)] = 2*i/(float)p;
+		}
+
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		glEnableClientState(GL_NORMAL_ARRAY);
+		glEnableClientState(GL_VERTEX_ARRAY);
+
+		glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
+		glNormalPointer(GL_FLOAT, 0, normals);
+		glVertexPointer(3, GL_FLOAT, 0, vertices);
+
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, (p+1)*2);
+
+		glDisableClientState(GL_VERTEX_ARRAY);
+		glDisableClientState(GL_NORMAL_ARRAY);
+		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	}
+}
+
+class SphereSoup : public RenderObject::Base{
+	QVector< QVector3D > centers;
+	QVector< float > radii;
+	QVector< QColor > colors;
+public:
+	SphereSoup():RenderObject::Base(1, Qt::black){}
+
+	void clear(){
+		centers.clear();
+		colors.clear();
+	}
+
+	virtual void draw(){
+		glEnable(GL_LIGHTING);
+		for(int i = 0; i < (int) centers.size(); i++){
+			Vec3d c = centers[i];
+			glColorQt(colors[i]);
+			renderSphere(c[0],c[1],c[2],radii[i]);
+		}
+	}
+
+	void addSphere(const QVector3D& center, float radius, const QColor& c = Qt::yellow){
+		centers.push_back(center);
+		radii.push_back(radius);
+		colors.push_back(c);
 	}
 };
 

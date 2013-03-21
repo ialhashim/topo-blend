@@ -16,6 +16,9 @@ NURBSTools::NURBSTools(nurbs_plugin * usePlugin, QWidget *parent) : QWidget(pare
 
 	plugin->connect(ui->skeletonButton, SIGNAL(clicked()), SLOT(skeletonizeMesh()));
 	plugin->connect(ui->skeletonButtonStep, SIGNAL(clicked()), SLOT(stepSkeletonizeMesh()));
+
+	plugin->connect(ui->curveFitButton, SIGNAL(clicked()), SLOT(convertToCurve()));
+	plugin->connect(ui->sheetFitButton, SIGNAL(clicked()), SLOT(convertToSheet()));
 }
 
 NURBSTools::~NURBSTools()
