@@ -285,6 +285,17 @@ inline static bool intersectRayTri(const std::vector<Vec3d> & tri, const Vec3d &
     return true;
 }
 
+inline static bool TestSphereTriangle(Point sphereCenter, double sphereRadius, Point a, Point b, Point c, Point &p)
+{
+	// Find point P on triangle ABC closest to sphere center
+	ClosestPointTriangle(sphereCenter, a, b, c, p);
+
+	// Sphere and triangle intersect if the (squared) distance from sphere
+	// center to point p is less than the (squared) sphere radius
+	Vec3d v = p - sphereCenter;
+	return dot(v, v) <= sphereRadius * sphereRadius;
+}
+
 /// Utility functions
 inline static Array2D_Vector3 inverseVectors3(Array2D_Vector3 vectors)
 {

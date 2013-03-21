@@ -11,19 +11,35 @@
 
 #include "BoundaryFitting.h"
 
-#include "../CustomDrawObjects.h"
-
 QVector<QColor> randColors;
 
 //#include "LSCM.h"
 //#include "LinABF.h"
 
-SurfaceMesh::Model * m = NULL;
+SurfaceMesh::SurfaceMeshModel * entireMesh;
+Vector3VertexProperty entirePoints;
+
+QString groupID = "";
+SurfaceMesh::SurfaceMeshModel * m = NULL;
 RichParameterSet * mcf_params = NULL;
+
+#include "../CustomDrawObjects.h"
+PolygonSoup ps;
+SphereSoup spheres;
+VectorSoup vs;
+
+#include "PCA.h"
+
+#include "StructureGraph.h"
+
+#define RADIANS(deg)    ((deg)/180.0 * M_PI)
 
 void nurbs_plugin::create()
 {
 	if(widget) return;
+
+	entireMesh = (SurfaceMeshModel*)document()->selectedModel();
+	entirePoints = entireMesh->vertex_property<Vector3>("v:point");
 
     ModePluginDockWidget * dockwidget = new ModePluginDockWidget(mainWindow());
     widget = new NURBSTools(this);
@@ -34,13 +50,20 @@ void nurbs_plugin::create()
 	for(int i = 0; i < 10; i++)
 		randColors.push_back(qRandomColor());
 
+	loadGroupsFromOBJ();
+
+	m = mesh();
+	points = m->vertex_property<Vector3>("v:point");
+
+	graph = new Structure::Graph;
+
 	//buildSamples();
 }
 
 void nurbs_plugin::decorate()
 {
 	// Draw OBB
-	mesh_obb.draw();
+	//mesh_obb.draw();
 
 	for(int i = 0; i < (int)curves.size(); i++)
 	{
@@ -51,30 +74,29 @@ void nurbs_plugin::decorate()
 	{
 		NURBS::SurfaceDraw::draw( &rects[i], randColors[i%randColors.size()], true );
 	}
+
+	if(graph) graph->draw();
+
+	ps.draw();
+	vs.draw();
+
+	spheres.draw();
 }
 
 void nurbs_plugin::doFitCurve()
 {
     qDebug() << "Curve fitting..";
 
-	points = mesh()->vertex_property<Vector3>("v:point");
-
-	mesh_obb = OBB_Volume( mesh() );
-
+	points = m->vertex_property<Vector3>("v:point");
+	mesh_obb = OBB_Volume( m );
 	std::vector<Vec3d> corners = mesh_obb.corners();
-
 	Vec3d diag = mesh_obb.extents();
-
 	Vec3d from = mesh_obb.center() + diag;
 	Vec3d to = mesh_obb.center() - diag;
-
     NURBS::NURBSCurved c = NURBS::NURBSCurved::createCurve( from, to, widget->uCount() );
-
 	std::vector<Vec3d> mesh_points;
-	foreach(Vertex v, mesh()->vertices()) mesh_points.push_back( points[v] );
-
+	foreach(Vertex v, m->vertices()) mesh_points.push_back( points[v] );
 	basicCurveFit(c, mesh_points);
-
 	c.mCtrlPoint = smoothPolyline( c.mCtrlPoint, 2 );
 
 	curves.push_back( c );
@@ -145,26 +167,26 @@ void nurbs_plugin::doFitSurface()
 {
 	this->rects.clear();
 
-	points = mesh()->vertex_property<Vector3>("v:point");
+	points = m->vertex_property<Vector3>("v:point");
 
 	// Pick a side by clustering normals
 
 	// 1) Find edge with flat dihedral angle
 	double angleThreshold = deg_to_rad( 10.0 );
 
-	Halfedge startEdge = mesh()->halfedges_begin();
-	foreach(Halfedge h, mesh()->halfedges()){
-		if(calc_dihedral_angle( mesh(), h ) < angleThreshold){
+	Halfedge startEdge = m->halfedges_begin();
+	foreach(Halfedge h, m->halfedges()){
+		if(calc_dihedral_angle( m, h ) < angleThreshold){
 			startEdge = h;
 			break;
 		}
 	}
 
 	// 2) Grow region by comparing difference of adjacent dihedral angles
-	SurfaceMesh::Model::Vertex_property<bool> vvisited = mesh()->add_vertex_property<bool>("v:visited", false);
+	SurfaceMesh::Model::Vertex_property<bool> vvisited = m->add_vertex_property<bool>("v:visited", false);
 
 	QStack<SurfaceMesh::Model::Vertex> to_visit;
-	to_visit.push( mesh()->to_vertex(startEdge) );
+	to_visit.push( m->to_vertex(startEdge) );
 
 	while(!to_visit.empty())
 	{
@@ -174,13 +196,13 @@ void nurbs_plugin::doFitSurface()
 
 		// Sum of angles around
 		double sumAngles = 0.0;
-		foreach(Halfedge hj, mesh()->onering_hedges(cur_v)){
-			sumAngles += abs(calc_dihedral_angle( mesh(), hj ));
+		foreach(Halfedge hj, m->onering_hedges(cur_v)){
+			sumAngles += abs(calc_dihedral_angle( m, hj ));
 		}
 
-		foreach(Halfedge hj, mesh()->onering_hedges(cur_v))
+		foreach(Halfedge hj, m->onering_hedges(cur_v))
 		{
-			Vertex vj = mesh()->to_vertex(hj);
+			Vertex vj = m->to_vertex(hj);
 			if(sumAngles < angleThreshold)
 				to_visit.push(vj);
 			else
@@ -196,14 +218,14 @@ void nurbs_plugin::doFitSurface()
 	for(int i = 0; i < shrink_count; i++)
 	{
 		std::set<Vertex> all_points;
-		foreach(Vertex v, mesh()->vertices())
+		foreach(Vertex v, m->vertices())
 			if(vvisited[v]) all_points.insert(v);
 
 		border.clear();
-		foreach(Vertex v, mesh()->vertices()){
+		foreach(Vertex v, m->vertices()){
 			if(vvisited[v]){
-				foreach(Halfedge hj, mesh()->onering_hedges(v)){
-					Vertex vj = mesh()->to_vertex(hj);
+				foreach(Halfedge hj, m->onering_hedges(v)){
+					Vertex vj = m->to_vertex(hj);
 					if(!vvisited[vj])
 						border.insert(vj);
 				}
@@ -216,16 +238,16 @@ void nurbs_plugin::doFitSurface()
 
 		// Shrink one level
 		foreach(Vertex vv, border){
-			foreach(Halfedge hj, mesh()->onering_hedges(vv))
-				vvisited[ mesh()->to_vertex(hj) ] = false;
+			foreach(Halfedge hj, m->onering_hedges(vv))
+				vvisited[ m->to_vertex(hj) ] = false;
 		}
 	}
 
 	SurfaceMesh::Model * submesh = NULL;
 	
 	bool isOpen = false;
-	foreach(Vertex v, mesh()->vertices()){
-		if(mesh()->is_boundary(v)){
+	foreach(Vertex v, m->vertices()){
+		if(m->is_boundary(v)){
 			isOpen = true;
 			break;
 		}
@@ -238,10 +260,10 @@ void nurbs_plugin::doFitSurface()
 		std::set<Vertex> inFacesVerts;
 		foreach(Vertex v, inner)
 		{
-			foreach(Halfedge hj, mesh()->onering_hedges(v)){
-				Face f = mesh()->face(hj);
+			foreach(Halfedge hj, m->onering_hedges(v)){
+				Face f = m->face(hj);
 				innerFaces.insert(f);
-				Surface_mesh::Vertex_around_face_circulator vit = mesh()->vertices(f),vend=vit;
+				Surface_mesh::Vertex_around_face_circulator vit = m->vertices(f),vend=vit;
 				do{ inFacesVerts.insert( Vertex(vit) ); } while(++vit != vend);
 			}
 		}
@@ -259,19 +281,19 @@ void nurbs_plugin::doFitSurface()
 		// Add faces
 		foreach(Face f, innerFaces){
 			std::vector<Vertex> verts;
-			Surface_mesh::Vertex_around_face_circulator vit = mesh()->vertices(f),vend=vit;
+			Surface_mesh::Vertex_around_face_circulator vit = m->vertices(f),vend=vit;
 			do{ verts.push_back( Vertex(vit) ); } while(++vit != vend);
 			submesh->add_triangle( vmap[verts[0]], vmap[verts[1]], vmap[verts[2]] );
 		}
 	}
 	else
 	{
-		submesh = mesh();
+		submesh = m;
 	}
 
 	Vector3VertexProperty pos_submesh = submesh->vertex_property<Vector3>(VPOINT);
 
-	if(mesh() != submesh)
+	if(m != submesh)
 		document()->addModel(submesh);
 
 	// Find 4 corners of a NURBS rect on mesh boundary
@@ -301,31 +323,39 @@ void nurbs_plugin::clearAll()
 
 void nurbs_plugin::saveAll()
 {
-	Structure::Graph g;
+	//Structure::Graph g;
+	//foreach(NURBS::NURBSCurved curve, curves)
+	//	g.addNode( new Structure::Curve(curve, m->name) );
+	//foreach(NURBS::NURBSRectangled rect, rects)
+	//	g.addNode( new Structure::Sheet(rect, m->name) );
+	//QString filename = QFileDialog::getSaveFileName(0, tr("Save Model"), 
+	//	mainWindow()->settings()->getString("lastUsedDirectory"), tr("Model Files (*.xml)"));
+	//g.saveToFile(filename);
 
-	foreach(NURBS::NURBSCurved curve, curves)
+	foreach(Structure::Node * n, graph->nodes)
 	{
-		g.addNode( new Structure::Curve(curve, mesh()->name) );
+		QString nodeID = n->id;
+		SurfaceMeshModel * nodeMesh = extractMesh( nodeID );
+
+		// Assign sub-mesh to node
+		n->property["mesh_filename"] = entireMesh->name + "/" + nodeID + ".obj";
+		n->property["mesh"].setValue( nodeMesh );
 	}
 
-	foreach(NURBS::NURBSRectangled rect, rects)
-	{
-		g.addNode( new Structure::Sheet(rect, mesh()->name) );
-	}
-
-	QString filename = QFileDialog::getSaveFileName(0, tr("Save Model"), 
-		mainWindow()->settings()->getString("lastUsedDirectory"), tr("Model Files (*.xml)"));
-
-	g.saveToFile(filename);
+	QString folderPath = QFileDialog::getExistingDirectory();
+	QDir::setCurrent( folderPath );
+	
+	QString filename = folderPath + "/" + entireMesh->name + ".xml";
+	graph->saveToFile( filename );
 }
 
 void nurbs_plugin::doFitSurface_old()
 {
-	points = mesh()->vertex_property<Vector3>("v:point");
+	points = m->vertex_property<Vector3>("v:point");
 
     qDebug() << "Surface fitting..";
 
-	mesh_obb = OBB_Volume( mesh() );
+	mesh_obb = OBB_Volume( m );
 
 	Vec3d center = mesh_obb.center();
 	std::vector<Vec3d> axisNormalized = mesh_obb.axis();
@@ -410,10 +440,10 @@ bool nurbs_plugin::keyPressEvent( QKeyEvent* event )
 	{
 		//QElapsedTimer timer; timer.start();
 
-		//LinABF linabf(mesh());
+		//LinABF linabf(m);
 		//mainWindow()->setStatusBarMessage(QString("LinABF time = %1 ms").arg(timer.elapsed()),512);
 
-		//linabf.applyUVToMesh();
+		//linabf.applyUVTom;
 
 		//used = true;
 	}
@@ -513,20 +543,12 @@ void nurbs_plugin::buildSamples()
 	rects.push_back( NURBS::NURBSRectangled(cpts, weights, degree, degree, false, false, true, true) );
 }
 
-void nurbs_plugin::skeletonizeMesh()
+void nurbs_plugin::prepareSkeletonize()
 {
-	// Pre-process
-	Starlab::Model * prevModel = document()->selectedModel();
-	QMap<QString,FilterPlugin*> plugins = pluginManager()->filterPlugins;
-
-	m = mesh();
-	//SurfaceMeshModel* m = new SurfaceMeshModel(mesh()->path,"original");
-	//m->read( mesh()->path.toStdString() );
-	//m->updateBoundingBox();
-	//document()->addModel(m);
-
 	// Select model to skeletonize
 	document()->setSelectedModel( m );
+
+	QMap<QString,FilterPlugin*> plugins = pluginManager()->filterPlugins;
 
 	// Remesh
 	QString remeshPlugin = "Isotropic Remesher";
@@ -541,6 +563,16 @@ void nurbs_plugin::skeletonizeMesh()
 	plugins[matPlugin]->initParameters( mat_params );
 	plugins[matPlugin]->applyFilter( mat_params );
 	mat_params->destructor();
+}
+
+void nurbs_plugin::skeletonizeMesh()
+{
+	// Pre-process
+
+	//SurfaceMeshModel* m = new SurfaceMeshModel(m->path,"original");
+	//m->read( m->path.toStdString() );
+
+	prepareSkeletonize();
 
 	// Contract using MCF skeletonization
 	for(int i = 0; i < widget->contractIterations(); i++)
@@ -562,8 +594,7 @@ void nurbs_plugin::stepSkeletonizeMesh()
 {	
 	QString mcfPlugin = "MCF Skeletonization";
 
-	if(!mcf_params) 
-	{
+	if(!mcf_params){
 		mcf_params = new RichParameterSet;
 		pluginManager()->filterPlugins[mcfPlugin]->initParameters( mcf_params );
 
@@ -571,8 +602,250 @@ void nurbs_plugin::stepSkeletonizeMesh()
 	}
 	pluginManager()->filterPlugins[mcfPlugin]->applyFilter( mcf_params );
 
+	//drawArea()->setRenderer(m,"Flat Wire");
+	//drawArea()->updateGL();
+}
+
+void nurbs_plugin::drawWithNames()
+{
+	// Faces
+	foreach( const Face f, entireMesh->faces() )
+	{
+		// Collect points
+		QVector<Vector3> pnts; 
+		Surface_mesh::Vertex_around_face_circulator vit = entireMesh->vertices(f),vend=vit;
+		do{ pnts.push_back(entirePoints[vit]); } while(++vit != vend);
+
+		glPushName(f.idx());
+		glBegin(GL_TRIANGLES);
+		foreach(Vector3 p, pnts) glVector3(p);
+		glEnd();
+		glPopName();
+	}
+}
+
+void nurbs_plugin::endSelection( const QPoint& p )
+{
+	drawArea()->defaultEndSelection(p);
+}
+
+SurfaceMeshModel * nurbs_plugin::extractMesh( QString gid )
+{
+	SurfaceMeshModel * subMesh = NULL;
+
+	QVector<int> part = groupFaces[gid];
+
+	// Create copy of sub-part
+	subMesh = new SurfaceMeshModel(groupID + ".obj", groupID);
+	QSet<int> vertSet;
+	QMap<Vertex,Vertex> vmap;
+	foreach(int fidx, part){
+		Surface_mesh::Vertex_around_face_circulator vit = entireMesh->vertices(Face(fidx)),vend=vit;
+		do{ vertSet.insert(Vertex(vit).idx()); } while(++vit != vend);
+	}
+	foreach(int vidx, vertSet){
+		vmap[Vertex(vidx)] = Vertex(vmap.size());
+		subMesh->add_vertex( entirePoints[Vertex(vidx)] );
+	}
+	foreach(int fidx, part){
+		std::vector<Vertex> pnts; 
+		Surface_mesh::Vertex_around_face_circulator vit = entireMesh->vertices(Face(fidx)),vend=vit;
+		do{ pnts.push_back(vmap[vit]); } while(++vit != vend);
+		subMesh->add_face(pnts);
+	}
+	subMesh->updateBoundingBox();
+	subMesh->isVisible = false;
+
+	return subMesh;
+}
+
+void nurbs_plugin::postSelection( const QPoint& point )
+{
+	Q_UNUSED(point);
+	int selectedID = drawArea()->selectedName();
+	if (selectedID == -1){
+		ps.clear();
+		document()->setSelectedModel(entireMesh);
+		return;
+	}
+	qDebug() << "Selected ID is " << selectedID;
+
+	Vertex selectedVertex = entireMesh->vertices( Surface_mesh::Face(selectedID) );
+
+	QString gid = faceGroup[entireMesh->face(entireMesh->halfedge(selectedVertex)).idx()];
+
+	groupID = gid;
+	m = extractMesh( groupID );
+	QVector<int> part = groupFaces[gid];
+
+	// Draw selection
+	ps.clear();
+	foreach(int fidx, part)
+	{
+		// Collect points
+		QVector<QVector3D> pnts; 
+		Surface_mesh::Vertex_around_face_circulator vit = entireMesh->vertices(Face(fidx)),vend=vit;
+		do{ pnts.push_back(entirePoints[vit]); } while(++vit != vend);
+
+		ps.addPoly(pnts, QColor(255,0,0,100));
+	}
+
+}
+
+void nurbs_plugin::loadGroupsFromOBJ()
+{
+	// Read obj file
+	QFile file(mesh()->path);
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+	QTextStream inF(&file);
+	int fidx = 0;
+	while( !inF.atEnd() ){
+		QString line = inF.readLine();
+		if(!line.size()) continue;
+		if(line.at(0).toAscii() == 'g'){
+			QStringList groupLine = line.split(" ");
+			QString gid = QString::number(groupFaces.size());
+			if(groupLine.size()) gid = groupLine.at(1);
+			while(true){
+				QString line = inF.readLine();
+				if(!line.startsWith("f")) break;
+				groupFaces[gid].push_back(fidx);
+				faceGroup[fidx] = gid;
+				fidx++;
+			}
+		}
+	}
+}
+
+Vec3d nurbs_plugin::pole( Vec3d center, double radius, SurfaceMeshModel * part )
+{
+	Vector3VertexProperty partPoints = part->vertex_property<Vector3>("v:point");
+
+	std::vector<Vec3d> samples;
+	QVector<Face> ifaces;
+	Vec3d p;
+
+	// intersect sphere with part, collect faces
+	foreach( Face f, part->faces() ){
+		QVector<Vec3d> pnts; 
+		Surface_mesh::Vertex_around_face_circulator vit = part->vertices(Face(f)),vend=vit;
+		do{ pnts.push_back(partPoints[vit]); } while(++vit != vend);
+
+		if(TestSphereTriangle(center, radius, pnts[0], pnts[1], pnts[2], p)){
+			ifaces.push_back(f);
+			foreach(Vec3d s, sampleEdgeTri(pnts[0], pnts[1], pnts[2]))
+				samples.push_back(s);
+		}
+	}
+
+	Vec3d a,b,c;
+	return PCA::mainAxis(samples,a,b,c).normalized();
+}
+
+std::vector<Vec3d> nurbs_plugin::sampleEdgeTri( Vec3d a, Vec3d b, Vec3d c )
+{
+	std::vector<Vec3d> samples;
+	samples.push_back(a);samples.push_back(b);samples.push_back(c);
+	samples.push_back((a+b) * 0.5);
+	samples.push_back((b+c) * 0.5);
+	samples.push_back((c+a) * 0.5);
+	return samples;
+}
+
+double nurbs_plugin::minAngle(Face f, SurfaceMeshModel * ofMesh)
+{
+	double minAngle(DBL_MAX);
+	Vector3VertexProperty pts = ofMesh->vertex_property<Vector3>("v:point");
+
+	SurfaceMesh::Model::Halfedge_around_face_circulator h(ofMesh, f), eend = h;
+	do{ 
+		Vector3 a = pts[ofMesh->to_vertex(h)];
+		Vector3 b = pts[ofMesh->from_vertex(h)];
+		Vector3 c = pts[ofMesh->to_vertex(ofMesh->next_halfedge(h))];
+
+		double d = dot((b-a).normalized(), (c-a).normalized());
+		double angle = acos(qRanged(-1.0, d, 1.0));
+
+		minAngle = qMin(angle, minAngle);
+	} while(++h != eend);
+
+	return minAngle;
+}
+
+void nurbs_plugin::convertToCurve()
+{
+	document()->addModel( m );
+	document()->setSelectedModel( m );
+
+	prepareSkeletonize(); 
+
+	double theta = 15.0; // degrees
+
+	for(int i = 0; i < 40; i++){
+		stepSkeletonizeMesh();
+	
+		// Decide weather or not to keep contracting based on angle of faces
+		bool isDone = true;
+		foreach( Face f, m->faces() ){
+			if( minAngle(f, m) > RADIANS(theta) )
+				isDone = false;
+		}
+		if(isDone) break;
+	}
+
+	drawArea()->deleteAllRenderObjects();
+
+	//mesh_obb = OBB_Volume( m );
+	//std::vector<Vec3d> corners = mesh_obb.corners();
+	//Vec3d diag = mesh_obb.extents(); 
+	//Vec3d from = mesh_obb.center() + diag;
+	//Vec3d to = mesh_obb.center() - diag;
+	//NURBS::NURBSCurved c = NURBS::NURBSCurved::createCurve( from, to, widget->uCount() );
+	//points = m->vertex_property<Vector3>("v:point");
+	//std::vector<Vec3d> mesh_points;
+	//foreach(Vertex v, m->vertices()) mesh_points.push_back( points[v] );
+	//basicCurveFit(c, mesh_points);
+	//c.mCtrlPoint = smoothPolyline( c.mCtrlPoint, 1 );
+
+	//graph->addNode( new Structure::Curve(c, groupID) );
+
+	curveFit( m );
+
+	// Clean up
+	ps.clear();
+	document()->setSelectedModel(entireMesh);
+	//document()->removeModel(m);
+
 	drawArea()->setRenderer(m,"Flat Wire");
 	drawArea()->updateGL();
+}
+
+void nurbs_plugin::convertToSheet()
+{
+
+}
+
+NURBS::NURBSCurved nurbs_plugin::curveFit( SurfaceMeshModel * part )
+{
+	NURBS::NURBSCurved fittedCurve;
+
+	Vector3VertexProperty partPoints = part->vertex_property<Vector3>("v:point");
+
+	double r = 0.01 * part->bbox().size().length();
+
+	// DEBUG:
+	spheres.clear();
+	vs.clear();
+
+	//foreach(Vertex v, part->vertices())
+	//{
+	//	Vec3d c = partPoints[v];
+	//	Vec3d p = pole(c, r, part);
+	//	spheres.addSphere(c,r,QColor(255,0,0,50));
+	//	vs.addVector(c, p * r);
+	//}
+
+	return fittedCurve;
 }
 
 Q_EXPORT_PLUGIN (nurbs_plugin)

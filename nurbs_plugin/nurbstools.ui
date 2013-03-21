@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>174</width>
+    <width>214</width>
     <height>379</height>
    </rect>
   </property>
@@ -21,17 +21,6 @@
      </property>
      <layout class="QGridLayout" name="gridLayout">
       <item row="1" column="1">
-       <widget class="QPushButton" name="fitCurveButton">
-        <property name="text">
-         <string>Fit</string>
-        </property>
-        <property name="icon">
-         <iconset resource="../topo-blend/topo-blend.qrc">
-          <normaloff>:/images/nurbs_curve.png</normaloff>:/images/nurbs_curve.png</iconset>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
        <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -44,6 +33,24 @@
         </property>
        </spacer>
       </item>
+      <item row="1" column="3">
+       <widget class="QPushButton" name="curveFitButton">
+        <property name="text">
+         <string>Curve fit</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QPushButton" name="fitCurveButton">
+        <property name="text">
+         <string>Fit</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../topo-blend/topo-blend.qrc">
+          <normaloff>:/images/nurbs_curve.png</normaloff>:/images/nurbs_curve.png</iconset>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
@@ -53,7 +60,7 @@
       <string>Surface fitting</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
-      <item row="0" column="0">
+      <item row="0" column="1">
        <spacer name="horizontalSpacer_2">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -66,7 +73,14 @@
         </property>
        </spacer>
       </item>
-      <item row="0" column="1">
+      <item row="0" column="3">
+       <widget class="QPushButton" name="sheetFitButton">
+        <property name="text">
+         <string>Sheet fit</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
        <widget class="QPushButton" name="fitSurfaceButton">
         <property name="text">
          <string>Fit</string>

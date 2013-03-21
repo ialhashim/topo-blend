@@ -1,4 +1,5 @@
 #pragma once
+
 #include "SurfaceMeshPlugins.h"
 #include "SurfaceMeshHelper.h"
 #include "RichParameterSet.h"
@@ -11,6 +12,10 @@
 #include "nurbstools.h"
 
 #include "OBB_Volume.h"
+
+namespace Structure{
+	struct Graph;
+}
 
 class nurbs_plugin : public SurfaceMeshModePlugin{
     Q_OBJECT
@@ -28,6 +33,7 @@ public:
 
     std::vector<NURBS::NURBSCurved> curves;
     std::vector<NURBS::NURBSRectangled> rects;
+	Structure::Graph * graph;
 
     NURBSTools * widget;
 
@@ -38,7 +44,24 @@ public:
     void basicCurveFit(NURBS::NURBSCurved & curve, std::vector<Vec3d> pnts);
     void basicCurveFitRecursive(NURBS::NURBSCurved & curve, std::vector<Vec3d> pnts, int high, int low);
 
+	NURBS::NURBSCurved curveFit( SurfaceMeshModel * part );
+
 	bool keyPressEvent( QKeyEvent* event );
+
+	// Selection
+	void drawWithNames();
+	void endSelection( const QPoint& p );
+	void postSelection( const QPoint& point );
+
+	// Groups
+	QMap< QString, QVector<int> > groupFaces;
+	QMap< int, QString > faceGroup;
+	void loadGroupsFromOBJ();
+	
+	SurfaceMeshModel * extractMesh( QString gid );
+	Vec3d pole( Vec3d center, double radius, SurfaceMeshModel * part );
+	std::vector<Vec3d> sampleEdgeTri( Vec3d a, Vec3d b, Vec3d c );
+	double minAngle(Face f, SurfaceMeshModel * ofMesh);
 
 public slots:
     void doFitCurve();
@@ -52,6 +75,10 @@ public slots:
 
 	void buildSamples();
 
+	void prepareSkeletonize();
 	void skeletonizeMesh();
 	void stepSkeletonizeMesh();
+
+	void convertToCurve();
+	void convertToSheet();
 };
