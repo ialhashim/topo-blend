@@ -45,6 +45,8 @@ public:
     void basicCurveFitRecursive(NURBS::NURBSCurved & curve, std::vector<Vec3d> pnts, int high, int low);
 
 	NURBS::NURBSCurved curveFit( SurfaceMeshModel * part );
+	NURBS::NURBSRectangled surfaceFit( SurfaceMeshModel * part );
+	NURBS::NURBSRectangled surfaceFit2( SurfaceMeshModel * part );
 
 	bool keyPressEvent( QKeyEvent* event );
 
@@ -62,6 +64,7 @@ public:
 	Vec3d pole( Vec3d center, double radius, SurfaceMeshModel * part );
 	std::vector<Vec3d> sampleEdgeTri( Vec3d a, Vec3d b, Vec3d c );
 	double minAngle(Face f, SurfaceMeshModel * ofMesh);
+	std::vector<Vertex> collectRings(SurfaceMeshModel * part, Vertex v, size_t min_nb);
 
 public slots:
     void doFitCurve();
