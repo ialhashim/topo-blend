@@ -63,6 +63,7 @@ private:
 		}
 	};
 
+public:
 	void DijkstraComputePaths(vertex_t source)
 	{
 		if(source == lastStart)
@@ -74,22 +75,23 @@ private:
 		}
 
 		for (typename adjacency_map_t::iterator vertex_iter = adjacency_map.begin();
-			vertex_iter != adjacency_map.end();
-			vertex_iter++)
-		{
+			vertex_iter != adjacency_map.end();	vertex_iter++){
 			vertex_t v = vertex_iter->first;
 			min_distance[v] = std::numeric_limits< WeightType >::infinity();
 		}
 
 		min_distance[source] = 0;
-		std::set< std::pair<weight_t, vertex_t>,
-			pair_first_less<weight_t, vertex_t> > vertex_queue;
-		for (typename adjacency_map_t::iterator vertex_iter = adjacency_map.begin();
-			vertex_iter != adjacency_map.end();
-			vertex_iter++){
-				vertex_t v = vertex_iter->first;
-				vertex_queue.insert(std::pair<weight_t, vertex_t>(min_distance[v], v));
-		}
+
+		std::set< std::pair<weight_t, vertex_t>, pair_first_less<weight_t, vertex_t> > vertex_queue;
+		
+		//for (typename adjacency_map_t::iterator vertex_iter = adjacency_map.begin();
+		//	vertex_iter != adjacency_map.end(); vertex_iter++)
+		//{
+		//	vertex_t v = vertex_iter->first;
+		//	vertex_queue.insert(std::pair<weight_t, vertex_t>(min_distance[v], v));
+		//}
+
+		vertex_queue.insert(std::make_pair(min_distance[source], source));
 
 		while (!vertex_queue.empty()) {
 			vertex_t u = vertex_queue.begin()->second;
@@ -110,7 +112,6 @@ private:
 					previous[v] = u;
 					vertex_queue.insert(std::pair<weight_t, vertex_t>(min_distance[v], v));
 				}
-
 			}
 		}
 	}
@@ -132,7 +133,6 @@ private:
 		return path;
 	}
 
-public:
 	std::list<vertex_t> DijkstraShortestPath(vertex_t start, vertex_t end)
 	{
 		this->DijkstraComputePaths(start);
@@ -149,13 +149,12 @@ private:
 	// Graph Variables:
 	vertices_set vertices;
 	adjacency_map_t adjacency_map;
-
-	std::map<vertex_t, weight_t> min_distance;
-	std::map<vertex_t, vertex_t> previous;
-
 	vertex_t lastStart;
 
 public:
+
+	std::map<vertex_t, weight_t> min_distance;
+	std::map<vertex_t, vertex_t> previous;
 
 	Graph()
 	{

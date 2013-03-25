@@ -24,15 +24,23 @@ SurfaceMesh::SurfaceMeshModel * m = NULL;
 RichParameterSet * mcf_params = NULL;
 
 #include "../CustomDrawObjects.h"
+PointSoup pps;
 PolygonSoup ps;
 SphereSoup spheres;
 VectorSoup vs;
+LineSegments lseg;
 
 #include "PCA.h"
+#include "SimilarSampling.h"
+#include "GenericGraph.h"
+
+#include "BoundaryFitting2.h"
 
 #include "StructureGraph.h"
 
 #define RADIANS(deg)    ((deg)/180.0 * M_PI)
+
+std::vector<Vec3d> polyline;
 
 void nurbs_plugin::create()
 {
@@ -79,6 +87,15 @@ void nurbs_plugin::decorate()
 
 	ps.draw();
 	vs.draw();
+	lseg.draw();
+	pps.draw();
+
+	glLineWidth(3); 
+	glDisable(GL_LIGHTING);
+	glBegin(GL_LINE_STRIP);
+	foreach(Vec3d p, polyline) glVector3(p);
+	glEnd();
+	glEnable(GL_LIGHTING);
 
 	spheres.draw();
 }
@@ -165,28 +182,34 @@ void nurbs_plugin::basicCurveFitRecursive( NURBS::NURBSCurved & curve, std::vect
 
 void nurbs_plugin::doFitSurface()
 {
+	//rects.push_back( surfaceFit( mesh() ) );
+	rects.push_back( surfaceFit2( mesh() ) );
+}
+
+NURBS::NURBSRectangled nurbs_plugin::surfaceFit( SurfaceMeshModel * part )
+{
 	this->rects.clear();
 
-	points = m->vertex_property<Vector3>("v:point");
+	points = part->vertex_property<Vector3>("v:point");
 
-	// Pick a side by clustering normals
+	/// Pick a side by clustering normals
 
 	// 1) Find edge with flat dihedral angle
 	double angleThreshold = deg_to_rad( 10.0 );
 
-	Halfedge startEdge = m->halfedges_begin();
-	foreach(Halfedge h, m->halfedges()){
-		if(calc_dihedral_angle( m, h ) < angleThreshold){
+	Halfedge startEdge = part->halfedges_begin();
+	foreach(Halfedge h, part->halfedges()){
+		if(calc_dihedral_angle( part, h ) < angleThreshold){
 			startEdge = h;
 			break;
 		}
 	}
 
 	// 2) Grow region by comparing difference of adjacent dihedral angles
-	SurfaceMesh::Model::Vertex_property<bool> vvisited = m->add_vertex_property<bool>("v:visited", false);
+	SurfaceMesh::Model::Vertex_property<bool> vvisited = part->add_vertex_property<bool>("v:visited", false);
 
 	QStack<SurfaceMesh::Model::Vertex> to_visit;
-	to_visit.push( m->to_vertex(startEdge) );
+	to_visit.push( part->to_vertex(startEdge) );
 
 	while(!to_visit.empty())
 	{
@@ -196,13 +219,13 @@ void nurbs_plugin::doFitSurface()
 
 		// Sum of angles around
 		double sumAngles = 0.0;
-		foreach(Halfedge hj, m->onering_hedges(cur_v)){
-			sumAngles += abs(calc_dihedral_angle( m, hj ));
+		foreach(Halfedge hj, part->onering_hedges(cur_v)){
+			sumAngles += abs(calc_dihedral_angle( part, hj ));
 		}
 
-		foreach(Halfedge hj, m->onering_hedges(cur_v))
+		foreach(Halfedge hj, part->onering_hedges(cur_v))
 		{
-			Vertex vj = m->to_vertex(hj);
+			Vertex vj = part->to_vertex(hj);
 			if(sumAngles < angleThreshold)
 				to_visit.push(vj);
 			else
@@ -210,22 +233,21 @@ void nurbs_plugin::doFitSurface()
 		}
 	}
 
-
-	// Get filtered inner vertices of side
+	// Get filtered inner vertices of selected side
+	int shrink_count = 1;
 	std::set<Vertex> inner;
 	std::set<Vertex> border;
-	int shrink_count = 1;
 	for(int i = 0; i < shrink_count; i++)
 	{
 		std::set<Vertex> all_points;
-		foreach(Vertex v, m->vertices())
+		foreach(Vertex v, part->vertices())
 			if(vvisited[v]) all_points.insert(v);
 
 		border.clear();
-		foreach(Vertex v, m->vertices()){
+		foreach(Vertex v, part->vertices()){
 			if(vvisited[v]){
-				foreach(Halfedge hj, m->onering_hedges(v)){
-					Vertex vj = m->to_vertex(hj);
+				foreach(Halfedge hj, part->onering_hedges(v)){
+					Vertex vj = part->to_vertex(hj);
 					if(!vvisited[vj])
 						border.insert(vj);
 				}
@@ -238,16 +260,16 @@ void nurbs_plugin::doFitSurface()
 
 		// Shrink one level
 		foreach(Vertex vv, border){
-			foreach(Halfedge hj, m->onering_hedges(vv))
-				vvisited[ m->to_vertex(hj) ] = false;
+			foreach(Halfedge hj, part->onering_hedges(vv))
+				vvisited[ part->to_vertex(hj) ] = false;
 		}
 	}
 
 	SurfaceMesh::Model * submesh = NULL;
 	
 	bool isOpen = false;
-	foreach(Vertex v, m->vertices()){
-		if(m->is_boundary(v)){
+	foreach(Vertex v, part->vertices()){
+		if(part->is_boundary(v)){
 			isOpen = true;
 			break;
 		}
@@ -260,10 +282,10 @@ void nurbs_plugin::doFitSurface()
 		std::set<Vertex> inFacesVerts;
 		foreach(Vertex v, inner)
 		{
-			foreach(Halfedge hj, m->onering_hedges(v)){
-				Face f = m->face(hj);
+			foreach(Halfedge hj, part->onering_hedges(v)){
+				Face f = part->face(hj);
 				innerFaces.insert(f);
-				Surface_mesh::Vertex_around_face_circulator vit = m->vertices(f),vend=vit;
+				Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
 				do{ inFacesVerts.insert( Vertex(vit) ); } while(++vit != vend);
 			}
 		}
@@ -281,38 +303,36 @@ void nurbs_plugin::doFitSurface()
 		// Add faces
 		foreach(Face f, innerFaces){
 			std::vector<Vertex> verts;
-			Surface_mesh::Vertex_around_face_circulator vit = m->vertices(f),vend=vit;
+			Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
 			do{ verts.push_back( Vertex(vit) ); } while(++vit != vend);
 			submesh->add_triangle( vmap[verts[0]], vmap[verts[1]], vmap[verts[2]] );
 		}
 	}
 	else
 	{
-		submesh = m;
+		submesh = part;
 	}
 
-	Vector3VertexProperty pos_submesh = submesh->vertex_property<Vector3>(VPOINT);
+	if(part != submesh) document()->addModel( submesh );
 
-	if(m != submesh)
-		document()->addModel(submesh);
-
-	// Find 4 corners of a NURBS rect on mesh boundary
 	submesh->updateBoundingBox();
 	double resolution = submesh->bbox().size().length() * widget->resolution();
+
+	// Find 4 corners of a NURBS rect on mesh boundary
 	BoundaryFitting bf( submesh, resolution );
 
-	//PointSoup * ps = new PointSoup;
-	//foreach(Vertex v, submesh->vertices())
-	//	ps->addPoint( pos_submesh[v], qtJetColorMap(1.0 - bf.dists[v]) );
-	//drawArea()->addRenderObject(ps);
+	PointSoup * ps = new PointSoup;
+	foreach(Vertex v, submesh->vertices())
+		ps->addPoint( points[v], qtJetColorMap(1.0 - bf.dists[v]) );
+	drawArea()->addRenderObject(ps);
+
+	//return NURBS::NURBSRectangled::createSheet(Vec3d(0),Vec3d(0.01),4,4);
 
 	Array2D_Vector3 cp = bf.lines;
 	Array2D_Real cw(cp.size(), Array1D_Real(cp.front().size(), 1.0));
 	int degree = 3;
 
-	rects.push_back( NURBS::NURBSRectangled(cp,cw,degree,degree,false,false,true,true) );
-
-	drawArea()->updateGL();
+	return NURBS::NURBSRectangled(cp,cw,degree,degree,false,false,true,true);
 }
 
 void nurbs_plugin::clearAll()
@@ -548,29 +568,23 @@ void nurbs_plugin::prepareSkeletonize()
 	// Select model to skeletonize
 	document()->setSelectedModel( m );
 
-	QMap<QString,FilterPlugin*> plugins = pluginManager()->filterPlugins;
-
 	// Remesh
-	QString remeshPlugin = "Isotropic Remesher";
+	FilterPlugin * remeshPlugin = pluginManager()->getFilter("Isotropic Remesher");
 	RichParameterSet * remesh_params = new RichParameterSet;
-	plugins[remeshPlugin]->initParameters( remesh_params );
-	plugins[remeshPlugin]->applyFilter( remesh_params );
-	remesh_params->destructor();
+	remeshPlugin->initParameters( remesh_params );
+	remeshPlugin->applyFilter( remesh_params );
 
 	// Compute MAT
-	QString matPlugin = "Voronoi based MAT";
+	FilterPlugin * matPlugin = pluginManager()->getFilter("Voronoi based MAT");
 	RichParameterSet * mat_params = new RichParameterSet;
-	plugins[matPlugin]->initParameters( mat_params );
-	plugins[matPlugin]->applyFilter( mat_params );
-	mat_params->destructor();
+	matPlugin->initParameters( mat_params );
+	matPlugin->applyFilter( mat_params );
 }
 
 void nurbs_plugin::skeletonizeMesh()
 {
-	// Pre-process
-
-	//SurfaceMeshModel* m = new SurfaceMeshModel(m->path,"original");
-	//m->read( m->path.toStdString() );
+	document()->addModel( m );
+	document()->setSelectedModel( m );
 
 	prepareSkeletonize();
 
@@ -592,15 +606,14 @@ void nurbs_plugin::skeletonizeMesh()
 
 void nurbs_plugin::stepSkeletonizeMesh()
 {	
-	QString mcfPlugin = "MCF Skeletonization";
+	FilterPlugin * mcfPlugin = pluginManager()->getFilter("MCF Skeletonization");
 
 	if(!mcf_params){
 		mcf_params = new RichParameterSet;
-		pluginManager()->filterPlugins[mcfPlugin]->initParameters( mcf_params );
-
+		mcfPlugin->initParameters( mcf_params );
 		//mcf_params->setValue("omega_P_0", 0.3f);
 	}
-	pluginManager()->filterPlugins[mcfPlugin]->applyFilter( mcf_params );
+	mcfPlugin->applyFilter( mcf_params );
 
 	//drawArea()->setRenderer(m,"Flat Wire");
 	//drawArea()->updateGL();
@@ -654,7 +667,7 @@ SurfaceMeshModel * nurbs_plugin::extractMesh( QString gid )
 		subMesh->add_face(pnts);
 	}
 	subMesh->updateBoundingBox();
-	subMesh->isVisible = false;
+	subMesh->isVisible = true;
 
 	return subMesh;
 }
@@ -795,34 +808,18 @@ void nurbs_plugin::convertToCurve()
 
 	drawArea()->deleteAllRenderObjects();
 
-	//mesh_obb = OBB_Volume( m );
-	//std::vector<Vec3d> corners = mesh_obb.corners();
-	//Vec3d diag = mesh_obb.extents(); 
-	//Vec3d from = mesh_obb.center() + diag;
-	//Vec3d to = mesh_obb.center() - diag;
-	//NURBS::NURBSCurved c = NURBS::NURBSCurved::createCurve( from, to, widget->uCount() );
-	//points = m->vertex_property<Vector3>("v:point");
-	//std::vector<Vec3d> mesh_points;
-	//foreach(Vertex v, m->vertices()) mesh_points.push_back( points[v] );
-	//basicCurveFit(c, mesh_points);
-	//c.mCtrlPoint = smoothPolyline( c.mCtrlPoint, 1 );
+	foreach(Vertex v, m->vertices()) if(m->is_isolated(v)) m->remove_vertex(v);
+	m->garbage_collection();
 
-	//graph->addNode( new Structure::Curve(c, groupID) );
-
-	curveFit( m );
+	graph->addNode( new Structure::Curve(curveFit( m ), groupID) );
 
 	// Clean up
 	ps.clear();
 	document()->setSelectedModel(entireMesh);
-	//document()->removeModel(m);
+	document()->removeModel(m);
 
 	drawArea()->setRenderer(m,"Flat Wire");
 	drawArea()->updateGL();
-}
-
-void nurbs_plugin::convertToSheet()
-{
-
 }
 
 NURBS::NURBSCurved nurbs_plugin::curveFit( SurfaceMeshModel * part )
@@ -831,21 +828,348 @@ NURBS::NURBSCurved nurbs_plugin::curveFit( SurfaceMeshModel * part )
 
 	Vector3VertexProperty partPoints = part->vertex_property<Vector3>("v:point");
 
-	double r = 0.01 * part->bbox().size().length();
+	double r = 0.05 * part->bbox().size().length();
 
-	// DEBUG:
-	spheres.clear();
-	vs.clear();
+	GenericGraphs::Graph<int,double> g;
+	SurfaceMeshHelper h(part);
+	ScalarEdgeProperty elen = h.computeEdgeLengths();
 
-	//foreach(Vertex v, part->vertices())
-	//{
-	//	Vec3d c = partPoints[v];
-	//	Vec3d p = pole(c, r, part);
-	//	spheres.addSphere(c,r,QColor(255,0,0,50));
-	//	vs.addVector(c, p * r);
+	foreach(Edge e, part->edges()){
+		Vertex v0 = part->vertex(e, 0);
+		Vertex v1 = part->vertex(e, 1);
+		g.AddEdge(v0.idx(), v1.idx(), elen[e]);
+	}
+
+	// Find initial furthest point
+	g.DijkstraComputePaths(0);
+	double max_dist = -DBL_MAX;
+	int idxA = 0;
+	for(int i = 0; i < (int)part->n_vertices(); i++){
+		if(g.min_distance[i] > max_dist){
+			max_dist = qMax(max_dist, g.min_distance[i]);
+			idxA = i;
+		}
+	}
+
+	// Find two furthest points
+	g.DijkstraComputePaths(idxA);
+	max_dist = -DBL_MAX;
+	int idxB = 0;
+	for(int i = 0; i < (int)part->n_vertices(); i++){
+		if(g.min_distance[i] > max_dist){
+			max_dist = qMax(max_dist, g.min_distance[i]);
+			idxB = i;
+		}
+	}
+
+	std::list<int> path = g.DijkstraShortestPath(idxA,idxB);
+
+	// Check for loop case
+	QVector<int> pathA, pathB;
+	foreach(int vi, path) pathA.push_back(vi);
+	Vertex centerPath ( pathA[pathA.size() / 2] );
+	foreach( Face f, part->faces() ){
+		QVector<Vertex> vidx; 
+		Surface_mesh::Vertex_around_face_circulator vit = part->vertices(Face(f)),vend=vit;
+		do{ vidx.push_back(vit); } while(++vit != vend);
+		Vec3d cp(0);
+		if( TestSphereTriangle(partPoints[centerPath], r, partPoints[vidx[0]], partPoints[vidx[1]], partPoints[vidx[2]], cp) ){
+			int v0 = vidx[0].idx();
+			int v1 = vidx[1].idx();
+			int v2 = vidx[2].idx();
+			g.SetEdgeWeight(v0,v1,DBL_MAX);
+			g.SetEdgeWeight(v1,v2,DBL_MAX);
+			g.SetEdgeWeight(v2,v0,DBL_MAX);
+		}
+	}
+
+	foreach(int vi, g.DijkstraShortestPath(idxB,idxA)) pathB.push_back(vi);
+
+	QVector<int> finalPath = pathA;
+
+	// We have a loop
+	if(pathB.size() > 0.1 * pathA.size()) 
+		finalPath += pathB;
+
+	std::vector<Vec3d> polyLine;
+	for(int i = 0; i < (int)finalPath.size(); i++)
+		polyLine.push_back( partPoints[Vertex(finalPath[i])] );
+
+	polyLine = refineByResolution(polyLine, r);
+	polyLine = smoothPolyline(polyLine, 1);
+
+	return NURBS::NURBSCurved::createCurveFromPoints(polyLine);
+}
+
+void nurbs_plugin::convertToSheet()
+{
+	document()->addModel( m );
+	document()->setSelectedModel( m );
+
+	prepareSkeletonize(); 
+	for(int i = 0; i < 3; i++)
+	{
+		stepSkeletonizeMesh();
+	}
+
+	// Clean up
+	drawArea()->deleteAllRenderObjects();
+	foreach(Vertex v, m->vertices()) if(m->is_isolated(v)) m->remove_vertex(v);
+	m->garbage_collection();
+
+	graph->addNode( new Structure::Sheet(surfaceFit( m ), groupID) );
+}
+
+std::vector<Vertex> nurbs_plugin::collectRings(SurfaceMeshModel * part, Vertex v, size_t min_nb)
+{
+	std::vector<Vertex> all;
+	std::vector<Vertex> current_ring, next_ring;
+	SurfaceMeshModel::Vertex_property<int> visited_map = part->vertex_property<int>("v:visit_map",-1);
+
+	//initialize
+	visited_map[v] = 0;
+	current_ring.push_back(v);
+	all.push_back(v);
+
+	int i = 1;
+
+	while ( (all.size() < min_nb) &&  (current_ring.size() != 0) ){
+		// collect i-th ring
+		std::vector<Vertex>::iterator it = current_ring.begin(), ite = current_ring.end();
+
+		for(;it != ite; it++){
+			// push neighbors of 
+			SurfaceMeshModel::Halfedge_around_vertex_circulator hedgeb = part->halfedges(*it), hedgee = hedgeb;
+			do{
+				Vertex vj = part->to_vertex(hedgeb);
+
+				if (visited_map[vj] == -1){
+					visited_map[vj] = i;
+					next_ring.push_back(vj);
+					all.push_back(vj);
+				}
+
+				++hedgeb;
+			} while(hedgeb != hedgee);
+		}
+
+		//next round must be launched from p_next_ring...
+		current_ring = next_ring;
+		next_ring.clear();
+
+		i++;
+	}
+
+	//clean up
+	part->remove_vertex_property(visited_map);
+
+	return all;
+}
+
+NURBS::NURBSRectangled nurbs_plugin::surfaceFit2( SurfaceMeshModel * part )
+{
+	points = part->vertex_property<Vector3>("v:point");
+	
+	/// Pick a side by clustering normals
+
+	// 1) Find edge with flat dihedral angle
+	SurfaceMeshModel::Vertex_property<double> vals = part->vertex_property<double>("v:vals",0);
+	foreach(Vertex v, part->vertices()){
+		double sum = 0.0;
+		foreach(Vertex v, collectRings(part,v,12)){
+			foreach(Halfedge h, part->onering_hedges(v)){
+				sum += abs(calc_dihedral_angle( part, h ));
+			}
+		}
+		vals[v] = sum;
+	}
+
+	double minSum = DBL_MAX;
+	Vertex minVert;
+	foreach(Vertex v, part->vertices()){
+		if(vals[v] < minSum){
+			minSum = vals[v];
+			minVert = v;
+		}
+	}
+	Halfedge startEdge = part->halfedge(minVert);
+
+	// 2) Grow region by comparing difference of adjacent dihedral angles
+	double angleThreshold = deg_to_rad( 40.0 );
+
+	SurfaceMesh::Model::Vertex_property<bool> vvisited = part->add_vertex_property<bool>("v:visited", false);
+
+	QStack<SurfaceMesh::Model::Vertex> to_visit;
+	to_visit.push( part->to_vertex(startEdge) );
+
+	while(!to_visit.empty())
+	{
+		Vertex cur_v = to_visit.pop();
+		if( vvisited[cur_v] ) continue;
+		vvisited[cur_v] = true;
+
+		// Sum of angles around
+		double sumAngles = 0.0;
+		foreach(Halfedge hj, part->onering_hedges(cur_v)){
+			sumAngles += abs(calc_dihedral_angle( part, hj ));
+		}
+
+		foreach(Halfedge hj, part->onering_hedges(cur_v))
+		{
+			Vertex vj = part->to_vertex(hj);
+			if(sumAngles < angleThreshold)
+				to_visit.push(vj);
+			else
+				vvisited[vj];
+		}
+	}
+
+	// Get filtered inner vertices of selected side
+	int shrink_count = 2;
+	std::set<Vertex> inner;
+	std::set<Vertex> border;
+	for(int i = 0; i < shrink_count; i++)
+	{
+		std::set<Vertex> all_points;
+		foreach(Vertex v, part->vertices())
+			if(vvisited[v]) all_points.insert(v);
+
+		border.clear();
+		foreach(Vertex v, part->vertices()){
+			if(vvisited[v]){
+				foreach(Halfedge hj, part->onering_hedges(v)){
+					Vertex vj = part->to_vertex(hj);
+					if(!vvisited[vj])
+						border.insert(vj);
+				}
+			}
+		}
+
+		inner.clear();
+		std::set_difference(all_points.begin(), all_points.end(), border.begin(), border.end(),
+			std::inserter(inner, inner.end()));
+
+		// Shrink one level
+		foreach(Vertex vv, border){
+			foreach(Halfedge hj, part->onering_hedges(vv))
+				vvisited[ part->to_vertex(hj) ] = false;
+		}
+	}
+
+	SurfaceMesh::Model * submesh = NULL;
+
+	bool isOpen = false;
+	foreach(Vertex v, part->vertices()){
+		if(part->is_boundary(v)){
+			isOpen = true;
+			break;
+		}
+	}
+
+	if(!isOpen)
+	{
+		// Collect inner faces
+		std::set<Face> innerFaces;
+		std::set<Vertex> inFacesVerts;
+		foreach(Vertex v, inner)
+		{
+			foreach(Halfedge hj, part->onering_hedges(v)){
+				Face f = part->face(hj);
+				innerFaces.insert(f);
+				Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
+				do{ inFacesVerts.insert( Vertex(vit) ); } while(++vit != vend);
+			}
+		}
+
+		// Create sub-mesh
+		submesh = new SurfaceMesh::Model("SideFlat.obj","SideFlat");
+
+		// Add vertices
+		std::map<Vertex,Vertex> vmap;
+		foreach(Vertex v, inFacesVerts){
+			vmap[ v ] = Vertex(vmap.size());
+			submesh->add_vertex( points[v] );
+		}
+
+		// Add faces
+		foreach(Face f, innerFaces){
+			std::vector<Vertex> verts;
+			Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
+			do{ verts.push_back( Vertex(vit) ); } while(++vit != vend);
+			submesh->add_triangle( vmap[verts[0]], vmap[verts[1]], vmap[verts[2]] );
+		}
+	}
+	else
+	{
+		submesh = part;
+	}
+
+	submesh->isVisible = false;
+
+	if(part != submesh) document()->addModel( submesh );
+	Vector3VertexProperty sub_points = submesh->vertex_property<Vector3>("v:point");
+
+	/// ##################################
+
+	BoundaryFitting2 bf((SurfaceMeshModel*)submesh);
+
+	PointSoup * ps = new PointSoup;
+	foreach(Vertex v, submesh->vertices())
+	{
+		//if(submesh->is_boundary(v))
+		//	ps->addPoint( sub_points[v], qtJetColorMap(bf.dists[v]) );
+	}
+	drawArea()->addRenderObject(ps);
+
+	//SurfaceMeshHelper helper(submesh);
+	//Vector3FaceProperty fcenter = helper.computeFaceBarycenters();
+	//foreach(Face f, submesh->faces()){
+	//	if(submesh->is_boundary(f))
+	//		vs.addVector(fcenter[f],bf.fgradient[f]);
 	//}
 
-	return fittedCurve;
+	foreach(Vertex v, submesh->vertices())
+	{
+		if(submesh->is_boundary(v))
+			vs.addVector(sub_points[v],bf.vdirection[v]);
+	}
+
+	for(int i = 0; i < (int)bf.debugPoints.size(); i++)
+	{
+		double t = double(i) / (bf.debugPoints.size()-1);
+		pps.addPoint(bf.debugPoints[i], QColor(255 * t,0,0));
+	}
+
+	/// ##################################
+
+	/// Polyline experiment
+	// Collect vertices at boundary vector
+	//QVector<Vertex> boundary_verts;
+	//foreach(Edge e, submesh->edges())
+	//{
+	//	// Get first half edge on boundary
+	//	Halfedge startH = submesh->halfedge(e,0);
+	//	if(!submesh->is_boundary(startH)) startH = submesh->halfedge(e,1);
+	//	if(!submesh->is_boundary(startH)) continue;
+
+	//	// Go along boundary
+	//	Halfedge h = startH;
+	//	do {
+	//		boundary_verts.push_back(submesh->to_vertex(h));
+	//		h = submesh->next_halfedge(h);
+	//	} while( h != startH );
+
+	//	break;
+	//}
+
+	//polyline.clear();
+	//foreach(Vertex v, boundary_verts){
+	//	polyline.push_back(sub_points[v]);
+	//}
+
+	//polyline = smoothPolyline(polyline, 3);
+
+	return NURBS::NURBSRectangled::createSheet(Vec3d(0),Vec3d(0.01));
 }
 
 Q_EXPORT_PLUGIN (nurbs_plugin)
