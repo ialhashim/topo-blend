@@ -49,7 +49,7 @@ struct Sheet : public Node
     // Connections
 
     // Visualization
-    void draw();
+    void draw(bool isShowCtrlPts = false);
 	void drawWithNames(int nID, int pointIDRange);
 
 	std::vector<Vector3> debugPoints;

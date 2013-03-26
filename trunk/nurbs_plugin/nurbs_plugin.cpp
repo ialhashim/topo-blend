@@ -24,7 +24,7 @@ SurfaceMesh::SurfaceMeshModel * m = NULL;
 RichParameterSet * mcf_params = NULL;
 
 #include "../CustomDrawObjects.h"
-PointSoup pps;
+PointSoup pps,pps2;
 PolygonSoup ps;
 SphereSoup spheres;
 VectorSoup vs;
@@ -33,9 +33,7 @@ LineSegments lseg;
 #include "PCA.h"
 #include "SimilarSampling.h"
 #include "GenericGraph.h"
-
 #include "BoundaryFitting2.h"
-
 #include "StructureGraph.h"
 
 #define RADIANS(deg)    ((deg)/180.0 * M_PI)
@@ -89,6 +87,7 @@ void nurbs_plugin::decorate()
 	vs.draw();
 	lseg.draw();
 	pps.draw();
+	pps2.draw();
 
 	glLineWidth(3); 
 	glDisable(GL_LIGHTING);
@@ -182,157 +181,7 @@ void nurbs_plugin::basicCurveFitRecursive( NURBS::NURBSCurved & curve, std::vect
 
 void nurbs_plugin::doFitSurface()
 {
-	//rects.push_back( surfaceFit( mesh() ) );
-	rects.push_back( surfaceFit2( mesh() ) );
-}
-
-NURBS::NURBSRectangled nurbs_plugin::surfaceFit( SurfaceMeshModel * part )
-{
-	this->rects.clear();
-
-	points = part->vertex_property<Vector3>("v:point");
-
-	/// Pick a side by clustering normals
-
-	// 1) Find edge with flat dihedral angle
-	double angleThreshold = deg_to_rad( 10.0 );
-
-	Halfedge startEdge = part->halfedges_begin();
-	foreach(Halfedge h, part->halfedges()){
-		if(calc_dihedral_angle( part, h ) < angleThreshold){
-			startEdge = h;
-			break;
-		}
-	}
-
-	// 2) Grow region by comparing difference of adjacent dihedral angles
-	SurfaceMesh::Model::Vertex_property<bool> vvisited = part->add_vertex_property<bool>("v:visited", false);
-
-	QStack<SurfaceMesh::Model::Vertex> to_visit;
-	to_visit.push( part->to_vertex(startEdge) );
-
-	while(!to_visit.empty())
-	{
-		Vertex cur_v = to_visit.pop();
-		if( vvisited[cur_v] ) continue;
-		vvisited[cur_v] = true;
-
-		// Sum of angles around
-		double sumAngles = 0.0;
-		foreach(Halfedge hj, part->onering_hedges(cur_v)){
-			sumAngles += abs(calc_dihedral_angle( part, hj ));
-		}
-
-		foreach(Halfedge hj, part->onering_hedges(cur_v))
-		{
-			Vertex vj = part->to_vertex(hj);
-			if(sumAngles < angleThreshold)
-				to_visit.push(vj);
-			else
-				vvisited[vj];
-		}
-	}
-
-	// Get filtered inner vertices of selected side
-	int shrink_count = 1;
-	std::set<Vertex> inner;
-	std::set<Vertex> border;
-	for(int i = 0; i < shrink_count; i++)
-	{
-		std::set<Vertex> all_points;
-		foreach(Vertex v, part->vertices())
-			if(vvisited[v]) all_points.insert(v);
-
-		border.clear();
-		foreach(Vertex v, part->vertices()){
-			if(vvisited[v]){
-				foreach(Halfedge hj, part->onering_hedges(v)){
-					Vertex vj = part->to_vertex(hj);
-					if(!vvisited[vj])
-						border.insert(vj);
-				}
-			}
-		}
-
-		inner.clear();
-		std::set_difference(all_points.begin(), all_points.end(), border.begin(), border.end(),
-			std::inserter(inner, inner.end()));
-
-		// Shrink one level
-		foreach(Vertex vv, border){
-			foreach(Halfedge hj, part->onering_hedges(vv))
-				vvisited[ part->to_vertex(hj) ] = false;
-		}
-	}
-
-	SurfaceMesh::Model * submesh = NULL;
-	
-	bool isOpen = false;
-	foreach(Vertex v, part->vertices()){
-		if(part->is_boundary(v)){
-			isOpen = true;
-			break;
-		}
-	}
-
-	if(!isOpen)
-	{
-		// Collect inner faces
-		std::set<Face> innerFaces;
-		std::set<Vertex> inFacesVerts;
-		foreach(Vertex v, inner)
-		{
-			foreach(Halfedge hj, part->onering_hedges(v)){
-				Face f = part->face(hj);
-				innerFaces.insert(f);
-				Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
-				do{ inFacesVerts.insert( Vertex(vit) ); } while(++vit != vend);
-			}
-		}
-
-		// Create sub-mesh
-		submesh = new SurfaceMesh::Model("SideFlat.obj","SideFlat");
-	
-		// Add vertices
-		std::map<Vertex,Vertex> vmap;
-		foreach(Vertex v, inFacesVerts){
-			vmap[ v ] = Vertex(vmap.size());
-			submesh->add_vertex( points[v] );
-		}
-
-		// Add faces
-		foreach(Face f, innerFaces){
-			std::vector<Vertex> verts;
-			Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
-			do{ verts.push_back( Vertex(vit) ); } while(++vit != vend);
-			submesh->add_triangle( vmap[verts[0]], vmap[verts[1]], vmap[verts[2]] );
-		}
-	}
-	else
-	{
-		submesh = part;
-	}
-
-	if(part != submesh) document()->addModel( submesh );
-
-	submesh->updateBoundingBox();
-	double resolution = submesh->bbox().size().length() * widget->resolution();
-
-	// Find 4 corners of a NURBS rect on mesh boundary
-	BoundaryFitting bf( submesh, resolution );
-
-	PointSoup * ps = new PointSoup;
-	foreach(Vertex v, submesh->vertices())
-		ps->addPoint( points[v], qtJetColorMap(1.0 - bf.dists[v]) );
-	drawArea()->addRenderObject(ps);
-
-	//return NURBS::NURBSRectangled::createSheet(Vec3d(0),Vec3d(0.01),4,4);
-
-	Array2D_Vector3 cp = bf.lines;
-	Array2D_Real cw(cp.size(), Array1D_Real(cp.front().size(), 1.0));
-	int degree = 3;
-
-	return NURBS::NURBSRectangled(cp,cw,degree,degree,false,false,true,true);
+	rects.push_back( surfaceFit( mesh() ) );
 }
 
 void nurbs_plugin::clearAll()
@@ -918,6 +767,12 @@ void nurbs_plugin::convertToSheet()
 	m->garbage_collection();
 
 	graph->addNode( new Structure::Sheet(surfaceFit( m ), groupID) );
+
+	document()->setSelectedModel( entireMesh );
+	document()->removeModel( m );
+
+	drawArea()->setRenderer(m,"Flat Wire");
+	drawArea()->updateGL();
 }
 
 std::vector<Vertex> nurbs_plugin::collectRings(SurfaceMeshModel * part, Vertex v, size_t min_nb)
@@ -966,7 +821,7 @@ std::vector<Vertex> nurbs_plugin::collectRings(SurfaceMeshModel * part, Vertex v
 	return all;
 }
 
-NURBS::NURBSRectangled nurbs_plugin::surfaceFit2( SurfaceMeshModel * part )
+NURBS::NURBSRectangled nurbs_plugin::surfaceFit( SurfaceMeshModel * part )
 {
 	points = part->vertex_property<Vector3>("v:point");
 	
@@ -1104,72 +959,144 @@ NURBS::NURBSRectangled nurbs_plugin::surfaceFit2( SurfaceMeshModel * part )
 		submesh = part;
 	}
 
+	{
+		//ModifiedButterfly subdiv;
+		//Surface_mesh & ll = *(Surface_mesh*)submesh;
+		//subdiv.subdivide(ll,1,true);
+	}
+
+	
 	submesh->isVisible = false;
 
 	if(part != submesh) document()->addModel( submesh );
 	Vector3VertexProperty sub_points = submesh->vertex_property<Vector3>("v:point");
 
-	/// ##################################
-
-	BoundaryFitting2 bf((SurfaceMeshModel*)submesh);
-
-	PointSoup * ps = new PointSoup;
-	foreach(Vertex v, submesh->vertices())
+	// Smoothing
 	{
-		//if(submesh->is_boundary(v))
-		//	ps->addPoint( sub_points[v], qtJetColorMap(bf.dists[v]) );
+		int numIteration = 3;
+		bool protectBorders = true;
+
+		Surface_mesh::Vertex_property<Point> newPositions = submesh->vertex_property<Point>("v:new_point",Vector3(0));
+		Surface_mesh::Vertex_around_vertex_circulator vvit, vvend;
+
+		// This method uses the basic equal weights Laplacian operator
+		for(int iteration = 0; iteration < numIteration; iteration++)
+		{
+			Surface_mesh::Vertex_iterator vit, vend = submesh->vertices_end();
+
+			// Original positions, for boundary
+			for(vit = submesh->vertices_begin(); vit != vend; ++vit)
+				newPositions[vit] = sub_points[vit];
+
+			// Compute Laplacian
+			for(vit = submesh->vertices_begin(); vit != vend; ++vit)
+			{
+				if(!protectBorders || (protectBorders && !submesh->is_boundary(vit)))
+				{
+					newPositions[vit] = Point(0,0,0);
+
+					// Sum up neighbors
+					vvit = vvend = submesh->vertices(vit);
+					do{ newPositions[vit] += sub_points[vvit]; } while(++vvit != vvend);
+
+					// Average it
+					newPositions[vit] /= submesh->valence(vit);
+				}
+			}
+
+			// Set vertices to final position
+			for(vit = submesh->vertices_begin(); vit != vend; ++vit)
+				sub_points[vit] = newPositions[vit];
+		}
+
+		submesh->remove_vertex_property(newPositions);
 	}
-	drawArea()->addRenderObject(ps);
 
-	//SurfaceMeshHelper helper(submesh);
-	//Vector3FaceProperty fcenter = helper.computeFaceBarycenters();
-	//foreach(Face f, submesh->faces()){
-	//	if(submesh->is_boundary(f))
-	//		vs.addVector(fcenter[f],bf.fgradient[f]);
-	//}
+	/// ==================
+	// Fit rectangle
 
-	foreach(Vertex v, submesh->vertices())
+	BoundaryFitting2 bf( (SurfaceMeshModel*)submesh, widget->uCount(), widget->vCount() );
+
+	/// ==================
+	// Debug fitting
+
+	if( false )
 	{
-		if(submesh->is_boundary(v))
-			vs.addVector(sub_points[v],bf.vdirection[v]);
+		PointSoup * ps = new PointSoup;
+		foreach(Vertex v, submesh->vertices())
+		{
+			//if(submesh->is_boundary(v))
+			//	ps->addPoint( sub_points[v], qtJetColorMap(bf.vals[v]) );
+		}
+		drawArea()->addRenderObject(ps);
+
+		SurfaceMeshHelper helper(submesh);
+		Vector3FaceProperty fcenter = helper.computeFaceBarycenters();
+		foreach(Face f, submesh->faces()){
+			//if(submesh->is_boundary(f))
+			//vs.addVector(fcenter[f],bf.fgradient[f]);
+		}
+
+		drawArea()->addRenderObject( new LineSegments(bf.ls) );
+
+		foreach(Vertex v, submesh->vertices()){
+			//if(submesh->is_boundary(v))
+			//	vs.addVector(sub_points[v],bf.vdirection[v]);
+			vs.addVector(sub_points[v],bf.vgradient[v]);
+		}
+
+		for(int i = 0; i < (int)bf.debugPoints2.size(); i++)
+		{
+			double t = double(i) / (bf.debugPoints2.size()-1);
+			pps.addPoint(bf.debugPoints2[i], QColor(0,255 * t,50));
+		}
+
+		for(int i = 0; i < (int)bf.debugPoints.size(); i++)
+		{
+			//double t = double(i) / (bf.debugPoints.size()-1);
+			//pps.addPoint(bf.debugPoints[i], QColor(255 * t,0,0));
+		}
+
+		for(int i = 1; i < (int)bf.debugPoints.size(); i++)
+		{
+			lseg.addLine( bf.debugPoints[i-1], bf.debugPoints[i], QColor(255,255,255,100) );
+		}
+
+		if(bf.corners.size())
+		{
+			PointSoup * ppp = new PointSoup(20);
+			ppp->addPoint(bf.corners[0], QColor(255,0,0));
+			ppp->addPoint(bf.corners[1], QColor(0,255,0));
+			ppp->addPoint(bf.corners[2], QColor(0,0,255));
+			ppp->addPoint(bf.corners[3], QColor(0,255,255));
+			drawArea()->addRenderObject(ppp);
+		}
+
+		if(bf.main_edges.size())
+		{
+			PointSoup * ppe = new PointSoup(10);
+			foreach(Vec3d p, bf.main_edges[0]) ppe->addPoint(p, QColor(255,0,0));
+			foreach(Vec3d p, bf.main_edges[1]) ppe->addPoint(p, QColor(0,255,0));
+			foreach(Vec3d p, bf.main_edges[2]) ppe->addPoint(p, QColor(0,0,255));
+			foreach(Vec3d p, bf.main_edges[3]) ppe->addPoint(p, QColor(0,255,255));
+			drawArea()->addRenderObject(ppe);
+		}
 	}
+	/// ==================
 
-	for(int i = 0; i < (int)bf.debugPoints.size(); i++)
-	{
-		double t = double(i) / (bf.debugPoints.size()-1);
-		pps.addPoint(bf.debugPoints[i], QColor(255 * t,0,0));
-	}
+	Array2D_Vector3 cp = bf.lines;
+	//cp.clear(); // debug
 
-	/// ##################################
+	if(!cp.size()) return NURBS::NURBSRectangled::createSheet(Vec3d(0),Vec3d(0.01));
 
-	/// Polyline experiment
-	// Collect vertices at boundary vector
-	//QVector<Vertex> boundary_verts;
-	//foreach(Edge e, submesh->edges())
-	//{
-	//	// Get first half edge on boundary
-	//	Halfedge startH = submesh->halfedge(e,0);
-	//	if(!submesh->is_boundary(startH)) startH = submesh->halfedge(e,1);
-	//	if(!submesh->is_boundary(startH)) continue;
+	Array2D_Real cw(cp.size(), Array1D_Real(cp.front().size(), 1.0));
+	int degree = 3;
+	return NURBS::NURBSRectangled(cp,cw,degree,degree,false,false,true,true);
 
-	//	// Go along boundary
-	//	Halfedge h = startH;
-	//	do {
-	//		boundary_verts.push_back(submesh->to_vertex(h));
-	//		h = submesh->next_halfedge(h);
-	//	} while( h != startH );
+	document()->removeModel( submesh );
 
-	//	break;
-	//}
-
-	//polyline.clear();
-	//foreach(Vertex v, boundary_verts){
-	//	polyline.push_back(sub_points[v]);
-	//}
-
-	//polyline = smoothPolyline(polyline, 3);
-
-	return NURBS::NURBSRectangled::createSheet(Vec3d(0),Vec3d(0.01));
+	// debug
+	//return NURBS::NURBSRectangled::createSheet(Vec3d(0),Vec3d(0.01));
 }
 
 Q_EXPORT_PLUGIN (nurbs_plugin)

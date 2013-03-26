@@ -46,6 +46,7 @@ void Graph::init()
 	property["showMeshes"]	= true;
 	property["showEdges"]	= false;
 	property["showTasks"]	= false;
+	property["showCtrlPts"] = false;
 }
 
 Graph::Graph( const Graph & other )
@@ -438,7 +439,9 @@ void Graph::draw()
 
 		// Default node draw
 		if(property["showNodes"].toBool())
-			n->draw();
+		{
+			n->draw( property["showCtrlPts"].toBool() );
+		}
 
 		if(n->type() == SHEET)
 		{
@@ -1067,8 +1070,8 @@ SurfaceMesh::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 	//if(n1->type() == SHEET && n2->type() == SHEET)
 	//	r *= 10;
 
-	std::vector< std::vector<Vector3> > parts1 = n1->discretized(r);
-	std::vector< std::vector<Vector3> > parts2 = n2->discretized(r);
+	std::vector< std::vector<Vector3> > parts1 = n1->discretized(r * (n1->type() == CURVE ? 1 : 1));
+	std::vector< std::vector<Vector3> > parts2 = n2->discretized(r * (n1->type() == CURVE ? 1 : 1));
 
 	// Fall back
 	if( !parts1.size() )

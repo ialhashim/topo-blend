@@ -334,20 +334,19 @@ std::vector<Vector3> NURBSCurve<Real>::getControlPoints()
 template <typename Real>
 Real NURBSCurve<Real>::timeAt( const Vector3 & pos )
 {
-    std::vector<Vector3> curvePoints;
+	int segmentCount = 100;
 
-    double timeStep = 0.1;
-
-    Curve<Real>::SubdivideByLength(1 + (1.0 / timeStep), curvePoints);
+	std::vector<Real> times;
+	SubdivideByLengthTime(segmentCount, times);
 
     int minIdx = 0;
     double t = 0.0;
     Vector3 d(0);
     Scalar minDist = std::numeric_limits<Scalar>::max();
 
-    for(int i = 0; i < (int)curvePoints.size() - 1; i++)
+    for(int i = 0; i < ((int)times.size()) - 1; i++)
     {
-        Line segment(curvePoints[i], curvePoints[i + 1]);
+        Line segment(this->GetPosition(times[i]), this->GetPosition(times[i+1]));
         segment.ClosestPoint(pos, t, d);
 
         Scalar dist = (pos - d).norm();
@@ -358,10 +357,10 @@ Real NURBSCurve<Real>::timeAt( const Vector3 & pos )
         }
     }
 
-    Line closestSegment(curvePoints[minIdx], curvePoints[minIdx + 1]);
+	Line closestSegment(this->GetPosition(times[minIdx]), this->GetPosition(times[minIdx+1]));
+
     closestSegment.ClosestPoint(pos, t, d);
-    Scalar found_t = qMax(0.0, qMin( (timeStep * minIdx) + (t * timeStep), 1.0) );
-    return found_t;
+    return qRanged(0.0, ((1-t) * times[minIdx]) + (t * times[minIdx+1]), 1.0);
 }
 
 template <typename Real>

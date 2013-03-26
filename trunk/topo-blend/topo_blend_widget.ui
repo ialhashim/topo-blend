@@ -328,7 +328,7 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_5">
       <item row="0" column="0">
-       <widget class="QCheckBox" name="linksViz">
+       <widget class="QCheckBox" name="showEdges">
         <property name="text">
          <string>Links</string>
         </property>
@@ -338,7 +338,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QCheckBox" name="meshViz">
+       <widget class="QCheckBox" name="showMeshes">
         <property name="text">
          <string>Meshes</string>
         </property>
@@ -351,9 +351,19 @@
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QCheckBox" name="tasksViz">
+       <widget class="QCheckBox" name="showTasks">
         <property name="text">
          <string>Tasks</string>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">vizButtonGroup</string>
+        </attribute>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QCheckBox" name="showCtrlPts">
+        <property name="text">
+         <string>Control points</string>
         </property>
         <attribute name="buttonGroup">
          <string notr="true">vizButtonGroup</string>

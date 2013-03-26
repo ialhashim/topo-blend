@@ -25,6 +25,8 @@ public slots:
 	void loadCorrespondenceModel();
 	void showGroupingDialog();
 	void vizButtonClicked(QAbstractButton* b);
+	void toggleCheckOption(QString optionName);
+	void setCheckOption(QString optionName);
 
 private:
     Ui::topo_blend_widget *ui;

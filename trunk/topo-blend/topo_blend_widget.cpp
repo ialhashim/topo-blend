@@ -142,9 +142,33 @@ void topo_blend_widget::loadCorrespondenceModel()
 
 void topo_blend_widget::vizButtonClicked(QAbstractButton* b)
 {
-	tb->viz_params["showEdges"] = ui->linksViz->isChecked();
-	tb->viz_params["showMeshes"] = ui->meshViz->isChecked();
-	tb->viz_params["showTasks"] = ui->tasksViz->isChecked();
+	tb->viz_params["showEdges"] = ui->showEdges->isChecked();
+	tb->viz_params["showMeshes"] = ui->showMeshes->isChecked();
+	tb->viz_params["showTasks"] = ui->showTasks->isChecked();
+	tb->viz_params["showCtrlPts"] = ui->showCtrlPts->isChecked();
 
 	tb->updateDrawArea();
+}
+
+void topo_blend_widget::toggleCheckOption( QString optionName )
+{
+	foreach (QAbstractButton *pButton, ui->vizButtonGroup->buttons()){
+		if(pButton->objectName() == optionName){
+			QCheckBox * checkBox = (QCheckBox *)pButton;
+			checkBox->setChecked( !checkBox->isChecked() );
+			vizButtonClicked(pButton);
+			return;
+		}
+	}
+}
+
+void topo_blend_widget::setCheckOption( QString optionName )
+{
+	foreach (QAbstractButton *pButton, ui->vizButtonGroup->buttons()){
+		if(pButton->objectName() == optionName){
+			((QCheckBox *)pButton)->setChecked(true);
+			vizButtonClicked(pButton);
+			return;
+		}
+	}
 }

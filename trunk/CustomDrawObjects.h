@@ -136,7 +136,7 @@ class PointSoup : public RenderObject::Base{
 	QVector< QVector3D > points;
 	QVector< QColor > points_colors;
 public:
-	PointSoup():RenderObject::Base(1, Qt::black){}
+	PointSoup(float size = 6.0f):RenderObject::Base(size, Qt::black){}
 
 	void clear(){
 		points.clear();
@@ -146,7 +146,7 @@ public:
 	virtual void draw(){
 		glDisable(GL_LIGHTING);
 
-		glPointSize(6);
+		glPointSize(_size);
 		glBegin(GL_POINTS);
 		for(int i = 0; i < (int) points.size(); i++){
 			glColorQt(points_colors[i]);
@@ -377,8 +377,13 @@ public:
 
 static void renderSphere(float cx, float cy, float cz, float r)
 {
+	#ifndef M_PI
 	#define M_PI       3.14159265358979323846
+	#endif
+
+	#ifndef M_PI_2
 	#define M_PI_2     1.57079632679489661923
+	#endif
 
 	const int p = 24;
 

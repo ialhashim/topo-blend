@@ -30,7 +30,7 @@ Line::Line( const Vector3& start, const Vector3& direction, double length, int i
 	a = start;
 	b = start + (direction.normalized() * length);
 
-	length = (a-b).norm();
+	length = length;
 
 	index = i;
 }
@@ -84,7 +84,10 @@ Vector3 Line::midPoint()
 
 Vector3 Line::project( const Vector3& point )
 {
-	return pointAt(dot((point - a), direction()));
+	double time;
+	Vec3d pos;
+	ClosestPoint(point, time, pos);
+	return pos;
 }
 
 Vector3 Line::pointAt( double time ) const

@@ -149,9 +149,8 @@ public:
     std::vector< BSplineBasis<Real> > mBasis;
     int mUReplicate, mVReplicate;
 
-
-    // DEBUG:
-    std::vector<Vector3> debugPoints;
+	// Misc
+	Array1D_Vector3 misc_points;
 };
 
 typedef NURBSRectangle<float> NURBSRectanglef;
