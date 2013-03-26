@@ -46,7 +46,6 @@ public:
 
 	NURBS::NURBSCurved curveFit( SurfaceMeshModel * part );
 	NURBS::NURBSRectangled surfaceFit( SurfaceMeshModel * part );
-	NURBS::NURBSRectangled surfaceFit2( SurfaceMeshModel * part );
 
 	bool keyPressEvent( QKeyEvent* event );
 

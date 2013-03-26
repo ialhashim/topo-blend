@@ -146,6 +146,7 @@ void topoblend::decorate()
 		graphs[g]->property["showEdges"] = viz_params["showEdges"];
 		graphs[g]->property["showMeshes"] = viz_params["showMeshes"];
 		graphs[g]->property["showTasks"] = viz_params["showTasks"];
+		graphs[g]->property["showCtrlPts"] = viz_params["showCtrlPts"];
 
 		// Place and draw graph
 		glPushMatrix();
@@ -588,6 +589,11 @@ void topoblend::loadModel()
 {
 	QStringList fileNames = QFileDialog::getOpenFileNames(0, tr("Open Model"), 
 		mainWindow()->settings()->getString("lastUsedDirectory"), tr("Model Files (*.xml)"));
+	if(fileNames.isEmpty()) return;
+
+	// Keep folder active
+	QFileInfo fileInfo(fileNames.front());
+	mainWindow()->settings()->set( "lastUsedDirectory", fileInfo.absolutePath() );
 
 	foreach(QString file, fileNames)
 	{	
@@ -623,6 +629,8 @@ void topoblend::modifyModel()
 		return;
 	}
 	
+	widget->setCheckOption("showEdges");
+
     GraphModifyDialog modifyDialog(graphs.back());
 	drawArea()->connect(&modifyDialog, SIGNAL(updateView()), SLOT(updateGL()));
     modifyDialog.exec();

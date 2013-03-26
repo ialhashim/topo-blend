@@ -117,8 +117,6 @@ bool GraphCorresponder::minElementInMatrix( MATRIX &M, int &row, int &column, fl
 	return minValue != FLT_MAX;
 }
 
-
-
 // Point Landmarks
 void GraphCorresponder::addPointLandmark()
 {

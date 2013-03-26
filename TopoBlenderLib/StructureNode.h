@@ -64,7 +64,7 @@ struct Node
 	}
 
     // Visualization
-    virtual void draw() = 0;
+    virtual void draw(bool isShowCtrlPts = false) = 0;
     QMap< QString, QVariant > vis_property;
 	virtual void drawWithNames(int nID, int pointIDRange) = 0;
 

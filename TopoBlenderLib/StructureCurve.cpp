@@ -243,9 +243,15 @@ SurfaceMesh::Vector3 Curve::center()
 	return pos;
 }
 
-void Curve::draw()
+void Curve::draw(bool isShowCtrlPts)
 {
-    NURBS::CurveDraw::draw( &curve, vis_property["color"].value<QColor>(), vis_property["showControl"].toBool() );
+    NURBS::CurveDraw::draw( &curve, vis_property["color"].value<QColor>(), isShowCtrlPts );
+
+	glPointSize(10);
+	glColor3d(1,0,1);
+	glBegin(GL_POINTS);
+	foreach(Vector3 p, curve.misc_points) glVector3(p);
+	glEnd();
 
 	// Draw selections
 	GLUquadricObj *quadObj = gluNewQuadric();

@@ -10,15 +10,18 @@ using namespace NURBS;
 
 #include "BoundaryFittingGlobal.h"
 
-BoundaryFitting2::BoundaryFitting2( SurfaceMeshModel * mesh )
+BoundaryFitting2::BoundaryFitting2( SurfaceMeshModel * mesh, int numSegments, int numSegmentsV )
 {
-	part = mesh;
+	this->part = mesh;
+	this->segments = numSegments;
+	this->segmentsV = numSegmentsV;
 
 	vals = part->vertex_property<Scalar>("v:vals", 0);
 	boundaryCurv = part->vertex_property<Scalar>("v:vivo", 0);
 	dists = part->vertex_property<Scalar>("v:bf_dists", 0);
 
 	fgradient = part->face_property<Vector3> ("f:fitting_gradient", Vector3(0));
+	vgradient = part->vertex_property<Vector3> ("v:fitting_gradient", Vector3(0));
 
 	part->update_face_normals();
 	part->update_vertex_normals();
@@ -43,26 +46,13 @@ void BoundaryFitting2::doFit()
 		GeoHeatHelper geoDist(part);
 		QSet<Vertex> boundSet;foreach(Vertex v,boundry)boundSet.insert(v);
 		ScalarVertexProperty dists_boundry = geoDist.getUniformDistance(boundSet);
-		normalize(dists_boundry);
-		//foreach(Vertex v, part->vertices()){
-		//	std::vector<Vertex> n = collectRings(v, 12);
-		//	double sum = 0.0;
-		//	int usedCount = 0;
-		//	foreach(Vertex vj, n){
-		//		if(!part->is_boundary(vj)){
-		//			sum += dists_boundry[vj];
-		//			usedCount++;
-		//		}
-		//	}
-		//	vals[v] = sum / usedCount;
-		//}
 		foreach(Vertex v, part->vertices()) vals[v] = dists_boundry[v];
 		normalize(vals);
 	}
 
 	// Compute face gradients using values computed above
 	{
-		gradientFaces();
+		gradientFaces( vals );
 	}
 
 	{
@@ -114,6 +104,21 @@ void BoundaryFitting2::doFit()
 			vdirection[v] = sum / adjF.size();
 		}
 
+		// Smooth vectors
+		for(int itr = 0; itr < 2; itr++)
+		{
+			for(int i = 0; i < (int)boundry.size(); i++){
+				Vertex prev = boundry[PREV(i,boundry.size())];
+				Vertex next = boundry[NEXT(i,boundry.size())];
+
+				vnew[boundry[i]] = (vdirection[prev] + vdirection[next]) * 0.5;
+			}
+			for(int i = 0; i < (int)boundry.size(); i++){
+				vdirection[boundry[i]] = vnew[boundry[i]];
+			}
+		}
+
+
 		// Realign boundary vectors
 		for(int i = 0; i < (int)boundry.size(); i++)
 		{
@@ -124,19 +129,6 @@ void BoundaryFitting2::doFit()
 
 			Vec3d prev = vdirection[v];
 			vdirection[v] = prev.norm() * cross(normals[v], edge);
-		}
-
-		// Smooth vectors
-		for(int i = 0; i < (int)boundry.size(); i++)
-		{
-			Vertex prev = boundry[PREV(i,boundry.size())];
-			Vertex next = boundry[NEXT(i,boundry.size())];
-
-			vnew[boundry[i]] = (vdirection[prev] + vdirection[next]) * 0.5;
-		}
-		for(int i = 0; i < (int)boundry.size(); i++)
-		{
-			vdirection[boundry[i]] = vnew[boundry[i]];
 		}
 
 		// Compare with closest central points
@@ -246,127 +238,344 @@ void BoundaryFitting2::doFit()
 		DirectionsGroups dg = errorMap[ lowError ];
 		std::map<int,Vector3> directions = dg.first;
 		GroupAssignment grp = dg.second;
-		QMap<int,int> itemGroup;
-
-		foreach(int gid, grp.keys()){
+		QMap<int,int> itemGroup,itemGroup2;
+		 
+		// Initial assignments
+		foreach(int gid, grp.keys())
+		{
 			QVector<int> items = grp[gid];
+			foreach(int vidx, items) itemGroup[vidx] = gid;
+		}
 
-			foreach(int vidx, items){
+		// Filter based on neighbours
+		for(int i = 0; i < (int)boundry.size(); i++)
+		{
+			int prev = PREV(i,boundry.size());
+			int next = NEXT(i,boundry.size());
+
+			int grpPrev = itemGroup[boundry[prev].idx()];
+			int grpCur = itemGroup[boundry[i].idx()];
+			int grpNext = itemGroup[boundry[next].idx()];
+
+			QMap<int,int> grpCount;
+			foreach(Vertex v, this->neighbours(i,5,boundry))
+				grpCount[itemGroup[v.idx()]]++;
+			
+			int oldID = itemGroup[boundry[i].idx()];
+			int newID = sortQMapByValue(grpCount).back().second;
+
+			itemGroup2[boundry[i].idx()] = newID;
+		}
+
+		GroupAssignment newGrp;
+		foreach(int vid, itemGroup2.keys())	newGrp[ itemGroup2[vid] ].push_back(vid);
+
+		// New assignments
+		foreach(int gid, newGrp.keys())
+		{
+			QVector<int> items = newGrp[gid];
+
+			std::vector<Vec3d> edgePoints;
+
+			foreach(int vidx, items) 
+			{
 				Vertex v(vidx);
-				vals[v] = double(gid) / 3;
-				itemGroup[v.idx()] = gid;
+				vals[v] = double(gid + 1) / 4;
+				itemGroup[vidx] = gid;
+
+				edgePoints.push_back(points[v]);
 				//vdirection[v] = directions[gid];
 			}
+
+			main_edges.push_back(edgePoints);
 		}
 
 		// Sort inside the groups based on boundary
-		std::rotate(boundry.begin(),boundry.begin() + boundry.indexOf(Vertex(grp[grp.keys().front()].front())),boundry.end());
 		QMap< int, QVector<int> > sortedGroups;
-		foreach(Vertex v, boundry)
-			sortedGroups[itemGroup[v.idx()]].push_back(v.idx());
+		int first_group_idx = 0;
 
-		// Shortest path
+		// Find a start, i.e. an item with different group as two before
+		for(int i = 0; i < (int)boundry.size(); i++)
 		{
-			Vertex fromVert = Vertex(sortedGroups[sortedGroups.keys().at(0)].front());
-			Vertex toVert = Vertex(sortedGroups[sortedGroups.keys().at(2)].front());
+			int prev1 = PREV(i,boundry.size());
+			int prev2 = PREV(prev1,boundry.size());
+			
+			int prGrp1 = itemGroup[boundry[prev1].idx()];
+			int prGrp2 = itemGroup[boundry[prev2].idx()];
+			int curGrp = itemGroup[boundry[i].idx()];
 
-			foreach(Vector3 p, geodesicPath(points[ fromVert ], points[ toVert ]))
-				debugPoints.push_back(p);
-
-			QSet<Vertex> vertSet;
-
-			//foreach(int vidx, grp[grp.keys().at(0)]) vertSet.insert( Vertex(vidx) );
-			//foreach(int vidx, grp[grp.keys().at(2)]) vertSet.insert( Vertex(vidx) );
-
-			vertSet.insert(fromVert);
-
-			GeoHeatHelper geoDist(part);
-			ScalarVertexProperty dists_edges = geoDist.getUniformDistance( vertSet );
-			foreach(Vertex v, geoDist.shortestVertexPath( toVert )) dists[v] = 1;
-			normalize(dists);
+			// We found a start
+			if(prGrp1 == prGrp2 && prGrp2 != curGrp){
+				first_group_idx = i;
+				break;
+			}
 		}
+		
+		std::rotate( boundry.begin(), boundry.begin() + first_group_idx, boundry.end() );
+		foreach(Vertex v, boundry)	sortedGroups[itemGroup[v.idx()]].push_back( v.idx() );
 
+		// Something failed
+		if(sortedGroups.size() < 4) return;
 
-		//// Reassign
-		//for(int i = 0; i < (int)boundry.size(); i++)
-		//{
-		//	Vertex v = boundry[i];
-		//	vdirection[v] = vnew[v];
-		//}
+		QMap<int,int> countGroup;
+		foreach(int gid, sortedGroups.keys()) countGroup[sortedGroups[gid].size()] = gid;
+
+		// Shortest paths
+		{
+			int startGroup = 1;
+
+			Vertex v1 = Vertex(sortedGroups[(startGroup + 0) % 4].front());
+			Vertex v2 = Vertex(sortedGroups[(startGroup + 1) % 4].front());
+			Vertex v3 = Vertex(sortedGroups[(startGroup + 2) % 4].front());
+			Vertex v4 = Vertex(sortedGroups[(startGroup + 3) % 4].front());
+
+			corners.push_back(points[v1]);
+			corners.push_back(points[v2]);
+			corners.push_back(points[v3]);
+			corners.push_back(points[v4]);
+
+			// Draw rectangle
+			foreach(Vector3 p, geodesicPath( points[ v1 ], points[v2] ))	debugPoints.push_back(p);
+			foreach(Vector3 p, geodesicPath( points[ v2 ], points[v3] ))	debugPoints.push_back(p);
+			foreach(Vector3 p, geodesicPath( points[ v3 ], points[v4] ))	debugPoints.push_back(p);
+			foreach(Vector3 p, geodesicPath( points[ v4 ], points[v1] ))	debugPoints.push_back(p);
+
+			// Extract fitted surface
+			std::vector<Vec3d> startPath, endPath;
+			foreach(Vector3 p, geodesicPath(points[ v1 ], points[ v2 ]))	startPath.push_back(p);
+			foreach(Vector3 p, geodesicPath(points[ v4 ], points[ v3 ]))	endPath.push_back(p);
+
+			if(segmentsV < 0) segmentsV = segments;
+
+			std::vector< std::vector<Vec3d> > paths = geodesicPaths(startPath, endPath, segments);
+			foreach(std::vector<Vec3d> path, paths)
+			{
+				lines.push_back( equidistLine(path, segments) );
+			}
+		}
 
 		part->remove_vertex_property(vnew);
 	}
 }
 
+std::vector< std::vector<Vec3d> > BoundaryFitting2::geodesicPaths( std::vector<Vec3d> fromPoints, std::vector<Vec3d> toPoints, int segments )
+{
+	std::vector< std::vector<Vec3d> > paths;
+
+	SurfaceMeshHelper helper(part);
+	Vector3FaceProperty fnormal = helper.computeFaceNormals();
+	Vector3FaceProperty fcenter = helper.computeFaceBarycenters();
+	
+	// for geodesic computation
+	QVector<Vertex> vertVector;
+	QSet<Vertex> vertSet; 
+	foreach(Vec3d p, toPoints) vertVector.push_back(Vertex(tree.closest(p)));
+	foreach(Vertex v, vertVector) vertSet.insert(v);
+
+	// for actual segments
+	if(segments > 0)
+	{
+		fromPoints = equidistLine(fromPoints, segments);
+		toPoints = equidistLine(toPoints, segments);
+	}
+
+	//// Use a single distance map for all points
+	//GeoHeatHelper geoDist(part);
+	//ScalarVertexProperty d = geoDist.getUniformDistance( vertSet );
+	//gradientFaces(d, false, true);
+
+	for(int sid = 0; sid < (int)fromPoints.size(); sid++)
+	{
+		std::vector<Vec3d> path;
+
+		Vertex endVertex( tree.closest(toPoints[sid]) );
+
+		// Start with a good face
+		Vector3 fromPoint = fromPoints[sid];
+		Face f = getBestFace(fromPoint, Vertex(tree.closest(fromPoint))), prevF = f;
+
+		// End with a good face
+		Vector3 toPoint = toPoints[sid];
+		Face endFace = getBestFace(toPoint, endVertex);
+
+		// Single source
+		QSet<Vertex> mySet; mySet.insert( endVertex );
+		GeoHeatHelper geoDist(part);
+		ScalarVertexProperty d = geoDist.getUniformDistance( mySet );
+		gradientFaces(d, false, true);
+
+		// Avoid spiraling paths
+		if(part->has_edge_property<bool>("e:visited")) 
+			part->remove_edge_property<bool>(part->edge_property<bool>("e:visited"));
+		BoolEdgeProperty evisited = part->edge_property<bool>("e:visited",false);
+
+		Halfedge bestEdge;
+		double bestTime;
+
+		// Add start point to path
+		path.push_back( fromPoint );
+
+		while( true )
+		{
+			Vector3 prevPoint = path.back();
+			Vector3 direction = fgradient[prevF];
+
+			//std::vector<Vec3d> vpt = trianglePoints( prevF );
+			//std::vector<Vertex> vrt = triangleVertices( prevF );
+			//Vec3d A=vpt[0],B=vpt[1],C=vpt[2];
+			//Vector3 direction = get_barycentric(barycentric(prevPoint,A,B,C),
+			//vgradient[vrt[0]],vgradient[vrt[1]],vgradient[vrt[2]]);
+
+			// Special boundary case
+			if( !f.is_valid() ) 
+			{
+				Vertex a = part->from_vertex(bestEdge), b = part->to_vertex(bestEdge);
+				Vector3 projCenter = Line( points[a], points[b] ).project( fcenter[prevF] );
+				Vector3 N = (fcenter[prevF] - projCenter).normalized();
+				Vector3 Ri = direction;
+
+				// Reflect ray with bias
+				direction = ( Ri - ( N * 1.5 * dot(Ri,N) ) ).normalized();
+				f = prevF;
+			}
+			else
+			{
+				// Follow face direction
+				Scalar t = dot(fnormal[f], direction);
+				direction = (direction - (t * fnormal[f])).normalized();
+			}
+
+			bestTime = 0.0;
+			bestEdge = getBestEdge( prevPoint, direction, f, bestTime );
+
+			// Didn't find a good edge
+			if(bestTime < 0.0 || evisited[part->edge(bestEdge)]) break;
+
+			Vertex a = part->from_vertex(bestEdge);
+			Vertex b = part->to_vertex(bestEdge);
+			Line edgeSegment(points[a],points[b]);
+			Vector3 ipoint = edgeSegment.pointAt( qRanged(0.001, bestTime, 0.999 ) );
+
+			// Make sure its on triangle
+			std::vector<Vec3d> vp = trianglePoints(f);
+			ClosestPointTriangle(ipoint,vp[0],vp[1],vp[2],ipoint);
+
+			path.push_back( ipoint );
+
+			evisited[part->edge(bestEdge)] = true;
+
+			prevF = f;
+			f = part->face(part->opposite_halfedge( bestEdge ));
+
+			// Reached end face
+			if(endFace == f)
+			{
+				//path.push_back( toPoint );
+				break;
+			}
+		}
+
+		paths.push_back(path);
+	}
+
+	return paths;
+}
+
 std::vector<Vec3d> BoundaryFitting2::geodesicPath(Vec3d fromPoint, Vec3d toPoint)
 {
-	std::vector<Vec3d> path;
+	return geodesicPaths(std::vector<Vec3d>(1,fromPoint),std::vector<Vec3d>(1,toPoint)).front();
+}
 
-	typedef QPair<Halfedge,double> HalfedgeTime;
-	typedef QMap<double, HalfedgeTime > DistanceHalfedge;
+SurfaceMesh::Face BoundaryFitting2::getBestFace( Vec3d & point, Vertex guess )
+{
+	Face best_face;
+	Vector3 isect(0), bestPoint(0);
+	double minDist = DBL_MAX;
 
-	Vertex end(tree.closest(toPoint));
-	Vertex start(tree.closest(fromPoint));
-	QSet<Vertex> vertSet; vertSet.insert(end);
-	Halfedge h = part->halfedge(start);
-
-	GeoHeatHelper geoDist(part);
-	ScalarVertexProperty d = geoDist.getUniformDistance( vertSet );
-
-	path.push_back( fromPoint );
-
-	// Start with best face
-	QMap<double, Face> faces;
-	foreach(Halfedge he, part->onering_hedges(start)){
-		Face f = part->face(he);
-		if(!f.is_valid()) continue;
-
-		double minValue = DBL_MAX;
-		Vertex minVert;
-		Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
-		do{ if(d[vit] < minValue) { minValue = d[vit]; minVert = vit; } } while(++vit != vend);
-		faces[ d[minVert] ] = f;
-	}
-
-	Face f = faces.values().front();
-
-	while( true )
+	// Find closest face to point
+	foreach(Vertex v, collectRings(guess, 6))
 	{
-		double dist_to_target = (path.back() - toPoint).norm();
-		if(dist_to_target == 0) break;
+		foreach(Halfedge h, part->onering_hedges(v))
+		{
+			Face f = part->face(h);
+			if(!f.is_valid()) continue;
 
-		DistanceHalfedge edgeDists;
+			std::vector<Vec3d> vp = trianglePoints( f );
+			double dist = ClosestPointTriangle(point, vp[0], vp[1], vp[2], isect);
 
-		// Check edges of current face
-		Surface_mesh::Halfedge_around_face_circulator hj(part, f), hend = hj;
-		do{ 
-			Vertex a = part->from_vertex(hj);
-			Vertex b = part->to_vertex(hj);
-
-			Line l(points[a], points[b]);
-
-			double t = l.timeAt( path.back() );
-			double d_value = ((1-t) * d[a]) + (t * d[b]);
-			edgeDists[ d_value ] = qMakePair((Halfedge)hj,t);
-		} while (++hj != hend);
-			
-		// Get best edge, and path point at edge
-		HalfedgeTime bestEdgeTime = edgeDists.values().front();
-		Halfedge h = bestEdgeTime.first;
-		double t = bestEdgeTime.second;
-		Vertex a = part->from_vertex(h);
-		Vertex b = part->to_vertex(h);
-		Vector3 bestPointOnEdge = ((1-t) * points[a]) + (t * points[b]);
-
-		path.push_back( bestPointOnEdge );
-
-		// Move to next face
-		f = part->face( part->opposite_halfedge(h) );
-
-		if(!part->is_valid(f)) break;
+			if(dist < minDist)
+			{
+				best_face = f;
+				minDist = dist;
+				bestPoint = isect;
+			}
+		}
 	}
 
-	return path;
+	// Shrink to make sure we are inside face not on edges
+	std::vector<Vec3d> vp = trianglePoints( best_face );
+	Vec3d faceCenter = (vp[0] + vp[1] + vp[2]) / 3.0;
+	Vec3d delta = point - faceCenter;
+	point = faceCenter + (delta * 0.99);
+
+	return best_face;
+}
+
+SurfaceMesh::Halfedge BoundaryFitting2::getBestEdge(Vec3d prevPoint, Vec3d direction, Face f, double & bestTime)
+{
+	QMap<double,Halfedge> projections;
+	QMap<double,double> projectionsTime;
+
+	double threshold = 1e-5;
+	double bigNum = 10000;
+
+	direction.normalize();
+
+	Surface_mesh::Halfedge_around_face_circulator hj(part, f), hend = hj;
+	do{ 
+		Vertex a = part->from_vertex(hj);
+		Vertex b = part->to_vertex(hj);
+
+		Line edgeSegment(points[a],points[b]);
+		Line raySegment(prevPoint, prevPoint + (direction) * bigNum );
+
+		Vector3 p_edge,p_ray;
+		edgeSegment.intersectLine(raySegment, p_edge, p_ray);
+
+		if((p_edge - prevPoint).norm() < threshold) continue;
+
+		double space = (p_edge - p_ray).norm();
+
+		space -= dot(direction, (p_edge - prevPoint).normalized());
+
+		projections[space] = hj;
+		projectionsTime[space] = edgeSegment.timeAt(p_edge);
+
+	} while (++hj != hend);
+
+	if(projections.empty()){
+		bestTime = -1;
+		return Halfedge();
+	}
+
+	bestTime = projectionsTime.values().front();
+	return projections.values().front();
+}
+
+std::vector<Vec3d> BoundaryFitting2::trianglePoints( Face f )
+{
+	std::vector<Vector3> f_vec; 
+	Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
+	do{ f_vec.push_back(points[vit]); } while(++vit != vend);
+	return f_vec;
+}
+
+std::vector<Vertex> BoundaryFitting2::triangleVertices( Face f )
+{
+	std::vector<Vertex> f_vec; 
+	Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
+	do{ f_vec.push_back(vit); } while(++vit != vend);
+	return f_vec;
 }
 
 std::vector<SurfaceMesh::Vertex> BoundaryFitting2::collectRings( SurfaceMesh::Vertex v, size_t min_nb, bool isBoundary )
@@ -457,7 +666,7 @@ QVector<Vertex> BoundaryFitting2::boundaryVerts()
 	return boundary_verts;
 }
 
-void BoundaryFitting2::gradientFaces( bool isNormalizeNegateGradient )
+void BoundaryFitting2::gradientFaces( ScalarVertexProperty & functionVal, bool isSmooth, bool isNormalizeNegateGradient)
 {
 	SurfaceMeshHelper h(part);
 	Vector3FaceProperty fnormal = h.computeFaceNormals();
@@ -472,7 +681,7 @@ void BoundaryFitting2::gradientFaces( bool isNormalizeNegateGradient )
 		do{
 			Vector3 ei = points[part->from_vertex(h)] - points[part->from_vertex(part->prev_halfedge(h))];
 			Vertex i = part->to_vertex(h);
-			vsum += vals[i] * cross(fnormal[f], ei);
+			vsum += functionVal[i] * cross(fnormal[f], ei);
 		}while (++h != hend);
 
 		fgradient[f] = ( 1.0 / (2.0 * farea[f]) ) * vsum;
@@ -481,48 +690,65 @@ void BoundaryFitting2::gradientFaces( bool isNormalizeNegateGradient )
 			fgradient[f] = (-fgradient[f]).normalized();
 	}
 
-	// Smooth gradient
-	for(int itr = 0; itr < 10; itr++)
+	if( isSmooth )
 	{
-		std::vector<Vec3d> newGrad(part->n_faces(),Vector3(0));
-		std::vector<Vec3d> avgNormal(part->n_faces(),Vector3(0));
-
-		foreach(Face f, part->faces())
+		// Smooth gradient
+		for(int itr = 0; itr < 10; itr++)
 		{
-			// Collect neighboring faces
-			std::set<int> face_ids;
+			std::vector<Vec3d> newGrad(part->n_faces(),Vector3(0));
+			std::vector<Vec3d> avgNormal(part->n_faces(),Vector3(0));
 
-			Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
-			do{ 
-				foreach(Halfedge h, part->onering_hedges(vit)){
-					Face curFace = part->face(h);
-					if(part->is_valid(curFace) && !part->is_boundary(curFace))	
-					{
-						face_ids.insert( curFace.idx() );
+			foreach(Face f, part->faces())
+			{
+				// Collect neighboring faces
+				std::set<int> face_ids;
+
+				Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
+				do{ 
+					foreach(Halfedge h, part->onering_hedges(vit)){
+						Face curFace = part->face(h);
+						if(part->is_valid(curFace) && !part->is_boundary(curFace))	
+						{
+							face_ids.insert( curFace.idx() );
+						}
 					}
+				} while(++vit != vend);
+
+				// Average gradients
+				foreach(int fid, face_ids){
+					newGrad[f.idx()] += fgradient[Face(fid)];
+					avgNormal[f.idx()] += fnormal[Face(fid)];
 				}
-			} while(++vit != vend);
-
-			// Average gradients
-			foreach(int fid, face_ids){
-				newGrad[f.idx()] += fgradient[Face(fid)];
-				avgNormal[f.idx()] += fnormal[Face(fid)];
+				newGrad[f.idx()] /= face_ids.size();
+				avgNormal[f.idx()] /= face_ids.size();
 			}
-			newGrad[f.idx()] /= face_ids.size();
-			avgNormal[f.idx()] /= face_ids.size();
+
+			// Assign new values
+			foreach(Face f, part->faces())
+			{
+				fnormal[f] = avgNormal[f.idx()];
+
+				// Project on plane defined by face normal
+				Scalar t = dot(fnormal[f], newGrad[f.idx()]);
+				fgradient[f] =  newGrad[f.idx()] - t * fnormal[f];
+
+				//fgradient[f] = newGrad[f.idx()];
+			}
 		}
+	}
 
-		// Assign new values
-		foreach(Face f, part->faces())
-		{
-			fnormal[f] = avgNormal[f.idx()];
 
-			// Project on plane defined by face normal
-			Scalar t = dot(fnormal[f], newGrad[f.idx()]);
-			fgradient[f] =  newGrad[f.idx()] - t * fnormal[f];
-
-			//fgradient[f] = newGrad[f.idx()];
+	// Assign vertex gradient from adjacent faces
+	foreach( Vertex v, part->vertices() ){
+		std::vector<Face> adjF;
+		foreach(Halfedge h, part->onering_hedges(v)){
+			Face f = part->face(h);
+			if(!part->is_valid(f)) continue;
+			adjF.push_back(f);
 		}
+		Vector3 sum(0);
+		foreach(Face f, adjF) sum += fgradient[f];
+		vgradient[v] = sum / adjF.size();
 	}
 }
 

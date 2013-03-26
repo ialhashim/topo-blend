@@ -177,9 +177,9 @@ SurfaceMesh::Vector3 Sheet::center()
 	return pos;
 }
 
-void Sheet::draw()
+void Sheet::draw(bool isShowCtrlPts)
 {
-    NURBS::SurfaceDraw::draw( &surface, vis_property["color"].value<QColor>(), vis_property["showControl"].toBool() );
+    NURBS::SurfaceDraw::draw( &surface, vis_property["color"].value<QColor>(), isShowCtrlPts );
 
 	// Draw selections
 	GLUquadricObj *quadObj = gluNewQuadric();

@@ -3,11 +3,14 @@
 #include "SurfaceMeshModel.h"
 
 #include "NanoKdTree.h"
+#include "../CustomDrawObjects.h"
+
+typedef QPair<Halfedge,double> HalfedgeTime;
+typedef QMap<double, HalfedgeTime > DistanceHalfedge;
 
 struct BoundaryFitting2{
 
-	BoundaryFitting2(SurfaceMesh::SurfaceMeshModel * mesh = NULL);
-
+	BoundaryFitting2::BoundaryFitting2( SurfaceMeshModel * mesh = NULL, int numSegments = 20, int numSegmentsV = -1);
 	void doFit();
 
 	std::vector<SurfaceMesh::Vertex> collectRings( SurfaceMesh::Vertex v, size_t min_nb, bool isBoundary = false );
@@ -16,16 +19,26 @@ struct BoundaryFitting2{
 
 	void normalize( SurfaceMesh::ScalarVertexProperty & vprop );
 
-	void gradientFaces(bool isNormalizeNegateGradient = true);
-
+	void gradientFaces( ScalarVertexProperty & functionVal, bool isSmooth = true, bool isNormalizeNegateGradient = true);
 	QVector<SurfaceMesh::Vertex> neighbours( int start, int range, QVector<SurfaceMesh::Vertex> all );
-	SurfaceMesh::SurfaceMeshModel * part;
 
 	SurfaceMesh::Halfedge get_halfedge(SurfaceMesh::Vertex start, SurfaceMesh::Vertex end);
+	SurfaceMesh::Halfedge getBestEdge(Vec3d prevPoint, Vec3d direction, Face f, double & bestTime);
+	SurfaceMesh::Face getBestFace( Vec3d & point, Vertex guess );
+
 	std::vector<Vec3d> geodesicPath(Vec3d fromPoint, Vec3d toPoint);
+	std::vector< std::vector<Vec3d> > geodesicPaths( std::vector<Vec3d> fromPoints, std::vector<Vec3d> toPoints, int segments = -1 );
+
+	std::vector<Vec3d> trianglePoints( Face f );
+	std::vector<Vertex> triangleVertices( Face f );
+
+	SurfaceMesh::SurfaceMeshModel * part;
+	int segments, segmentsV;
+
 	SurfaceMesh::ScalarVertexProperty vals;
 	SurfaceMesh::ScalarVertexProperty boundaryCurv;
 	SurfaceMesh::ScalarVertexProperty dists;
+	SurfaceMesh::Vector3VertexProperty vgradient;
 
 	SurfaceMesh::Vector3FaceProperty fgradient;
 	SurfaceMesh::Vector3VertexProperty vdirection;
@@ -34,5 +47,11 @@ struct BoundaryFitting2{
 
 	NanoKdTree tree;
 
-	std::vector<Vec3d> debugPoints;
+	// output
+	std::vector< std::vector<Vec3d> > lines;
+
+	std::vector<Vec3d> debugPoints, debugPoints2;
+	std::vector<Vec3d> corners;
+	std::vector< std::vector<Vec3d> > main_edges;
+	LineSegments ls;
 };

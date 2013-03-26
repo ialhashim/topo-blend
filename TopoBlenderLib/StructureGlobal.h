@@ -75,8 +75,6 @@ static inline Vector3 orthogonalVector(const Vector3& n) {
 	else return Vector3(-n.y(), n.x(), 0.0);
 }
 
-#define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )
-
 // Coordinates utility functions
 static inline Vec4d coord(Scalar u = 0, Scalar v = 0)	{ return Vec4d(u, v, 0, 0); }
 static inline Vec4d inverseCoord(const Vec4d& c)		{ return Vec4d(1 - c.x(), 1 - c.y(), 0,0); }

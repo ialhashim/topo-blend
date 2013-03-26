@@ -139,6 +139,9 @@ public:
     bool mLoop;
     BSplineBasis<Real> mBasis;
     int mReplicate;  // the number of replicated control points
+
+	// Misc
+	Array1D_Vector3 misc_points;
 };
 
 typedef NURBSCurve<float> NURBSCurvef;

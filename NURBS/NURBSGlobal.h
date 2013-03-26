@@ -27,6 +27,8 @@ Q_DECLARE_METATYPE(Array2D_Vec4d)
 
 #define Vector3_ZERO Vector3(0)
 
+#define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )
+
 // For visualization
 struct SurfaceQuad{	Vector3 p[4]; Normal n[4]; };
 
