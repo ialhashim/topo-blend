@@ -7,7 +7,7 @@
 #include "NanoKdTree.h"
 #include "StructureGraph.h"
 
-#include "BoundaryFitting2.h"
+#include "BoundaryFitting.h"
 
 #include "interfaces/ModePluginDockWidget.h"
 
@@ -1014,7 +1014,7 @@ NURBS::NURBSRectangled nurbs_plugin::surfaceFit( SurfaceMeshModel * part )
 	/// ==================
 	// Fit rectangle
 
-	BoundaryFitting2 bf( (SurfaceMeshModel*)submesh, widget->uCount(), widget->vCount() );
+	BoundaryFitting bf( (SurfaceMeshModel*)submesh, widget->uCount(), widget->vCount() );
 
 	/// ==================
 	// Debug fitting

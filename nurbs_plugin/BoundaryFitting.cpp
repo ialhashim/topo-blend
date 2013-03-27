@@ -1,5 +1,5 @@
 #include <set>
-#include "BoundaryFitting2.h"
+#include "BoundaryFitting.h"
 
 #include "../surfacemesh_filter_geoheat/GeoHeatHelper.h"
 #include "PCA.h"
@@ -10,7 +10,7 @@ using namespace NURBS;
 
 #include "BoundaryFittingGlobal.h"
 
-BoundaryFitting2::BoundaryFitting2( SurfaceMeshModel * mesh, int numSegments, int numSegmentsV )
+BoundaryFitting::BoundaryFitting( SurfaceMeshModel * mesh, int numSegments, int numSegmentsV )
 {
 	this->part = mesh;
 	this->segments = numSegments;
@@ -34,7 +34,7 @@ BoundaryFitting2::BoundaryFitting2( SurfaceMeshModel * mesh, int numSegments, in
 	doFit();
 }
 
-void BoundaryFitting2::doFit()
+void BoundaryFitting::doFit()
 {
 	QVector<Vertex> boundry;
 	foreach(Vertex v, boundaryVerts()) boundry.push_back(v);
@@ -250,18 +250,10 @@ void BoundaryFitting2::doFit()
 		// Filter based on neighbours
 		for(int i = 0; i < (int)boundry.size(); i++)
 		{
-			int prev = PREV(i,boundry.size());
-			int next = NEXT(i,boundry.size());
-
-			int grpPrev = itemGroup[boundry[prev].idx()];
-			int grpCur = itemGroup[boundry[i].idx()];
-			int grpNext = itemGroup[boundry[next].idx()];
-
 			QMap<int,int> grpCount;
 			foreach(Vertex v, this->neighbours(i,5,boundry))
 				grpCount[itemGroup[v.idx()]]++;
-			
-			int oldID = itemGroup[boundry[i].idx()];
+
 			int newID = sortQMapByValue(grpCount).back().second;
 
 			itemGroup2[boundry[i].idx()] = newID;
@@ -358,7 +350,7 @@ void BoundaryFitting2::doFit()
 	}
 }
 
-std::vector< std::vector<Vec3d> > BoundaryFitting2::geodesicPaths( std::vector<Vec3d> fromPoints, std::vector<Vec3d> toPoints, int segments )
+std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Vec3d> fromPoints, std::vector<Vec3d> toPoints, int segments )
 {
 	std::vector< std::vector<Vec3d> > paths;
 
@@ -481,12 +473,12 @@ std::vector< std::vector<Vec3d> > BoundaryFitting2::geodesicPaths( std::vector<V
 	return paths;
 }
 
-std::vector<Vec3d> BoundaryFitting2::geodesicPath(Vec3d fromPoint, Vec3d toPoint)
+std::vector<Vec3d> BoundaryFitting::geodesicPath(Vec3d fromPoint, Vec3d toPoint)
 {
 	return geodesicPaths(std::vector<Vec3d>(1,fromPoint),std::vector<Vec3d>(1,toPoint)).front();
 }
 
-SurfaceMesh::Face BoundaryFitting2::getBestFace( Vec3d & point, Vertex guess )
+SurfaceMesh::Face BoundaryFitting::getBestFace( Vec3d & point, Vertex guess )
 {
 	Face best_face;
 	Vector3 isect(0), bestPoint(0);
@@ -521,7 +513,7 @@ SurfaceMesh::Face BoundaryFitting2::getBestFace( Vec3d & point, Vertex guess )
 	return best_face;
 }
 
-SurfaceMesh::Halfedge BoundaryFitting2::getBestEdge(Vec3d prevPoint, Vec3d direction, Face f, double & bestTime)
+SurfaceMesh::Halfedge BoundaryFitting::getBestEdge(Vec3d prevPoint, Vec3d direction, Face f, double & bestTime)
 {
 	QMap<double,Halfedge> projections;
 	QMap<double,double> projectionsTime;
@@ -562,7 +554,7 @@ SurfaceMesh::Halfedge BoundaryFitting2::getBestEdge(Vec3d prevPoint, Vec3d direc
 	return projections.values().front();
 }
 
-std::vector<Vec3d> BoundaryFitting2::trianglePoints( Face f )
+std::vector<Vec3d> BoundaryFitting::trianglePoints( Face f )
 {
 	std::vector<Vector3> f_vec; 
 	Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
@@ -570,7 +562,7 @@ std::vector<Vec3d> BoundaryFitting2::trianglePoints( Face f )
 	return f_vec;
 }
 
-std::vector<Vertex> BoundaryFitting2::triangleVertices( Face f )
+std::vector<Vertex> BoundaryFitting::triangleVertices( Face f )
 {
 	std::vector<Vertex> f_vec; 
 	Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
@@ -578,7 +570,7 @@ std::vector<Vertex> BoundaryFitting2::triangleVertices( Face f )
 	return f_vec;
 }
 
-std::vector<SurfaceMesh::Vertex> BoundaryFitting2::collectRings( SurfaceMesh::Vertex v, size_t min_nb, bool isBoundary )
+std::vector<SurfaceMesh::Vertex> BoundaryFitting::collectRings( SurfaceMesh::Vertex v, size_t min_nb, bool isBoundary )
 {
 	std::vector<Vertex> all;
 	std::vector<Vertex> current_ring, next_ring;
@@ -628,7 +620,7 @@ std::vector<SurfaceMesh::Vertex> BoundaryFitting2::collectRings( SurfaceMesh::Ve
 	return all;
 }
 
-void BoundaryFitting2::normalize( ScalarVertexProperty & vprop )
+void BoundaryFitting::normalize( ScalarVertexProperty & vprop )
 {
 	// Get range
 	double min_d = DBL_MAX, max_d = -min_d;
@@ -643,7 +635,7 @@ void BoundaryFitting2::normalize( ScalarVertexProperty & vprop )
 	}
 }
 
-QVector<Vertex> BoundaryFitting2::boundaryVerts()
+QVector<Vertex> BoundaryFitting::boundaryVerts()
 {
 	// Collect vertices at boundary vector
 	QVector<Vertex> boundary_verts;
@@ -666,7 +658,7 @@ QVector<Vertex> BoundaryFitting2::boundaryVerts()
 	return boundary_verts;
 }
 
-void BoundaryFitting2::gradientFaces( ScalarVertexProperty & functionVal, bool isSmooth, bool isNormalizeNegateGradient)
+void BoundaryFitting::gradientFaces( ScalarVertexProperty & functionVal, bool isSmooth, bool isNormalizeNegateGradient)
 {
 	SurfaceMeshHelper h(part);
 	Vector3FaceProperty fnormal = h.computeFaceNormals();
@@ -752,7 +744,7 @@ void BoundaryFitting2::gradientFaces( ScalarVertexProperty & functionVal, bool i
 	}
 }
 
-QVector<SurfaceMesh::Vertex> BoundaryFitting2::neighbours( int start, int range, QVector<SurfaceMesh::Vertex> all )
+QVector<SurfaceMesh::Vertex> BoundaryFitting::neighbours( int start, int range, QVector<SurfaceMesh::Vertex> all )
 {
 	QVector<SurfaceMesh::Vertex> result;
 
@@ -771,7 +763,7 @@ QVector<SurfaceMesh::Vertex> BoundaryFitting2::neighbours( int start, int range,
 	return result;
 }
 
-SurfaceMesh::Halfedge BoundaryFitting2::get_halfedge( Vertex start, Vertex end )
+SurfaceMesh::Halfedge BoundaryFitting::get_halfedge( Vertex start, Vertex end )
 {
 	Halfedge h = part->halfedge(start);
 	const Halfedge hh = h;
