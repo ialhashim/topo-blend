@@ -35,6 +35,8 @@ LineSegments lseg;
 #include "GenericGraph.h"
 #include "StructureGraph.h"
 
+#include "ModifiedButterflySubdivision.h"
+
 #define RADIANS(deg)    ((deg)/180.0 * M_PI)
 
 std::vector<Vec3d> polyline;
@@ -960,8 +962,7 @@ NURBS::NURBSRectangled nurbs_plugin::surfaceFit( SurfaceMeshModel * part )
 
 	{
 		//ModifiedButterfly subdiv;
-		//Surface_mesh & ll = *(Surface_mesh*)submesh;
-		//subdiv.subdivide(ll,1,true);
+		//subdiv.subdivide((*(Surface_mesh*)submesh),1);
 	}
 
 	
@@ -1033,7 +1034,7 @@ NURBS::NURBSRectangled nurbs_plugin::surfaceFit( SurfaceMeshModel * part )
 		Vector3FaceProperty fcenter = helper.computeFaceBarycenters();
 		foreach(Face f, submesh->faces()){
 			//if(submesh->is_boundary(f))
-			//vs.addVector(fcenter[f],bf.fgradient[f]);
+			vs.addVector(fcenter[f],bf.fgradient[f]);
 		}
 
 		drawArea()->addRenderObject( new LineSegments(bf.ls) );
@@ -1041,7 +1042,7 @@ NURBS::NURBSRectangled nurbs_plugin::surfaceFit( SurfaceMeshModel * part )
 		foreach(Vertex v, submesh->vertices()){
 			//if(submesh->is_boundary(v))
 			//	vs.addVector(sub_points[v],bf.vdirection[v]);
-			vs.addVector(sub_points[v],bf.vgradient[v]);
+			//vs.addVector(sub_points[v],bf.vgradient[v]);
 		}
 
 		for(int i = 0; i < (int)bf.debugPoints2.size(); i++)

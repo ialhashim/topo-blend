@@ -19,7 +19,7 @@ struct BoundaryFitting{
 
 	void normalize( SurfaceMesh::ScalarVertexProperty & vprop );
 
-	void gradientFaces( ScalarVertexProperty & functionVal, bool isSmooth = true, bool isNormalizeNegateGradient = true);
+	void gradientFaces( ScalarVertexProperty & functionVal, bool isSmooth = true, bool isNormalizeNegateGradient = true );
 	QVector<SurfaceMesh::Vertex> neighbours( int start, int range, QVector<SurfaceMesh::Vertex> all );
 
 	SurfaceMesh::Halfedge get_halfedge(SurfaceMesh::Vertex start, SurfaceMesh::Vertex end);
