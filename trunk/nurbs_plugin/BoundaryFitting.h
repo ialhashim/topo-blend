@@ -8,9 +8,9 @@
 typedef QPair<Halfedge,double> HalfedgeTime;
 typedef QMap<double, HalfedgeTime > DistanceHalfedge;
 
-struct BoundaryFitting2{
+struct BoundaryFitting{
 
-	BoundaryFitting2::BoundaryFitting2( SurfaceMeshModel * mesh = NULL, int numSegments = 20, int numSegmentsV = -1);
+	BoundaryFitting::BoundaryFitting( SurfaceMeshModel * mesh = NULL, int numSegments = 20, int numSegmentsV = -1);
 	void doFit();
 
 	std::vector<SurfaceMesh::Vertex> collectRings( SurfaceMesh::Vertex v, size_t min_nb, bool isBoundary = false );
