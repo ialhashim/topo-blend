@@ -86,7 +86,7 @@ protected:
 	}
 
 public:
-	bool subdivide( Surface_mesh& _m, size_t _n , const bool _update_points = true)
+	bool subdivide( Surface_mesh& _m, size_t _n )
 	{
 		prepare(_m);
 

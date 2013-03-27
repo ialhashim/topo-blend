@@ -31,6 +31,7 @@ BoundaryFitting::BoundaryFitting( SurfaceMeshModel * mesh, int numSegments, int 
 	foreach(Vertex v, part->vertices()) tree.addPoint(points[v]);
 	tree.build();
 
+
 	doFit();
 }
 
@@ -303,6 +304,7 @@ void BoundaryFitting::doFit()
 			}
 		}
 		
+		// Rotate so that first element is first in some group
 		std::rotate( boundry.begin(), boundry.begin() + first_group_idx, boundry.end() );
 		foreach(Vertex v, boundry)	sortedGroups[itemGroup[v.idx()]].push_back( v.idx() );
 
@@ -314,7 +316,7 @@ void BoundaryFitting::doFit()
 
 		// Shortest paths
 		{
-			int startGroup = 1;
+			int startGroup = countGroup.values().back();
 
 			Vertex v1 = Vertex(sortedGroups[(startGroup + 0) % 4].front());
 			Vertex v2 = Vertex(sortedGroups[(startGroup + 1) % 4].front());
@@ -327,22 +329,63 @@ void BoundaryFitting::doFit()
 			corners.push_back(points[v4]);
 
 			// Draw rectangle
-			foreach(Vector3 p, geodesicPath( points[ v1 ], points[v2] ))	debugPoints.push_back(p);
-			foreach(Vector3 p, geodesicPath( points[ v2 ], points[v3] ))	debugPoints.push_back(p);
-			foreach(Vector3 p, geodesicPath( points[ v3 ], points[v4] ))	debugPoints.push_back(p);
-			foreach(Vector3 p, geodesicPath( points[ v4 ], points[v1] ))	debugPoints.push_back(p);
+			//foreach(Vector3 p, geodesicPath( points[ v1 ], points[v2] ))	debugPoints.push_back(p);
+			//foreach(Vector3 p, geodesicPath( points[ v2 ], points[v3] ))	debugPoints.push_back(p);
+			//foreach(Vector3 p, geodesicPath( points[ v3 ], points[v4] ))	debugPoints.push_back(p);
+			//foreach(Vector3 p, geodesicPath( points[ v4 ], points[v1] ))	debugPoints.push_back(p);
 
-			// Extract fitted surface
-			std::vector<Vec3d> startPath, endPath;
-			foreach(Vector3 p, geodesicPath(points[ v1 ], points[ v2 ]))	startPath.push_back(p);
-			foreach(Vector3 p, geodesicPath(points[ v4 ], points[ v3 ]))	endPath.push_back(p);
-
-			if(segmentsV < 0) segmentsV = segments;
-
-			std::vector< std::vector<Vec3d> > paths = geodesicPaths(startPath, endPath, segments);
-			foreach(std::vector<Vec3d> path, paths)
+			//// Extract fitted surface
+			//if( false )
 			{
-				lines.push_back( equidistLine(path, segments) );
+				std::vector<Vec3d> startPath, endPath;
+				foreach(Vector3 p, geodesicPath(points[ v1 ], points[ v2 ]))	startPath.push_back(p);
+				foreach(Vector3 p, geodesicPath(points[ v4 ], points[ v3 ]))	endPath.push_back(p);
+
+				if(segmentsV < 0) segmentsV = segments;
+
+				std::vector< std::vector<Vec3d> > paths = geodesicPaths(startPath, endPath, segments);
+				foreach(std::vector<Vec3d> path, paths)
+				{
+					lines.push_back( equidistLine(path, segmentsV) );
+				}
+			}
+
+			/// Post-processing
+			if( lines.empty() ) return;
+
+			// Smooth inner points
+			{
+				// Boundary smoothing once
+				Array2D_Vector3 smoothed = lines;
+
+				// Boundary smoothing ?
+				if( true )
+				{
+					for(int u = 1; u < ((int)lines.size()) - 1; u++){
+						int m = 0, n = lines.front().size()-1;
+						smoothed[u][m] = (smoothed[u-1][m] + smoothed[u+1][m]) / 2.0;
+						smoothed[u][n] = (smoothed[u-1][n] + smoothed[u+1][n]) / 2.0;
+					}
+					for(int v = 1; v < ((int)lines.front().size()) - 1; v++){
+						int m = 0, n = lines.size()-1;
+						smoothed[m][v] = (smoothed[m][v-1] + smoothed[m][v+1]) / 2.0;
+						smoothed[n][v] = (smoothed[n][v-1] + smoothed[n][v+1]) / 2.0;
+					}
+					lines = smoothed;
+				}
+
+				// Inner smoothing
+				int smoothIters = 2;
+				for(int itr = 0; itr < smoothIters; itr++)
+				{
+					for(int u = 1; u < ((int)lines.size()) - 1; u++){
+						for(int v = 1; v < ((int)lines.front().size()) - 1; v++){
+							smoothed[u][v] = ( smoothed[u-1][v] + smoothed[u+1][v] + smoothed[u][v-1] + smoothed[u][v+1] ) / 4.0;
+						}
+					}
+
+					lines = smoothed;
+				}
 			}
 		}
 
@@ -371,11 +414,6 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 		toPoints = equidistLine(toPoints, segments);
 	}
 
-	//// Use a single distance map for all points
-	//GeoHeatHelper geoDist(part);
-	//ScalarVertexProperty d = geoDist.getUniformDistance( vertSet );
-	//gradientFaces(d, false, true);
-
 	for(int sid = 0; sid < (int)fromPoints.size(); sid++)
 	{
 		std::vector<Vec3d> path;
@@ -393,6 +431,7 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 		// Single source
 		QSet<Vertex> mySet; mySet.insert( endVertex );
 		GeoHeatHelper geoDist(part);
+		geoDist.t_factor *= 50;
 		ScalarVertexProperty d = geoDist.getUniformDistance( mySet );
 		gradientFaces(d, false, true);
 
@@ -407,17 +446,30 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 		// Add start point to path
 		path.push_back( fromPoint );
 
+		// Constant flow toward end of path
+		bool isConstant = false;
+		Vector3 constantDirection(0);
+
 		while( true )
 		{
 			Vector3 prevPoint = path.back();
 			Vector3 direction = fgradient[prevF];
 
-			//std::vector<Vec3d> vpt = trianglePoints( prevF );
-			//std::vector<Vertex> vrt = triangleVertices( prevF );
-			//Vec3d A=vpt[0],B=vpt[1],C=vpt[2];
-			//Vector3 direction = get_barycentric(barycentric(prevPoint,A,B,C),
-			//vgradient[vrt[0]],vgradient[vrt[1]],vgradient[vrt[2]]);
-
+			// Hack: to smooth out path ends..
+			//if(isConstant) 
+			//	direction = constantDirection;
+			//else
+			//{
+			//	std::vector<Vertex> vrt = triangleVertices( prevF );
+			//	foreach(Vertex v, vrt){
+			//		if(!isConstant && d[v] < 0.05){
+			//			isConstant = true;
+			//			constantDirection = direction;
+			//			break;
+			//		}
+			//	}
+			//}
+		
 			// Special boundary case
 			if( !f.is_valid() ) 
 			{
@@ -427,7 +479,7 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 				Vector3 Ri = direction;
 
 				// Reflect ray with bias
-				direction = ( Ri - ( N * 1.5 * dot(Ri,N) ) ).normalized();
+				direction = ( Ri - ( N * 1.1 * dot(Ri,N) ) ).normalized();
 				f = prevF;
 			}
 			else
@@ -440,8 +492,23 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 			bestTime = 0.0;
 			bestEdge = getBestEdge( prevPoint, direction, f, bestTime );
 
+			if( evisited[part->edge(bestEdge)] )
+			{
+				// Get approximate path via vertices and jump ahead
+				std::vector<Vertex> curPath = geoDist.shortestVertexPath(Vertex(tree.closest(prevPoint)));
+				int idx = 0.9 * curPath.size();
+				Vertex skipVert = curPath[idx];
+				f = getBestFace(points[skipVert], skipVert);
+				if(f == prevF) break;
+				prevF = f;
+				path.back() = fcenter[f];
+				if(f == endFace) break;
+				continue;
+			}
+
 			// Didn't find a good edge
-			if(bestTime < 0.0 || evisited[part->edge(bestEdge)]) break;
+			if(bestTime < 0.0) break;
+			else evisited[ part->edge(bestEdge) ] = true;
 
 			Vertex a = part->from_vertex(bestEdge);
 			Vertex b = part->to_vertex(bestEdge);
@@ -454,20 +521,18 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 
 			path.push_back( ipoint );
 
-			evisited[part->edge(bestEdge)] = true;
-
 			prevF = f;
 			f = part->face(part->opposite_halfedge( bestEdge ));
 
 			// Reached end face
 			if(endFace == f)
 			{
-				//path.push_back( toPoint );
+				path.push_back( toPoint );
 				break;
 			}
 		}
 
-		paths.push_back(path);
+		paths.push_back( path );
 	}
 
 	return paths;
@@ -658,7 +723,7 @@ QVector<Vertex> BoundaryFitting::boundaryVerts()
 	return boundary_verts;
 }
 
-void BoundaryFitting::gradientFaces( ScalarVertexProperty & functionVal, bool isSmooth, bool isNormalizeNegateGradient)
+void BoundaryFitting::gradientFaces( ScalarVertexProperty & functionVal, bool isSmooth, bool isNormalizeNegateGradient )
 {
 	SurfaceMeshHelper h(part);
 	Vector3FaceProperty fnormal = h.computeFaceNormals();
@@ -728,7 +793,6 @@ void BoundaryFitting::gradientFaces( ScalarVertexProperty & functionVal, bool is
 			}
 		}
 	}
-
 
 	// Assign vertex gradient from adjacent faces
 	foreach( Vertex v, part->vertices() ){
