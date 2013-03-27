@@ -36,10 +36,13 @@ HEADERS += nurbs_plugin.h \
     nurbstools.h \
     OBB_Volume.h \
     PCA3.h \
-    LSCM.h
+    LSCM.h \
+	BoundaryFitting.h
 
 SOURCES += nurbs_plugin.cpp \
-    nurbstools.cpp
+    nurbstools.cpp \
+	BoundaryFitting.cpp
+	
 RESOURCES += nurbs_plugin.qrc
 
 FORMS += \
