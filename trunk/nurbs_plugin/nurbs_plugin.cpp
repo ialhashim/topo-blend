@@ -7,9 +7,9 @@
 #include "NanoKdTree.h"
 #include "StructureGraph.h"
 
-#include "interfaces/ModePluginDockWidget.h"
+#include "BoundaryFitting2.h"
 
-#include "BoundaryFitting.h"
+#include "interfaces/ModePluginDockWidget.h"
 
 QVector<QColor> randColors;
 
@@ -33,7 +33,6 @@ LineSegments lseg;
 #include "PCA.h"
 #include "SimilarSampling.h"
 #include "GenericGraph.h"
-#include "BoundaryFitting2.h"
 #include "StructureGraph.h"
 
 #define RADIANS(deg)    ((deg)/180.0 * M_PI)
