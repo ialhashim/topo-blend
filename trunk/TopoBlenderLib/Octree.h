@@ -16,14 +16,14 @@ typedef IndexSet::iterator IndexSetIter;
 class Octree
 {
 public:
-	std::vector<Octree> children;
-	std::vector<Surface_mesh::Face> triangleData;
 	Surface_mesh * mesh;
 	Surface_mesh::Vertex_property<Vec3d> points;
 
 public:
 	BoundingBox boundingBox;
 	int trianglePerNode;
+	std::vector<Octree> children;
+	std::vector<Surface_mesh::Face> triangleData;
 
 	Octree(){ trianglePerNode = -1; parent = NULL; mesh = NULL; }
     Octree( int triPerNode, const BoundingBox& bb, const std::vector<Surface_mesh::Face>& tris, Surface_mesh * useMesh );

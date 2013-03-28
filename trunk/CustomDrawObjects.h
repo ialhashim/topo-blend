@@ -134,6 +134,7 @@ public:
 
 class PointSoup : public RenderObject::Base{
 	QVector< QVector3D > points;
+	QVector< QVector3D > normals;
 	QVector< QColor > points_colors;
 public:
 	PointSoup(float size = 6.0f):RenderObject::Base(size, Qt::black){}
@@ -145,16 +146,23 @@ public:
 
 	virtual void draw(){
 		glDisable(GL_LIGHTING);
+		if(normals.size()) glEnable(GL_LIGHTING);
 
 		glPointSize(_size);
 		glBegin(GL_POINTS);
 		for(int i = 0; i < (int) points.size(); i++){
+			if(normals.size()) glNormal3d(normals[i].x(),normals[i].y(),normals[i].z());
 			glColorQt(points_colors[i]);
 			glVertQt(points[i]);
 		}
 		glEnd();
 
 		glEnable(GL_LIGHTING);
+	}
+
+	void addPointNormal(const QVector3D& p, const QVector3D& n, const QColor& c = Qt::blue){
+		addPoint(p,c);
+		normals.push_back(n);
 	}
 
 	void addPoint(const QVector3D& p, const QColor& c = Qt::blue){
@@ -461,6 +469,7 @@ public:
 
 	void clear(){
 		centers.clear();
+		radii.clear();
 		colors.clear();
 	}
 
@@ -476,6 +485,92 @@ public:
 	void addSphere(const QVector3D& center, float radius, const QColor& c = Qt::yellow){
 		centers.push_back(center);
 		radii.push_back(radius);
+		colors.push_back(c);
+	}
+};
+
+class CubeSoup : public RenderObject::Base{
+	QVector< QVector3D > centers;
+	QVector< float > lengths;
+	QVector< QColor > colors;
+	bool isWireframe;
+
+public:
+	CubeSoup(float defaultSize = 1.0, bool is_wireframe = true):RenderObject::Base(defaultSize, Qt::black)
+	{ isWireframe = is_wireframe; }
+
+	void clear(){
+		centers.clear();
+		lengths.clear();
+		colors.clear();
+	}
+
+	void drawCube(QVector3D center, double length = 1.0)
+	{
+		static GLdouble n[6][3] =
+		{{-1.0, 0.0, 0.0},
+		{0.0, 1.0, 0.0},
+		{1.0, 0.0, 0.0},
+		{0.0, -1.0, 0.0},
+		{0.0, 0.0, 1.0},
+		{0.0, 0.0, -1.0}};
+
+		static GLint faces[6][4] =
+		{{0, 1, 2, 3},
+		{3, 2, 6, 7},
+		{7, 6, 5, 4},
+		{4, 5, 1, 0},
+		{5, 6, 2, 1},
+		{7, 4, 0, 3}};
+
+		GLdouble v[8][3]; GLint i;
+
+		v[0][0] = v[1][0] = v[2][0] = v[3][0] = -length / 2;
+		v[4][0] = v[5][0] = v[6][0] = v[7][0] = length / 2;
+		v[0][1] = v[1][1] = v[4][1] = v[5][1] = -length / 2;
+		v[2][1] = v[3][1] = v[6][1] = v[7][1] = length / 2;
+		v[0][2] = v[3][2] = v[4][2] = v[7][2] = -length / 2;
+		v[1][2] = v[2][2] = v[5][2] = v[6][2] = length / 2;
+
+		glPushMatrix();
+		glTranslatef(center.x(), center.y(), center.z());
+
+		for (i = 0; i < 6; i++) 
+		{
+			glBegin(GL_QUADS);
+			glNormal3dv(&n[i][0]);
+			glVertex3dv(&v[faces[i][0]][0]);
+			glVertex3dv(&v[faces[i][1]][0]);
+			glVertex3dv(&v[faces[i][2]][0]);
+			glVertex3dv(&v[faces[i][3]][0]);
+			glEnd();
+		}
+
+		glPopMatrix();
+	}
+
+	virtual void draw()
+	{
+		glEnable(GL_LIGHTING);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		
+		if(isWireframe){
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glDisable(GL_LIGHTING);
+		}
+
+		for(int i = 0; i < (int) centers.size(); i++){
+			glColorQt(colors[i]);
+			drawCube(centers[i],lengths[i]);
+		}
+
+		glEnable(GL_LIGHTING);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+
+	void addCube(const QVector3D& center, float length = 1, const QColor& c = Qt::yellow){
+		centers.push_back(center);
+		lengths.push_back(length * _size);
 		colors.push_back(c);
 	}
 };

@@ -35,8 +35,6 @@ LineSegments lseg;
 #include "GenericGraph.h"
 #include "StructureGraph.h"
 
-#include "ModifiedButterflySubdivision.h"
-
 #define RADIANS(deg)    ((deg)/180.0 * M_PI)
 
 std::vector<Vec3d> polyline;
