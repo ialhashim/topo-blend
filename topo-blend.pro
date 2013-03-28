@@ -15,14 +15,13 @@ SUBDIRS += segment
 SUBDIRS += dynamic_voxel
 SUBDIRS += voxel_resampler
 SUBDIRS += nurbs_plugin
-#SUBDIRS += geometry_morph
+SUBDIRS += visiblity_resampler
 
 SUBDIRS += topo-blend # Main UI for topo-blending
 
 # Dependecy map
 nurbs_plugin.depends = NURBS
 dynamic_voxel.depends = DynamicVoxel
-geometry_morph.depends = MorpherLib
 topo-blend.depends = GlSplatRendererLib NURBS DynamicVoxel TopoBlenderLib MorpherLib 
 
 # OpenMP
