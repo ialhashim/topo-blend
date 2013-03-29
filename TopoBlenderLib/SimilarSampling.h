@@ -7,7 +7,7 @@ struct SimilarSampler{
 	// Similar Triangles sampling. [Meshlab]
 	// Skip vertex and edges
 	// Sample per edges includes vertexes, so here we should expect n_samples_per_edge >=4 
-	static QVector<Vector3> FaceSamples(SurfaceMeshModel * m, int sampleNum = 100000)
+	static QVector<Vector3> FaceSamples(SurfaceMeshModel * m, int sampleNum, QVector<Vector3> & samplesNormals)
 	{	
 		QVector<Vector3> samples;
 
@@ -16,6 +16,7 @@ struct SimilarSampler{
 		SurfaceMeshHelper h( m );
 		h.computeFaceAreas();
 		ScalarFaceProperty farea = m->face_property<Scalar>(FAREA);
+		Vector3FaceProperty fnormals = h.computeFaceNormals();
 		foreach(Face f, m->faces()) area += farea[f];
 		
 		Scalar samplePerAreaUnit = sampleNum / area;
@@ -54,6 +55,7 @@ struct SimilarSampler{
 						do{ p += points[vit] * uvw[vi++]; } while(++vit != vend);
 
 						samples.push_back( p );
+						samplesNormals.push_back( fnormals[f] );
 						n_samples++;
 					}
 				}
@@ -64,7 +66,13 @@ struct SimilarSampler{
 		return samples;
 	}
 
-	static QVector<Vector3> EdgeUniform(SurfaceMeshModel * m, int sampleNum = 100000)
+	static QVector<Vector3> FaceSamples(SurfaceMeshModel * m, int sampleNum = 100000)
+	{
+		QVector<Vector3> samplesNormals;
+		return FaceSamples(m, sampleNum, samplesNormals);
+	}
+
+	static QVector<Vector3> EdgeUniform(SurfaceMeshModel * m, int sampleNum, QVector<Vector3> & samplesNormals)
 	{	
 		QVector<Vector3> samples;
 
@@ -72,6 +80,9 @@ struct SimilarSampler{
 
 		// Mesh points
 		Vector3VertexProperty points = h.getVector3VertexProperty(VPOINT);
+
+		// Face normals
+		Vector3FaceProperty fnormals = h.computeFaceNormals();
 
 		// First loop compute total edge lenght;
 		Scalar edgeSum = 0;
@@ -92,27 +103,68 @@ struct SimilarSampler{
 				Scalar alpha = step*(i+1); 
 				Scalar beta = 1.0 - step*(i+1);
 				samples.push_back( (alpha * points[m->vertex(ei,0)]) + (beta * points[m->vertex(ei,1)]) );
+
+				// Normal = average of adj faces
+				{
+					Vec3d normal(0);
+					Face f1 = m->face(m->halfedge(ei,0)),f2 = m->face(m->halfedge(ei,1));
+					if(f1.is_valid()) normal += fnormals[f1];
+					if(f2.is_valid()) normal += fnormals[f1];
+					if(f1.is_valid() && f2.is_valid()) normal /= 2.0;
+
+					samplesNormals.push_back( normal );
+				}
 			}
 		}
 
 		return samples;
 	}
 
-	static QVector<Vector3> Vertices(SurfaceMeshModel * m)
+	static QVector<Vector3> EdgeUniform(SurfaceMeshModel * m, int sampleNum = 100000)
+	{
+		QVector<Vector3> samplesNormals;
+		return EdgeUniform(m, sampleNum, samplesNormals);
+	}
+
+	static QVector<Vector3> Vertices(SurfaceMeshModel * m, QVector<Vector3> & samplesNormals)
 	{	
 		QVector<Vector3> samples;
 
 		// Mesh points
 		Vector3VertexProperty points = m->vertex_property<Vector3>(VPOINT);
 
-		foreach(Vertex v, m->vertices()) samples.push_back(points[v]);
+		// Normals
+		m->update_face_normals();
+		m->update_vertex_normals();
+		Vector3VertexProperty normals = m->vertex_property<Vector3>(VNORMAL);
+
+		foreach(Vertex v, m->vertices()) 
+		{
+			samples.push_back(points[v]);
+			samplesNormals.push_back(normals[v]);
+		}
+
+		return samples;
+	}
+
+	static QVector<Vector3> Vertices(SurfaceMeshModel * m)
+	{
+		QVector<Vector3> samplesNormals;
+		return Vertices(m, samplesNormals);
+	}
+
+	static QVector<Vector3> All(SurfaceMeshModel * m, int sampleNum, QVector<Vector3> & samplesNormals){
+		QVector<Vector3> samples;
+
+		samples += SimilarSampler::FaceSamples( m, sampleNum, samplesNormals );
+		samples += SimilarSampler::EdgeUniform( m, sampleNum / 4, samplesNormals );
+		samples += SimilarSampler::Vertices( m, samplesNormals );
 
 		return samples;
 	}
 
 	static QVector<Vector3> All(SurfaceMeshModel * m, int sampleNum = 100000){
-		return	SimilarSampler::FaceSamples( m, sampleNum ) + 
-				SimilarSampler::EdgeUniform( m, sampleNum / 3 ) + 
-				SimilarSampler::Vertices( m );
+		QVector<Vector3> samplesNormals;
+		return All(m,sampleNum,samplesNormals);
 	}
 };

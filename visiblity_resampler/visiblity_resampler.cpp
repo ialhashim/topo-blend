@@ -5,6 +5,7 @@
 #include "../CustomDrawObjects.h"
 #include "../TopoBlenderLib/Sampler.h"
 #include "../TopoBlenderLib/Sampler.cpp"
+#include "../TopoBlenderLib/SimilarSampling.h"
 
 // OpenMP
 #include <omp.h>
@@ -27,6 +28,7 @@ void traverseOctree( Octree & octree, CubeSoup & cs )
 
 void visiblity_resampler::initParameters(RichParameterSet *pars)
 {
+	pars->addParam(new RichBool("uniformSampling",true,"Uniform sampling"));
     pars->addParam(new RichBool("saveFileXYZ",true,"Save points to XYZ file"));
 	pars->addParam(new RichBool("addModel",false,"Add as layer"));
 	pars->addParam(new RichBool("viz",true,"Visualize"));
@@ -105,7 +107,6 @@ void visiblity_resampler::applyFilter(RichParameterSet *pars)
 {		
 	SurfaceMeshHelper h(mesh());
 	Vector3VertexProperty points = mesh()->vertex_property<Vector3>(VPOINT);
-	Vector3FaceProperty fnormals = h.computeFaceNormals();
 
 	double surfaceOffset = 1e-6;
 
@@ -114,8 +115,22 @@ void visiblity_resampler::applyFilter(RichParameterSet *pars)
 	std::vector<Vec3d> sphere = uniformSampleSphere( 5 );
 	int rayCount = sphere.size();
 
-	Sampler sampler(mesh());
-	std::vector<SamplePoint> all_samples = sampler.getSamples( pars->getInt("randSamples") );
+	std::vector<SamplePoint> all_samples;
+
+	if( pars->getBool("uniformSampling") )
+	{
+		// Similar sampling
+		QVector<Vec3d> points, normals;
+		points = SimilarSampler::All(mesh(),pars->getInt("randSamples"),normals);
+		for(int i = 0; i < (int)points.size(); i++)
+			all_samples.push_back(SamplePoint(points[i],normals[i]));
+	}
+	else
+	{
+		// Random sampling
+		Sampler sampler(mesh());
+		all_samples = sampler.getSamples( pars->getInt("randSamples") );
+	}
 
 	int N = (int) all_samples.size();
 	std::vector<bool> isUse(N,false);
@@ -179,13 +194,13 @@ void visiblity_resampler::applyFilter(RichParameterSet *pars)
 
 		const SamplePoint& sp = used_samples[i];
 
-		if(pars->getBool("viz")) ps->addPointNormal( Vec3d(sp.pos), fnormals[Face(sp.findex)] );
+		if(pars->getBool("viz")) ps->addPointNormal( Vec3d(sp.pos), Vec3d(sp.n) );
 		if(pars->getBool("addModel")) m->add_vertex( sp.pos );
 
 		if(pars->getBool("saveFileXYZ"))
 		{
 			Vec3d p = sp.pos;
-			Vec3d n = fnormals[Face(sp.findex)];
+			Vec3d n = sp.n;
 			(*out) << QString("%1 %2 %3 %4 %5 %6\n").arg(p[0]).arg(p[1]).arg(p[2]).arg(n[0]).arg(n[1]).arg(n[2]);
 		}
 
