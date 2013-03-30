@@ -325,3 +325,42 @@ static void saveOBJ(SurfaceMesh::Model * mesh, QString filename)
 	}
 	file.close();
 }
+
+static void combineMeshes( QStringList filenames, QString outputFilename )
+{
+	QFile file(outputFilename);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+	QTextStream out(&file);
+
+	int v_offset = 0;
+
+	foreach(QString filename, filenames)
+	{
+		QFileInfo fileInfo(filename);
+
+		SurfaceMesh::SurfaceMeshModel * m = new SurfaceMesh::SurfaceMeshModel;
+		m->read( qPrintable(filename) );
+		Vector3VertexProperty points = m->vertex_property<Vector3>(VPOINT);
+
+		out << "# Start of mesh " << fileInfo.baseName() << "\n";
+
+		// Vertices
+		foreach( Vertex v, m->vertices() )
+			out << "v " << points[v][0] << " " << points[v][1] << " " << points[v][2] << "\n";
+
+		// Triangles
+		out << "g " << fileInfo.baseName() << "\n";
+		foreach( Face f, m->faces() ){
+			out << "f ";
+			Surface_mesh::Vertex_around_face_circulator fvit = m->vertices(f), fvend = fvit;
+			do{	out << (((Surface_mesh::Vertex)fvit).idx() + 1 + v_offset) << " ";} while (++fvit != fvend);
+			out << "\n";
+		}
+
+		v_offset += m->n_vertices();
+
+		out << "# End of mesh " << fileInfo.baseName() ;
+
+		QFileInfo info(filename);
+	}
+}

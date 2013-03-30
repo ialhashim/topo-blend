@@ -17,6 +17,8 @@ public:
     explicit topo_blend_widget(topoblend * topo_blend, QWidget *parent = 0);
     ~topo_blend_widget();
 
+	int synthesisSamplesCount();
+
 public slots:
     void renderViewer();
     void renderAnimation();
@@ -29,6 +31,6 @@ public slots:
 	void setCheckOption(QString optionName);
 
 private:
-    Ui::topo_blend_widget *ui;
+	Ui::topo_blend_widget *ui;
     topoblend * tb;
 };

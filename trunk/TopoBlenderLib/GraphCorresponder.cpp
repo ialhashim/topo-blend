@@ -41,7 +41,7 @@ QString GraphCorresponder::tgName()
 
 // Matrix operations
 template <class Type>
-std::vector<std::vector<Type> > GraphCorresponder::transpose(const std::vector<std::vector<Type> > data) 
+static std::vector<std::vector<Type> > GraphCorresponder::transpose(const std::vector<std::vector<Type> > data) 
 {
 	// this assumes that all inner vectors have the same size and
 	// allocates space for the complete result in advance
@@ -768,12 +768,12 @@ void GraphCorresponder::correspondTwoNodes( Structure::Node *sNode, Structure::N
 	}
 
 	if (sNode->type() == Structure::SHEET)
-		correspondTwoSheets((Structure::Sheet*) sNode, (Structure::Sheet*) tNode);
+		correspondTwoSheets((Structure::Sheet*) sNode, (Structure::Sheet*) tNode, tg);
 	else
-		correspondTwoCurves((Structure::Curve*) sNode, (Structure::Curve*) tNode);
+		correspondTwoCurves((Structure::Curve*) sNode, (Structure::Curve*) tNode, tg);
 }
 
-void GraphCorresponder::correspondTwoCurves( Structure::Curve *sCurve, Structure::Curve *tCurve )
+void GraphCorresponder::correspondTwoCurves( Structure::Curve *sCurve, Structure::Curve *tCurve, Structure::Graph * tgt )
 {
 	std::vector<Vector3> sCtrlPoint = sCurve->controlPoints();
 	std::vector<Vector3> tCtrlPoint = tCurve->controlPoints();
@@ -799,14 +799,14 @@ void GraphCorresponder::correspondTwoCurves( Structure::Curve *sCurve, Structure
 		tCurve->curve = newCurve;
 
 		// Update the coordinates of links
-		foreach( Structure::Link * l, tg->getEdges(tCurve->id) )
+		foreach( Structure::Link * l, tgt->getEdges(tCurve->id) )
 		{
 			l->setCoord(tCurve->id, inverseCoords( l->getCoord(tCurve->id) ));
 		}
 	}
 }
 
-void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure::Sheet *tSheet )
+void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure::Sheet *tSheet, Structure::Graph * tgt)
 {
 	// Old properties
     NURBS::NURBSRectangled &oldRect = tSheet->surface;
@@ -860,7 +860,7 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 		isModified = true;
 
 		// Update the coordinates of links
-		foreach( Structure::Link * l, tg->getEdges(tSheet->id) ){
+		foreach( Structure::Link * l, tgt->getEdges(tSheet->id) ){
 			std::vector<Vec4d> oldCoord = l->getCoord(tSheet->id), newCoord;
 			foreach(Vec4d c, oldCoord) newCoord.push_back(Vec4d(1-c[0], c[1], c[2], c[3]));
 			l->setCoord(tSheet->id, newCoord);
@@ -899,7 +899,7 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 		isModified = true;
 
 		// Update the coordinates of links
-		foreach( Structure::Link * l, tg->getEdges(tSheet->id) ){
+		foreach( Structure::Link * l, tgt->getEdges(tSheet->id) ){
 			std::vector<Vec4d> oldCoord = l->getCoord(tSheet->id), newCoord;
 			foreach(Vec4d c, oldCoord) newCoord.push_back(Vec4d(1-c[0], 1-c[1], c[2], c[3]));
 			l->setCoord(tSheet->id, newCoord);
@@ -922,7 +922,7 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 			std::reverse(tCtrlWeightNew.begin(), tCtrlWeightNew.end());
 
 			// Update the coordinates of links
-			foreach( Structure::Link * l, tg->getEdges(tSheet->id) ){
+			foreach( Structure::Link * l, tgt->getEdges(tSheet->id) ){
 				std::vector<Vec4d> oldCoord = l->getCoord(tSheet->id), newCoord;
 				foreach(Vec4d c, oldCoord) newCoord.push_back(Vec4d(1- c[1], c[0], c[2], c[3]));
 				l->setCoord(tSheet->id, newCoord);
@@ -941,7 +941,7 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 			tCtrlWeightNew = transpose<Scalar>(tCtrlWeight);
 
 			// Update the coordinates of links
-			foreach( Structure::Link * l, tg->getEdges(tSheet->id) ){
+			foreach( Structure::Link * l, tgt->getEdges(tSheet->id) ){
 				std::vector<Vec4d> oldCoord = l->getCoord(tSheet->id), newCoord;
 				foreach(Vec4d c, oldCoord) newCoord.push_back(Vec4d(c[1], 1- c[0], c[2], c[3]));
 				l->setCoord(tSheet->id, newCoord);

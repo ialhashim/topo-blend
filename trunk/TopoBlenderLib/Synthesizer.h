@@ -6,6 +6,9 @@ using namespace Structure;
 #include "Octree.h"
 #include "RMF.h"
 
+extern int randomCount;
+extern int uniformTriCount;
+
 struct ParameterCoord{
 	double u, v;
 	double theta, psi;

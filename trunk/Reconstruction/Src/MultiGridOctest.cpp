@@ -233,7 +233,7 @@ void writeOFF(char* fileName, CoredMeshData* mesh)
 
 	file = fopen (fileName,"w");
 
-	fprintf (file, "OFF %d %d 0\n", nr_vertices, nr_faces);
+	fprintf (file, "OFF\n%d %d 0\n", nr_vertices, nr_faces);
 
 	int i = 0;
 

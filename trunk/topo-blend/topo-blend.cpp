@@ -600,6 +600,7 @@ void topoblend::loadModel()
 		Structure::Graph * g = new Structure::Graph ( file );
 
 		g->normalize();
+		g->moveBottomCenterToOrigin();
 
 		graphs.push_back( g );
 	}
@@ -616,10 +617,26 @@ void topoblend::saveModel()
 		return;
 	}
 
-	QString filename = QFileDialog::getSaveFileName(0, tr("Save Model"), 
-		mainWindow()->settings()->getString("lastUsedDirectory"), tr("Model Files (*.xml)"));
+	foreach(Structure::Graph * g, graphs)
+		g->setColorAll(Qt::lightGray);
 
-	graphs.front()->saveToFile(filename);
+	foreach(Structure::Graph * g, graphs)
+	{
+		// Highlight selected graph
+		g->setColorAll(Qt::yellow);
+		drawArea()->updateGL();
+
+		QString filename = QFileDialog::getSaveFileName(0, tr("Save Model"), 
+			g->property["name"].toString(), tr("Model Files (*.xml)"));
+
+		// Un-highlight
+		g->setColorAll(Qt::lightGray);
+
+		if(filename.isEmpty()) 	continue;
+
+		g->saveToFile(filename);
+	}
+
 }
 
 void topoblend::modifyModel()
@@ -961,7 +978,7 @@ void topoblend::testPoint2PointCorrespondences()
 
 	// Realign two sheets
 	if (corresponder())
-		corresponder()->correspondTwoSheets(sSheet, tSheet);
+		corresponder()->correspondTwoSheets(sSheet, tSheet, tg);
 
 	//// Create one curve for each graph
     //NURBSCurved curve1 = NURBSCurved::createCurve(Vector3(0,-1,0), Vector3(0,1,0));
@@ -1026,6 +1043,10 @@ void topoblend::genSynData()
 			Synthesizer::clearSynthData(tgNode); 
 		}
 	}
+	
+	// Number of samples
+	randomCount = widget->synthesisSamplesCount();
+	uniformTriCount = widget->synthesisSamplesCount();
 
 	// Generate synthesis data for each corresponding node
 	foreach(Structure::Node * node, scheduler->activeGraph->nodes)
@@ -1036,7 +1057,8 @@ void topoblend::genSynData()
 			QString tnodeID = node->property["correspond"].toString();
 			Structure::Node * tgNode = scheduler->targetGraph->getNode(tnodeID);
 
-			int sampling_method = Synthesizer::Random | Synthesizer::Features;
+			//int sampling_method = Synthesizer::Random | Synthesizer::Features;
+			int sampling_method = Synthesizer::TriUniform | Synthesizer::Features;
 			//int sampling_method = Synthesizer::Features;
 			//int sampling_method = Synthesizer::Uniform;
 			//int sampling_method = Synthesizer::Remeshing;
@@ -1073,6 +1095,16 @@ void topoblend::genSynData()
 			}
 		}
 
+		// Show results on current source [front] and target [back] graphs
+		{
+			QString nodeID = node->id;
+			QString tnodeID = node->property["correspond"].toString();
+			Structure::Node * tnode = scheduler->targetGraph->getNode(tnodeID);
+
+			if(!nodeID.contains("_null")) Synthesizer::copySynthData(node, graphs.front()->getNode(nodeID.split("_").at(0)));
+			if(!tnodeID.contains("_null")) Synthesizer::copySynthData(tnode, graphs.back()->getNode(tnodeID.split("_").at(0)));
+		}
+		
 		int percent = (double(n) / (numNodes-1) * 100);
 		emit( statusBarMessage(QString("Generating data.. [ %1 % ]").arg(percent)) );
 		n++;
@@ -1222,9 +1254,12 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename )
 	foreach(Structure::Node * node, graph->nodes)
 	{
 		// Skip inactive nodes
-		if(!node->property["isReady"].toBool() || !node->property.contains("cached_points")) continue;
+		if(	node->property["toGrow"].toBool() ||
+			node->property["shrunk"].toBool() || 
+			!node->property.contains("cached_points")) continue;
 
 		QVector<Vec3d> points = node->property["cached_points"].value< QVector<Vec3d> >();
+		QVector<Vec3d> normals = node->property["cached_normals"].value< QVector<Vec3d> >();
 
 		if(!points.size()) continue;
 		std::vector<Vec3d> clean_points;
@@ -1235,8 +1270,7 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename )
 		std::vector<size_t> xrefs;
 		weld(clean_points, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
 
-		QVector<Vec3d> normals;
-		NormalExtrapolation::ExtrapolateNormals(clean_points, normals, num_nighbours);
+		//NormalExtrapolation::ExtrapolateNormals(clean_points, normals, num_nighbours);
 
 		// Send to reconstruction
 		std::vector< std::vector<float> > finalP, finalN;
@@ -1292,5 +1326,29 @@ void topoblend::draftRender()
 	}
 }
 
+void topoblend::reconstructXYZ()
+{
+	QStringList fileNames = QFileDialog::getOpenFileNames(0, tr("Open XYZ File"), 
+		mainWindow()->settings()->getString("lastUsedDirectory"), tr("XYZ Files (*.xyz)"));
+	if(fileNames.isEmpty()) return;
+
+	foreach(QString filename, fileNames)
+	{
+		PoissonRecon::makeFromCloudFile(filename, filename + ".off", 7);
+	}
+}
+
+void topoblend::combineMeshesToOne()
+{
+	QStringList fileNames = QFileDialog::getOpenFileNames(0, tr("Open Mesh File"), 
+		mainWindow()->settings()->getString("lastUsedDirectory"), tr("OFF Files (*.off)"));
+	if(fileNames.isEmpty()) return;
+
+	QString out_filename = QFileDialog::getSaveFileName(0, tr("Save Mesh"), 
+		mainWindow()->settings()->getString("lastUsedDirectory"), tr("OBJ Files (*.obj)"));
+	if(out_filename.isEmpty()) return;
+
+	combineMeshes(fileNames, out_filename);
+}
 
 Q_EXPORT_PLUGIN(topoblend)

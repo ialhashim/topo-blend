@@ -19,7 +19,7 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	ui->groupBox1->setVisible(false);
 
     this->tb = topo_blend;
-
+	
 	// Generate models
     topo_blend->connect(ui->genChairsButton, SIGNAL(clicked()), SLOT(generateChairModels()));
 	topo_blend->connect(ui->genSimpleButton, SIGNAL(clicked()), SLOT(generateTwoSimpleModels()));
@@ -49,6 +49,8 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	topo_blend->connect(ui->saveSynthButton, SIGNAL(clicked()), SLOT(saveSynthesisData()));
 	topo_blend->connect(ui->loadSynthButton, SIGNAL(clicked()), SLOT(loadSynthesisData()));
 	topo_blend->connect(ui->outputCloudButton, SIGNAL(clicked()), SLOT(outputPointCloud()));
+	topo_blend->connect(ui->reconstructButton, SIGNAL(clicked()), SLOT(reconstructXYZ()));
+	topo_blend->connect(ui->combineMeshesButton, SIGNAL(clicked()), SLOT(combineMeshesToOne()));
 
 	// Visualization & default [true] values
 	this->connect(ui->vizButtonGroup, SIGNAL(buttonClicked(QAbstractButton*)),SLOT(vizButtonClicked(QAbstractButton*)));
@@ -171,4 +173,9 @@ void topo_blend_widget::setCheckOption( QString optionName )
 			return;
 		}
 	}
+}
+
+int topo_blend_widget::synthesisSamplesCount()
+{
+	return ui->synthesisSamplesCount->value();
 }

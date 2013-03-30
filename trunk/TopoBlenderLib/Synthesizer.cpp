@@ -35,6 +35,9 @@ bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCo
 
 int global_countt = 0;
 
+int randomCount = RANDOM_COUNT;
+int uniformTriCount = UNIFORM_TRI_SAMPLES;
+
 // Helper functions
 void Synthesizer::sortSamplesCurve( QVector<ParameterCoord> & samples, QVector<int> & oldIndices )
 {
@@ -295,7 +298,7 @@ QVector<ParameterCoord> Synthesizer::genUniformTrisCoords( Structure::Node * nod
 	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
 
 	// Sample mesh surface
-	QVector<Vec3d> sample_points = SimilarSampler::All( model, UNIFORM_TRI_SAMPLES );
+	QVector<Vec3d> sample_points = SimilarSampler::All( model, uniformTriCount );
 	std::vector<Vec3d> samplePoints = sample_points.toStdVector();
 
 	if(node->type() == Structure::CURVE)
@@ -343,7 +346,11 @@ Vec3d Synthesizer::intersectionPoint( const Ray & ray, const Octree * useTree, i
 		}
 	}
 
-	assert(best_res.hit);
+	if(!best_res.hit){
+		qDebug() << "Warning: invalid sample!";
+		isetpoint = Vec3d(0);
+		if(faceIndex) *faceIndex = 0;
+	}
 
 	return isetpoint;
 }
@@ -594,7 +601,7 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 
 		if (s & Synthesizer::Features)	samples += genFeatureCoords(curve1) + genFeatureCoords(curve2);
 		if (s & Synthesizer::Edges)		samples += genEdgeCoords(curve1) + genEdgeCoords(curve2);
-		if (s & Synthesizer::Random)	samples += genRandomCoords(curve1, RANDOM_COUNT) + genRandomCoords(curve2, RANDOM_COUNT);
+		if (s & Synthesizer::Random)	samples += genRandomCoords(curve1, randomCount) + genRandomCoords(curve2, randomCount);
 		if (s & Synthesizer::Uniform)	samples += genUniformCoords(curve1) + genUniformCoords(curve2);
 		if (s & Synthesizer::Remeshing)	samples += genRemeshCoords(curve1) + genRemeshCoords(curve2);
 		if (s & Synthesizer::TriUniform)samples += genUniformTrisCoords(curve1) + genUniformTrisCoords(curve2);
@@ -657,7 +664,7 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 
 		if (s & Synthesizer::Features)	samples += genFeatureCoords(sheet1) + genFeatureCoords(sheet2);
 		if (s & Synthesizer::Edges)		samples += genEdgeCoords(sheet1) + genEdgeCoords(sheet2);
-		if (s & Synthesizer::Random)	samples += genRandomCoords(sheet1, RANDOM_COUNT) + genRandomCoords(sheet2, RANDOM_COUNT);
+		if (s & Synthesizer::Random)	samples += genRandomCoords(sheet1, randomCount) + genRandomCoords(sheet2, randomCount);
 		if (s & Synthesizer::Uniform)	samples += genUniformCoords(sheet1) + genUniformCoords(sheet2);
 		if (s & Synthesizer::Remeshing)	samples += genRemeshCoords(sheet1) + genRemeshCoords(sheet2);
 		if (s & Synthesizer::TriUniform)samples += genUniformTrisCoords(sheet1) + genUniformTrisCoords(sheet2);

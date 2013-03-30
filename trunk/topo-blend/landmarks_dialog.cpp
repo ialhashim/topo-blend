@@ -57,6 +57,9 @@ LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QD
 	this->connect(ui->rotateButton, SIGNAL(clicked()), SLOT(rotateGraph()));
 	this->connect(ui->scaleTarget, SIGNAL(valueChanged(int)), SLOT(scaleGraph(int)));
 
+	this->connect(ui->alignList1, SIGNAL(itemSelectionChanged()), SLOT(visualizeSelections()));
+	this->connect(ui->alignList2, SIGNAL(itemSelectionChanged()), SLOT(visualizeSelections()));
+	this->connect(ui->basicAlignButton, SIGNAL(clicked()), SLOT(basicAlign()));
 
 	/// Correspondences
 	this->connect(ui->prepareButton, SIGNAL(clicked()), SLOT(prepareMatrices()));
@@ -256,6 +259,8 @@ void LandmarksDialog::visualizeSelections()
 	foreach (QListWidgetItem* item, ui->sList->selectedItems())
 		sg()->getNode(item->text())->vis_property["color"] = Qt::yellow;
 
+	foreach (QListWidgetItem* item, ui->alignList1->selectedItems())
+		sg()->getNode(item->text())->vis_property["color"] = Qt::yellow;
 
 	/// Target
 	// Set black for all
@@ -268,6 +273,9 @@ void LandmarksDialog::visualizeSelections()
 
 	// Set yellow for selection
 	foreach (QListWidgetItem* item, ui->tList->selectedItems())
+		tg()->getNode(item->text())->vis_property["color"] = Qt::yellow;
+
+	foreach (QListWidgetItem* item, ui->alignList2->selectedItems())
 		tg()->getNode(item->text())->vis_property["color"] = Qt::yellow;
 
 	tb->updateDrawArea();
@@ -398,6 +406,19 @@ void LandmarksDialog::updateCorrTab()
 	this->ui->sourceID->setMaximum(gcorr->sg->nodes.size()-1);
 }
 
+void LandmarksDialog::updateAlignmentTab()
+{
+	// Clear
+	ui->alignList1->clear();
+	ui->alignList2->clear();
+
+	// Add items
+	for (int i = 0; i < sg()->nodes.size(); i++)
+		ui->alignList1->addItem(new QListWidgetItem(sNode(i)->id));
+	for (int i = 0; i < tg()->nodes.size(); i++)
+		ui->alignList2->addItem(new QListWidgetItem(tNode(i)->id));
+}
+
 void LandmarksDialog::updateAll()
 {
 	normalize();
@@ -410,6 +431,7 @@ void LandmarksDialog::updateAll()
 
 	// Alignment tab
 	this->ui->graphID->setMaximum(tb->graphs.size()-1);
+	updateAlignmentTab();
 }
 
 void LandmarksDialog::reload()
@@ -633,4 +655,26 @@ void LandmarksDialog::alignAllNodes()
 void LandmarksDialog::prepareMatrices()
 {
 	gcorr->prepareAllMatrices();
+}
+
+void LandmarksDialog::basicAlign()
+{
+	if(ui->alignList1->selectedItems().empty()) return;
+	if(ui->alignList2->selectedItems().empty()) return;
+
+	Structure::Node * snode = sg()->getNode(ui->alignList1->selectedItems().front()->text());
+	Structure::Node * tnode = tg()->getNode(ui->alignList2->selectedItems().front()->text());
+
+	if(snode->type() != tnode->type()) return;
+
+	if(snode->type() == Structure::CURVE)
+	{
+		gcorr->correspondTwoCurves((Structure::Curve*)snode,(Structure::Curve*)tnode,gcorr->tg);
+	}
+	if(snode->type() == Structure::SHEET)
+	{
+		gcorr->correspondTwoSheets((Structure::Sheet*)snode,(Structure::Sheet*)tnode,gcorr->tg);
+	}
+
+	tb->updateDrawArea();
 }
