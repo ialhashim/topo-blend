@@ -87,6 +87,8 @@ public slots:
 	void loadSynthesisData();
 	void outputPointCloud();
 	void genSynData();
+	void reconstructXYZ();
+	void combineMeshesToOne();
 
 	void renderAll();
 	void renderCurrent();

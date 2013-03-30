@@ -594,6 +594,9 @@ void Task::prepareGrowCurve()
 		if( other->property.contains("taskIsDone") )
 			tedges.push_back(edge);
 	}
+	
+	if( all_tedges.empty() )
+		return;
 
 	// Cut nodes grow case
 	if( tedges.isEmpty() )
@@ -1174,8 +1177,17 @@ void Task::execute( double t )
 		this->isDone = true;
 		node()->property["taskIsDone"] = true;
 
-		if(type == SHRINK){
+		if(type == SHRINK)
+		{
 			node()->property["shrunk"] = true;
+		}
+	}
+
+	if(t >= 0)
+	{
+		if(type == GROW)
+		{
+			node()->property["toGrow"] = false;
 		}
 	}
 }
@@ -1524,4 +1536,9 @@ void Task::setNode( QString node_ID )
 	property["nodeID"] = node_ID;
 	this->nodeID = node_ID;
 	node()->property["taskType"] = type;
+
+	if(type == GROW)
+	{
+		node()->property["toGrow"] = true;
+	}
 }

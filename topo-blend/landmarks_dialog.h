@@ -40,6 +40,8 @@ public:
 	void updateCorrTab();
 	void updateAll();
 
+	void updateAlignmentTab();
+
 public slots:
 	// Reload everything
 	void reload();
@@ -67,6 +69,7 @@ public slots:
 	void normalize();
 	void rotateGraph();
 	void scaleGraph(int slider);
+	void basicAlign();
 
 	/// Correspondences
 	void prepareMatrices();
@@ -85,6 +88,7 @@ public slots:
 
 
 	void visualizePart2PartDistance(int id);
+
 };
 
 #endif // LANDMARKS_DIALOG_H

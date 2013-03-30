@@ -21,7 +21,7 @@ public:
 
 	// Matrix operations
 	template <class Type> 
-	std::vector<std::vector<Type> > transpose(const std::vector<std::vector<Type> > data);
+	static std::vector<std::vector<Type> > transpose(const std::vector<std::vector<Type> > data);
 	template <class Type>
 	void initializeMatrix(std::vector< std::vector<Type> > & M, Type value);
 	void normalizeMatrix(MATRIX & M);
@@ -74,9 +74,8 @@ public:
 	// Point to Point 
 	void correspondAllNodes();
 	void correspondTwoNodes(Structure::Node *sNode, Structure::Node *tNode);
-	void correspondTwoCurves(Structure::Curve *sCurve, Structure::Curve *tCurve);
-	void correspondTwoSheets(Structure::Sheet *sSheet, Structure::Sheet *tSheet);
-
+	static void correspondTwoCurves( Structure::Curve *sCurve, Structure::Curve *tCurve, Structure::Graph * tgt );
+	static void correspondTwoSheets( Structure::Sheet *sSheet, Structure::Sheet *tSheet, Structure::Graph * tgt );
 	// Find non-corresponding nodes
 	std::vector<QString> nonCorresSource(); // to kill
 	std::vector<QString> nonCorresTarget(); // to grow

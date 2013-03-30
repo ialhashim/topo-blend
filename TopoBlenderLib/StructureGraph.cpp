@@ -1676,3 +1676,9 @@ QString Graph::name()
 {
 	return property["name"].toString().section('\\', -1).section('.', 0, 0);
 }
+
+void Graph::setColorAll( QColor newNodesColor )
+{
+	foreach(Node * n, nodes)
+		n->vis_property["color"] = newNodesColor;
+}
