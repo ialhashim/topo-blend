@@ -413,43 +413,26 @@ void nurbs_plugin::buildSamples()
 
 void nurbs_plugin::prepareSkeletonize()
 {
+	m->updateBoundingBox();
+
 	// Select model to skeletonize
 	document()->setSelectedModel( m );
 
 	// Remesh
-	FilterPlugin * remeshPlugin = pluginManager()->getFilter("Isotropic Remesher");
-	RichParameterSet * remesh_params = new RichParameterSet;
-	remeshPlugin->initParameters( remesh_params );
-	remeshPlugin->applyFilter( remesh_params );
+	if( widget->isRemesh() )
+	{
+		FilterPlugin * remeshPlugin = pluginManager()->getFilter("Isotropic Remesher");
+		RichParameterSet * remesh_params = new RichParameterSet;
+		remeshPlugin->initParameters( remesh_params );
+		remesh_params->setValue("edgelength_TH", float(widget->remeshParamter() * m->bbox().size().length()));
+		remeshPlugin->applyFilter( remesh_params );
+	}
 
 	// Compute MAT
 	FilterPlugin * matPlugin = pluginManager()->getFilter("Voronoi based MAT");
 	RichParameterSet * mat_params = new RichParameterSet;
 	matPlugin->initParameters( mat_params );
 	matPlugin->applyFilter( mat_params );
-}
-
-void nurbs_plugin::skeletonizeMesh()
-{
-	document()->addModel( m );
-	document()->setSelectedModel( m );
-
-	prepareSkeletonize();
-
-	// Contract using MCF skeletonization
-	for(int i = 0; i < widget->contractIterations(); i++)
-	{
-		stepSkeletonizeMesh();
-	}
-
-	// Post-process
-	{
-		// Clean up
-
-		//document()->setSelectedModel( prevModel );
-		drawArea()->setRenderer(m,"Flat Wire");
-		drawArea()->updateGL();
-	}
 }
 
 void nurbs_plugin::stepSkeletonizeMesh()
@@ -462,7 +445,7 @@ void nurbs_plugin::stepSkeletonizeMesh()
 		//mcf_params->setValue("omega_P_0", 0.3f);
 	}
 	mcfPlugin->applyFilter( mcf_params );
-
+	 
 	//drawArea()->setRenderer(m,"Flat Wire");
 	//drawArea()->updateGL();
 }
@@ -635,6 +618,8 @@ double nurbs_plugin::minAngle(Face f, SurfaceMeshModel * ofMesh)
 
 void nurbs_plugin::convertToCurve()
 {
+	if(!m) return;
+
 	document()->addModel( m );
 	document()->setSelectedModel( m );
 
@@ -659,14 +644,18 @@ void nurbs_plugin::convertToCurve()
 	foreach(Vertex v, m->vertices()) if(m->is_isolated(v)) m->remove_vertex(v);
 	m->garbage_collection();
 
+	// Overwrite any existing extracted nodes for selected part
+	if(graph->getNode(groupID)) graph->removeNode(graph->getNode(groupID)->id);
+
 	graph->addNode( new Structure::Curve(curveFit( m ), groupID) );
 
 	// Clean up
 	ps.clear();
 	document()->setSelectedModel(entireMesh);
 	document()->removeModel(m);
+	
+	m = NULL;
 
-	drawArea()->setRenderer(m,"Flat Wire");
 	drawArea()->updateGL();
 }
 
@@ -676,7 +665,7 @@ NURBS::NURBSCurved nurbs_plugin::curveFit( SurfaceMeshModel * part )
 
 	Vector3VertexProperty partPoints = part->vertex_property<Vector3>("v:point");
 
-	double r = 0.05 * part->bbox().size().length();
+	double r = 0.025 * part->bbox().size().length();
 
 	GenericGraphs::Graph<int,double> g;
 	SurfaceMeshHelper h(part);
@@ -744,13 +733,15 @@ NURBS::NURBSCurved nurbs_plugin::curveFit( SurfaceMeshModel * part )
 		polyLine.push_back( partPoints[Vertex(finalPath[i])] );
 
 	polyLine = refineByResolution(polyLine, r);
-	polyLine = smoothPolyline(polyLine, 1);
+	//polyLine = smoothPolyline(polyLine, 1);
 
 	return NURBS::NURBSCurved::createCurveFromPoints(polyLine);
 }
 
 void nurbs_plugin::convertToSheet()
 {
+	if(!m) return;
+
 	document()->addModel( m );
 	document()->setSelectedModel( m );
 
@@ -765,12 +756,16 @@ void nurbs_plugin::convertToSheet()
 	foreach(Vertex v, m->vertices()) if(m->is_isolated(v)) m->remove_vertex(v);
 	m->garbage_collection();
 
+	// Overwrite any existing extracted nodes for selected part
+	if(graph->getNode(groupID)) graph->removeNode(graph->getNode(groupID)->id);
+
 	graph->addNode( new Structure::Sheet(surfaceFit( m ), groupID) );
 
 	document()->setSelectedModel( entireMesh );
 	document()->removeModel( m );
 
-	drawArea()->setRenderer(m,"Flat Wire");
+	m = NULL;
+
 	drawArea()->updateGL();
 }
 
@@ -1095,6 +1090,54 @@ NURBS::NURBSRectangled nurbs_plugin::surfaceFit( SurfaceMeshModel * part )
 
 	// debug
 	//return NURBS::NURBSRectangled::createSheet(Vec3d(0),Vec3d(0.01));
+}
+
+void nurbs_plugin::flipU()
+{
+	Structure::Node * n = graph->getNode(groupID);
+	if(!m || m == entireMesh || !n) return;
+	
+	if(n->type() == Structure::CURVE)
+	{
+		Array1D_Vector3 cpts = n->controlPoints();
+		std::reverse(cpts.begin(), cpts.end());
+		n->setControlPoints(cpts);
+	}
+	else
+	{
+		Structure::Sheet * sheet = ((Structure::Sheet*)n);
+		Array2D_Vector3 cpts = sheet->surface.mCtrlPoint, newPts = cpts;
+		int nU = cpts.size(); int nV = cpts.front().size();
+		for(int u = 0; u < nU; u++)
+			for(int v = 0; v < nV; v++)
+				newPts[u][v] = cpts[(nU - 1) - u][v];
+		sheet->surface.mCtrlPoint = newPts;
+		sheet->surface.quads.clear();
+	}
+	drawArea()->updateGL();
+}
+
+void nurbs_plugin::flipV()
+{
+	Structure::Node * n = graph->getNode(groupID);
+	if(!m || m == entireMesh || !n) return;
+
+	if(n->type() == Structure::CURVE)
+	{
+		flipU();
+	}
+	else
+	{
+		Structure::Sheet * sheet = ((Structure::Sheet*)n);
+		Array2D_Vector3 cpts = sheet->surface.mCtrlPoint, newPts = cpts;
+		int nU = cpts.size(); int nV = cpts.front().size();
+		for(int u = 0; u < nU; u++)
+			for(int v = 0; v < nV; v++)
+				newPts[u][v] = cpts[u][(nV - 1) - v];
+		sheet->surface.mCtrlPoint = newPts;
+		sheet->surface.quads.clear();
+	}
+	drawArea()->updateGL();
 }
 
 Q_EXPORT_PLUGIN (nurbs_plugin)

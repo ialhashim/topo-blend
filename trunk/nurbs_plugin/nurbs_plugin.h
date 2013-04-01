@@ -78,9 +78,11 @@ public slots:
 	void buildSamples();
 
 	void prepareSkeletonize();
-	void skeletonizeMesh();
 	void stepSkeletonizeMesh();
 
 	void convertToCurve();
 	void convertToSheet();
+
+	void flipU();
+	void flipV();
 };
