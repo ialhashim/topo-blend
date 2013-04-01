@@ -19,6 +19,9 @@ NURBSTools::NURBSTools(nurbs_plugin * usePlugin, QWidget *parent) : QWidget(pare
 
 	plugin->connect(ui->curveFitButton, SIGNAL(clicked()), SLOT(convertToCurve()));
 	plugin->connect(ui->sheetFitButton, SIGNAL(clicked()), SLOT(convertToSheet()));
+
+	plugin->connect(ui->flipUButton, SIGNAL(clicked()), SLOT(flipU()));
+	plugin->connect(ui->flipVButton, SIGNAL(clicked()), SLOT(flipV()));
 }
 
 NURBSTools::~NURBSTools()
@@ -44,4 +47,14 @@ double NURBSTools::resolution()
 int NURBSTools::contractIterations()
 {
 	return ui->contractIterations->value();
+}
+
+bool NURBSTools::isRemesh()
+{
+	return ui->remeshOption->isChecked();
+}
+
+double NURBSTools::remeshParamter()
+{
+	return ui->remeshParamter->value();
 }

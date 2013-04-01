@@ -440,6 +440,7 @@ void Graph::draw()
 		// Default node draw
 		if(property["showNodes"].toBool())
 		{
+			glDisable(GL_CULL_FACE);
 			n->draw( property["showCtrlPts"].toBool() );
 		}
 

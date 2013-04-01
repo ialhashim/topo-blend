@@ -375,7 +375,7 @@ void BoundaryFitting::doFit()
 				}
 
 				// Inner smoothing
-				int smoothIters = 2;
+				int smoothIters = 1;
 				for(int itr = 0; itr < smoothIters; itr++)
 				{
 					for(int u = 1; u < ((int)lines.size()) - 1; u++){

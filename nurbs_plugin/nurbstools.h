@@ -26,6 +26,9 @@ public:
 
 	int contractIterations();
 
+	bool isRemesh();
+	double remeshParamter();
+
 private:
     Ui::NURBSTools *ui;
 };
