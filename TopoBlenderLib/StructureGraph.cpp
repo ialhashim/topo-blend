@@ -1470,6 +1470,10 @@ void Graph::translate( Vector3 delta )
 	{
 		node->moveBy( delta );
 
+		// Update needed for Sheets
+		if(node->type() == SHEET)
+			((Sheet*)node)->surface.quads.clear();
+
 		// Apply to actual geometry
 		if(!node->property.contains("mesh")) continue;
 		SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
@@ -1488,6 +1492,10 @@ void Graph::rotate( double angle, Vector3 axis )
 		node->rotate(angle, axis);
 
 		if(!node->property.contains("mesh")) continue;
+
+		// Update needed for Sheets
+		if(node->type() == SHEET)
+			((Sheet*)node)->surface.quads.clear();
 
 		// Move actual geometry
         SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
@@ -1512,6 +1520,10 @@ void Graph::scale( double scaleFactor )
 	foreach (Node * node, nodes)
 	{
 		node->scale(relative_scale);
+
+		// Update needed for Sheets
+		if(node->type() == SHEET)
+			((Sheet*)node)->surface.quads.clear();
 
 		if(!node->property.contains("mesh")) continue;
 

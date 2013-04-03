@@ -46,6 +46,8 @@ Q_DECLARE_METATYPE(Vec3d)
 Q_DECLARE_METATYPE(RMF::Frame)
 Q_DECLARE_METATYPE(std::vector<RMF::Frame>)
 
+double boundX = -DBL_MAX;
+
 topoblend::topoblend(){
 	widget = NULL;
 	gcoor = NULL;
@@ -137,8 +139,8 @@ void topoblend::decorate()
 	// 3D visualization
 	glEnable(GL_LIGHTING);
 
-	double deltaX = layout ? drawArea()->sceneRadius() : 0;
-	double posX = - deltaX * (graphs.size() - 1) / 2;
+	double deltaX = boundX;
+	double posX = -(deltaX / 2) * (graphs.size() / 2);
 
 	for(int g = 0; g < (int) graphs.size(); g++)
 	{
@@ -567,9 +569,14 @@ void topoblend::setSceneBounds()
 	if(!graphs.size()) return;
 
 	// Set scene bounds
+	boundX = -DBL_MAX;
+
 	QBox3D bigbox = graphs.front()->bbox();
 	for(int i = 0; i < (int)graphs.size(); i++)
+	{
 		bigbox.unite( graphs[i]->bbox() );
+		boundX = qMax(boundX, graphs[i]->bbox().size().x());
+	}
 
 	bigbox.transform(QMatrix4x4() * 3);
 
@@ -599,8 +606,11 @@ void topoblend::loadModel()
 	{	
 		Structure::Graph * g = new Structure::Graph ( file );
 
-		g->normalize();
-		g->moveBottomCenterToOrigin();
+		if( widget->isModifyModelOnLoad() )
+		{
+			g->normalize();
+			g->moveBottomCenterToOrigin();
+		}
 
 		graphs.push_back( g );
 	}
@@ -922,6 +932,8 @@ void topoblend::currentExperiment()
 
 void topoblend::updateDrawArea()
 {
+	setSceneBounds();
+
 	drawArea()->updateGL();
 }
 

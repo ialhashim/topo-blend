@@ -18,6 +18,7 @@ public:
     ~topo_blend_widget();
 
 	int synthesisSamplesCount();
+	bool isModifyModelOnLoad();
 
 public slots:
     void renderViewer();
@@ -29,6 +30,14 @@ public slots:
 	void vizButtonClicked(QAbstractButton* b);
 	void toggleCheckOption(QString optionName);
 	void setCheckOption(QString optionName);
+
+	// Model manipulation
+	void normalizeModel();
+	void bottomCenterModel();
+	void moveModel();
+	void rotateModel();
+	void scaleModel();
+	void exportAsOBJ();
 
 private:
 	Ui::topo_blend_widget *ui;
