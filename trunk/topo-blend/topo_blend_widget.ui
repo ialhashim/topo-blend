@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>262</width>
-    <height>701</height>
+    <width>312</width>
+    <height>686</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -74,214 +74,465 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox2">
-     <property name="title">
-      <string>TopoBlend tools</string>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="autoFillBackground">
+      <bool>false</bool>
      </property>
-     <layout class="QGridLayout" name="gridLayout_2">
-      <item row="7" column="0">
-       <widget class="QLabel" name="resLabel">
-        <property name="text">
-         <string>Resolution</string>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="0">
-       <widget class="QLabel" name="numStepsLabel">
-        <property name="text">
-         <string>Num. steps</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0">
-       <widget class="QPushButton" name="button4">
-        <property name="text">
-         <string>Experimental...</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QPushButton" name="linksButton">
-        <property name="text">
-         <string>Links</string>
-        </property>
-        <property name="icon">
-         <iconset resource="topo-blend.qrc">
-          <normaloff>:/images/network.png</normaloff>:/images/network.png</iconset>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QPushButton" name="saveButton">
-        <property name="text">
-         <string>Save model...</string>
-        </property>
-        <property name="icon">
-         <iconset resource="topo-blend.qrc">
-          <normaloff>:/images/saveGraph.png</normaloff>:/images/saveGraph.png</iconset>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QPushButton" name="genSimpleButton">
-        <property name="text">
-         <string>Gen 2 simple</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QPushButton" name="genChairsButton">
-        <property name="text">
-         <string>Generate chairs</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QPushButton" name="loadButton">
-        <property name="text">
-         <string>Load model...</string>
-        </property>
-        <property name="icon">
-         <iconset resource="topo-blend.qrc">
-          <normaloff>:/images/openGraph.png</normaloff>:/images/openGraph.png</iconset>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QPushButton" name="clearButton">
-        <property name="text">
-         <string>Clear</string>
-        </property>
-        <property name="icon">
-         <iconset resource="topo-blend.qrc">
-          <normaloff>:/images/cross-white.png</normaloff>:/images/cross-white.png</iconset>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="1">
-       <widget class="QPushButton" name="animationButton">
-        <property name="text">
-         <string>Animation</string>
-        </property>
-        <property name="icon">
-         <iconset resource="topo-blend.qrc">
-          <normaloff>:/images/animation.png</normaloff>:/images/animation.png</iconset>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="1">
-       <widget class="QSpinBox" name="numSteps">
-        <property name="minimum">
-         <number>2</number>
-        </property>
-        <property name="maximum">
-         <number>1024</number>
-        </property>
-        <property name="value">
-         <number>5</number>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="1">
-       <widget class="QDoubleSpinBox" name="voxelSize">
-        <property name="decimals">
-         <number>2</number>
-        </property>
-        <property name="maximum">
-         <double>1024.000000000000000</double>
-        </property>
-        <property name="singleStep">
-         <double>0.100000000000000</double>
-        </property>
-        <property name="value">
-         <double>1.000000000000000</double>
-        </property>
-       </widget>
-      </item>
-      <item row="8" column="0" colspan="2">
-       <layout class="QGridLayout" name="gridLayout_4">
-        <item row="0" column="1">
-         <widget class="QPushButton" name="groupButton">
-          <property name="text">
-           <string>Group</string>
+     <property name="currentIndex">
+      <number>1</number>
+     </property>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>TopoBlend tools</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_6">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>9</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>9</number>
+       </property>
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <item row="0" column="0">
+        <widget class="QGroupBox" name="groupBox2">
+         <property name="title">
+          <string/>
+         </property>
+         <property name="flat">
+          <bool>true</bool>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_2">
+          <property name="leftMargin">
+           <number>4</number>
           </property>
-          <property name="icon">
-           <iconset resource="topo-blend.qrc">
-            <normaloff>:/images/group.png</normaloff>:/images/group.png</iconset>
+          <property name="topMargin">
+           <number>0</number>
           </property>
-          <property name="iconSize">
-           <size>
-            <width>24</width>
-            <height>24</height>
-           </size>
+          <property name="rightMargin">
+           <number>4</number>
           </property>
-         </widget>
-        </item>
-        <item row="0" column="2">
-         <widget class="QPushButton" name="blendButton">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
+          <property name="bottomMargin">
+           <number>0</number>
           </property>
-          <property name="minimumSize">
-           <size>
-            <width>24</width>
-            <height>0</height>
-           </size>
+          <property name="horizontalSpacing">
+           <number>0</number>
           </property>
-          <property name="font">
-           <font>
-            <pointsize>12</pointsize>
-            <weight>50</weight>
-            <bold>false</bold>
-           </font>
-          </property>
-          <property name="text">
-           <string>Blend!</string>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>16</width>
-            <height>24</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="0">
-         <widget class="QPushButton" name="alignButton">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>12</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>Align</string>
-          </property>
-          <property name="icon">
-           <iconset resource="topo-blend.qrc">
-            <normaloff>:/images/align.png</normaloff>:/images/align.png</iconset>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>22</width>
-            <height>24</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0" colspan="3">
-         <widget class="QPushButton" name="computeCorrButton">
-          <property name="text">
-           <string>Correspondences</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-     </layout>
+          <item row="5" column="1">
+           <widget class="QPushButton" name="animationButton">
+            <property name="text">
+             <string>Animation</string>
+            </property>
+            <property name="icon">
+             <iconset resource="topo-blend.qrc">
+              <normaloff>:/images/animation.png</normaloff>:/images/animation.png</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QPushButton" name="saveButton">
+            <property name="text">
+             <string>Save model...</string>
+            </property>
+            <property name="icon">
+             <iconset resource="topo-blend.qrc">
+              <normaloff>:/images/saveGraph.png</normaloff>:/images/saveGraph.png</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QPushButton" name="genChairsButton">
+            <property name="text">
+             <string>Generate chairs</string>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="1">
+           <widget class="QSpinBox" name="numSteps">
+            <property name="minimum">
+             <number>2</number>
+            </property>
+            <property name="maximum">
+             <number>1024</number>
+            </property>
+            <property name="value">
+             <number>5</number>
+            </property>
+           </widget>
+          </item>
+          <item row="8" column="1">
+           <widget class="QDoubleSpinBox" name="voxelSize">
+            <property name="decimals">
+             <number>2</number>
+            </property>
+            <property name="maximum">
+             <double>1024.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.100000000000000</double>
+            </property>
+            <property name="value">
+             <double>1.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QPushButton" name="clearButton">
+            <property name="text">
+             <string>Clear</string>
+            </property>
+            <property name="icon">
+             <iconset resource="topo-blend.qrc">
+              <normaloff>:/images/cross-white.png</normaloff>:/images/cross-white.png</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="0" colspan="2">
+           <layout class="QGridLayout" name="gridLayout_4">
+            <item row="0" column="1">
+             <widget class="QPushButton" name="groupButton">
+              <property name="text">
+               <string>Group</string>
+              </property>
+              <property name="icon">
+               <iconset resource="topo-blend.qrc">
+                <normaloff>:/images/group.png</normaloff>:/images/group.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>24</width>
+                <height>24</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QPushButton" name="blendButton">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>24</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+                <weight>50</weight>
+                <bold>false</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Blend!</string>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>16</width>
+                <height>24</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QPushButton" name="alignButton">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>12</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Align</string>
+              </property>
+              <property name="icon">
+               <iconset resource="topo-blend.qrc">
+                <normaloff>:/images/align.png</normaloff>:/images/align.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>22</width>
+                <height>24</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0" colspan="3">
+             <widget class="QPushButton" name="computeCorrButton">
+              <property name="text">
+               <string>Correspondences</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="8" column="0">
+           <widget class="QLabel" name="resLabel">
+            <property name="text">
+             <string>Resolution</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QPushButton" name="linksButton">
+            <property name="text">
+             <string>Links</string>
+            </property>
+            <property name="icon">
+             <iconset resource="topo-blend.qrc">
+              <normaloff>:/images/network.png</normaloff>:/images/network.png</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QPushButton" name="button4">
+            <property name="text">
+             <string>Experimental...</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QPushButton" name="loadButton">
+            <property name="text">
+             <string>Load model...</string>
+            </property>
+            <property name="icon">
+             <iconset resource="topo-blend.qrc">
+              <normaloff>:/images/openGraph.png</normaloff>:/images/openGraph.png</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="0">
+           <widget class="QLabel" name="numStepsLabel">
+            <property name="text">
+             <string>Num. steps</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QPushButton" name="genSimpleButton">
+            <property name="text">
+             <string>Gen 2 simple</string>
+            </property>
+           </widget>
+          </item>
+          <item row="9" column="0">
+           <widget class="QCheckBox" name="isModifyModel">
+            <property name="text">
+             <string>Modify on load</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>Model tools</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_7">
+       <item row="1" column="5">
+        <widget class="QLabel" name="label_8">
+         <property name="text">
+          <string>Z</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="4">
+        <widget class="QDoubleSpinBox" name="movY">
+         <property name="decimals">
+          <number>2</number>
+         </property>
+         <property name="minimum">
+          <double>-100.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="3" colspan="4">
+        <widget class="QPushButton" name="bottomCenterModel">
+         <property name="text">
+          <string>Bottom center origin</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="3">
+        <widget class="QDoubleSpinBox" name="movX">
+         <property name="decimals">
+          <number>2</number>
+         </property>
+         <property name="minimum">
+          <double>-100.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="4">
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>Y</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="6">
+        <widget class="QPushButton" name="scaleModel">
+         <property name="text">
+          <string>Scale</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="5">
+        <widget class="QDoubleSpinBox" name="scaleZ">
+         <property name="decimals">
+          <number>2</number>
+         </property>
+         <property name="singleStep">
+          <double>0.100000000000000</double>
+         </property>
+         <property name="value">
+          <double>1.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="3">
+        <widget class="QDoubleSpinBox" name="scaleX">
+         <property name="decimals">
+          <number>2</number>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="3" colspan="4">
+        <widget class="QPushButton" name="normalizeModel">
+         <property name="text">
+          <string>Normalize</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="4">
+        <widget class="QDoubleSpinBox" name="scaleY">
+         <property name="decimals">
+          <number>2</number>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="3">
+        <widget class="QDoubleSpinBox" name="rotX">
+         <property name="decimals">
+          <number>1</number>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="3">
+        <widget class="QLabel" name="label_6">
+         <property name="text">
+          <string>X</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="3" colspan="4">
+        <widget class="QCheckBox" name="isUniformScale">
+         <property name="text">
+          <string>uniform scale</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="5">
+        <widget class="QDoubleSpinBox" name="rotZ">
+         <property name="decimals">
+          <number>1</number>
+         </property>
+         <property name="value">
+          <double>90.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="5">
+        <widget class="QDoubleSpinBox" name="movZ">
+         <property name="decimals">
+          <number>2</number>
+         </property>
+         <property name="minimum">
+          <double>-100.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="6">
+        <widget class="QPushButton" name="rotateModel">
+         <property name="text">
+          <string>Rotate</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="3" colspan="4">
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="3" column="4">
+        <widget class="QDoubleSpinBox" name="rotY">
+         <property name="decimals">
+          <number>1</number>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="6">
+        <widget class="QPushButton" name="refreshViewButton">
+         <property name="text">
+          <string>Refresh</string>
+         </property>
+         <property name="icon">
+          <iconset resource="topo-blend.qrc">
+           <normaloff>:/images/update.png</normaloff>:/images/update.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="6">
+        <widget class="QPushButton" name="moveModel">
+         <property name="text">
+          <string>Move</string>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="3" colspan="2">
+        <widget class="QPushButton" name="exportAsOBJ">
+         <property name="text">
+          <string>Export as OBJ</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
    <item>
@@ -325,6 +576,20 @@
         </property>
        </widget>
       </item>
+      <item row="5" column="0">
+       <widget class="QPushButton" name="combineMeshesButton">
+        <property name="text">
+         <string>Combine meshes</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QPushButton" name="reconstructButton">
+        <property name="text">
+         <string>Reconstruct XYZ</string>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="1">
        <widget class="QSpinBox" name="synthesisSamplesCount">
         <property name="maximum">
@@ -338,20 +603,6 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
-       <widget class="QPushButton" name="reconstructButton">
-        <property name="text">
-         <string>Reconstruct XYZ</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0">
-       <widget class="QPushButton" name="combineMeshesButton">
-        <property name="text">
-         <string>Combine meshes</string>
-        </property>
-       </widget>
-      </item>
      </layout>
     </widget>
    </item>
@@ -361,16 +612,6 @@
       <string>Visualization</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_5">
-      <item row="0" column="0">
-       <widget class="QCheckBox" name="showEdges">
-        <property name="text">
-         <string>Links</string>
-        </property>
-        <attribute name="buttonGroup">
-         <string notr="true">vizButtonGroup</string>
-        </attribute>
-       </widget>
-      </item>
       <item row="0" column="1">
        <widget class="QCheckBox" name="showMeshes">
         <property name="text">
@@ -388,6 +629,16 @@
        <widget class="QCheckBox" name="showTasks">
         <property name="text">
          <string>Tasks</string>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">vizButtonGroup</string>
+        </attribute>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="showEdges">
+        <property name="text">
+         <string>Links</string>
         </property>
         <attribute name="buttonGroup">
          <string notr="true">vizButtonGroup</string>

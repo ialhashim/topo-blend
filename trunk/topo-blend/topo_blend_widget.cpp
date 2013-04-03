@@ -52,9 +52,19 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	topo_blend->connect(ui->reconstructButton, SIGNAL(clicked()), SLOT(reconstructXYZ()));
 	topo_blend->connect(ui->combineMeshesButton, SIGNAL(clicked()), SLOT(combineMeshesToOne()));
 
+	// Model manipulation
+	this->connect(ui->normalizeModel, SIGNAL(clicked()), SLOT(normalizeModel()));
+	this->connect(ui->bottomCenterModel, SIGNAL(clicked()), SLOT(bottomCenterModel()));
+	this->connect(ui->moveModel, SIGNAL(clicked()), SLOT(moveModel()));
+	this->connect(ui->rotateModel, SIGNAL(clicked()), SLOT(rotateModel()));
+	this->connect(ui->scaleModel, SIGNAL(clicked()), SLOT(scaleModel()));
+	this->connect(ui->exportAsOBJ, SIGNAL(clicked()), SLOT(exportAsOBJ()));
+
 	// Visualization & default [true] values
 	this->connect(ui->vizButtonGroup, SIGNAL(buttonClicked(QAbstractButton*)),SLOT(vizButtonClicked(QAbstractButton*)));
 	tb->viz_params["showMeshes"] = true;
+
+	topo_blend->connect(ui->refreshViewButton, SIGNAL(clicked()), SLOT(updateDrawArea()));
 }
 
 topo_blend_widget::~topo_blend_widget()
@@ -178,4 +188,114 @@ void topo_blend_widget::setCheckOption( QString optionName )
 int topo_blend_widget::synthesisSamplesCount()
 {
 	return ui->synthesisSamplesCount->value();
+}
+
+void topo_blend_widget::normalizeModel()
+{
+	if(!tb->graphs.size()) return;
+
+	tb->graphs.back()->normalize();
+	tb->updateDrawArea();
+}
+
+void topo_blend_widget::bottomCenterModel()
+{
+	if(!tb->graphs.size()) return;
+
+	tb->graphs.back()->moveBottomCenterToOrigin();
+	tb->updateDrawArea();
+}
+
+void topo_blend_widget::moveModel()
+{
+	if(!tb->graphs.size()) return;
+
+	double s = 0.1;
+
+	QMatrix4x4 mat;
+	mat.translate( ui->movX->value() * s, ui->movY->value() * s, ui->movZ->value() * s );
+	tb->graphs.back()->transform( mat );
+	tb->updateDrawArea();
+}
+
+void topo_blend_widget::rotateModel()
+{
+	if(!tb->graphs.size()) return;
+
+	QMatrix4x4 mat;
+	mat.rotate( ui->rotX->value(), QVector3D(1,0,0) );
+	mat.rotate( ui->rotY->value(), QVector3D(0,1,0) );
+	mat.rotate( ui->rotZ->value(), QVector3D(0,0,1) );
+	tb->graphs.back()->transform( mat );
+	tb->updateDrawArea();
+}
+
+void topo_blend_widget::scaleModel()
+{
+	if(!tb->graphs.size()) return;
+
+	QMatrix4x4 mat;
+	if( ui->isUniformScale->isChecked() )
+	{
+		double s = qMax(ui->scaleX->value(),qMax(ui->scaleY->value(),ui->scaleZ->value()));
+		mat.scale( s );
+	}
+	else
+	{
+		mat.scale( ui->scaleX->value(), ui->scaleY->value(), ui->scaleZ->value() );
+	}
+	tb->graphs.back()->transform( mat );
+	tb->updateDrawArea();
+}
+
+bool topo_blend_widget::isModifyModelOnLoad()
+{
+	return ui->isModifyModel->isChecked();
+}
+
+void topo_blend_widget::exportAsOBJ()
+{
+	if(!tb->graphs.size()) return;
+
+	Structure::Graph * g = tb->graphs.back();
+
+	QString filename = QFileDialog::getSaveFileName(0, tr("Export OBJ"), 
+		g->property["name"].toString().replace(".xml",".obj"), tr("OBJ Files (*.obj)"));
+	
+	QFile file(filename);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+	QFileInfo fileInfo(file.fileName());
+	QTextStream out(&file);
+	out << "# Exported graph model [" << fileInfo.baseName() << "] by TopoBlender\n\n";
+
+	int v_offset = 0;
+
+	foreach(Structure::Node * n, g->nodes)
+	{
+		if(!n->property.contains("mesh")) continue;
+
+		out << "# Starting mesh " << n->id << "\n";
+		
+		SurfaceMesh::Model * m = n->property["mesh"].value<SurfaceMesh::Model*>();
+
+		// Write out vertices
+		Vector3VertexProperty points = m->vertex_property<Vector3>(VPOINT);
+		foreach( Vertex v, m->vertices() )
+			out << "v " << points[v][0] << " " << points[v][1] << " " << points[v][2] << "\n";
+
+		// Write out triangles
+		out << "g " << n->id << "\n";
+		foreach( Face f, m->faces() ){
+			out << "f ";
+			Surface_mesh::Vertex_around_face_circulator fvit = m->vertices(f), fvend = fvit;
+			do{	out << (((Surface_mesh::Vertex)fvit).idx() + 1 + v_offset) << " ";} while (++fvit != fvend);
+			out << "\n";
+		}
+
+		v_offset += m->n_vertices();
+
+		out << "# End of mesh " << n->id << "\n\n";
+	}
+
+	file.close();
 }
