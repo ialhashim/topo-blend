@@ -595,8 +595,7 @@ void Task::prepareGrowCurve()
 			tedges.push_back(edge);
 	}
 	
-	if( all_tedges.empty() )
-		return;
+	if( all_tedges.empty() ) return;
 
 	// Cut nodes grow case
 	if( tedges.isEmpty() )
@@ -817,6 +816,7 @@ void Task::prepareMorphCurve()
 
 		property["path"].setValue( path );
 
+		// Consistent frames using path
 		RMF rmf( positionalPath(path, 2) );
 		property["rmf"].setValue( rmf );
 		Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
@@ -851,6 +851,12 @@ void Task::prepareMorphCurve()
 		NodeCoord edB = futureLinkCoord(linkB);
 		Vec3d endB = active->position(edB.first,edB.second);
 
+		// Corresponding links
+		Structure::Link * tlinkA = target->getEdge(linkA->property["correspond"].toString());
+		Structure::Link * tlinkB = target->getEdge(linkB->property["correspond"].toString());
+		Vec3d tstartA = tlinkA->position(tn->id);
+		Vec3d tstartB = tlinkB->position(tn->id);
+
 		// Geodesic distances on the active graph excluding the running tasks
 		QVector< GraphDistance::PathPointPair > pathA, pathB;	
 		QVector<QString> exclude = active->property["activeTasks"].value< QVector<QString> >();
@@ -879,22 +885,29 @@ void Task::prepareMorphCurve()
 		pathA = this->weldPath( pathA );
 		pathB = this->weldPath( pathB );
 
-		property["pathA"].setValue(pathA);
-		property["pathB"].setValue(pathB);
+		// For paths not changing
+		if(!pathA.size()) pathA.push_back( GraphDistance::PathPointPair( PathPoint(n->id,linkA->getCoord(n->id).front()) ) );
+		if(!pathB.size()) pathB.push_back( GraphDistance::PathPointPair( PathPoint(n->id,linkB->getCoord(n->id).front()) ) );
+
+		property["pathA"].setValue( pathA );
+		property["pathB"].setValue( pathB );
 
 		QVector< GraphDistance::PathPointPair > usePath = pathA;
+		if(!usePath.size()) return;
 
-		if(usePath.size() > 1)
-		{
-			// Encode curve
-			RMF rmf( positionalPath(usePath, 2) );
-			property["rmf"].setValue( rmf );
-			Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
-			property["cpCoords"].setValue( encodeCurve((Structure::Curve*)n, startA, startB, X,Y,Z) );
+		// Consistent frames using path
+		RMF rmf( positionalPath(usePath, 2) );
+		property["rmf"].setValue( rmf );
+		Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
 
-			// DEBUG:
-			node()->property["rmf"].setValue( rmf );
-		}
+		// Encode source curve
+		property["cpCoords"].setValue( encodeCurve((Structure::Curve*)n, startA, startB, X,Y,Z) );
+
+		// Encode target curve
+		property["cpCoordsT"].setValue( encodeCurve((Structure::Curve*)tn, tstartA, tstartB, X,Y,Z) );
+
+		// DEBUG:
+		node()->property["rmf"].setValue( rmf );
 	}
 
 }
@@ -1321,19 +1334,21 @@ void Task::executeMorphCurve( double t )
 	{
 		// Parameters
 		QVector< GraphDistance::PathPointPair > path = property["path"].value< QVector< GraphDistance::PathPointPair > >();
+		if(!path.size()) return;
+
 		CurveEncoding cpCoords = property["cpCoords"].value<CurveEncoding>();
 		CurveEncoding cpCoordsT = property["cpCoordsT"].value<CurveEncoding>();
 		Vec3d endPointDelta = property["endPointDelta"].value<Vec3d>();
 		Vec3d endPointDeltaT = property["endPointDeltaT"].value<Vec3d>();
 		RMF rmf = property["rmf"].value<RMF>();
-		if(!path.size()) return;
-
-		int idx = t * (path.size() - 1);
-		Vec3d newHandlePos = path[idx].position(active);
-		//n->deformTo( edge->getCoord(n->id).front(), newHandlePos );
 		
+		int idx = t * (path.size() - 1);
+
+		Vec3d newHandlePos = path[idx].position(active); // Other end = newHandlePos + endPointDelta
+
 		Vector3 X = rmf.frameAt(t).r, Y = rmf.frameAt(t).s, Z = rmf.frameAt(t).t;
 
+		// Decode and blend
 		Array1D_Vector3 newPnts = decodeCurve( cpCoords, newHandlePos, newHandlePos + endPointDelta, X, Y, Z );
 		Array1D_Vector3 newPntsT = decodeCurve( cpCoordsT, newHandlePos, newHandlePos + endPointDeltaT, X, Y, Z );
 		Array1D_Vector3 blendedPnts;
@@ -1345,12 +1360,14 @@ void Task::executeMorphCurve( double t )
 	}
 
 	// 2) TWO edges
-	if( property.contains("pathA") && property.contains("pathB") )
+	if( property.contains("pathA") && property.contains("pathB") && property.contains("cpCoords") )
 	{
 		QVector< GraphDistance::PathPointPair > pathA = property["pathA"].value< QVector< GraphDistance::PathPointPair > >();
 		QVector< GraphDistance::PathPointPair > pathB = property["pathB"].value< QVector< GraphDistance::PathPointPair > >();
 
-		if(pathA.size() == 0 || pathB.size() == 0)	return;
+		int nA = pathA.size(), nB = pathB.size();
+
+		if(nA == 0 || nB == 0)	return;
 
 		int idxA = t * (pathA.size() - 1);
 		int idxB = t * (pathB.size() - 1);
@@ -1359,17 +1376,24 @@ void Task::executeMorphCurve( double t )
 		Vector3 pointA = pathA[idxA].position(active);
 		Vector3 pointB = pathB[idxB].position(active);
 
-		if( property.contains("cpCoords") )
-		{
-			RMF rmf = property["rmf"].value<RMF>();
-			Vector3 X = rmf.frameAt(t).r, Y = rmf.frameAt(t).s, Z = rmf.frameAt(t).t;
-			Array1D_Vector3 decoded = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, X,Y,Z);
-			structure_curve->setControlPoints( decoded );
+		RMF rmf = property["rmf"].value<RMF>();
+		Vector3 X = rmf.frameAt(t).r, Y = rmf.frameAt(t).s, Z = rmf.frameAt(t).t;
 
-			// DEBUG:
-			//active->debugPoints.push_back( pointA );
-			//active->debugPoints.push_back( pointB );
+		Array1D_Vector3 newPnts = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, X,Y,Z);
+		Array1D_Vector3 newPntsT = decodeCurve(property["cpCoordsT"].value<CurveEncoding>(), pointA, pointB, X,Y,Z);
+
+		Array1D_Vector3 blendedPnts;
+
+		for(int i = 0; i < (int)newPnts.size(); i++)
+		{
+			blendedPnts.push_back( AlphaBlend(t, newPnts[i], newPntsT[i]) );
 		}
+
+		structure_curve->setControlPoints( blendedPnts );
+
+		// DEBUG:
+		//active->debugPoints.push_back( pointA );
+		//active->debugPoints.push_back( pointB );
 	}
 
 	// When this task is done
