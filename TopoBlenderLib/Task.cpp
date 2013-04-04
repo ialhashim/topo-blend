@@ -1382,6 +1382,8 @@ void Task::executeMorphCurve( double t )
 		Array1D_Vector3 newPnts = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, X,Y,Z);
 		Array1D_Vector3 newPntsT = decodeCurve(property["cpCoordsT"].value<CurveEncoding>(), pointA, pointB, X,Y,Z);
 
+		if(!newPntsT.size()) newPntsT = newPnts;
+
 		Array1D_Vector3 blendedPnts;
 
 		for(int i = 0; i < (int)newPnts.size(); i++)
