@@ -420,7 +420,7 @@ void Graph::draw()
 				if( n->property.contains("rmf2") )
 				{
 					RMF rmf = n->property["rmf2"].value<RMF>();
-					FrameSoup fs(0.01f, true);
+					FrameSoup fs(0.01f);
 					foreach(RMF::Frame f, rmf.U) fs.addFrame(f.r, f.s, f.t, f.center);
 					fs.draw();
 				}

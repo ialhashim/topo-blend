@@ -26,6 +26,8 @@ Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
 Q_DECLARE_METATYPE( CurveEncoding )
 Q_DECLARE_METATYPE( Eigen::Quaterniond )
 
+static inline double rad_to_deg(const double& _angle){ return 180.0*(_angle/M_PI); }
+
 Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, TaskType taskType, int ID )
 {
 	// Task properties
@@ -811,8 +813,7 @@ void Task::prepareMorphCurve()
 		link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
 
 		path = weldPath( path );
-		if(!path.size()) 
-			return;
+		if(!path.size()) path.push_back( GraphDistance::PathPointPair( PathPoint(n->id,link->getCoord(n->id).front()) ) );
 
 		property["path"].setValue( path );
 
@@ -865,9 +866,25 @@ void Task::prepareMorphCurve()
 		gdA.computeDistances( endA, DIST_RESOLUTION );	gdA.smoothPathCoordTo( startA, pathA );
 		gdB.computeDistances( endB, DIST_RESOLUTION );	gdB.smoothPathCoordTo( startB, pathB );
 
-		// Smooth transition from start point
-		pathA = smoothStart(node(), linkA->getCoord(n->id).front(), pathA);
-		pathB = smoothStart(node(), linkB->getCoord(n->id).front(), pathB);
+		// Smooth transition from start point, unless the path only goes through a single node
+		{
+			if( isPathOnSingleNode(pathA) )	
+			{
+				// Add a "static" point on the node itself
+				pathA.clear();
+				pathA.push_back( GraphDistance::PathPointPair( PathPoint(n->id,linkA->getCoord(n->id).front()) ) );
+			}
+			else 
+				pathA = smoothStart(node(), linkA->getCoord(n->id).front(), pathA);
+
+			if( isPathOnSingleNode(pathB) )	
+			{
+				pathB.clear();
+				pathB.push_back( GraphDistance::PathPointPair( PathPoint(n->id,linkB->getCoord(n->id).front()) ) );
+			}
+			else 
+				pathB = smoothStart(node(), linkB->getCoord(n->id).front(), pathB);
+		}
 
 		// Replace destination
 		foreach(Structure::Link *link, edges){
@@ -885,18 +902,15 @@ void Task::prepareMorphCurve()
 		pathA = this->weldPath( pathA );
 		pathB = this->weldPath( pathB );
 
-		// For paths not changing
-		if(!pathA.size()) pathA.push_back( GraphDistance::PathPointPair( PathPoint(n->id,linkA->getCoord(n->id).front()) ) );
-		if(!pathB.size()) pathB.push_back( GraphDistance::PathPointPair( PathPoint(n->id,linkB->getCoord(n->id).front()) ) );
-
 		property["pathA"].setValue( pathA );
 		property["pathB"].setValue( pathB );
 
-		QVector< GraphDistance::PathPointPair > usePath = pathA;
-		if(!usePath.size()) return;
+		RMF rmfA( positionalPath(pathA, 2) );
+		RMF rmfB( positionalPath(pathB, 2) );
 
-		// Consistent frames using path
-		RMF rmf( positionalPath(usePath, 2) );
+		// Consistent frames
+		RMF & rmf = rmfA;
+
 		property["rmf"].setValue( rmf );
 		Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
 
@@ -907,9 +921,9 @@ void Task::prepareMorphCurve()
 		property["cpCoordsT"].setValue( encodeCurve((Structure::Curve*)tn, tstartA, tstartB, X,Y,Z) );
 
 		// DEBUG:
-		node()->property["rmf"].setValue( rmf );
+		node()->property["rmf"].setValue( rmfA );
+		node()->property["rmf2"].setValue( rmfB );
 	}
-
 }
 
 SheetEncoding Task::encodeSheetAsCurve( Structure::Sheet * sheet, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
@@ -1324,6 +1338,9 @@ void Task::executeGrowShrinkSheet( double t )
 
 void Task::executeMorphCurve( double t )
 {
+	// Range check
+	t = qRanged(0.0, t, 1.0);
+
 	Structure::Node * n = node();
 	Structure::Node * tn = targetNode();
 
@@ -1399,7 +1416,7 @@ void Task::executeMorphCurve( double t )
 	}
 
 	// When this task is done
-	if (t == 1)
+	if (t == 1.0)
 	{
 		// There are two edges in the active should be killed
 		if (type == Task::SHRINK)
@@ -1521,6 +1538,16 @@ QVector< GraphDistance::PathPointPair > Task::smoothEnd( Structure::Node * n, Ve
 	postfix_path.push_back( GraphDistance::PathPointPair( a, b, 1.0 ) );
 
 	return oldPath + postfix_path;
+}
+
+bool Task::isPathOnSingleNode( QVector< GraphDistance::PathPointPair > path )
+{
+	QSet<QString> nodeIDs;
+
+	foreach(GraphDistance::PathPointPair p, path)
+		nodeIDs.insert( p.a.first );
+
+	return nodeIDs.size() <= 1;
 }
 
 Structure::Link * Task::getCoorespondingEdge( Structure::Link * link, Structure::Graph * otherGraph )

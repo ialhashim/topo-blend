@@ -85,4 +85,6 @@ public slots:
 
 	void flipU();
 	void flipV();
+
+	void experiment();
 };
