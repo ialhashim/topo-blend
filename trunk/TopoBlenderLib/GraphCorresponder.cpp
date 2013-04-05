@@ -41,7 +41,7 @@ QString GraphCorresponder::tgName()
 
 // Matrix operations
 template <class Type>
-static std::vector<std::vector<Type> > GraphCorresponder::transpose(const std::vector<std::vector<Type> > data) 
+std::vector<std::vector<Type> > GraphCorresponder::transpose(const std::vector<std::vector<Type> > data)
 {
 	// this assumes that all inner vectors have the same size and
 	// allocates space for the complete result in advance

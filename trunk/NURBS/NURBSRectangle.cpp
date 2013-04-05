@@ -172,9 +172,9 @@ NURBSRectangle<Real> NURBSRectangle<Real>::createSheet( Vec3d corner1, Vec3d cor
     assert(d.norm() > 0);
 
     QVector<Scalar> vals;
-    vals.push_back(std::abs(d.x()));
-    vals.push_back(std::abs(d.y()));
-    vals.push_back(std::abs(d.z()));
+    vals.push_back(fabs(d.x()));
+    vals.push_back(fabs(d.y()));
+    vals.push_back(fabs(d.z()));
     qSort(vals);
     if(vals[1] == 0.0) vals[1] = 1e-16;
     if(vals[1] == vals[2]) vals[2] += 1e-6;

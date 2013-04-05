@@ -439,7 +439,10 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 
 		// Avoid spiraling paths
 		if(part->has_edge_property<bool>("e:visited")) 
-			part->remove_edge_property<bool>(part->edge_property<bool>("e:visited"));
+        {
+            BoolEdgeProperty evisited = part->edge_property<bool>("e:visited");
+            part->remove_edge_property<bool>(evisited);
+        }
 		BoolEdgeProperty evisited = part->edge_property<bool>("e:visited",false);
 
 		Halfedge bestEdge;
