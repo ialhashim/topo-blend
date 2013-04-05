@@ -398,9 +398,11 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 	std::vector< std::vector<Vec3d> > paths;
 
 	SurfaceMeshHelper helper(part);
-	Vector3FaceProperty fnormal = helper.computeFaceNormals();
 	Vector3FaceProperty fcenter = helper.computeFaceBarycenters();
-	
+
+	part->update_face_normals();
+	Vector3FaceProperty fnormal = part->get_face_property<Vector3>(FNORMAL);
+
 	// for geodesic computation
 	QVector<Vertex> vertVector;
 	QSet<Vertex> vertSet; 
@@ -726,9 +728,11 @@ QVector<Vertex> BoundaryFitting::boundaryVerts()
 void BoundaryFitting::gradientFaces( ScalarVertexProperty & functionVal, bool isSmooth, bool isNormalizeNegateGradient )
 {
 	SurfaceMeshHelper h(part);
-	Vector3FaceProperty fnormal = h.computeFaceNormals();
 	ScalarFaceProperty farea = h.computeFaceAreas();
 	Vector3VertexProperty points = h.getVector3VertexProperty(VPOINT);
+
+	part->update_face_normals();
+	Vector3FaceProperty fnormal = part->get_face_property<Vector3>(FNORMAL);
 
 	// Compute gradient on faces
 	foreach(Face f, part->faces()){

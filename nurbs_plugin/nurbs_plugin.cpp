@@ -652,7 +652,7 @@ void nurbs_plugin::convertToCurve()
 	// Clean up
 	ps.clear();
 	document()->setSelectedModel(entireMesh);
-	document()->removeModel(m);
+	document()->deleteModel(m);
 	
 	m = NULL;
 
@@ -762,7 +762,7 @@ void nurbs_plugin::convertToSheet()
 	graph->addNode( new Structure::Sheet(surfaceFit( m ), groupID) );
 
 	document()->setSelectedModel( entireMesh );
-	document()->removeModel( m );
+	document()->deleteModel(m);
 
 	m = NULL;
 
@@ -1086,7 +1086,7 @@ NURBS::NURBSRectangled nurbs_plugin::surfaceFit( SurfaceMeshModel * part )
 	int degree = 3;
 	return NURBS::NURBSRectangled(cp,cw,degree,degree,false,false,true,true);
 
-	document()->removeModel( submesh );
+	document()->deleteModel(m);
 
 	// debug
 	//return NURBS::NURBSRectangled::createSheet(Vec3d(0),Vec3d(0.01));

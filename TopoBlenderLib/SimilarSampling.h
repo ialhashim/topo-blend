@@ -16,7 +16,10 @@ struct SimilarSampler{
 		SurfaceMeshHelper h( m );
 		h.computeFaceAreas();
 		ScalarFaceProperty farea = m->face_property<Scalar>(FAREA);
-		Vector3FaceProperty fnormals = h.computeFaceNormals();
+
+		m->update_face_normals();
+		Vector3FaceProperty fnormals = m->get_face_property<Vector3>(FNORMAL);
+		
 		foreach(Face f, m->faces()) area += farea[f];
 		
 		Scalar samplePerAreaUnit = sampleNum / area;
@@ -82,7 +85,8 @@ struct SimilarSampler{
 		Vector3VertexProperty points = h.getVector3VertexProperty(VPOINT);
 
 		// Face normals
-		Vector3FaceProperty fnormals = h.computeFaceNormals();
+		m->update_face_normals();
+		Vector3FaceProperty fnormals = m->get_face_property<Vector3>(FNORMAL);
 
 		// First loop compute total edge lenght;
 		Scalar edgeSum = 0;
