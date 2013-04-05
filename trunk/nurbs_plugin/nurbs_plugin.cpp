@@ -1140,4 +1140,27 @@ void nurbs_plugin::flipV()
 	drawArea()->updateGL();
 }
 
+void nurbs_plugin::experiment()
+{
+	NanoKdTree tree;
+	Vector3VertexProperty mesh_points = mesh()->get_vertex_property<Vector3>(VPOINT);
+
+	foreach(Vertex v, mesh()->vertices())
+	{
+		tree.addPoint( mesh_points[v] );
+	}
+
+	tree.build();
+
+	KDResults matches;
+	tree.ball_search(Vec3d(0), 0.1, matches);
+
+	drawArea()->deleteAllRenderObjects();
+
+	foreach(KDResultPair r, matches)
+	{
+		drawArea()->drawPoint(mesh_points[Vertex(r.first)]);
+	}
+}
+
 Q_EXPORT_PLUGIN (nurbs_plugin)

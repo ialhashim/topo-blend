@@ -356,16 +356,25 @@ public:
 		frames.push_back(frame);
 	}
 
-	virtual void draw(){
+	virtual void draw()
+	{
+		drawFrame();
+	}
+
+	void drawFrame( int colorOffset = 0 )
+	{
+		QColor frameColors[] = { QColor(255,0,0), QColor(0,255,0), QColor(0,0,255) };
+		int ci = colorOffset;
+
 		glDisable(GL_LIGHTING);
 		glLineWidth(1);
 		glBegin(GL_LINES);
 		for(int i = 0; i < (int) frames.size(); i++){
 			QVector3D X=frames[i][0],Y=frames[i][1],Z=frames[i][2];
 			QVector3D pos=frames[i][3];
-			glColor3d(1,0,0);glVertQt(pos); glVertQt((pos + X * _size));
-			glColor3d(0,1,0);glVertQt(pos); glVertQt((pos + Y * _size));
-			glColor3d(0,0,1);glVertQt(pos); glVertQt((pos + Z * _size));
+			glColorQt(frameColors[(ci+0)%3]); glVertQt(pos); glVertQt((pos + X * _size));
+			glColorQt(frameColors[(ci+1)%3]); glVertQt(pos); glVertQt((pos + Y * _size));
+			glColorQt(frameColors[(ci+2)%3]); glVertQt(pos); glVertQt((pos + Z * _size));
 		}
 		glEnd();
 
@@ -374,9 +383,9 @@ public:
 		for(int i = 0; i < (int) frames.size(); i++){
 			QVector3D X=frames[i][0],Y=frames[i][1],Z=frames[i][2];
 			QVector3D pos=frames[i][3];
-			glColor3d(1,0,0);glVertQt((pos + X * _size));
-			glColor3d(0,1,0);glVertQt((pos + Y * _size));
-			glColor3d(0,0,1);glVertQt((pos + Z * _size));
+			glColorQt(frameColors[(ci+0)%3]); glVertQt((pos + X * _size));
+			glColorQt(frameColors[(ci+1)%3]); glVertQt((pos + Y * _size));
+			glColorQt(frameColors[(ci+2)%3]); glVertQt((pos + Z * _size));
 		}
 		glEnd();
 		glEnable(GL_LIGHTING);

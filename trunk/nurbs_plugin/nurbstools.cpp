@@ -22,6 +22,8 @@ NURBSTools::NURBSTools(nurbs_plugin * usePlugin, QWidget *parent) : QWidget(pare
 
 	plugin->connect(ui->flipUButton, SIGNAL(clicked()), SLOT(flipU()));
 	plugin->connect(ui->flipVButton, SIGNAL(clicked()), SLOT(flipV()));
+	
+	plugin->connect(ui->experimentButton, SIGNAL(clicked()), SLOT(experiment()));
 }
 
 NURBSTools::~NURBSTools()
