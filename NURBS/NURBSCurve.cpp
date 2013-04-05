@@ -547,7 +547,7 @@ void NURBSCurve<Real>::refine(Array1D_Real & insknts, Array1D_Vector3 & Qw, Arra
 		{
 			int ind = k-p+l;
 			alfa = Ubar[k+l] - X[j];
-			if (std::abs(alfa) == 0.0)
+            if (fabs(alfa) == 0.0)
 			{
 				Qw[ind-1] = Qw[ind];
 			}
