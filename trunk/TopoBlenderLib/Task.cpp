@@ -773,6 +773,9 @@ void Task::prepareMorphCurve()
 {
 	Structure::Node * n = node();
 	Structure::Node * tn = targetNode();
+
+	Structure::Curve * curve = (Structure::Curve *)n;
+	Structure::Curve * tcurve = (Structure::Curve *)tn;
 	
 	// 0) Filter edges (remove edges with null since these nodes will grow in future)
 	QVector<Structure::Link*> edges = filterEdges(n, active->getEdges(n->id));
@@ -870,17 +873,20 @@ void Task::prepareMorphCurve()
 		{
 			if( isPathOnSingleNode(pathA) )	
 			{
-				// Add a "static" point on the node itself
+				// Add a "static" point
 				pathA.clear();
-				pathA.push_back( GraphDistance::PathPointPair( PathPoint(n->id,linkA->getCoord(n->id).front()) ) );
+				Node * aux = addAuxNode(linkA->position(n->id), active);
+				pathA.push_back( GraphDistance::PathPointPair( PathPoint (aux->id, Vec4d(0)) ) );
 			}
 			else 
 				pathA = smoothStart(node(), linkA->getCoord(n->id).front(), pathA);
 
 			if( isPathOnSingleNode(pathB) )	
 			{
+				// Add a "static" point
 				pathB.clear();
-				pathB.push_back( GraphDistance::PathPointPair( PathPoint(n->id,linkB->getCoord(n->id).front()) ) );
+				Node * aux = addAuxNode(linkB->position(n->id), active);
+				pathB.push_back( GraphDistance::PathPointPair( PathPoint (aux->id, Vec4d(0)) ) );
 			}
 			else 
 				pathB = smoothStart(node(), linkB->getCoord(n->id).front(), pathB);
@@ -905,24 +911,28 @@ void Task::prepareMorphCurve()
 		property["pathA"].setValue( pathA );
 		property["pathB"].setValue( pathB );
 
-		RMF rmfA( positionalPath(pathA, 2) );
-		RMF rmfB( positionalPath(pathB, 2) );
+		// Get source and target frames
+		RMF::Frame sframe = curveFrame( curve );
+		RMF::Frame tframe = curveFrame( tcurve );
 
-		// Consistent frames
-		RMF & rmf = rmfA;
+		// Compute rotations between source and target sheet frames
+		Eigen::Quaterniond rotation;
+		AbsoluteOrientation::compute(sframe.r,sframe.s,sframe.t, 
+									 tframe.r,tframe.s,tframe.t, rotation);
 
-		property["rmf"].setValue( rmf );
-		Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
+		// Parameters needed for morphing
+		property["rotation"].setValue( rotation );
+		property["sframe"].setValue( sframe );
+		property["tframe"].setValue( tframe );
 
-		// Encode source curve
-		property["cpCoords"].setValue( encodeCurve((Structure::Curve*)n, startA, startB, X,Y,Z) );
+		property["cpCoords"].setValue( encodeCurve((Structure::Curve*)n, startA, startB, sframe.r,sframe.s,sframe.t) );
+		property["cpCoordsT"].setValue( encodeCurve((Structure::Curve*)tn, tstartA, tstartB, tframe.r,tframe.s,tframe.t) );
 
-		// Encode target curve
-		property["cpCoordsT"].setValue( encodeCurve((Structure::Curve*)tn, tstartA, tstartB, X,Y,Z) );
-
-		// DEBUG:
-		node()->property["rmf"].setValue( rmfA );
-		node()->property["rmf2"].setValue( rmfB );
+		// Visualization
+		n->property["frame"].setValue( sframe );
+		tn->property["frame"].setValue( tframe );
+		n->property["rmf"].setValue( RMF(positionalPath(pathA,2)) );
+		n->property["path"].setValue( positionalPath(pathB) );
 	}
 }
 
@@ -1055,16 +1065,14 @@ void Task::prepareMorphSheet()
 	Structure::Sheet * sheet = (Structure::Sheet *)n;
 	Structure::Sheet * tsheet = (Structure::Sheet *)tn;
 
-	// Get source and target corners
+	// Get source and target frames
 	RMF::Frame sframe = sheetFrame( sheet );
 	RMF::Frame tframe = sheetFrame( tsheet );
 
 	// Compute rotations between source and target sheet frames
-	std::vector<Vec3d> A,B;
 	Eigen::Quaterniond rotation, eye = Eigen::Quaterniond::Identity();
-	A.push_back(sframe.r); A.push_back(sframe.s); A.push_back(sframe.t);
-	B.push_back(tframe.r); B.push_back(tframe.s); B.push_back(tframe.t);
-	AbsoluteOrientation::compute(A,B, rotation);
+	AbsoluteOrientation::compute(sframe.r,sframe.s,sframe.t, 
+								 tframe.r,tframe.s,tframe.t, rotation);
 
 	// Parameters needed for morphing
 	property["rotation"].setValue( rotation );
@@ -1074,25 +1082,12 @@ void Task::prepareMorphSheet()
 	property["cpCoords"].setValue( encodeSheet(sheet, sframe.center, sframe.r,sframe.s,sframe.t) );
 	property["cpCoordsT"].setValue( encodeSheet(tsheet, tframe.center, tframe.r,tframe.s,tframe.t) );
 
-	// Smooth rotation
-	std::vector<RMF::Frame> frames;
-	for(double alpha = 0; alpha <= 1.0; alpha += 0.01)
-	{
-		Eigen::Vector3d r = V2E(sframe.r), s = V2E(sframe.s), t = V2E(sframe.t);
-		r = eye.slerp(alpha, rotation) * r;
-		s = eye.slerp(alpha, rotation) * s;
-		t = eye.slerp(alpha, rotation) * t;
-
-		RMF::Frame curFrame = RMF::Frame(E2V(r),E2V(s),E2V(t));
-		curFrame.center = sframe.center;
-		frames.push_back(curFrame);
-	}
-	property["frames"].setValue( frames );
-
 	// Visualization
-	n->property["frames"].setValue(frames);
-	n->property["sheetFrame"].setValue( sframe );
-	tn->property["sheetFrame"].setValue( tframe );
+	std::vector<RMF::Frame> frames = smoothRotateFrame(sframe, rotation, 100);
+	property["frames"].setValue( frames );
+	n->property["frames"].setValue( frames );
+	n->property["frame"].setValue( sframe );
+	tn->property["frame"].setValue( tframe );
 }
 
 RMF::Frame Task::sheetFrame( Structure::Sheet * sheet )
@@ -1164,6 +1159,16 @@ Array1D_Vector3 Task::decodeSheet( SheetEncoding cpCoords, Vector3 origin, Vecto
 	return pnts;
 }
 
+RMF::Frame Task::curveFrame( Structure::Curve * curve )
+{
+	Vec3d origin = curve->position(Vec4d(0));
+	Vec3d X = (curve->position(Vec4d(1.0)) - origin).normalized();
+	Vec3d Y = orthogonalVector(X);
+	RMF::Frame frame = RMF::Frame::fromRS(X,Y);
+	frame.center = origin; 
+	return frame;
+}
+
 // EXECUTE
 void Task::execute( double t )
 {	
@@ -1171,6 +1176,15 @@ void Task::execute( double t )
 
 	currentTime = start + (t * length);
 
+	// Range check
+	t = qRanged(0.0, t, 1.0);
+
+	if( node()->id.contains("LeftBackLeg") )
+	{
+		int x = 0;
+	}
+
+	// Execute curve tasks
 	if (node()->type() == Structure::CURVE)
 	{
 		switch(type)
@@ -1185,6 +1199,7 @@ void Task::execute( double t )
 		}
 	}
 	
+	// Execute sheet tasks
 	if (node()->type() == Structure::SHEET)
 	{
 		switch(type)
@@ -1199,6 +1214,7 @@ void Task::execute( double t )
 		}
 	}
 
+	// Post execution steps
 	if(t >= 1.0)
 	{
 		this->isDone = true;
@@ -1210,6 +1226,7 @@ void Task::execute( double t )
 		}
 	}
 
+	// Special cases
 	if(t >= 0)
 	{
 		if(type == GROW)
@@ -1338,9 +1355,6 @@ void Task::executeGrowShrinkSheet( double t )
 
 void Task::executeMorphCurve( double t )
 {
-	// Range check
-	t = qRanged(0.0, t, 1.0);
-
 	Structure::Node * n = node();
 	Structure::Node * tn = targetNode();
 
@@ -1393,12 +1407,28 @@ void Task::executeMorphCurve( double t )
 		Vector3 pointA = pathA[idxA].position(active);
 		Vector3 pointB = pathB[idxB].position(active);
 
-		RMF rmf = property["rmf"].value<RMF>();
-		Vector3 X = rmf.frameAt(t).r, Y = rmf.frameAt(t).s, Z = rmf.frameAt(t).t;
+		// Decode
+		SheetEncoding cpCoords = property["cpCoords"].value<SheetEncoding>();
+		SheetEncoding cpCoordsT = property["cpCoordsT"].value<SheetEncoding>();
 
-		Array1D_Vector3 newPnts = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, X,Y,Z);
-		Array1D_Vector3 newPntsT = decodeCurve(property["cpCoordsT"].value<CurveEncoding>(), pointA, pointB, X,Y,Z);
+		// Frames
+		RMF::Frame sframe = property["sframe"].value<RMF::Frame>();
+		RMF::Frame tframe = property["tframe"].value<RMF::Frame>();
+		Eigen::Quaterniond rotation = property["rotation"].value<Eigen::Quaterniond>(), 
+			eye = Eigen::Quaterniond::Identity();
 
+		// Source curve
+		Eigen::Vector3d R = V2E(sframe.r), S = V2E(sframe.s), T = V2E(sframe.t);
+		R = eye.slerp(t, rotation) * R;
+		S = eye.slerp(t, rotation) * S;
+		T = eye.slerp(t, rotation) * T;
+		RMF::Frame curFrame (E2V(R),E2V(S),E2V(T));
+
+		curFrame.center = tframe.center = AlphaBlend(t, sframe.center, tframe.center);
+
+		Array1D_Vector3 newPnts = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, sframe.r,sframe.s,sframe.t);
+		Array1D_Vector3 newPntsT = decodeCurve(property["cpCoordsT"].value<CurveEncoding>(), pointA, pointB, tframe.r,tframe.s,tframe.t);
+		
 		if(!newPntsT.size()) newPntsT = newPnts;
 
 		Array1D_Vector3 blendedPnts;
@@ -1556,6 +1586,14 @@ Structure::Link * Task::getCoorespondingEdge( Structure::Link * link, Structure:
 	return otherGraph->getEdge(correspondID);
 }
 
+Structure::Node * Task::addAuxNode(Vec3d position, Structure::Graph * g)
+{
+	Structure::Node * aux = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, position ) ), 
+		"auxA_" + QString::number(g->aux_nodes.size()));
+	g->aux_nodes.push_back( aux );
+	return aux;
+}
+
 Structure::Node * Task::prepareEnd( Structure::Node * n, Structure::Link * slink )
 {
 	Structure::Node * tn = target->getNode(n->property["correspond"].toString());
@@ -1594,4 +1632,26 @@ void Task::setNode( QString node_ID )
 	{
 		node()->property["toGrow"] = true;
 	}
+}
+
+std::vector<RMF::Frame> Task::smoothRotateFrame( RMF::Frame sframe, Eigen::Quaterniond & rotation, int steps )
+{
+	std::vector<RMF::Frame> frames;
+
+	double stepSize = 1.0 / double(steps);
+
+	Eigen::Quaterniond eye = Eigen::Quaterniond::Identity();
+
+	for(double alpha = 0; alpha <= 1.0; alpha += stepSize)
+	{
+		Eigen::Vector3d r = V2E(sframe.r), s = V2E(sframe.s), t = V2E(sframe.t);
+		r = eye.slerp(alpha, rotation) * r;
+		s = eye.slerp(alpha, rotation) * s;
+		t = eye.slerp(alpha, rotation) * t;
+
+		RMF::Frame curFrame = RMF::Frame(E2V(r),E2V(s),E2V(t));
+		curFrame.center = sframe.center;
+		frames.push_back(curFrame);
+	}
+	return frames;
 }
