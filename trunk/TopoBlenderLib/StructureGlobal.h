@@ -83,6 +83,12 @@ static inline std::vector<Vec4d> inverseCoords(const std::vector<Vec4d>& fromCoo
 	foreach(Vec4d coord, fromCoords) invertedCoords.push_back( inverseCoord(coord) );
 	return invertedCoords; 
 }
+static inline bool isSameHalf(const Vec4d& A, const Vec4d& B){
+	bool result = false;
+	if( (A[0] <= 0.5 && B[0] <= 0.5) || (A[0] > 0.5 && B[0] > 0.5) )
+		result = true;
+	return result;
+}
 
 static inline double signedAngle(const Vector3 &a, const Vector3 &b, const Vector3 &axis)
 {

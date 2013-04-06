@@ -860,6 +860,17 @@ void Task::prepareMorphCurve()
 		Structure::Link * tlinkB = target->getEdge(linkB->property["correspond"].toString());
 		Vec3d tstartA = tlinkA->position(tn->id);
 		Vec3d tstartB = tlinkB->position(tn->id);
+		
+		if( !isSameHalf(linkA->getCoord(n->id).front(), tlinkA->getCoord(tn->id).front()) )
+		{
+			qDebug() << "Link A is reversed";
+		}
+
+		if( !isSameHalf(linkB->getCoord(n->id).front(), tlinkB->getCoord(tn->id).front()) )
+		{
+			qDebug() << "Link B is reversed";
+		}
+
 
 		// Geodesic distances on the active graph excluding the running tasks
 		QVector< GraphDistance::PathPointPair > pathA, pathB;	
