@@ -432,6 +432,14 @@ void Graph::draw()
 						ps.addPoint(p);
 					ps.draw();
 				}
+
+				if( n->property.contains("frame") )
+				{
+					RMF::Frame f = n->property["frame"].value<RMF::Frame>();
+					FrameSoup fs(0.01f);
+					fs.addFrame(f.r, f.s, f.t, f.center);
+					fs.draw();
+				}
 			}
 
 			glEnable(GL_LIGHTING);

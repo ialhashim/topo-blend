@@ -1,5 +1,13 @@
 #include "AbsoluteOrientation.h"
 
+void AbsoluteOrientation::compute( Vec3d Xa,Vec3d Ya,Vec3d Za, Vec3d Xb,Vec3d Yb,Vec3d Zb, Eigen::Quaterniond &result )
+{
+	std::vector<Vec3d> A,B;
+	A.push_back(Xa); A.push_back(Ya); A.push_back(Za);
+	B.push_back(Xb); B.push_back(Yb); B.push_back(Zb);
+	compute(A,B,result);
+}
+
 void AbsoluteOrientation::compute( std::vector<Vec3d> &left, std::vector<Vec3d> &right, Eigen::Quaterniond &result )
 {
 	int i, pairNum = left.size();

@@ -76,7 +76,8 @@ public:
 	QVector< GraphDistance::PathPointPair > smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
 	QVector< GraphDistance::PathPointPair > smoothEnd( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
 	bool isPathOnSingleNode( QVector< GraphDistance::PathPointPair > path );
-
+	
+	Structure::Node * addAuxNode(Vec3d position, Structure::Graph * g);
 	Structure::Node * prepareEnd( Structure::Node * n, Structure::Link * slink );
 	QPair<Structure::Node*,Structure::Node*> prepareEnd2( Structure::Node * n, Structure::Link * linkA, Structure::Link * linkB );
 
@@ -86,9 +87,12 @@ public:
 
 	SheetEncoding encodeSheet( Structure::Sheet * sheet, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z );
 	Array1D_Vector3 decodeSheet( SheetEncoding cpCoords, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z );
-
-	RMF::Frame sheetFrame(Structure::Sheet * sheet);
+		
+	RMF::Frame curveFrame( Structure::Curve * curve );
+	RMF::Frame sheetFrame( Structure::Sheet * sheet );
 	Array1D_Vector3 sheetDeltas(Structure::Sheet * sheet);
+
+	std::vector<RMF::Frame> smoothRotateFrame( RMF::Frame sframe, Eigen::Quaterniond &result, int steps = 100 );
 
 	// Special encoding for sheet growing
 	SheetEncoding encodeSheetAsCurve( Structure::Sheet * sheet, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z );
