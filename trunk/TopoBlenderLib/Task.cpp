@@ -375,6 +375,13 @@ void Task::prepare()
 	foreach(QString id, runningTasks) qDebug() << id;
 	qDebug() << "---";
 
+
+	if( node()->id.contains("LeftBackLeg") )
+	{
+		int x = 0;
+	}
+
+
 	if (node()->type() == Structure::CURVE)
 	{
 		switch(type)
@@ -713,7 +720,7 @@ void Task::prepareGrowCurve()
 }
 
 /* Curve encoding, to decode you need two points A,B and a frame XYZ */
-CurveEncoding Task::encodeCurve( Array1D_Vector3 points, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
+CurveEncoding Task::encodeCurve( Array1D_Vector3 points, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z, bool isFlip )
 {
 	CurveEncoding cpCoords;
 
@@ -736,18 +743,22 @@ CurveEncoding Task::encodeCurve( Array1D_Vector3 points, Vector3 start, Vector3 
 		}
 		globalToLocalSpherical(X,Y,Z, params[2], params[3], dir);
 
-		cpCoords[i] = params;
+		// Flipping case
+		int idx = i;
+		if(isFlip) idx = (points.size()-1) - i; 
+
+		cpCoords[idx] = params;
 	}
 
 	return cpCoords;
 }
 
-CurveEncoding Task::encodeCurve( Structure::Curve * curve, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
+CurveEncoding Task::encodeCurve( Structure::Curve * curve, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z, bool isFlip )
 {
-	return encodeCurve(curve->controlPoints(),start,end,X,Y,Z);
+	return encodeCurve(curve->controlPoints(),start,end,X,Y,Z, isFlip);
 }
 
-Array1D_Vector3 Task::decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z, double T )
+Array1D_Vector3 Task::decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z, double T)
 {
 	Array1D_Vector3 controlPoints (cpCoords.size(), Vector3(0));
 
@@ -861,16 +872,12 @@ void Task::prepareMorphCurve()
 		Vec3d tstartA = tlinkA->position(tn->id);
 		Vec3d tstartB = tlinkB->position(tn->id);
 		
-		if( !isSameHalf(linkA->getCoord(n->id).front(), tlinkA->getCoord(tn->id).front()) )
-		{
-			qDebug() << "Link A is reversed";
-		}
-
-		if( !isSameHalf(linkB->getCoord(n->id).front(), tlinkB->getCoord(tn->id).front()) )
-		{
-			qDebug() << "Link B is reversed";
-		}
-
+		// Check for reversed coordinates
+		bool isFlip = false;
+		bool isFlipA = false, isFlipB = false;
+		if( !isSameHalf(linkA->getCoord(n->id).front(), tlinkA->getCoord(tn->id).front()) )	isFlipA = true;
+		if( !isSameHalf(linkB->getCoord(n->id).front(), tlinkB->getCoord(tn->id).front()) )	isFlipB = true;
+		isFlip = isFlipA && isFlipB;
 
 		// Geodesic distances on the active graph excluding the running tasks
 		QVector< GraphDistance::PathPointPair > pathA, pathB;	
@@ -937,7 +944,9 @@ void Task::prepareMorphCurve()
 		property["tframe"].setValue( tframe );
 
 		property["cpCoords"].setValue( encodeCurve((Structure::Curve*)n, startA, startB, sframe.r,sframe.s,sframe.t) );
-		property["cpCoordsT"].setValue( encodeCurve((Structure::Curve*)tn, tstartA, tstartB, tframe.r,tframe.s,tframe.t) );
+		property["cpCoordsT"].setValue( encodeCurve((Structure::Curve*)tn, tstartA, tstartB, tframe.r,tframe.s,tframe.t, isFlip) );
+
+		property["isFlip"].setValue( isFlip );
 
 		// Visualization
 		n->property["frame"].setValue( sframe );
@@ -1170,10 +1179,15 @@ Array1D_Vector3 Task::decodeSheet( SheetEncoding cpCoords, Vector3 origin, Vecto
 	return pnts;
 }
 
-RMF::Frame Task::curveFrame( Structure::Curve * curve )
+RMF::Frame Task::curveFrame( Structure::Curve * curve, bool isFlip )
 {
-	Vec3d origin = curve->position(Vec4d(0));
-	Vec3d X = (curve->position(Vec4d(1.0)) - origin).normalized();
+	Vec4d zero(0);
+	Vec4d one(1.0);
+
+	if(isFlip) std::swap(zero,one);
+
+	Vec3d origin = curve->position(zero);
+	Vec3d X = (curve->position(one) - origin).normalized();
 	Vec3d Y = orthogonalVector(X);
 	RMF::Frame frame = RMF::Frame::fromRS(X,Y);
 	frame.center = origin; 
@@ -1189,11 +1203,6 @@ void Task::execute( double t )
 
 	// Range check
 	t = qRanged(0.0, t, 1.0);
-
-	if( node()->id.contains("LeftBackLeg") )
-	{
-		int x = 0;
-	}
 
 	// Execute curve tasks
 	if (node()->type() == Structure::CURVE)
@@ -1436,10 +1445,12 @@ void Task::executeMorphCurve( double t )
 		RMF::Frame curFrame (E2V(R),E2V(S),E2V(T));
 
 		curFrame.center = tframe.center = AlphaBlend(t, sframe.center, tframe.center);
+		
+		bool isFlip = property["isFlip"].toBool();
 
 		Array1D_Vector3 newPnts = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, sframe.r,sframe.s,sframe.t);
 		Array1D_Vector3 newPntsT = decodeCurve(property["cpCoordsT"].value<CurveEncoding>(), pointA, pointB, tframe.r,tframe.s,tframe.t);
-		
+
 		if(!newPntsT.size()) newPntsT = newPnts;
 
 		Array1D_Vector3 blendedPnts;
