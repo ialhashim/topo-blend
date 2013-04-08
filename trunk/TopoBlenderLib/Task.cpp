@@ -375,13 +375,6 @@ void Task::prepare()
 	foreach(QString id, runningTasks) qDebug() << id;
 	qDebug() << "---";
 
-
-	if( node()->id.contains("LeftBackLeg") )
-	{
-		int x = 0;
-	}
-
-
 	if (node()->type() == Structure::CURVE)
 	{
 		switch(type)
@@ -453,14 +446,24 @@ QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Struct
 	}
 
 	edges.clear();
-	foreach( int i, bin.keys() ){
-		QVector<Structure::Link*> similarEdges = bin[i];
 
-		// Arbitrary choice for now..
-		Structure::Link * furthest = similarEdges.front();
-		
-		if(edges.size() < 2) edges.push_back( furthest );
-	}
+	//if(n->type() == Structure::SHEET && bin.keys().contains(0) && bin.keys().contains(3))
+	//{
+	//	// Get edges at furthest corners of sheet
+	//	edges.push_back( bin[0].front() );
+	//	edges.push_back( bin[3].front() );
+	//}
+	//else
+	//{
+		foreach( int i, bin.keys() ){
+			QVector<Structure::Link*> similarEdges = bin[i];
+
+			// Arbitrary choice for now..
+			Structure::Link * furthest = similarEdges.front();
+
+			if(edges.size() < 2) edges.push_back( furthest );
+		}
+	//}
 
 	// Remove any shrunken edges
 	QVector<Structure::Link*> afterShrink;
@@ -818,7 +821,15 @@ void Task::prepareMorphCurve()
 		gd.smoothPathCoordTo( startPoint, path );
 
 		// Smooth transition from start point
-		path = smoothStart( node(), link->getCoord(n->id).front(), path );
+		if( !isPathOnSingleNode( path ) )	
+			path = smoothStart( node(), link->getCoord(n->id).front(), path );
+		else
+		{
+			// Add a "static" point
+			path.clear();
+			Node * aux = addAuxNode(link->position(n->id), active);
+			path.push_back( GraphDistance::PathPointPair( PathPoint (aux->id, Vec4d(0)) ) );
+		}
 
 		// Smooth transition to end point
 		path = smoothEnd( prepareEnd(n, link), Vec4d(0), path );
@@ -827,7 +838,6 @@ void Task::prepareMorphCurve()
 		link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
 
 		path = weldPath( path );
-		if(!path.size()) path.push_back( GraphDistance::PathPointPair( PathPoint(n->id,link->getCoord(n->id).front()) ) );
 
 		property["path"].setValue( path );
 
@@ -866,19 +876,6 @@ void Task::prepareMorphCurve()
 		NodeCoord edB = futureLinkCoord(linkB);
 		Vec3d endB = active->position(edB.first,edB.second);
 
-		// Corresponding links
-		Structure::Link * tlinkA = target->getEdge(linkA->property["correspond"].toString());
-		Structure::Link * tlinkB = target->getEdge(linkB->property["correspond"].toString());
-		Vec3d tstartA = tlinkA->position(tn->id);
-		Vec3d tstartB = tlinkB->position(tn->id);
-		
-		// Check for reversed coordinates
-		bool isFlip = false;
-		bool isFlipA = false, isFlipB = false;
-		if( !isSameHalf(linkA->getCoord(n->id).front(), tlinkA->getCoord(tn->id).front()) )	isFlipA = true;
-		if( !isSameHalf(linkB->getCoord(n->id).front(), tlinkB->getCoord(tn->id).front()) )	isFlipB = true;
-		isFlip = isFlipA && isFlipB;
-
 		// Geodesic distances on the active graph excluding the running tasks
 		QVector< GraphDistance::PathPointPair > pathA, pathB;	
 		QVector<QString> exclude = active->property["activeTasks"].value< QVector<QString> >();
@@ -914,9 +911,21 @@ void Task::prepareMorphCurve()
 		foreach(Structure::Link *link, edges){
 			QString otherNode = link->otherNode(n->id)->id;
 			NodeCoord fnc = futureOtherNodeCoord(link);
-			link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
-		}
+			if(!fnc.first.contains("null"))
+				link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
+			else
+			{
+				// When connected to growing cut node, use edge with cut node instead
+				Link * cutLink = active->getEdge( n->id, fnc.first );
 
+				if(cutLink)
+				{
+					if(linkA->hasNode(otherNode)) linkA = cutLink;
+					if(linkB->hasNode(otherNode)) linkB = cutLink;
+				}
+			}
+		}
+		
 		// Smooth transition to end point
 		QPair<Node*,Node*> auxAB = prepareEnd2(n,linkA,linkB);
 		pathA = smoothEnd(auxAB.first, Vec4d(0), pathA);
@@ -928,6 +937,19 @@ void Task::prepareMorphCurve()
 
 		property["pathA"].setValue( pathA );
 		property["pathB"].setValue( pathB );
+
+		// Corresponding links
+		Structure::Link * tlinkA = target->getEdge(linkA->property["correspond"].toString());
+		Structure::Link * tlinkB = target->getEdge(linkB->property["correspond"].toString());
+		Vec3d tstartA = tlinkA->position(tn->id);
+		Vec3d tstartB = tlinkB->position(tn->id);
+
+		// Check for reversed coordinates
+		bool isFlip = false;
+		bool isFlipA = false, isFlipB = false;
+		if( !isSameHalf(linkA->getCoord(n->id).front(), tlinkA->getCoord(tn->id).front()) )	isFlipA = true;
+		if( !isSameHalf(linkB->getCoord(n->id).front(), tlinkB->getCoord(tn->id).front()) )	isFlipB = true;
+		isFlip = isFlipA && isFlipB;
 
 		// Get source and target frames
 		RMF::Frame sframe = curveFrame( curve );

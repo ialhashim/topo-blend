@@ -31,7 +31,7 @@ std::vector<Vec4d> Link::getCoord( QString nodeID )
 {
 	if(n1->id == nodeID) return coord[0];
 	if(n2->id == nodeID) return coord[1];
-	return std::vector<Vec4d>();
+	return std::vector<Vec4d>(1,Vec4d(0));
 }
 
 std::vector<Vec4d> Link::getCoordOther( QString nodeID )

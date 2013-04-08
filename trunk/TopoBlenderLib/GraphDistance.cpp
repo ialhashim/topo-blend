@@ -163,8 +163,10 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	this->isReady = false;
 	clear();
 
-	if(resolution < 0) 
-		resolution = g->bbox().size().length() * 0.01;
+	double minResolution = g->bbox().size().length() * 0.01;
+
+	if(resolution < 0 || (minResolution / resolution) > 10.0) 
+		resolution = minResolution;
 
 	this->used_resolution = resolution;
 
