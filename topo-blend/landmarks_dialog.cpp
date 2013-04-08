@@ -421,7 +421,7 @@ void LandmarksDialog::updateAlignmentTab()
 
 void LandmarksDialog::updateAll()
 {
-	normalize();
+	//normalize();
 
 	ui->sName->setText("Source: " + gcorr->sgName());
 	ui->tName->setText("Target: " + gcorr->tgName());

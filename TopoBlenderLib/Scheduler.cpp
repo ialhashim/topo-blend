@@ -459,6 +459,7 @@ void Scheduler::relink( TasksConstraints & all_constraints, int globalTime )
 		if(N > 1)
 		{
 			Vector3 delta(0);
+			int M = 0;
 
 			foreach( LinkConstraint constraint, constraints )
 			{
@@ -473,9 +474,10 @@ void Scheduler::relink( TasksConstraints & all_constraints, int globalTime )
 				Vector3 linkPos = link->position(n->id);
 
 				delta += constraint.delta;
+				M++;
 			}
 
-			delta /= N;
+			delta /= M;
 
 			other->moveBy( -delta );
 
