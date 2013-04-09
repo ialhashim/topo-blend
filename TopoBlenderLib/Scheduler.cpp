@@ -404,6 +404,15 @@ void Scheduler::prepare_relink( Task * task, TasksConstraints & constraints )
 			if(delta.norm() < 1e-7) 
 				delta = Vector3(0);
 
+			// Delta should not be larger than expected
+			/*Structure::Link * tlink = targetGraph->getEdge( link->property["correspond"].toString() );
+			QString tnodeID = n->property["correspond"].toString();
+			if(tlink->hasNode(tnodeID)){
+				Vec3d deltaTarget = tlink->positionOther(tnodeID) - tlink->position(tnodeID);
+				if(delta.norm() > deltaTarget.norm())
+					continue;
+			}*/
+
 			// Skip for shrinking non-cuts
 			if( task->type == Task::SHRINK && !n->property.contains("isCutGroup") )
 				continue;

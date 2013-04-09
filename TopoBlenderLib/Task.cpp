@@ -1,3 +1,4 @@
+#include "DynamicGraph.h"
 #include "Scheduler.h"
 #include "Task.h"
 #include <QGraphicsSceneMouseEvent>
@@ -1259,13 +1260,53 @@ void Task::execute( double t )
 	// Post execution steps
 	if(t >= 1.0)
 	{
+		Structure::Node * n = node();
+		Structure::Node * tn = targetNode();
+
 		this->isDone = true;
-		node()->property["taskIsDone"] = true;
+		n->property["taskIsDone"] = true;
 
 		if(type == SHRINK)
 		{
-			node()->property["shrunk"] = true;
+			n->property["shrunk"] = true;
 		}
+
+		/*if(type == GROW && n->property["isCutGroup"].toBool())
+		{
+			QVector<Structure::Link*> edges = active->getEdges(n->id);
+			QVector<Structure::Link*> tedges = target->getEdges(tn->id);
+
+			// Re-assign source edges based on target counterparts
+			QVector<Node*> tadjN;
+			active->removeEdges( n->id );
+			foreach(Structure::Link * l, tedges){
+				Node * n1 = active->getNode(l->n1->property["correspond"].toString());
+				Node * n2 = active->getNode(l->n2->property["correspond"].toString());
+				Array1D_Vec4d coord1 = l->getCoord(l->n1->id);
+				Array1D_Vec4d coord2 = l->getCoord(l->n2->id);
+				Link * newEdge = active->addEdge(n1,n2,coord1,coord2);
+				newEdge->property["correspond"] = l->id;
+				
+				if(l->n1 != tn) tadjN.push_back(l->n1);
+				if(l->n2 != tn) tadjN.push_back(l->n2);
+			}
+			
+			// Make a copy of target graph and cut current target node
+			Structure::Graph targetCopy( *target );
+			targetCopy.removeNode( tn->id );
+			
+			// Search if paths are not valid then disconnect at source graph
+			for(int i = 0; i < (int)tadjN.size(); i++){
+				for(int j = i + 1; j < (int)tadjN.size(); j++){
+					QVector<Node*> path = targetCopy.path(tadjN[i], tadjN[j]);
+					if( path.size() < 2 ){
+						Node * n1 = active->getNode(tadjN[i]->property["correspond"].toString());
+						Node * n2 = active->getNode(tadjN[j]->property["correspond"].toString());
+						active->removeEdge(n1->id, n2->id);
+					}
+				}
+			}
+		}*/
 	}
 
 	// Special cases
@@ -1353,6 +1394,7 @@ void Task::executeGrowShrinkSheet( double t )
 		if(pathA.size() == 0 || pathB.size() == 0)	return;
 
 		double dt = t;
+		double decodeT = qMin(1.0, t * 2.0);
 
 		if(this->type == SHRINK) dt = 1 - t;
 
@@ -1365,7 +1407,7 @@ void Task::executeGrowShrinkSheet( double t )
 
 		RMF rmf = property["rmf"].value<RMF>();
 		Vector3 X = rmf.frameAt(dt).r, Y = rmf.frameAt(dt).s, Z = rmf.frameAt(dt).t;
-		Array1D_Vector3 decoded = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, X,Y,Z, dt);
+		Array1D_Vector3 decoded = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, X,Y,Z, decodeT);
 		structure_sheet->setControlPoints( decoded );
 	}
 
