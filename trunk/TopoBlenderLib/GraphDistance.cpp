@@ -1,7 +1,13 @@
 #include "GraphDistance.h"
 using namespace Structure;
 
-double DIST_RESOLUTION = 0.015;
+#define DIST_HIGH_RES 1
+
+#if DIST_HIGH_RES
+	double DIST_RESOLUTION = 0.015;
+#else
+	double DIST_RESOLUTION = 0.1;
+#endif
 
 GraphDistance::GraphDistance( Structure::Graph * graph, QVector<QString> exclude_nodes )
 {
@@ -163,10 +169,13 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	this->isReady = false;
 	clear();
 
-	double minResolution = g->bbox().size().length() * 0.01;
-
-	if(resolution < 0 || (minResolution / resolution) > 10.0) 
-		resolution = minResolution;
+	// Avoid complex computations in some cases
+	if( false )
+	{
+		double minResolution = g->bbox().size().length() * 0.01;
+		if(resolution < 0 || (minResolution / resolution) > 10.0) 
+			resolution = minResolution;
+	}
 
 	this->used_resolution = resolution;
 

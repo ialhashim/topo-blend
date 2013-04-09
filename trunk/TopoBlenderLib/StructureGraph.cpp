@@ -1623,6 +1623,13 @@ void Graph::removeEdge( QString n1_id, QString n2_id )
     removeEdge( getNode(n1_id),getNode(n2_id) );
 }
 
+void Graph::removeEdges( QString nodeID )
+{
+	QVector<Link*> edgs = this->getEdges(nodeID);
+	foreach(Link * l, edgs) 
+		this->removeEdge( l->n1->id, l->n2->id );
+}
+
 void Graph::addGroup(QVector<QString> newGroup)
 {
     if(!newGroup.size()) return;
