@@ -3,7 +3,7 @@ load($$[SURFACEMESH])
 load($$[CHOLMOD])
 load($$[EIGEN])
 load($$[NANOFLANN])
-
+load($$[OCTREE])
 
 TEMPLATE = lib
 CONFIG += staticlib
@@ -60,10 +60,10 @@ HEADERS += StructureNode.h \
     Synthesizer.h \
     Sampler.h \
     SpherePackSampling.h \
-    Octree.h \
     AbsoluteOrientation.h \
     TaskCurve.h \
-    TaskSheet.h
+    TaskSheet.h \
+    Relink.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -81,10 +81,10 @@ SOURCES += StructureGraph.cpp \
     TimelineSlider.cpp \
     Synthesizer.cpp \
     Sampler.cpp \
-    Octree.cpp \
     AbsoluteOrientation.cpp \
     TaskCurve.cpp \
-    TaskSheet.cpp
+    TaskSheet.cpp \
+    Relink.cpp
 	
 FORMS +=  SchedulerWidget.ui
 
