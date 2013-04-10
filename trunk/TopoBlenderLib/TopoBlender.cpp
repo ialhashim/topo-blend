@@ -771,6 +771,8 @@ void TopoBlender::equalizeResolutions()
 
 Structure::Node * TopoBlender::addMissingNode( Structure::Graph *toGraph, Structure::Graph * fromGraph, Structure::Node * fromNode )
 {
+    Q_UNUSED(fromGraph);
+
 	Structure::Node * newNode = fromNode->clone();
 
 	newNode->id = fromNode->id + "_null";

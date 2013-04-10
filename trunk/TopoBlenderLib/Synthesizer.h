@@ -3,7 +3,6 @@
 #include "StructureGraph.h"
 using namespace Structure;
 
-#include "Octree.h"
 #include "RMF.h"
 
 extern int randomCount;
@@ -40,8 +39,7 @@ struct Synthesizer{
 	static QVector<ParameterCoord> genRemeshCoords( Structure::Node * node );
 	static QVector<ParameterCoord> genUniformTrisCoords( Structure::Node * node );
 
-	// Compute the geometry on given samples in the parameter domain
-	static inline Vec3d intersectionPoint( const Ray & ray, const Octree * useTree, int * faceIndex = 0 );
+    // Compute the geometry on given samples in the parameter domain
 	static void sampleGeometryCurve( QVector<ParameterCoord> samples, Structure::Curve * curve, QVector<double> &offsets, QVector<Vec2d> &normals);
 	static void sampleGeometrySheet( QVector<ParameterCoord> samples, Structure::Sheet * sheet, QVector<double> &offsets, QVector<Vec2d> &normals );
 
@@ -77,7 +75,7 @@ struct Synthesizer{
 	static void clearSynthData( Structure::Node * fromNode );
 };
 
-Q_DECLARE_METATYPE(QVector<double>);
-Q_DECLARE_METATYPE(QVector<Vec2d>);
-Q_DECLARE_METATYPE(QVector<Vector3>);
-Q_DECLARE_METATYPE(QVector<ParameterCoord>);
+Q_DECLARE_METATYPE(QVector<double>)
+Q_DECLARE_METATYPE(QVector<Vec2d>)
+Q_DECLARE_METATYPE(QVector<Vector3>)
+Q_DECLARE_METATYPE(QVector<ParameterCoord>)

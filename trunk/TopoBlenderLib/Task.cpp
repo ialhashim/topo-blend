@@ -625,7 +625,8 @@ void Task::execute( double t )
 			n->property["shrunk"] = true;
 		}
 
-		/*if(type == GROW && n->property["isCutGroup"].toBool())
+		// Case: done growing a cut node, re-link adjacent nodes
+		if(type == GROW && n->property["isCutGroup"].toBool())
 		{
 			QVector<Structure::Link*> edges = active->getEdges(n->id);
 			QVector<Structure::Link*> tedges = target->getEdges(tn->id);
@@ -660,7 +661,7 @@ void Task::execute( double t )
 					}
 				}
 			}
-		}*/
+		}
 	}
 
 	// Special cases

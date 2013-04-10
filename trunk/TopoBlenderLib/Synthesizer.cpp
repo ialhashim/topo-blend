@@ -4,14 +4,15 @@
 #include <QTextStream>
 
 #include "NanoKdTree.h"
+#include "Octree.h"
 #include "SpherePackSampling.h"
 #include "IsotropicRemesher.h"
 #include "SimilarSampling.h"
 
 #include "Synthesizer.h"
 #include "weld.h"
-Q_DECLARE_METATYPE(RMF::Frame);
-Q_DECLARE_METATYPE(std::vector<RMF::Frame>);
+Q_DECLARE_METATYPE(RMF::Frame)
+Q_DECLARE_METATYPE(std::vector<RMF::Frame>)
 
 typedef std::pair<ParameterCoord,int> ParameterCoordInt;
 bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCoordInt& r)
@@ -307,60 +308,12 @@ QVector<ParameterCoord> Synthesizer::genUniformTrisCoords( Structure::Node * nod
 		return genPointCoordsSheet((Structure::Sheet*)node, samplePoints);
 }
 
-Vec3d Synthesizer::intersectionPoint( const Ray & ray, const Octree * useTree, int * faceIndex )
-{
-	HitResult res, best_res;
-	Vec3d isetpoint(0);
-	double minDistance = DBL_MAX;
-
-	// Fast, not robust tests
-	foreach( int i, useTree->intersectRay( ray, 0, false ) )
-	{
-		useTree->intersectionTestAccelerated(SurfaceMesh::Model::Face(i), ray, res);
-
-		// find the nearest intersection point
-		if(res.hit)
-		{
-			if (res.distance < minDistance)
-			{
-				minDistance = res.distance;
-				isetpoint = ray.origin + (ray.direction * res.distance);
-				if(faceIndex) *faceIndex = i;
-				best_res = res;
-			}
-		}
-	}
-
-	// Slower, more robust tests
-	if(!best_res.hit){
-		foreach( int i, useTree->intersectRay( ray, 0.01, false ) ){
-			useTree->intersectionTestOld(SurfaceMesh::Model::Face(i), ray, res);
-			if(res.hit){
-				if (res.distance < minDistance){
-					minDistance = res.distance;
-					isetpoint = ray.origin + (ray.direction * res.distance);
-					if(faceIndex) *faceIndex = i;
-					best_res = res;
-				}
-			}
-		}
-	}
-
-	if(!best_res.hit){
-		qDebug() << "Warning: invalid sample!";
-		isetpoint = Vec3d(0);
-		if(faceIndex) *faceIndex = 0;
-	}
-
-	return isetpoint;
-}
-
 void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structure::Curve * curve, QVector<double> &offsets, QVector<Vec2d> &normals )
 {
 	SurfaceMesh::Model * model = curve->property["mesh"].value<SurfaceMesh::Model*>();
 	model->update_face_normals();
 	Vector3FaceProperty fnormals = model->face_property<Vec3d>("f:normal");
-	Octree octree(OCTREE_NODE_SIZE, model);
+    Octree octree(model, OCTREE_NODE_SIZE);
 
 	offsets.clear();
 	offsets.resize(samples.size());
@@ -398,7 +351,7 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 		Ray ray( rayPos, rayDir );
 		int faceIndex = 0;
 
-		Vec3d isect = intersectionPoint(ray, &octree, &faceIndex);
+        Vec3d isect = octree.closestIntersectionPoint(ray, &faceIndex);
 
 		// Store the offset
 		offsets[ i ] = (isect - rayPos).norm();
@@ -418,7 +371,7 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 	SurfaceMesh::Model * model = sheet->property["mesh"].value<SurfaceMesh::Model*>();
 	model->update_face_normals();
 	Vector3FaceProperty fnormals = model->face_property<Vec3d>("f:normal");
-	Octree octree(OCTREE_NODE_SIZE, model);
+    Octree octree(model, OCTREE_NODE_SIZE);
 
 	offsets.clear();
 	offsets.resize( samples.size() );
@@ -453,7 +406,7 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 		int faceIndex = 0;
 
 		// Store the offset
-		Vec3d isect = intersectionPoint(ray, &octree, &faceIndex);
+        Vec3d isect = octree.closestIntersectionPoint(ray, &faceIndex);
 		offsets[i] = (isect - rayPos).norm();
 
 		// Code the normal relative to local frame

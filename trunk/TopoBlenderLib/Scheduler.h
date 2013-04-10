@@ -5,16 +5,6 @@
 #include "TimelineSlider.h"
 class Task;
 
-// Relink
-struct LinkConstraint{ 
-	Structure::Link *link; 
-	Task *task, *otherTask;
-	Vector3 delta;
-	LinkConstraint(Vector3 d = Vector3(0), Structure::Link * l=NULL, Task* t=NULL, Task* otherT=NULL)
-	{ link = l; task = t; otherTask = otherT; delta = d; }
-};
-typedef QMap< Task*, QVector<LinkConstraint> > TasksConstraints;
-
 class Scheduler : public QGraphicsScene
 {
     Q_OBJECT
@@ -38,9 +28,6 @@ public:
 	void order();
 	void executeAll();
 
-	// Relink
-	void prepare_relink( Task * task, TasksConstraints & constraints );
-	void relink( TasksConstraints & constraints, int globalTime );
 	int totalExecutionTime();
 
 	// Dependency
