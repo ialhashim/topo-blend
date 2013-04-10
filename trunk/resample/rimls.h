@@ -11,8 +11,10 @@
 #include <Eigen/Core>
 using namespace Eigen;
 
-#define V2E(vec) ((Eigen::Vector3d(vec[0], vec[1], vec[2])))
-#define E2V(vec) ((Vector3(vec[0], vec[1], vec[2])))
+#ifndef V2E
+#define V2E(vec) (Eigen::Vector3d(vec[0], vec[1], vec[2]))
+#define E2V(vec) (Vec3d(vec[0], vec[1], vec[2]))
+#endif
 
 class RmlsSurface
 {

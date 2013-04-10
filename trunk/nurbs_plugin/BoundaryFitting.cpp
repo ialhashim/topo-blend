@@ -452,8 +452,8 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 		path.push_back( fromPoint );
 
 		// Constant flow toward end of path
-		bool isConstant = false;
-		Vector3 constantDirection(0);
+        //bool isConstant = false;
+        //Vector3 constantDirection(0);
 
 		while( true )
 		{

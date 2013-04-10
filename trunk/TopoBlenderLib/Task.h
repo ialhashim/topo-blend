@@ -1,21 +1,10 @@
 #pragma once
-
 #include <QGraphicsObject>
 #include "TopoBlender.h"
 #include "RMF.h"
 
-Q_DECLARE_METATYPE(QVector<QString>);
-
-typedef std::map< int, Array1D_Real > CurveEncoding;
-typedef std::map< int, Array1D_Real > SheetEncoding;
-
-// red, orange, yellow, green, blue
-// pink, purpule, portage, lacoste, corn
-static QColor TaskColors[] = { QColor(255,97,121),  QColor(255,219,88), 
-	QColor(107,255,135), QColor(255,165,107) , QColor(104,126,255),
-	QColor(242,5,135), QColor(113,53,242), QColor(138,109,242), QColor(3,166,60), QColor(242,203,5)};
-
-static QString TaskNames[] = { "SHRINK", "MERGE", "MORPH", "SPLIT", "GROW" };
+typedef std::map<int, Array1D_Real> CurveEncoding;
+typedef std::map<int, Array1D_Real> SheetEncoding;
 
 class Task : public QGraphicsObject
 {
@@ -41,32 +30,10 @@ public:
 	// Prepare stage
 	void prepare();
 
-	// Main functions
-	void prepareShrinkCurve();
-	void prepareGrowCurve();
-	void prepareShrinkCurveConstraint();
-	void prepareGrowCurveConstraint();
-	void prepareMorphCurve();
-
-	void prepareGrowShrinkSheet();
-	void prepareMorphSheet();
-
-	// Sub routines
-	void prepareShrinkCurveOneEdge( Structure::Link* l );
-	void prepareSheetOneEdge( Structure::Link * l );
-	void prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link * linkB );
-
 	// Execution stage
 	void execute( double t );
 
-	void foldCurve( double t );
-
-	void executeGrowShrinkCurve( double t );
-	void executeGrowShrinkSheet( double t );
-
-	void executeMorphCurve( double t );
-	void executeMorphSheet( double t );
-
+    // Geometry morphing stage
 	void geometryMorph( double t );
 
 	// Helper functions
@@ -94,20 +61,22 @@ public:
 
 	std::vector<RMF::Frame> smoothRotateFrame( RMF::Frame sframe, Eigen::Quaterniond &result, int steps = 100 );
 
-	// Special encoding for sheet growing
-	SheetEncoding encodeSheetAsCurve( Structure::Sheet * sheet, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z );
-	Array1D_Vector3 decodeSheetFromCurve( double t, SheetEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z );
-
 	// Quick access
 	Structure::Node * node();
-	Structure::Node * targetNode();
-	Structure::Curve * targetCurve();
-	Structure::Sheet * targetSheet();
+    Structure::Node * targetNode();
 
 	// Edge helpers
 	Structure::Link * getCoorespondingEdge( Structure::Link * link, Structure::Graph * otherGraph );
 	QVector<Structure::Link*> filterEdges( Structure::Node * n, QVector<Structure::Link*> all_edges );
 	Structure::Link * preferredEnd(Structure::Node * n, QVector<Structure::Link*> edges, Structure::Graph * g);
+
+    // Preperation and execution based on type
+    virtual void prepareCurve(){}
+    virtual void executeCurve(double t){ Q_UNUSED(t) }
+
+    virtual void prepareSheet(){}
+    virtual void executeSheet(double t){ Q_UNUSED(t) }
+
 	// Task properties
 	TaskType type;
 
@@ -149,3 +118,28 @@ public:
 protected:
 	virtual QVariant itemChange ( GraphicsItemChange change, const QVariant & value );
 };
+
+// Useful global definitions
+typedef std::vector< std::pair<double,double> > VectorPairDouble;
+
+Q_DECLARE_METATYPE( Vector3 )
+Q_DECLARE_METATYPE( Vec4d )
+Q_DECLARE_METATYPE( VectorPairDouble )
+Q_DECLARE_METATYPE( GraphDistance::PathPointPair )
+Q_DECLARE_METATYPE( QVector< GraphDistance::PathPointPair > )
+Q_DECLARE_METATYPE( RMF )
+Q_DECLARE_METATYPE( RMF::Frame )
+Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
+Q_DECLARE_METATYPE( CurveEncoding )
+Q_DECLARE_METATYPE( Eigen::Quaterniond )
+Q_DECLARE_METATYPE( QVector<QString> )
+
+static inline double rad_to_deg(const double& _angle){ return 180.0*(_angle/M_PI); }
+
+// red, orange, yellow, green, blue
+// pink, purpule, portage, lacoste, corn
+static QColor TaskColors[] = { QColor(255,97,121),  QColor(255,219,88),
+    QColor(107,255,135), QColor(255,165,107) , QColor(104,126,255),
+    QColor(242,5,135), QColor(113,53,242), QColor(138,109,242), QColor(3,166,60), QColor(242,203,5)};
+
+static QString TaskNames[] = { "SHRINK", "MERGE", "MORPH", "SPLIT", "GROW" };
