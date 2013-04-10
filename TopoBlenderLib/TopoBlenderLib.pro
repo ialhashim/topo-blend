@@ -61,7 +61,9 @@ HEADERS += StructureNode.h \
     Sampler.h \
     SpherePackSampling.h \
     Octree.h \
-    AbsoluteOrientation.h
+    AbsoluteOrientation.h \
+    TaskCurve.h \
+    TaskSheet.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -80,7 +82,9 @@ SOURCES += StructureGraph.cpp \
     Synthesizer.cpp \
     Sampler.cpp \
     Octree.cpp \
-    AbsoluteOrientation.cpp
+    AbsoluteOrientation.cpp \
+    TaskCurve.cpp \
+    TaskSheet.cpp
 	
 FORMS +=  SchedulerWidget.ui
 

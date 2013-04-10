@@ -12,7 +12,9 @@ using namespace Structure;
 #include "ExportDynamicGraph.h"
 using namespace DynamicGraphs;
 
-#include "Task.h"
+#include "TaskCurve.h"
+#include "TaskSheet.h"
+
 #include "Scheduler.h"
 #include "SchedulerWidget.h"
 
@@ -559,11 +561,11 @@ void TopoBlender::connectNullSet( SetNodes nullSet, Structure::Graph * source, S
 	QSet< Structure::Node* > s_outter_nodes = nullSet.property["outerNodes"].value< QSet< Structure::Node* > >();
 	foreach(Structure::Node * snode, nullSet.set){
 		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
-		foreach(Structure::Link * tlink, nonCorrespondEdges(tnode, target))
-		{
-			Structure::Node *s1 = source->getNode( correspondingNode(tlink,0) );
-			Structure::Node *s2 = source->getNode( correspondingNode(tlink,1) );
-		}
+        foreach(Structure::Link * tlink, nonCorrespondEdges(tnode, target))
+        {
+            Structure::Node *s1 = source->getNode( correspondingNode(tlink,0) );
+            Structure::Node *s2 = source->getNode( correspondingNode(tlink,1) );
+        }
 	}
 
 	/// 1) Find external edges = not yet corresponded
@@ -695,12 +697,25 @@ void TopoBlender::generateTasks()
 
 		Task * task;
 		
-		if (snodeID.contains("null"))  // Grow
-			task = new Task( active, super_tg, Task::GROW, scheduler->tasks.size() );
-		else if (tnodeID.contains("null")) // Shrink
-			task = new Task( active, super_tg, Task::SHRINK, scheduler->tasks.size() );
-		else
-			task = new Task( active, super_tg, Task::MORPH, scheduler->tasks.size() );
+        if(active->getNode(snodeID)->type() == Structure::CURVE)
+        {
+            if (snodeID.contains("null"))  // Grow
+                task = new TaskCurve( active, super_tg, Task::GROW, scheduler->tasks.size() );
+            else if (tnodeID.contains("null")) // Shrink
+                task = new TaskCurve( active, super_tg, Task::SHRINK, scheduler->tasks.size() );
+            else
+                task = new TaskCurve( active, super_tg, Task::MORPH, scheduler->tasks.size() );
+        }
+
+        if(active->getNode(snodeID)->type() == Structure::SHEET)
+        {
+            if (snodeID.contains("null"))  // Grow
+                task = new TaskSheet( active, super_tg, Task::GROW, scheduler->tasks.size() );
+            else if (tnodeID.contains("null")) // Shrink
+                task = new TaskSheet( active, super_tg, Task::SHRINK, scheduler->tasks.size() );
+            else
+                task = new TaskSheet( active, super_tg, Task::MORPH, scheduler->tasks.size() );
+        }
 
 		task->setNode( snodeID );
 		scheduler->tasks.push_back( task );

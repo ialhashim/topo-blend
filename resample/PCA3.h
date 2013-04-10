@@ -6,8 +6,10 @@
 #include <Eigen/Eigenvalues>
 using namespace Eigen;
 
+#ifndef V2E
 #define V2E(vec) (Eigen::Vector3d(vec[0], vec[1], vec[2]))
 #define E2V(vec) (Vec3d(vec[0], vec[1], vec[2]))
+#endif
 
 class PCA3
 {
