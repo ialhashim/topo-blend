@@ -431,37 +431,6 @@ void GraphCorresponder::loadLandmarks(QString filename)
 	file.close();
 }
 
-
-// Spatial Hausdorff distance
-float GraphCorresponder::supInfDistance( std::vector<Vector3> &A, std::vector<Vector3> &B )
-{
-	float supinfDis = -1;
-	for (int i = 0; i < (int)A.size(); i++)
-	{
-		float infDis = FLT_MAX;
-		for (int j = 0; j < (int)B.size(); j++)
-		{
-			float dis = (A[i] - B[j]).norm();
-
-			if (dis < infDis)
-				infDis = dis;
-		}
-
-		if (infDis > supinfDis)
-			supinfDis = infDis;
-	}
-
-	return supinfDis;
-}
-
-float GraphCorresponder::HausdorffDistance( std::vector<Vector3> &A, std::vector<Vector3> &B )
-{
-	float ABDis = supInfDistance(A, B);
-	float BADis = supInfDistance(B, A);
-
-	return std::max(ABDis, BADis);
-}
-
 void GraphCorresponder::computeHausdorffDistanceMatrix( MATRIX & M )
 {
 	initializeMatrix<float>(M, INVALID_VALUE);
