@@ -138,7 +138,7 @@ void TaskCurve::prepareGrowCurve()
     Curve * structure_curve = (Curve *)n;
 
     // Do not consider edges with non-ready nodes
-    QVector<Link*> tedges;
+    std::vector<Link*> tedges;
     foreach(Link* edge, all_tedges){
         Node * tother = edge->otherNode( tn->id );
         Node * other = active->getNode( tother->property["correspond"].toString() );
@@ -149,7 +149,7 @@ void TaskCurve::prepareGrowCurve()
     if( all_tedges.empty() ) return;
 
     // Cut nodes grow case
-    if( tedges.isEmpty() )
+    if( tedges.empty() )
     {
         tedges.push_back( preferredEnd(tn, all_tedges, target) );
     }
@@ -173,7 +173,6 @@ void TaskCurve::prepareGrowCurve()
         // Make origin the position on me in which I will grow from
         structure_curve->moveBy( -n->position(coordSelf)  );
 
-        Node * tn = target->getNode(n->property["correspond"].toString());
         Vec3d endDelta = tlink->position(tn->id) - tlink->positionOther(tn->id);
         QString corrBaseNodeID = tlink->otherNode(tn->id)->property["correspond"].toString();
         Vec3d posOther = active->getNode(corrBaseNodeID)->position(tlink->getCoordOther(tn->id).front());
@@ -271,7 +270,11 @@ void TaskCurve::prepareMorphCurve()
 
     // 0) Filter edges (remove edges with null since these nodes will grow in future)
     QVector<Link*> edges = filterEdges(n, active->getEdges(n->id));
-    QVector<Link*> tedges = target->getEdges(tn->id);
+
+	if(n->id.contains("Center"))
+	{
+		int x = 0;
+	}
 
     // 1) SINGLE edge
     if(edges.size() == 1)
@@ -451,7 +454,7 @@ void TaskCurve::prepareMorphCurve()
         // Visualization
         n->property["frame"].setValue( sframe );
         tn->property["frame"].setValue( tframe );
-        n->property["rmf"].setValue( RMF(positionalPath(pathA,2)) );
+        n->property["rmf"].setValue( RMF(positionalPath(pathA,1)) );
         n->property["path"].setValue( positionalPath(pathB) );
     }
 }

@@ -435,7 +435,7 @@ Structure::Link * Task::preferredEnd(Structure::Node * n, QVector<Structure::Lin
 	Structure::Link * preferredLink = edges.front();
 	foreach(Structure::Link* edge, edges){
 		Structure::Node * otherNode = edge->otherNode( n->id );
-		int curValence = g->valence(otherNode);
+		int curValence = g->valence(otherNode) * (otherNode->type() == Structure::CURVE ? 1 : 100 );
 		if(curValence > maxValence){
 			maxValence = curValence;
 			preferredLink = edge;
@@ -625,9 +625,10 @@ void Task::execute( double t )
 			n->property["shrunk"] = true;
 		}
 
-		// Case: done growing a cut node, re-link adjacent nodes
+		// Case: done growing a cut node
 		if(type == GROW && n->property["isCutGroup"].toBool())
 		{
+			// re-link adjacent nodes
 			QVector<Structure::Link*> edges = active->getEdges(n->id);
 			QVector<Structure::Link*> tedges = target->getEdges(tn->id);
 
@@ -778,12 +779,19 @@ QPair<Structure::Node*,Structure::Node*> Task::prepareEnd2( Structure::Node * n,
 	Structure::Node * tn = target->getNode(n->property["correspond"].toString());
 	Structure::Link * tlinkA = target->getEdge(linkA->property["correspond"].toString());
 	Structure::Link * tlinkB = target->getEdge(linkB->property["correspond"].toString());
+
 	Vec3d endDeltaA = tlinkA->position(tn->id) - tlinkA->positionOther(tn->id);
 	Vec3d endDeltaB = tlinkB->position(tn->id) - tlinkB->positionOther(tn->id);
-	Node * auxA = new Structure::Curve(NURBSCurved::createCurveFromPoints( 
-		Array1D_Vector3 ( 4, linkA->otherNode(n->id)->position(tlinkA->getCoordOther(tn->id).front()) + endDeltaA ) ), "auxA_" + n->id);
-	Node * auxB = new Structure::Curve(NURBSCurved::createCurveFromPoints( 
-		Array1D_Vector3 ( 4, linkB->otherNode(n->id)->position(tlinkB->getCoordOther(tn->id).front()) + endDeltaB ) ), "auxB_" + n->id);
+
+	//Vec3d fromOtherA = linkA->otherNode(n->id)->position(tlinkA->getCoordOther(tn->id).front());
+	//Vec3d fromOtherB = linkB->otherNode(n->id)->position(tlinkB->getCoordOther(tn->id).front());
+
+	Vec3d fromOtherA = tlinkA->position(tn->id) - endDeltaA;
+	Vec3d fromOtherB = tlinkB->position(tn->id) - endDeltaB;
+
+	Node * auxA = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, fromOtherA + endDeltaA ) ), "auxA_" + n->id);
+	Node * auxB = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, fromOtherB + endDeltaB ) ), "auxB_" + n->id);
+
 	active->aux_nodes.push_back( auxA );
 	active->aux_nodes.push_back( auxB );
 	return qMakePair(auxA, auxB);

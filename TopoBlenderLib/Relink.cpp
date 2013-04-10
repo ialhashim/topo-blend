@@ -18,33 +18,35 @@ void Relink::prepare( Task *task )
         Structure::Node * other = link->otherNode(n->id);
         Task * otherTask = s->getTaskFromNodeID(other->id);
 
-        if( (!otherTask->isDone) && (otherTask->type != Task::GROW) && (!other->property.contains("isCutGroup")) )
-        {
-            Vec3d delta = link->positionOther(n->id) - link->position(n->id);
+		bool isOtherTaskDone = otherTask->isDone;
+		bool isOtherTaskGrow = (otherTask->type == Task::GROW);
+		bool isOtherCutGroup = other->property.contains("isCutGroup");
 
-            // Threshold for zero change
-            if(delta.norm() < 1e-7)
-                delta = Vector3(0);
+        if( isOtherTaskDone && !isOtherCutGroup ) continue;
+        
+        Vec3d delta = link->positionOther(n->id) - link->position(n->id);
 
-            // Delta should not be larger than expected
-            /*Structure::Link * tlink = targetGraph->getEdge( link->property["correspond"].toString() );
-            QString tnodeID = n->property["correspond"].toString();
-            if(tlink->hasNode(tnodeID)){
-                Vec3d deltaTarget = tlink->positionOther(tnodeID) - tlink->position(tnodeID);
-                if(delta.norm() > deltaTarget.norm())
-                    continue;
-            }*/
+        // Threshold for zero change
+        if(delta.norm() < 1e-7) delta = Vector3(0);
 
-            // Skip for shrinking non-cuts
-            if( task->type == Task::SHRINK && !n->property.contains("isCutGroup") )
+        // Delta should not be larger than expected
+        /*Structure::Link * tlink = targetGraph->getEdge( link->property["correspond"].toString() );
+        QString tnodeID = n->property["correspond"].toString();
+        if(tlink->hasNode(tnodeID)){
+            Vec3d deltaTarget = tlink->positionOther(tnodeID) - tlink->position(tnodeID);
+            if(delta.norm() > deltaTarget.norm())
                 continue;
+        }*/
 
-            // Check if relinking not grown branch
-            if( s->isPartOfGrowingBranch( otherTask ) )
-                continue;
+        // Skip for shrinking non-cuts
+        if( task->type == Task::SHRINK && !n->property.contains("isCutGroup") )
+            continue;
 
-            constraints[ otherTask ].push_back( LinkConstraint(delta, link, task, otherTask) );
-        }
+        // Check if relinking not grown branch
+        if( s->isPartOfGrowingBranch( otherTask ) )
+            continue;
+
+        constraints[ otherTask ].push_back( LinkConstraint(delta, link, task, otherTask) );
     }
 }
 
@@ -53,9 +55,12 @@ void Relink::relink( int globalTime )
     foreach(Task * otherTask, constraints.keys())
     {
         Structure::Node * other = otherTask->node();
+		Structure::Node * tother = targetGraph->getNode( other->property["correspond"].toString() );
+
+		double hdistBefore = HausdorffDistance( other->controlPoints(), tother->controlPoints() );
+		Array1D_Vector3 cptsBefore = other->controlPoints();
 
         QVector<LinkConstraint> consts = constraints[otherTask];
-
         int N = consts.size();
 
         if( N == 1 )
@@ -87,7 +92,7 @@ void Relink::relink( int globalTime )
             activeGraph->vs.addVector( linkPos, constraint.delta );
         }
 
-        if(N > 1)
+        if( N > 1 )
         {
             Vector3 delta(0);
             int M = 0;
@@ -114,6 +119,13 @@ void Relink::relink( int globalTime )
 
             activeGraph->vs.addVector( other->position(Vec4d(0.5)), delta );
         }
+
+		double hdistAfter = HausdorffDistance( other->controlPoints(), tother->controlPoints() );
+
+		if(hdistAfter > hdistBefore)
+		{
+			other->setControlPoints( cptsBefore );
+		}
 
         // Modify actual geometry
         double t = otherTask->localT( globalTime * s->totalExecutionTime() );

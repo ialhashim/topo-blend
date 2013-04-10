@@ -46,10 +46,6 @@ public:
 	void saveLandmarks(QString filename);
 	void loadLandmarks(QString filename);
 
-	// Spatial Hausdorff distance
-	float supInfDistance(std::vector<Vector3> &A, std::vector<Vector3> &B);
-	float HausdorffDistance(std::vector<Vector3> &A, std::vector<Vector3> &B);
-
 	// Distance matrices
 	std::vector< std::vector<bool> > validM;
 	MATRIX spatialM, sizeM, orientationM, structuralM;
