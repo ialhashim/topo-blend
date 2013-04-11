@@ -56,17 +56,3 @@ FORMS +=    topo_blend_widget.ui \
 			landmarks_dialog.ui \
     QuickAlignment.ui \
     QuickGroup.ui
-
-# OpenMP
-win32 {
-	QMAKE_CXXFLAGS += /openmp
-	export(QMAKE_CXXFLAGS_DEBUG)
-	export(QMAKE_CXXFLAGS_RELEASE)
-}
-unix {
-	QMAKE_CXXFLAGS += -fopenmp 
-	LIBS += -lgomp
-}
-mac {
-    LIBS += -framework CoreFoundation
-}

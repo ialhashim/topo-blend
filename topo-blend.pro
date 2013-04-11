@@ -17,20 +17,9 @@ SUBDIRS += voxel_resampler
 SUBDIRS += nurbs_plugin
 SUBDIRS += visiblity_resampler
 
-SUBDIRS += topo-blend # Main UI for topo-blending
+SUBDIRS += topo-blend  # Main UI for topo-blending
 
 # Dependecy map
 nurbs_plugin.depends = NURBS
 dynamic_voxel.depends = DynamicVoxel
 topo-blend.depends = GlSplatRendererLib NURBS DynamicVoxel TopoBlenderLib MorpherLib 
-
-# OpenMP
-win32 {
-    QMAKE_CXXFLAGS += /openmp
-    export(QMAKE_CXXFLAGS_DEBUG)
-    export(QMAKE_CXXFLAGS_RELEASE)
-}
-unix {
-    QMAKE_CXXFLAGS += -fopenmp
-    LIBS += -lgomp
-}
