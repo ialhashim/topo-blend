@@ -30,5 +30,4 @@ SOURCES +=  GlSplat/GlSplat.cpp \
             GlSplat/Shader.cpp \
             GlSplat/GLee.c
 
-RESOURCES += \
-    shaders.qrc
+RESOURCES += shaders.qrc

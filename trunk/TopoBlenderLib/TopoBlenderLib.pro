@@ -4,6 +4,7 @@ load($$[CHOLMOD])
 load($$[EIGEN])
 load($$[NANOFLANN])
 load($$[OCTREE])
+StarlabTemplate(none)
 
 TEMPLATE = lib
 CONFIG += staticlib
@@ -87,16 +88,3 @@ SOURCES += StructureGraph.cpp \
     Relink.cpp
 	
 FORMS +=  SchedulerWidget.ui
-
-RESOURCES +=
-
-# OpenMP
-win32 {
-    QMAKE_CXXFLAGS += /openmp
-    export(QMAKE_CXXFLAGS_DEBUG)
-    export(QMAKE_CXXFLAGS_RELEASE)
-}
-unix {
-    QMAKE_CXXFLAGS += -fopenmp
-    LIBS += -lgomp
-}

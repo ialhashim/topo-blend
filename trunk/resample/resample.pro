@@ -16,5 +16,4 @@ SOURCES += resample.cpp \
     Sampler.cpp
 RESOURCES += resample.qrc
 
-FORMS += \
-    resamplewidget.ui
+FORMS += resamplewidget.ui

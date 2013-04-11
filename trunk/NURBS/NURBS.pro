@@ -1,5 +1,6 @@
 load($$[STARLAB])
 load($$[SURFACEMESH])
+StarlabTemplate(none)
 
 TEMPLATE = lib
 CONFIG += staticlib
@@ -43,14 +44,3 @@ HEADERS += \
     Integrate1.h \
     LineSegment.h \
     NurbsDraw.h
-	
-# OpenMP
-win32 {
-	QMAKE_CXXFLAGS += /openmp
-	export(QMAKE_CXXFLAGS_DEBUG)
-	export(QMAKE_CXXFLAGS_RELEASE)
-}
-unix {
-	QMAKE_CXXFLAGS += -fopenmp 
-	LIBS += -lgomp
-}
