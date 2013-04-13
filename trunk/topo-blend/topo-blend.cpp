@@ -43,6 +43,7 @@ VectorSoup vs1,vs2;
 Q_DECLARE_METATYPE(Vec3d)
 
 #include "RMF.h"
+Q_DECLARE_METATYPE(RMF)
 Q_DECLARE_METATYPE(RMF::Frame)
 Q_DECLARE_METATYPE(std::vector<RMF::Frame>)
 
@@ -149,6 +150,9 @@ void topoblend::decorate()
 		graphs[g]->property["showMeshes"] = viz_params["showMeshes"];
 		graphs[g]->property["showTasks"] = viz_params["showTasks"];
 		graphs[g]->property["showCtrlPts"] = viz_params["showCtrlPts"];
+		graphs[g]->property["isSplatsHQ"] = viz_params["isSplatsHQ"];
+		graphs[g]->property["splatSize"] = viz_params["splatSize"];
+		graphs[g]->property["showNodes"] = viz_params["showNodes"];
 
 		// Place and draw graph
 		glPushMatrix();
@@ -157,35 +161,8 @@ void topoblend::decorate()
 		glPopMatrix();
 
 		posX += deltaX;
-
-		if(graphs[g]->property.contains("selectedSample"))
-		{
-			glPointSize(20);
-			glColor3d(1,1,0);
-			glDisable(GL_LIGHTING);
-			glBegin(GL_POINTS);
-			glVector3( graphs[g]->property["selectedSample"].value<Vec3d>() );
-			glEnd();
-			glEnable(GL_LIGHTING);
-
-			Structure::Node * node = graphs[g]->getNode(graphs[g]->property["selectedNode"].toString());
-			if(node->property.contains("rmf_frames")){
-				std::vector<RMF::Frame> U = node->property["rmf_frames"].value< std::vector<RMF::Frame> >();
-				FrameSoup * fs = new FrameSoup(0.005f);
-				foreach(RMF::Frame f, U){
-					fs->addFrame(f.r, f.s, f.t, f.center);
-				}
-				fs->draw();
-			}
-		}
-	}
-
-	if(deformer)
-	{
-
 	}
 }
-
 
 void topoblend::drawWithNames()
 {
@@ -932,8 +909,6 @@ void topoblend::currentExperiment()
 
 void topoblend::updateDrawArea()
 {
-	setSceneBounds();
-
 	drawArea()->updateGL();
 }
 
@@ -1278,10 +1253,11 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename )
 		foreach(Vec3d p, points) clean_points.push_back(p);
 			 
 		// Clean up and compute normals
-		int num_nighbours = 10;
 		std::vector<size_t> xrefs;
 		weld(clean_points, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
-
+	
+		// Estimate Normals
+		//int num_nighbours = 10;
 		//NormalExtrapolation::ExtrapolateNormals(clean_points, normals, num_nighbours);
 
 		// Send to reconstruction

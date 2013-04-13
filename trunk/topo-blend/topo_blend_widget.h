@@ -39,6 +39,8 @@ public slots:
 	void scaleModel();
 	void exportAsOBJ();
 
+	void splatSizeChanged(double newSize);
+
 private:
 	Ui::topo_blend_widget *ui;
     topoblend * tb;

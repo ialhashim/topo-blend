@@ -106,7 +106,7 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
     property["pathB"].setValue( pathB );
 
     // Encode curve
-    RMF rmf( positionalPath(pathA, 3) );
+    RMF rmf( positionalPath(pathA, 1) );
     property["rmf"].setValue( rmf );
     if(!rmf.count()) return;
 
@@ -201,9 +201,9 @@ void TaskSheet::executeGrowShrinkSheet( double t )
         if(pathA.size() == 0 || pathB.size() == 0)	return;
 
         double dt = t;
-        double decodeT = qMin(1.0, t * 2.0);
-
         if(this->type == SHRINK) dt = 1 - t;
+
+		double decodeT = qMin(1.0, dt * 2.0);
 
         int idxA = dt * (pathA.size() - 1);
         int idxB = dt * (pathB.size() - 1);

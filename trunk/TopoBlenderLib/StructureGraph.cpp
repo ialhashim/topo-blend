@@ -47,6 +47,7 @@ void Graph::init()
 	property["showEdges"]	= false;
 	property["showTasks"]	= false;
 	property["showCtrlPts"] = false;
+	property["isSplatsHQ"]	= false;
 }
 
 Graph::Graph( const Graph & other )
@@ -390,6 +391,24 @@ void Graph::draw()
 
     foreach(Node * n, nodes)
     {
+		// Debug points for node
+		{
+			glDisable(GL_LIGHTING);
+			glPointSize(10);	glColor3d(1,0,1);
+			glBegin(GL_POINTS);
+			foreach(Vector3 p, n->debugPoints) glVector3(p);
+			glEnd();
+			glPointSize(12);	glColor3d(0,1,1);
+			glBegin(GL_POINTS);
+			foreach(Vector3 p, n->debugPoints2) glVector3(p);
+			glEnd();
+			glPointSize(14);	glColor3d(1,1,0);
+			glBegin(GL_POINTS);
+			foreach(Vector3 p, n->debugPoints3) glVector3(p);
+			glEnd();
+			glEnable(GL_LIGHTING);
+		}
+
 		if (n->property.contains("isReady") && !n->property["isReady"].toBool())
 			continue;
 
@@ -425,17 +444,35 @@ void Graph::draw()
 					fs.draw();
 				}
 
+				glDisable(GL_LIGHTING);
 				if( n->property.contains("path") )
 				{
 					PointSoup ps;
 					foreach(Vector3 p, n->property["path"].value<Array1D_Vector3>())
-						ps.addPoint(p);
+						ps.addPoint(p, Qt::green);
 					ps.draw();
 				}
 
+				if( n->property.contains("path2") )
+				{
+					PointSoup ps;
+					foreach(Vector3 p, n->property["path2"].value<Array1D_Vector3>())
+						ps.addPoint(p, Qt::yellow);
+					ps.draw();
+				}
+				glEnable(GL_LIGHTING);
+				
 				if( n->property.contains("frame") )
 				{
 					RMF::Frame f = n->property["frame"].value<RMF::Frame>();
+					FrameSoup fs(0.01f);
+					fs.addFrame(f.r, f.s, f.t, f.center);
+					fs.draw();
+				}
+
+				if( n->property.contains("frame2") )
+				{
+					RMF::Frame f = n->property["frame2"].value<RMF::Frame>();
 					FrameSoup fs(0.01f);
 					fs.addFrame(f.r, f.s, f.t, f.center);
 					fs.draw();
@@ -517,16 +554,17 @@ void Graph::draw()
     }
 
 	// Splat rendering
-	if( points.size() )
+	if( points.size() && property["showMeshes"].toBool() )
 	{
 		if(!splat_renderer)
 		{
-			splat_renderer = new GlSplatRenderer(points, normals, 0.008);
+			splat_renderer = new GlSplatRenderer(points, normals, property["splatSize"].toDouble());
 		}
 		else
 		{
 			splat_renderer->points = points;
 			splat_renderer->normals = normals;
+			splat_renderer->mRadius = property["splatSize"].toDouble();
 		}
 
 		glEnable(GL_LIGHTING);
@@ -537,18 +575,26 @@ void Graph::draw()
 		glEnable(GL_POINT_SMOOTH);
 		glEnable(GL_BLEND);
 
-		//splat_renderer->draw();
+		// Color
+		glColor3d(0.9,0.9,0.9);
 
-		/// Using basic rendering:
+		if(splat_renderer && property["isSplatsHQ"].toBool())
 		{
-			glPointSize(3.0);
-			glEnable(GL_LIGHTING);
-			glBegin(GL_POINTS);
-			for(int i = 0; i < (int)points.size(); i++){
-				glNormal3(normals[i]);
-				glVector3(points[i]);
+			splat_renderer->draw();
+		}
+		else
+		{
+			/// Using basic rendering:
+			{
+				glPointSize(3.0);
+				glEnable(GL_LIGHTING);
+				glBegin(GL_POINTS);
+				for(int i = 0; i < (int)points.size(); i++){
+					glNormal3(normals[i]);
+					glVector3(points[i]);
+				}
+				glEnd();
 			}
-			glEnd();
 		}
 
 		glDisable(GL_CULL_FACE);

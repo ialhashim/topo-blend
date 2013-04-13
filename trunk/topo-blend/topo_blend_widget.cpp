@@ -36,7 +36,7 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	this->connect(ui->animationButton, SIGNAL(clicked()), SLOT(renderViewer()));
 
 	// Main blending process
-    this->connect(ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()));
+    this->connect(ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()), Qt::UniqueConnection);
 
 	// Correspondence
 	this->connect(ui->computeCorrButton, SIGNAL(clicked()), SLOT(loadCorrespondenceModel()));
@@ -45,7 +45,7 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	this->connect(ui->groupButton, SIGNAL(clicked()), SLOT(showGroupingDialog()));
 
 	// Synthesis
-	topo_blend->connect(ui->genSynthButton, SIGNAL(clicked()), SLOT(generateSynthesisData()));
+	topo_blend->connect(ui->genSynthButton, SIGNAL(clicked()), SLOT(generateSynthesisData()), Qt::UniqueConnection);
 	topo_blend->connect(ui->saveSynthButton, SIGNAL(clicked()), SLOT(saveSynthesisData()));
 	topo_blend->connect(ui->loadSynthButton, SIGNAL(clicked()), SLOT(loadSynthesisData()));
 	topo_blend->connect(ui->outputCloudButton, SIGNAL(clicked()), SLOT(outputPointCloud()));
@@ -60,11 +60,14 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	this->connect(ui->scaleModel, SIGNAL(clicked()), SLOT(scaleModel()));
 	this->connect(ui->exportAsOBJ, SIGNAL(clicked()), SLOT(exportAsOBJ()));
 
-	// Visualization & default [true] values
+	// Visualization & default values
 	this->connect(ui->vizButtonGroup, SIGNAL(buttonClicked(QAbstractButton*)),SLOT(vizButtonClicked(QAbstractButton*)));
+	tb->viz_params["showNodes"] = true;
 	tb->viz_params["showMeshes"] = true;
+	tb->viz_params["splatSize"] = 0.008;
+	tb->connect(ui->splatSize, SIGNAL(), SLOT(updateDrawArea()));
 
-	topo_blend->connect(ui->refreshViewButton, SIGNAL(clicked()), SLOT(updateDrawArea()));
+	this->connect(ui->splatSize, SIGNAL(valueChanged(double)), SLOT(splatSizeChanged(double)));
 }
 
 topo_blend_widget::~topo_blend_widget()
@@ -154,11 +157,20 @@ void topo_blend_widget::loadCorrespondenceModel()
 
 void topo_blend_widget::vizButtonClicked(QAbstractButton* b)
 {
+	tb->viz_params["showNodes"] = ui->showNodes->isChecked();
 	tb->viz_params["showEdges"] = ui->showEdges->isChecked();
 	tb->viz_params["showMeshes"] = ui->showMeshes->isChecked();
 	tb->viz_params["showTasks"] = ui->showTasks->isChecked();
 	tb->viz_params["showCtrlPts"] = ui->showCtrlPts->isChecked();
+	tb->viz_params["isSplatsHQ"] = ui->isSplatsHQ->isChecked();
+	tb->viz_params["splatSize"] = ui->splatSize->value();
 
+	tb->updateDrawArea();
+}
+
+void topo_blend_widget::splatSizeChanged(double newSize)
+{
+	tb->viz_params["splatSize"] = ui->splatSize->value();
 	tb->updateDrawArea();
 }
 
@@ -195,6 +207,8 @@ void topo_blend_widget::normalizeModel()
 	if(!tb->graphs.size()) return;
 
 	tb->graphs.back()->normalize();
+
+	tb->setSceneBounds();
 	tb->updateDrawArea();
 }
 
@@ -203,6 +217,7 @@ void topo_blend_widget::bottomCenterModel()
 	if(!tb->graphs.size()) return;
 
 	tb->graphs.back()->moveBottomCenterToOrigin();
+	tb->setSceneBounds();
 	tb->updateDrawArea();
 }
 
@@ -215,6 +230,7 @@ void topo_blend_widget::moveModel()
 	QMatrix4x4 mat;
 	mat.translate( ui->movX->value() * s, ui->movY->value() * s, ui->movZ->value() * s );
 	tb->graphs.back()->transform( mat );
+	tb->setSceneBounds();
 	tb->updateDrawArea();
 }
 
@@ -227,6 +243,7 @@ void topo_blend_widget::rotateModel()
 	mat.rotate( ui->rotY->value(), QVector3D(0,1,0) );
 	mat.rotate( ui->rotZ->value(), QVector3D(0,0,1) );
 	tb->graphs.back()->transform( mat );
+	tb->setSceneBounds();
 	tb->updateDrawArea();
 }
 
@@ -245,6 +262,7 @@ void topo_blend_widget::scaleModel()
 		mat.scale( ui->scaleX->value(), ui->scaleY->value(), ui->scaleZ->value() );
 	}
 	tb->graphs.back()->transform( mat );
+	tb->setSceneBounds();
 	tb->updateDrawArea();
 }
 
