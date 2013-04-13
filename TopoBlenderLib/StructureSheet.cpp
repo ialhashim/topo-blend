@@ -206,8 +206,6 @@ void Sheet::draw(bool isShowCtrlPts)
 	gluDeleteQuadric(quadObj);
 }
 
-
-
 void Sheet::drawWithNames( int nID, int pointIDRange )
 {
 	int pID = nID * pointIDRange;

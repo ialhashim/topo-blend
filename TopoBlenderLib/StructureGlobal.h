@@ -129,6 +129,12 @@ static inline void globalToLocalSpherical( Vector3 X, Vector3 Y, Vector3 Z, doub
 	psi = signedAngle(X, proj_v, Z);
 }
 
+static inline Vector3 pointOnPlane(Vector3 p, Vector3 plane_normal, Scalar plane_d = 0)
+{
+	Scalar t = dot(plane_normal, p) - plane_d;
+	return p - (t * plane_normal);
+}
+
 #define	POINT_ID_RANGE 1000
 #define NODE_ID_RANGE	100
 

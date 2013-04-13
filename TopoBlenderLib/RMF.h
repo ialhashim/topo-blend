@@ -27,6 +27,14 @@ public:
 
 	void compute()
 	{
+		Vec3d firstT = (point[1] - point[0]).normalized();
+		Vec3d firstR = orthogonalVector( firstT );
+
+		compute( firstR );
+	}
+
+	void compute( Vec3d firstR )
+	{
 		// Reset computation
 		std::vector<Vec3d> tangent;
 
@@ -40,8 +48,17 @@ public:
 		}
 		tangent.push_back(tangent.back());
 
+		Vec3d firstT = tangent.front().normalized();
+
+		// Make sure firstR is perpendicular to plane of first tangent
+		firstR = pointOnPlane(firstR, firstT);
+		if(firstR.norm() > ZERO_NORM) 
+			firstR.normalize();
+		else 
+			firstR = orthogonalVector(firstT);
+
 		// First frame
-		Frame firstFrame = Frame::fromT(tangent.front());
+		Frame firstFrame = Frame::fromTR( firstT, firstR.normalized() );
 
 		U.clear();
 		U.push_back( firstFrame );
@@ -60,7 +77,7 @@ public:
 			/*7 */ Vec3d rj = rLi - (2.0 / c2) * dot(v2, rLi) * v2;
 			/*8 */ Vec3d sj = cross(tj,rj);
 
-			U.push_back(Frame::fromST(sj, tj));
+			U.push_back(Frame::fromST(sj.normalized(), tj.normalized()));
 		}
 
 		// RMF Visualization
@@ -91,6 +108,12 @@ public:
 
 		void normalize() { r.normalize(); s.normalize(); t.normalize(); } ;
 	};
+
+	static inline Vector3 pointOnPlane(Vector3 p, Vector3 plane_normal, Scalar plane_d = 0)
+	{
+		Scalar t = dot(plane_normal, p) - plane_d;
+		return p - (t * plane_normal);
+	}
 
 	inline Frame frameAt(double t){
 		return U[ (qRanged(0.0, t, 1.0) * (U.size() - 1)) ];

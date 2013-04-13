@@ -578,9 +578,7 @@ RMF::Frame Task::curveFrame( Structure::Curve * curve, bool isFlip )
 {
 	Vec4d zero(0);
 	Vec4d one(1.0);
-
 	if(isFlip) std::swap(zero,one);
-
 	Vec3d origin = curve->position(zero);
 	Vec3d X = (curve->position(one) - origin).normalized();
 	Vec3d Y = orthogonalVector(X);

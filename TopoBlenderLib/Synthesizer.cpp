@@ -8,9 +8,11 @@
 #include "SpherePackSampling.h"
 #include "IsotropicRemesher.h"
 #include "SimilarSampling.h"
+#include "PCA.h"
 
 #include "Synthesizer.h"
 #include "weld.h"
+Q_DECLARE_METATYPE(RMF)
 Q_DECLARE_METATYPE(RMF::Frame)
 Q_DECLARE_METATYPE(std::vector<RMF::Frame>)
 
@@ -68,8 +70,22 @@ RMF Synthesizer::consistentFrame( Structure::Curve * curve, Array1D_Vec4d & coor
 	std::vector<Vec3d> samplePoints;
 	foreach(Vec4d c, coords) samplePoints.push_back( curve->position(c) );
 	
-	RMF rmf(samplePoints);
+	// Compute mesh PCA to decide on some binormal, based on geometry around curve
+	//SurfaceMesh::Model * model = curve->property["mesh"].value<SurfaceMesh::Model*>();
+	//Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+	//std::vector<Vec3d> meshPoints;
+	//foreach(Vertex v, model->vertices()) meshPoints.push_back(points[v]);
+	//Vec3d first,second,third;
+	//PCA::mainAxis(meshPoints, first, second, third);
+	//Vec3d binormal = third;
+
+	//Vec3d binormal = curve->curve.GetBinormal(0);
+
+	RMF rmf( samplePoints );
 	rmf.compute();
+
+	curve->property["consistentFrame"].setValue( rmf );
+
 	return rmf;
 }
 
@@ -442,7 +458,6 @@ void Synthesizer::blendSheetBases( Structure::Sheet * sheet1, Structure::Sheet *
     alpha = alpha;
 }
 
-
 void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVector<ParameterCoord> in_samples, QVector<double> &in_offsets,
 	QVector<Vec2d> &in_normals, QVector<Vector3> &out_points, QVector<Vector3> &out_normals )
 {
@@ -478,8 +493,15 @@ void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVect
 
 		// Reconstructed normal
 		Vec2d normalCoord = in_normals[ i ];
-		Vec3d normal;
+		Vec3d normal(0);
 		localSphericalToGlobal(X, Y, Z, normalCoord[0], normalCoord[1], normal);
+
+		// Normal correction
+		{
+			double theta = acos(qRanged(-1.0,dot(normal.normalized(),rayDir.normalized()),1.0));
+			if(theta > M_PI / 2.0) normal = rayDir;
+		}
+
 		out_normals[ i ] = normal.normalized();
 	}
 
@@ -496,7 +518,9 @@ void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVec
 	out_normals.clear();
 	out_normals.resize(in_samples.size());
 
-	for(int i = 0; i < (int) in_samples.size(); i++)
+	int N = in_samples.size();
+
+	for(int i = 0; i < N; i++)
 	{
 		Vector3 X, Y, Z;
 		Vector3 vDirection, sheetPoint;
@@ -511,15 +535,23 @@ void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVec
 		rayPos = base_sheet->position(Vec4d(sample.u, sample.v, 0, 0));
 
 		localSphericalToGlobal(X, Y, Z, sample.theta, sample.psi, rayDir);
+		rayDir.normalize();
 
 		// Reconstructed point
-		Vec3d isect = rayPos + (rayDir.normalized() * in_offsets[i]);
+		Vec3d isect = rayPos + (rayDir * in_offsets[i]);
 		out_points[i] = isect;
 
 		// Reconstructed normal
 		Vec2d normalCoord = in_normals[i];
 		Vec3d normal;
 		localSphericalToGlobal(X, Y, Z, normalCoord[0], normalCoord[1], normal);
+
+		// Normal correction
+		{
+			double theta = acos(qRanged(-1.0,dot(normal.normalized(),rayDir),1.0));
+			if(theta > M_PI / 2.0) normal = rayDir;
+		}
+
 		out_normals[i] = normal.normalized();
 	}
 }

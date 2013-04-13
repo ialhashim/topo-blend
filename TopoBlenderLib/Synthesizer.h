@@ -25,6 +25,10 @@ struct ParameterCoord{
 		return (u < other.u);
 	}
 };
+static inline QDebug operator<<(QDebug dbg, const ParameterCoord &c){
+	dbg.nospace() << QString("[ %1, %2] - theta = %3 \tpsi = %4").arg(c.u).arg(c.v).arg(c.theta).arg(c.psi);
+	return dbg.space();
+}
 
 struct Synthesizer{
 

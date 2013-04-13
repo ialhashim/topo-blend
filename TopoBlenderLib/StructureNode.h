@@ -63,17 +63,18 @@ struct Node
 		return result;
 	}
 
-    // Visualization
-    virtual void draw(bool isShowCtrlPts = false) = 0;
-    QMap< QString, QVariant > vis_property;
-	virtual void drawWithNames(int nID, int pointIDRange) = 0;
-
 	// Selections
 	QMap<int, QColor> selections;
 	void addSelectionWithColor(int pID, QColor color = Qt::green){
 		if (selections.contains(pID)) selections.remove(pID);
 		else selections[pID] = color;
 	}
+
+    // Visualization
+    virtual void draw(bool isShowCtrlPts = false) = 0;
+    QMap< QString, QVariant > vis_property;
+	virtual void drawWithNames(int nID, int pointIDRange) = 0;
+	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
 };
 
 }
