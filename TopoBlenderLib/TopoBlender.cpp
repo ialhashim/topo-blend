@@ -86,8 +86,8 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2,
 
 void TopoBlender::executeBlend()
 {
-	/// STEP 4) Execute the tasks
-	QtConcurrent::run( scheduler, &Scheduler::executeAll ); //scheduler->executeAll();
+    /// STEP 4) Execute the tasks
+    QtConcurrent::run( scheduler, &Scheduler::executeAll ); // scheduler->executeAll();
 }
 
 void TopoBlender::drawDebug()

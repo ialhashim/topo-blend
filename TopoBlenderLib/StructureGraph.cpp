@@ -412,6 +412,56 @@ void Graph::draw()
 		if (n->property.contains("isReady") && !n->property["isReady"].toBool())
 			continue;
 
+
+        if(n->property.contains("samples"))
+        {
+            QVector<Vec3d> n_points, n_normals;
+
+            QVector<ParameterCoord> samples = n->property["samples"].value< QVector<ParameterCoord> >();
+            QVector<double> offsets = n->property["offsets"].value< QVector<double> >();
+            QVector<Vec2d> in_normals = n->property["normals"].value< QVector<Vec2d> >();
+
+            if(!n->property.contains("cached_points"))
+            {
+                // Without blending!
+                if(n->type() == CURVE)
+                {
+                    Curve * curve = (Curve *)n;
+                    Synthesizer::reconstructGeometryCurve(curve,samples,offsets,in_normals,n_points,n_normals);
+                }
+                if(n->type() == SHEET)
+                {
+                    Sheet * sheet = (Sheet *)n;
+                    Synthesizer::reconstructGeometrySheet(sheet,samples,offsets,in_normals,n_points,n_normals);
+                }
+
+                n->property["cached_points"].setValue(n_points);
+                n->property["cached_normals"].setValue(n_normals);
+            }
+            else
+            {
+                n_points = n->property["cached_points"].value< QVector<Vec3d> >();
+                n_normals = n->property["cached_normals"].value< QVector<Vec3d> >();
+            }
+
+            if(n_points.size())
+            {
+                points += n_points;
+                normals += n_normals;
+            }
+        }
+        else
+        {
+            // Draw node mesh
+            if( property["showMeshes"].toBool() )
+            {
+                if(n->property.contains("mesh"))
+                {
+                    QuickMeshDraw::drawMeshWireFrame( n->property["mesh"].value<SurfaceMesh::Model*>() );
+                }
+            }
+        }
+
 		// Task visualization:
 		if( property["showTasks"].toBool() )
 		{
@@ -428,6 +478,14 @@ void Graph::draw()
 
 			if( n->property.contains("isActive") && n->property["isActive"].toBool() )
 			{
+                if( n->property.contains("consistentFrame") )
+                {
+                    RMF consistentFrame = n->property["consistentFrame"].value<RMF>();
+                    FrameSoup fs(0.02f);
+                    foreach(RMF::Frame f, consistentFrame.U) fs.addFrame(f.r, f.s, f.t, f.center);
+                    fs.draw();
+                }
+
 				if( n->property.contains("rmf") )
 				{
 					RMF rmf = n->property["rmf"].value<RMF>();
@@ -501,55 +559,6 @@ void Graph::draw()
 			//	glColor3d(0,0,1); glVector3(tri[2]);
 			//}
 			//glEnd();
-		}
-
-		if(n->property.contains("samples"))
-		{
-			QVector<Vec3d> n_points, n_normals;
-
-			QVector<ParameterCoord> samples = n->property["samples"].value< QVector<ParameterCoord> >();
-			QVector<double> offsets = n->property["offsets"].value< QVector<double> >();
-			QVector<Vec2d> in_normals = n->property["normals"].value< QVector<Vec2d> >();
-
-			if(!n->property.contains("cached_points"))
-			{
-				// Without blending!
-				if(n->type() == CURVE)
-				{
-					Curve * curve = (Curve *)n;
-					Synthesizer::reconstructGeometryCurve(curve,samples,offsets,in_normals,n_points,n_normals);
-				}
-				if(n->type() == SHEET)
-				{
-					Sheet * sheet = (Sheet *)n;
-					Synthesizer::reconstructGeometrySheet(sheet,samples,offsets,in_normals,n_points,n_normals);
-				}
-
-				n->property["cached_points"].setValue(n_points);
-				n->property["cached_normals"].setValue(n_normals);
-			}
-			else
-			{
-				n_points = n->property["cached_points"].value< QVector<Vec3d> >();
-				n_normals = n->property["cached_normals"].value< QVector<Vec3d> >();
-			}
-
-			if(n_points.size())
-			{
-				points += n_points;
-				normals += n_normals;
-			}
-		}
-		else
-		{
-			// Draw node mesh
-			if( property["showMeshes"].toBool() )
-			{
-				if(n->property.contains("mesh"))
-				{
-                    QuickMeshDraw::drawMeshWireFrame( n->property["mesh"].value<SurfaceMesh::Model*>() );
-				}
-			}
 		}
     }
 

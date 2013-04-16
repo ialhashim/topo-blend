@@ -46,3 +46,5 @@ SOURCES += nurbs_plugin.cpp \
 RESOURCES += nurbs_plugin.qrc
 
 FORMS += nurbstools.ui
+
+mac:LIBS += -framework CoreFoundation # We need this for GLee

@@ -1113,8 +1113,11 @@ void topoblend::setStatusBarMessage(QString message)
 void topoblend::generateSynthesisData()
 {
 	if(!blender) return;
-
-	QtConcurrent::run( this, &topoblend::genSynData );
+#ifdef Q_OS_WIN
+    QtConcurrent::run( this, &topoblend::genSynData );
+#else // OpenMP issue on OSX (Linux too?)
+    genSynData();
+#endif
 }
 
 void topoblend::saveSynthesisData()

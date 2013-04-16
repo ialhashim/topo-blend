@@ -56,3 +56,5 @@ FORMS +=    topo_blend_widget.ui \
 			landmarks_dialog.ui \
     QuickAlignment.ui \
     QuickGroup.ui
+
+mac:LIBS += -framework CoreFoundation # We need this for GLee

@@ -70,6 +70,29 @@ RMF Synthesizer::consistentFrame( Structure::Curve * curve, Array1D_Vec4d & coor
 	std::vector<Vec3d> samplePoints;
 	foreach(Vec4d c, coords) samplePoints.push_back( curve->position(c) );
 	
+    Vec3d currentX =  (samplePoints[1] - samplePoints[0]).normalized();
+
+    RMF rmf = RMF( samplePoints, false );
+
+    if(curve->property.contains("consistentFrame"))
+    {
+        RMF prevRMF = curve->property["consistentFrame"].value<RMF>();
+        Vec3d prevX = prevRMF.U.front().r;
+
+        Eigen::Vector3d prevY = V2E(prevRMF.U.front().s);
+        Eigen::Quaterniond rotation = Eigen::Quaterniond::FromTwoVectors(V2E(prevX), V2E(currentX));
+        Eigen::Vector3d rotatedY = rotation * prevY;
+
+        Vec3d currentY = pointOnPlane( E2V(rotatedY), currentX).normalized();
+
+        rmf.compute( currentY );
+    }
+    else
+    {
+        // First time
+        rmf.compute();
+    }
+
 	// Compute mesh PCA to decide on some binormal, based on geometry around curve
 	//SurfaceMesh::Model * model = curve->property["mesh"].value<SurfaceMesh::Model*>();
 	//Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
@@ -81,11 +104,7 @@ RMF Synthesizer::consistentFrame( Structure::Curve * curve, Array1D_Vec4d & coor
 
 	//Vec3d binormal = curve->curve.GetBinormal(0);
 
-	RMF rmf( samplePoints );
-	rmf.compute();
-
-	curve->property["consistentFrame"].setValue( rmf );
-
+    curve->property["consistentFrame"].setValue( rmf );
 	return rmf;
 }
 
