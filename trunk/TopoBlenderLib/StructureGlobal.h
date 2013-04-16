@@ -154,7 +154,7 @@ typedef std::pair< QVector<POINT_ID>, QVector<POINT_ID> > POINT_LANDMARK;
 #define AlphaBlend(alpha, start, end) ( ((1-alpha) * start) + (alpha * end) )
 
 // Spatial Hausdorff distance
-static double supInfDistance( std::vector<Vector3> &A, std::vector<Vector3> &B )
+static double supInfDistance( const std::vector<Vector3> &A, const std::vector<Vector3> &B )
 {
 	double supinfDis = -1;
 	for (int i = 0; i < (int)A.size(); i++)
@@ -175,7 +175,7 @@ static double supInfDistance( std::vector<Vector3> &A, std::vector<Vector3> &B )
 	return supinfDis;
 }
 
-static double HausdorffDistance( std::vector<Vector3> &A, std::vector<Vector3> &B )
+static double HausdorffDistance( const std::vector<Vector3> &A, const std::vector<Vector3> &B )
 {
 	double ABDis = supInfDistance(A, B);
 	double BADis = supInfDistance(B, A);

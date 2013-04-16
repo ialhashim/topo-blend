@@ -6,6 +6,9 @@
 #include <Eigen/Eigen>
 using namespace Eigen;
 
+#define V2E(vec) (Eigen::Vector3d(vec[0], vec[1], vec[2]))
+#define E2V(vec) (Vec3d(vec[0], vec[1], vec[2]))
+
 struct PCA{
     static Vec3d mainAxis( const std::vector<Vec3d> & points)
     {
