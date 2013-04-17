@@ -39,6 +39,10 @@ public slots:
 	void scaleModel();
 	void exportAsOBJ();
 
+	// Part manipulation
+	void reverseCurve();
+	void updatePartsList();
+
 	void splatSizeChanged(double newSize);
 
 private:
