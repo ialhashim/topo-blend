@@ -384,8 +384,11 @@ void Graph::draw()
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	vs.draw();	vs2.draw();	vs3.draw();
-	ps.draw();	vs2.draw();	vs3.draw();
+	if( property["showTasks"].toBool() )
+	{
+		vs.draw();	vs2.draw();	vs3.draw();
+		ps.draw();	vs2.draw();	vs3.draw();
+	}
 
 	QVector<Vec3d> points, normals;
 

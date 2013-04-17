@@ -32,6 +32,7 @@ struct Link
 	std::vector<Vec4d> getCoord(QString nodeID);
 	std::vector<Vec4d> getCoordOther(QString nodeID);
 	Vec4d getMiddleCoord(QString nodeID);
+	void invertCoords( QString nodeID );
 	Node * getNode(QString nodeID);
 	Node * otherNode(QString nodeID);
 

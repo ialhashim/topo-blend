@@ -179,3 +179,9 @@ QVector<Link*> Link::haveProperty( QVector<Link*> links, QString propertyName, Q
 	}
 	return result;
 }
+
+void Structure::Link::invertCoords( QString nodeID )
+{
+	if(nodeID == n1->id) coord[0] = inverseCoords(coord[0]);
+	if(nodeID == n2->id) coord[1] = inverseCoords(coord[1]);
+}

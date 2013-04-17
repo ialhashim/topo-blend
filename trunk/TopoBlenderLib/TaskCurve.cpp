@@ -283,9 +283,13 @@ void TaskCurve::prepareMorphCurve()
     // 0) Filter edges (remove edges with null since these nodes will grow in future)
     QVector<Link*> edges = filterEdges(n, active->getEdges(n->id));
 
-	if(n->id.contains("Center"))
+	// Make sure local link coordinates are consistent from source to target
+	foreach(Link * l, edges)
 	{
-		int x = 0;
+		Vec4d scoord = l->getCoord(n->id).front();
+		Vec4d tcoord = target->getEdge(l->property["correspond"].toString())->getCoord(tn->id).front();
+		if(isSameHalf(scoord,tcoord)) continue;
+		l->invertCoords(n->id);
 	}
 
     // 1) SINGLE edge

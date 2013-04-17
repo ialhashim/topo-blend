@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>449</width>
-    <height>529</height>
+    <width>312</width>
+    <height>535</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -682,19 +682,6 @@
          </property>
         </widget>
        </item>
-       <item row="9" column="3" colspan="4">
-        <spacer name="verticalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
        <item row="3" column="4">
         <widget class="QDoubleSpinBox" name="rotY">
          <property name="decimals">
@@ -709,7 +696,7 @@
          </property>
         </widget>
        </item>
-       <item row="10" column="3" colspan="2">
+       <item row="9" column="3" colspan="2">
         <widget class="QPushButton" name="exportAsOBJ">
          <property name="text">
           <string>Export as OBJ</string>
@@ -725,6 +712,29 @@
           <iconset resource="topo-blend.qrc">
            <normaloff>:/images/update.png</normaloff>:/images/update.png</iconset>
          </property>
+        </widget>
+       </item>
+       <item row="10" column="3" colspan="4">
+        <widget class="QGroupBox" name="groupBox_2">
+         <property name="title">
+          <string>Part tools</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_8">
+          <item row="1" column="0">
+           <widget class="QPushButton" name="reverseCurveButton">
+            <property name="text">
+             <string>Reverse curve</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QListWidget" name="partsList">
+            <property name="selectionMode">
+             <enum>QAbstractItemView::MultiSelection</enum>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
       </layout>

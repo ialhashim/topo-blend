@@ -9,6 +9,7 @@
 #include "QuickViewer.h"
 #include "QuickGroup.h"
 #include <QFileDialog>
+#include <QListWidgetItem>
 
 QuickViewer * viewer = NULL;
 QString cur_filename;
@@ -59,6 +60,13 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	this->connect(ui->rotateModel, SIGNAL(clicked()), SLOT(rotateModel()));
 	this->connect(ui->scaleModel, SIGNAL(clicked()), SLOT(scaleModel()));
 	this->connect(ui->exportAsOBJ, SIGNAL(clicked()), SLOT(exportAsOBJ()));
+
+	// Manipulate parts
+	this->connect(ui->reverseCurveButton, SIGNAL(clicked()), SLOT(reverseCurve()));
+
+	// Populate list
+	this->updatePartsList();
+	this->connect(ui->refreshViewButton, SIGNAL(clicked()), SLOT(updatePartsList()));
 
 	// Visualization & default values
 	this->connect(ui->vizButtonGroup, SIGNAL(buttonClicked(QAbstractButton*)),SLOT(vizButtonClicked(QAbstractButton*)));
@@ -316,4 +324,44 @@ void topo_blend_widget::exportAsOBJ()
 	}
 
 	file.close();
+}
+
+void topo_blend_widget::reverseCurve()
+{
+	if(!tb->graphs.size()) return;
+	Structure::Graph * g = tb->graphs.back(); 
+
+	foreach(QListWidgetItem * item, ui->partsList->selectedItems())
+	{
+		Structure::Node * n = g->getNode(item->text());
+		if(n->type() != Structure::CURVE) continue;
+		Structure::Curve * curve = (Structure::Curve*) n;
+
+		// Flip the selected curve
+		std::vector<Vector3> ctrlPoint = curve->controlPoints();
+		std::vector<Scalar> ctrlWeight = curve->controlWeights();
+		std::reverse(ctrlPoint.begin(), ctrlPoint.end());
+		std::reverse(ctrlWeight.begin(), ctrlWeight.end());
+
+		NURBS::NURBSCurved newCurve(ctrlPoint, ctrlWeight);
+		curve->curve = newCurve;
+
+		// Update the coordinates of its links
+		foreach( Structure::Link * l, g->getEdges(curve->id) )
+		{
+			l->setCoord(curve->id, inverseCoords( l->getCoord(curve->id) ));
+		}
+	}
+
+	tb->updateDrawArea();
+}
+
+void topo_blend_widget::updatePartsList()
+{
+	if(!tb->graphs.size()) return;
+	Structure::Graph * g = tb->graphs.back();
+
+	// Populate list
+	foreach(Structure::Node * n, g->nodes) 
+		ui->partsList->addItem(new QListWidgetItem(n->id));
 }
