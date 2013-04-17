@@ -21,7 +21,9 @@ public:
 		polys_colors.clear();
 	}
 
-	virtual void draw(){
+	void draw(QGLWidget &widget){this->draw(); widget;}
+
+	void draw(){
 
         glEnable(GL_LIGHTING);
 		glEnable(GL_BLEND);
@@ -98,7 +100,9 @@ class LineSegments : public RenderObject::Base{
 public:
 	LineSegments():RenderObject::Base(1, Qt::black){}
 
-	virtual void draw(){
+	void draw(QGLWidget &widget){this->draw();widget;}
+
+	void draw(){
 		glDisable(GL_LIGHTING);
 
 		glLineWidth(3);
@@ -144,7 +148,9 @@ public:
 		points_colors.clear();
 	}
 
-	virtual void draw(){
+	void draw(QGLWidget &widget){this->draw();widget;}
+
+	void draw(){
 		glDisable(GL_LIGHTING);
 		if(normals.size()) glEnable(GL_LIGHTING);
 
@@ -195,7 +201,9 @@ public:
         maxLen = qMax(l,maxLen);
     }
 
-    virtual void draw(){
+	void draw(QGLWidget &widget){this->draw();widget;}
+
+    void draw(){
         glDisable(GL_LIGHTING);
         glLineWidth(1);
         glBegin(GL_LINES);
@@ -239,7 +247,9 @@ public:
 		planes.push_back( qMakePair(center, normal) );
 	}
 
-	virtual void draw(){
+	void draw(QGLWidget &widget){this->draw();widget;}
+
+	void draw(){
 		glDisable(GL_LIGHTING);
 
 		// Rendering options
@@ -356,7 +366,9 @@ public:
 		frames.push_back(frame);
 	}
 
-	virtual void draw()
+	void draw(QGLWidget &widget){this->draw();widget;}
+
+	void draw()
 	{
 		drawFrame();
 	}
@@ -482,7 +494,9 @@ public:
 		colors.clear();
 	}
 
-	virtual void draw(){
+	void draw(QGLWidget &widget){this->draw();widget;}
+
+	void draw(){
 		glEnable(GL_LIGHTING);
 		for(int i = 0; i < (int) centers.size(); i++){
 			Vec3d c = centers[i];
@@ -558,7 +572,9 @@ public:
 		glPopMatrix();
 	}
 
-	virtual void draw()
+	void draw(QGLWidget &widget){this->draw();widget;}
+
+	void draw()
 	{
 		glEnable(GL_LIGHTING);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

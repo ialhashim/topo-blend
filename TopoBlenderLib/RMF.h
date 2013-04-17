@@ -6,6 +6,9 @@ typedef unsigned int uint;
 
 #define ZERO_NORM 1e-10
 
+#include "qglviewer/quaternion.h"
+using namespace qglviewer;
+
 class RMF{
 public:
 	RMF(){}
@@ -83,6 +86,32 @@ public:
 		// RMF Visualization
 		for(int i = 0; i < (int)point.size(); i++)
 			U[i].center = point[i];
+	}
+
+	void generate()
+	{
+		std::vector<Vec3d> tangent;
+
+		// Estimate tangents
+		for(uint i = 0; i < point.size() - 1; i++){
+			Vec3d t = point[i+1] - point[i];
+			if(i > 0 && t.norm() < ZERO_NORM) 
+				tangent.push_back(tangent.back());
+			else
+				tangent.push_back((t).normalized());
+		}
+		tangent.push_back(tangent.back());
+
+		// generate frames
+		Vec X(1, 0, 0), Z(0, 0, 1);
+		for(uint i = 0; i < point.size(); i++){
+			Vec3d t = tangent[i];
+
+			qglviewer::Quaternion q(Z, Vec(t));
+			Vec r = q * X;
+
+			U.push_back(Frame::fromTR(t, Vec3d(r.x, r.y, r.z)));
+		}
 	}
 
 	inline uint count() { return point.size(); }
