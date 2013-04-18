@@ -8,16 +8,17 @@ public:
     static std::vector<Vec3d> sample(SurfaceMesh::Model * m, int randomSampleCount, double r)
     {
         std::vector<Vec3d> gridPoints = std::vector<Vec3d>();
-        return sample(m,randomSampleCount,r,gridPoints);
+		std::vector<Vec3d> normals;
+        return sample(m, randomSampleCount, r, gridPoints, normals);
     }
 
     static std::vector<Vec3d> sample(SurfaceMesh::Model * m, int randomSampleCount, double r, 
-        std::vector<Vec3d> & gridPoints, int density = 1)
+        std::vector<Vec3d> & gridPoints, std::vector<Vec3d> & normals, int density = 1)
 	{
-        std::vector<Vec3d> samples, centers;
+        std::vector<Vec3d> samples, rndNormals, centers;
 
         // Get a lot of random samples
-        std::vector<Vec3d> rndSamples = getRandomSamples(m, randomSampleCount);
+        std::vector<Vec3d> rndSamples = getRandomSamples(m, randomSampleCount, rndNormals);
 
         // Centers of packed spheres
         centers = spheres(r, m->bbox().minimum(), m->bbox().maximum(), density);
@@ -36,24 +37,30 @@ public:
             if(n < 1) continue;
 
 			// Record center
-			Vec3d centerGroup (0,0,0);
+			Vec3d centerGroup(0), normal(0);
 			foreach(KDResultPair i, matches) 
+			{
 				centerGroup += rndSamples[i.first];
+				normal += rndNormals[i.first];
+			}
 			centerGroup /= matches.size();
+			normal /= matches.size();
+
 			samples.push_back(centerGroup);
+			normals.push_back(normal.normalized());
 
 			gridPoints.push_back(center);
 		}
 
-
 		return samples;
 	}
 
-    static std::vector<Vec3d> getRandomSamples(SurfaceMesh::Model * m, int randomSampleCount)
+    static std::vector<Vec3d> getRandomSamples(SurfaceMesh::Model * m, int randomSampleCount, std::vector<Vec3d> & rndNormals)
     {
         std::vector<Vec3d> rndSamples;
         foreach(SamplePoint sp, Sampler(m).getSamples(randomSampleCount)){
             rndSamples.push_back(sp.pos);
+			rndNormals.push_back(sp.n);
         }
         return rndSamples;
     }

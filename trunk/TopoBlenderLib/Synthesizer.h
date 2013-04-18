@@ -12,13 +12,20 @@ struct ParameterCoord{
 	double u, v;
 	double theta, psi;
 
-	ParameterCoord(){ u = v = -1; theta = psi = 0; }
-	ParameterCoord(double theta, double psi, double u, double v = 0){
+	double origOffset;
+	Structure::Node * origNode;
+	Vector3 origNormal;
+
+	ParameterCoord(){ u = v = -1; theta = psi = 0; origOffset = 0; origNode = NULL; }
+	ParameterCoord(double theta, double psi, double u, double v = 0, double offset = 0, Structure::Node * node = NULL){
 		this->u = u;
 		this->v = v;
 
 		this->theta = theta;
 		this->psi = psi;
+
+		this->origOffset = offset;
+		this->origNode = node;
 	}
 
 	bool operator < (const ParameterCoord& other) const{
@@ -33,8 +40,8 @@ static inline QDebug operator<<(QDebug dbg, const ParameterCoord &c){
 struct Synthesizer{
 
 	// Generate sample points in the parameter domain
-	static QVector<ParameterCoord> genPointCoordsCurve( Structure::Curve * curve, const std::vector<Vec3d> & points);
-	static QVector<ParameterCoord> genPointCoordsSheet( Structure::Sheet * sheet, const std::vector<Vec3d> & points );
+	static QVector<ParameterCoord> genPointCoordsCurve( Structure::Curve * curve, const std::vector<Vec3d> & points, const std::vector<Vec3d> & normals );
+	static QVector<ParameterCoord> genPointCoordsSheet( Structure::Sheet * sheet, const std::vector<Vec3d> & points, const std::vector<Vec3d> & normals );
 
 	static QVector<ParameterCoord> genFeatureCoords( Structure::Node * node );
 	static QVector<ParameterCoord> genEdgeCoords( Structure::Node * node, double sampling_resolution = -1 );
@@ -68,7 +75,6 @@ struct Synthesizer{
 
 	// Helper functions
 	static RMF consistentFrame( Structure::Curve * curve, Array1D_Vec4d & coords );
-	static void sortSamplesCurve( QVector<ParameterCoord> & samples, QVector<int> & oldIndices );
 
 	// IO
 	static void saveSynthesisData(Structure::Node *node, QString prefix = "");
