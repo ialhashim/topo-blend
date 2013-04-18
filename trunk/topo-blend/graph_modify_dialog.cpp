@@ -15,6 +15,8 @@ GraphModifyDialog::GraphModifyDialog(Structure::Graph * graph, QWidget *parent) 
 	this->connect(ui->list1, SIGNAL(itemSelectionChanged()), SLOT(visualizeSelections()));
 	this->connect(ui->list2, SIGNAL(itemSelectionChanged()), SLOT(visualizeSelections()));
 
+	this->connect(ui->updateLinkButton, SIGNAL(clicked()), SLOT(updateLink()) );
+
 	updateLists();
 }
 
@@ -35,7 +37,7 @@ void GraphModifyDialog::link()
 		g->addEdge(id1, id2);
 	}
 
-	emit (updateView());
+	emit ( updateView() );
 }
 
 void GraphModifyDialog::unlink()
@@ -50,6 +52,25 @@ void GraphModifyDialog::unlink()
 		QString id2 = item->text();
 		g->removeEdge( g->getNode(id1), g->getNode(id2) );
 	}
+
+	emit( updateView() );
+}
+
+void GraphModifyDialog::updateLink()
+{
+	if(ui->list1->selectedItems().size() < 1) return;
+	if(ui->list2->selectedItems().size() < 1) return;
+
+	QString id1 = ui->list1->selectedItems().last()->text();
+	QString id2 = ui->list2->selectedItems().last()->text();
+
+	Structure::Link * l = g->getEdge(id1,id2); if(!l) return;
+
+	Vec4d coord1(ui->uA->value(), ui->vA->value(), 0, 0);
+	Vec4d coord2(ui->uB->value(), ui->vB->value(), 0, 0);
+
+	l->setCoord(id1, std::vector<Vec4d>(1,coord1));
+	l->setCoord(id2, std::vector<Vec4d>(1,coord2));
 
 	emit( updateView() );
 }
@@ -93,6 +114,26 @@ void GraphModifyDialog::visualizeSelections()
 		g->getNode(item->text())->vis_property["color"] = Qt::green;
 
 	emit( updateView() );
+
+	// Edge coordinates if it exists
+	{
+		if(ui->list1->selectedItems().size() < 1) return;
+		if(ui->list2->selectedItems().size() < 1) return;
+
+		QString id1 = ui->list1->selectedItems().last()->text();
+		QString id2 = ui->list2->selectedItems().last()->text();
+
+		Structure::Link * l = g->getEdge(id1,id2); if(!l) return;
+
+		Vec4d coord1 = l->getCoord(id1).front();
+		Vec4d coord2 = l->getCoord(id2).front();
+
+		ui->uA->setValue(coord1[0]); 
+		ui->vA->setValue(coord1[1]);
+
+		ui->uB->setValue(coord2[0]); 
+		ui->vB->setValue(coord2[1]);
+	}
 }
 
 void GraphModifyDialog::removeAll()
