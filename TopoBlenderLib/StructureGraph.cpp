@@ -390,7 +390,11 @@ void Graph::draw()
 		ps.draw();	vs2.draw();	vs3.draw();
 	}
 
+	// Geometry of graph
 	QVector<Vec3d> points, normals;
+
+	// Compute blends if available
+	geometryMorph();
 
     foreach(Node * n, nodes)
     {
@@ -1767,4 +1771,45 @@ void Graph::setColorAll( QColor newNodesColor )
 {
 	foreach(Node * n, nodes)
 		n->vis_property["color"] = newNodesColor;
+}
+
+void Graph::geometryMorph()
+{
+	foreach(Node * n, nodes)
+	{
+		if(n->property.contains("isReady") && !n->property["isReady"].toBool())
+			continue;
+
+		if (!property.contains("targetGraph") || !n->property.contains("correspond"))
+			continue;
+
+		Structure::Graph * targetGraph = property["targetGraph"].value<Structure::Graph*>();
+		QString tnodeID = n->property["correspond"].toString();
+
+		if(n->property.contains("samples") && !n->property.contains("cached_points"))
+		{
+			double t = n->property["localT"].toDouble();
+
+			QVector<Vec3d> points, normals;
+
+			if(n->type() == Structure::CURVE)
+			{	
+				Structure::Curve * tcurve = (Structure::Curve *)targetGraph->getNode(tnodeID);
+				Structure::Curve * curve = (Structure::Curve *)n;
+
+				Synthesizer::blendGeometryCurves(curve, tcurve, t, points, normals);
+			}
+
+			if(n->type() == Structure::SHEET)
+			{	
+				Structure::Sheet * tsheet = (Structure::Sheet *)targetGraph->getNode(tnodeID);
+				Structure::Sheet * sheet = (Structure::Sheet *)n;
+
+				Synthesizer::blendGeometrySheets(sheet, tsheet, t, points, normals);
+			}
+
+			n->property["cached_points"].setValue(points);
+			n->property["cached_normals"].setValue(normals);
+		}
+	}
 }

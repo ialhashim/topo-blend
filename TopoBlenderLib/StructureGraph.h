@@ -104,6 +104,7 @@ struct Graph
 	// Synthesis
 	void materialize( SurfaceMesh::Model * m, Scalar voxel_scaling = 1.0 );
 	DynamicVoxel::QuadMesh cached_mesh;
+	void geometryMorph();
 
     // Analysis
     Node * rootBySize();

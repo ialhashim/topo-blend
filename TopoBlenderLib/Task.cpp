@@ -305,31 +305,9 @@ void Task::copyTargetEdge( Structure::Link *tlink )
 void Task::geometryMorph( double t )
 {
 	if(t < 0.0 || t > 1.0) return;
-
-	// Geometry morph:
-	if(node()->property.contains("samples"))
-	{
-		QVector<Vec3d> points, normals;
-
-		if(node()->type() == Structure::CURVE)
-		{	
-			Structure::Curve * tcurve = (Structure::Curve *)targetNode();
-			Structure::Curve * curve = (Structure::Curve *)node();
-
-			Synthesizer::blendGeometryCurves(curve, tcurve, t, points, normals);
-		}
-
-		if(node()->type() == Structure::SHEET)
-		{	
-			Structure::Sheet * tsheet = (Structure::Sheet *)targetNode();
-			Structure::Sheet * sheet = (Structure::Sheet *)node();
-
-			Synthesizer::blendGeometrySheets(sheet, tsheet, t, points, normals);
-		}
-
-		node()->property["cached_points"].setValue(points);
-		node()->property["cached_normals"].setValue(normals);
-	}
+	
+	node()->property["localT"] = t;
+	active->property["targetGraph"].setValue( target );
 }
 
 // PREPARE
