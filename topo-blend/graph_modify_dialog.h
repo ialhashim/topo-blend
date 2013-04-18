@@ -22,6 +22,7 @@ private:
 public slots:
     void link();
     void unlink();
+	void updateLink();
     void remove();
 	void removeAll();
 	void visualizeSelections();
