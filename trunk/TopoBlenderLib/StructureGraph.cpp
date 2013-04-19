@@ -512,18 +512,36 @@ void Graph::draw()
 				glDisable(GL_LIGHTING);
 				if( n->property.contains("path") )
 				{
+					Array1D_Vector3 path = n->property["path"].value<Array1D_Vector3>();
+
 					PointSoup ps;
-					foreach(Vector3 p, n->property["path"].value<Array1D_Vector3>())
+					LineSegments ls;
+					Vec3d lastP = path.front();
+					foreach(Vector3 p, path)
+					{
 						ps.addPoint(p, Qt::green);
+						ls.addLine(lastP, p, QColor(255,255,255,100));
+						lastP = p;
+					}
 					ps.draw();
+					ls.draw();
 				}
 
 				if( n->property.contains("path2") )
 				{
+					Array1D_Vector3 path = n->property["path2"].value<Array1D_Vector3>();
+
 					PointSoup ps;
-					foreach(Vector3 p, n->property["path2"].value<Array1D_Vector3>())
+					LineSegments ls;
+					Vec3d lastP = path.front();
+					foreach(Vector3 p, path)
+					{
 						ps.addPoint(p, Qt::yellow);
+						ls.addLine(lastP, p, QColor(255,255,255,100));
+						lastP = p;
+					}
 					ps.draw();
+					ls.draw();
 				}
 				glEnable(GL_LIGHTING);
 				

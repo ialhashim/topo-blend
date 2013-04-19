@@ -105,7 +105,7 @@ public:
 	void draw(){
 		glDisable(GL_LIGHTING);
 
-		glLineWidth(3);
+		glLineWidth(_size);
 		glBegin(GL_LINES);
 		for(int i = 0; i < (int) lines.size(); i++){
 			glColorQt(lines_colors[i]);
@@ -114,7 +114,7 @@ public:
 		}
 		glEnd();
 
-		glPointSize(6);
+		glPointSize(_size+2);
 		glBegin(GL_POINTS);
 		for(int i = 0; i < (int) lines.size(); i++){
 			glColorQt(lines_colors[i]);
