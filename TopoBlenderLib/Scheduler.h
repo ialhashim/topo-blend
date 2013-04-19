@@ -45,6 +45,9 @@ public:
 	bool isPartOfGrowingBranch( Task* t );
 	QVector<Task*> getEntireBranch( Task * t );
 
+	// Task operations
+	void addMorphTask( QString nodeID );
+
 	// Time helpers
 	void splitTasksStartTime( int startTime, QList<Task*> & before, QList<Task*> & after );
 	void slideTasksTime( QList<Task*> list_tasks, int delta );

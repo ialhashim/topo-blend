@@ -1,6 +1,7 @@
 #include <QApplication>
 
-#include "Task.h"
+#include "TaskCurve.h"
+#include "TaskSheet.h"
 #include "Scheduler.h"
 #include "Relink.h"
 
@@ -190,6 +191,12 @@ void Scheduler::order()
 			if(g->property.contains("groups")) groupStart(g, curTasks, curStart, futureStart);
 
 			curStart = futureStart;
+
+			// Experiment:
+			foreach(Task* t, curTasks) 
+			{
+				addMorphTask( t->node()->id );
+			}
 		}
 	}
 
@@ -518,4 +525,28 @@ int Scheduler::endOf( QList<Task*> list_tasks )
 	int end = -INT_MAX;
 	foreach(Task * t, list_tasks) end = qMax(end, t->endTime());
 	return end;
+}
+
+void Scheduler::addMorphTask( QString nodeID )
+{
+	Task * prev = tasks.back();
+
+	Task * task;
+
+	if(activeGraph->getNode(nodeID)->type() == Structure::CURVE)
+		task = new TaskCurve( activeGraph, targetGraph, Task::MORPH, tasks.size() );
+
+	if(activeGraph->getNode(nodeID)->type() == Structure::SHEET)
+		task = new TaskSheet( activeGraph, targetGraph, Task::MORPH, tasks.size() );
+
+	task->setNode( nodeID );
+	tasks.push_back( task );
+
+	// Placement
+	task->moveBy(prev->x() + prev->width,prev->y() + (prev->height));
+	task->currentTime = task->x();
+	task->start = task->x();
+
+	// Add to scene
+	this->addItem( task );
 }

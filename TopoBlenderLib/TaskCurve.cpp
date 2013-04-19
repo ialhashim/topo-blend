@@ -182,6 +182,7 @@ void TaskCurve::prepareGrowCurve()
         Vec3d endDelta = tlink->position(tn->id) - tlink->positionOther(tn->id);
         QString corrBaseNodeID = tlink->otherNode(tn->id)->property["correspond"].toString();
         Vec3d posOther = active->getNode(corrBaseNodeID)->position(tlink->getCoordOther(tn->id).front());
+		if(n->property["isCutGroup"].toBool()) endDelta = Vec3d(0);
 
         // Move curve to start point computed by looking at target geometry
         curve->moveBy( posOther + endDelta );
