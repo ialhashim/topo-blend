@@ -976,6 +976,10 @@ void GraphCorresponder::computeCorrespondences()
 			tIsCorresponded[tid] = true;
 		}
 	}
+
+	// clean up tags used
+	foreach(Structure::Node* n, sg->nodes) n->property.remove("index");
+	foreach(Structure::Node* n, tg->nodes) n->property.remove("index");
 }
 
 

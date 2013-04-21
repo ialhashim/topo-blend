@@ -50,6 +50,9 @@ struct Synthesizer{
 	static QVector<ParameterCoord> genRemeshCoords( Structure::Node * node );
 	static QVector<ParameterCoord> genUniformTrisCoords( Structure::Node * node );
 
+	static QVector<ParameterCoord> genSampleCoordsCurve(Structure::Curve * curve, int samplingType = Features | Random);
+	static QVector<ParameterCoord> genSampleCoordsSheet(Structure::Sheet * sheet, int samplingType = Features | Random);
+
     // Compute the geometry on given samples in the parameter domain
 	static void sampleGeometryCurve( QVector<ParameterCoord> samples, Structure::Curve * curve, QVector<double> &offsets, QVector<Vec2d> &normals);
 	static void sampleGeometrySheet( QVector<ParameterCoord> samples, Structure::Sheet * sheet, QVector<double> &offsets, QVector<Vec2d> &normals );

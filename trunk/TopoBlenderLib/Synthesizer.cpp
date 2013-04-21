@@ -297,6 +297,36 @@ QVector<ParameterCoord> Synthesizer::genUniformTrisCoords( Structure::Node * nod
 		return genPointCoordsSheet((Structure::Sheet*)node, samplePoints, sampleNormals);
 }
 
+QVector<ParameterCoord> Synthesizer::genSampleCoordsCurve( Structure::Curve * curve, int s )
+{
+	QVector<ParameterCoord> samples;
+
+	if (s & Synthesizer::Features)	samples += genFeatureCoords(curve);
+	if (s & Synthesizer::Edges)		samples += genEdgeCoords(curve);
+	if (s & Synthesizer::Random)	samples += genRandomCoords(curve, randomCount);
+	if (s & Synthesizer::Uniform)	samples += genUniformCoords(curve);
+	if (s & Synthesizer::Remeshing)	samples += genRemeshCoords(curve);
+	if (s & Synthesizer::TriUniform)samples += genUniformTrisCoords(curve);
+
+	return samples;
+}
+
+QVector<ParameterCoord> Synthesizer::genSampleCoordsSheet( Structure::Sheet * sheet, int s )
+{
+	QVector<ParameterCoord> samples;
+
+	if (s & Synthesizer::Features)	samples += genFeatureCoords(sheet);
+	if (s & Synthesizer::Edges)		samples += genEdgeCoords(sheet);
+	if (s & Synthesizer::Random)	samples += genRandomCoords(sheet, randomCount);
+	if (s & Synthesizer::Uniform)	samples += genUniformCoords(sheet);
+	if (s & Synthesizer::Remeshing)	samples += genRemeshCoords(sheet);
+	if (s & Synthesizer::TriUniform)samples += genUniformTrisCoords(sheet);
+	
+	return samples;
+}
+
+
+
 void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structure::Curve * curve, QVector<double> &offsets, QVector<Vec2d> &normals )
 {
 	SurfaceMesh::Model * model = curve->property["mesh"].value<SurfaceMesh::Model*>();
@@ -559,31 +589,15 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 	QVector<ParameterCoord> samples;
 	QVector<double> offsets1, offsets2;
 	QVector<Vec2d> normals1, normals2;
-	bool c1_isSampled = false, c2_isSampled = false;
-
-	// Skip sampled by using own samples and copying them to sampled
-	if(curve1->property.contains("samples")){
-		samples = curve1->property["samples"].value< QVector<ParameterCoord> >();
-		c1_isSampled = true;
-	}
-	if(curve2->property.contains("samples")){
-		samples = curve2->property["samples"].value< QVector<ParameterCoord> >();
-		c2_isSampled = true;
-	}
 
 	// Sample two curves
-	if( !samples.size() )
 	{
 		if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
 		if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
 
-		if (s & Synthesizer::Features)	samples += genFeatureCoords(curve1) + genFeatureCoords(curve2);
-		if (s & Synthesizer::Edges)		samples += genEdgeCoords(curve1) + genEdgeCoords(curve2);
-		if (s & Synthesizer::Random)	samples += genRandomCoords(curve1, randomCount) + genRandomCoords(curve2, randomCount);
-		if (s & Synthesizer::Uniform)	samples += genUniformCoords(curve1) + genUniformCoords(curve2);
-		if (s & Synthesizer::Remeshing)	samples += genRemeshCoords(curve1) + genRemeshCoords(curve2);
-		if (s & Synthesizer::TriUniform)samples += genUniformTrisCoords(curve1) + genUniformTrisCoords(curve2);
-
+		samples  = genSampleCoordsCurve(curve1, s);
+		samples += genSampleCoordsCurve(curve2, s);
+		
 		// Sort samples by 'u'
 		sort(samples.begin(), samples.end());
 	}
@@ -593,16 +607,14 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 	qDebug() << "Re-sampling mesh..";
 
 	// Re-sample the meshes
-	if( !c1_isSampled ) 
-	{	
+	{
 		sampleGeometryCurve(samples, curve1, offsets1, normals1);
 		curve1->property["samples"].setValue(samples);
 		curve1->property["offsets"].setValue(offsets1);
 		curve1->property["normals"].setValue(normals1);
-	}
 
-	if( !c2_isSampled ) 
-	{
+
+
 		sampleGeometryCurve(samples, curve2, offsets2, normals2);
 		curve2->property["samples"].setValue(samples);
 		curve2->property["offsets"].setValue(offsets2);
@@ -624,28 +636,13 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 	QVector<Vec2d> normals1, normals2;
 	bool c1_isSampled = false, c2_isSampled = false;
 
-	// Skip sampled by using own samples and copying them to sampled
-	if(sheet1->property.contains("samples")){
-		samples = sheet1->property["samples"].value< QVector<ParameterCoord> >();
-		c1_isSampled = true;
-	}
-	if(sheet2->property.contains("samples")){
-		samples = sheet2->property["samples"].value< QVector<ParameterCoord> >();
-		c2_isSampled = true;
-	}
-
 	// Sample two sheets
-	if( !samples.size() )
 	{
 		if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
 		if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
 
-		if (s & Synthesizer::Features)	samples += genFeatureCoords(sheet1) + genFeatureCoords(sheet2);
-		if (s & Synthesizer::Edges)		samples += genEdgeCoords(sheet1) + genEdgeCoords(sheet2);
-		if (s & Synthesizer::Random)	samples += genRandomCoords(sheet1, randomCount) + genRandomCoords(sheet2, randomCount);
-		if (s & Synthesizer::Uniform)	samples += genUniformCoords(sheet1) + genUniformCoords(sheet2);
-		if (s & Synthesizer::Remeshing)	samples += genRemeshCoords(sheet1) + genRemeshCoords(sheet2);
-		if (s & Synthesizer::TriUniform)samples += genUniformTrisCoords(sheet1) + genUniformTrisCoords(sheet2);
+		samples  = genSampleCoordsSheet(sheet1, s);
+		samples += genSampleCoordsSheet(sheet2, s);
 	}
 
 	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());timer.restart();
@@ -653,16 +650,12 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 	qDebug() << "Re-sampling mesh..";
 
 	// Re-sample the meshes
-	if( !c1_isSampled ) 
 	{	
 		sampleGeometrySheet(samples, sheet1, offsets1, normals1);
 		sheet1->property["samples"].setValue(samples);
 		sheet1->property["offsets"].setValue(offsets1);
 		sheet1->property["normals"].setValue(normals1);
-	}
 
-	if( !c2_isSampled ) 
-	{
 		sampleGeometrySheet(samples, sheet2, offsets2, normals2);
 		sheet2->property["samples"].setValue(samples);
 		sheet2->property["offsets"].setValue(offsets2);

@@ -1060,26 +1060,6 @@ void topoblend::genSynData()
 			{
 				Synthesizer::prepareSynthesizeSheet((Structure::Sheet*)node, (Structure::Sheet*)tgNode, sampling_method);
 			}
-
-			// Copy samples to clones
-			if(nodeID.contains("_"))
-			{
-				QString id = nodeID.split("_").at(0);
-				foreach(Structure::Node * other_node, scheduler->activeGraph->nodes)
-				{
-					if( other_node->id != nodeID && other_node->id.contains(id) )
-						Synthesizer::copySynthData( node, other_node );
-				}
-			}
-			if(tnodeID.contains("_"))
-			{
-				QString id = tnodeID.split("_").at(0);
-				foreach(Structure::Node * other_node, scheduler->targetGraph->nodes)
-				{
-					if( other_node->id != tnodeID && other_node->id.contains(id) )
-						Synthesizer::copySynthData( tgNode, other_node );
-				}
-			}
 		}
 
 		// Show results on current source [front] and target [back] graphs
