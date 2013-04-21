@@ -23,6 +23,7 @@ using namespace DynamicGraphs;
 
 typedef std::pair<QString, QString> PairQString;
 
+Q_DECLARE_METATYPE( Structure::Node* )
 Q_DECLARE_METATYPE( QSet<Structure::Node*> )
 
 TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
@@ -869,7 +870,7 @@ bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structu
 
 				// copy properties
 				curve1->property = node1->property;
-				//curve1->property["original_sheet"].setValue(node1);
+				curve1->property["original_sheet"].setValue(node1);
 			
 				// replace the sheet with curve
 				superG1->removeNode(nodeID1);
