@@ -54,7 +54,6 @@ RMF Synthesizer::consistentFrame( Structure::Curve * curve, Array1D_Vec4d & coor
     RMF rmf = RMF( samplePoints, false );
 	rmf.generate();
 
-    curve->property["consistentFrame"].setValue( rmf );
 	return rmf;
 }
 

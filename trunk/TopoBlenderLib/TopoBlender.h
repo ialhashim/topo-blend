@@ -36,6 +36,9 @@ public:
 	QMap<QString, QString> superEdgeCorr;
 	void generateSuperGraphs();
 	void correspondSuperNodes();
+	void equalizeSuperNodeResolutions();
+	void equalizeSuperNodeTypes();
+	bool convertSheetToCurve(QString sheetID, QString curveID, Structure::Graph* sheetG, Structure::Graph* curveG);
 	void correspondSuperEdges();
 
 	/// Helper functions:
@@ -49,7 +52,6 @@ public:
 	void correspondMissingEdges( Structure::Graph * sgraph, Structure::Graph * tgraph );
 	void removeMissingEdges( Structure::Graph * sgraph );
 
-	void equalizeResolutions();
 
 	// Query
 	bool isExtraNode(Structure::Node *node);
