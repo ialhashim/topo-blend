@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StructureNode.h"
+#include "NURBSCurve.h"
 #include "NURBSRectangle.h"
 
 namespace Structure{
@@ -24,12 +25,16 @@ struct Sheet : public Node
 	Vector3 & controlPoint(int idx);
 	void setControlPoints(const std::vector<Vector3> & newPositions);
 	int numCtrlPnts();
+	int numUCtrlPnts();
+	int numVCtrlPnts();
+	NURBS::NURBSCurved nurbCurve(Vec3d p, Vec3d dir); 
 
 	// Modifiers
 	void moveBy( const Vec3d & delta );
 	void scale( Scalar scaleFactor );
 	void rotate( double angle, Vector3 axis );
     std::vector< std::vector<Vec3d> > foldTo( const std::vector<Vec4d> & curve, bool isApply = false );
+	void refineControlPoints(int nU, int nV = 0);
 	void equalizeControlPoints( Structure::Node * other );
 	void deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid );
 

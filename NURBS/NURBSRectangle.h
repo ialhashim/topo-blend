@@ -122,8 +122,11 @@ public:
     void generateSurfacePoints(Scalar stepSize, std::vector<std::vector<Vector3> > &points, std::vector<Real> &valU, std::vector<Real> &valV);
     void generateSurfacePointsCoords(Scalar stepSize, std::vector<std::vector<Vec4d> > &points);
 
-    std::vector<Vector3> GetControlPointsV(int vIndex);
     std::vector<Vector3> GetControlPointsU(int uIndex);
+	std::vector<Vector3> GetControlPointsV(int vIndex);
+
+	std::vector<Scalar> GetControlWeightsU(int uIndex);
+	std::vector<Scalar> GetControlWeightsV(int vIndex);
 
     std::vector<Vec3d> intersect(NURBSRectangle<Real> &other, double resolution, std::vector<Vec4d> &coordMe, std::vector<Vec4d> &coordOther);
 

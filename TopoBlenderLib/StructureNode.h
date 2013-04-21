@@ -29,6 +29,7 @@ struct Node
 	virtual void moveBy( const Vec3d & delta ) = 0;
 	virtual void scale( Scalar scaleFactor ) = 0;
 	virtual void rotate( double angle, Vector3 axis ) = 0;
+	virtual void refineControlPoints(int nU, int nV = 0) = 0;
 	virtual void equalizeControlPoints( Structure::Node * other ) = 0;
 	virtual void deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid ) = 0;
 

@@ -358,3 +358,19 @@ void Curve::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
 
 	setControlPoints( ctrlPnts );
 }
+
+void Structure::Curve::refineControlPoints( int nU, int nV /*= 0*/ )
+{
+	int diff = nU - curve.mNumCtrlPoints;
+	if(diff == 0) return;
+
+	std::vector<Vec3d> newPnts = this->curve.simpleRefine( diff );
+
+	this->curve = NURBS::NURBSCurved(newPnts, std::vector<double>( newPnts.size(), 1.0 ));
+}
+
+Vec3d Structure::Curve::direction()
+{
+	Vec3d dir = curve.mCtrlPoint.front() - curve.mCtrlPoint.back();
+	return dir.normalized();
+}

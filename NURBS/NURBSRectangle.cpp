@@ -718,11 +718,31 @@ std::vector<Vector3> NURBSRectangle<Real>::GetControlPointsU( int uIndex )
 {
     std::vector<Vector3> pts;
 
-    for(int i = 0; i < (int)mCtrlPoint.size(); i++)
-        pts.push_back(mCtrlPoint[i][uIndex]);
+	for(int i = 0; i < (int)mCtrlPoint.size(); i++)
+		pts.push_back(mCtrlPoint[i][uIndex]);
 
-    return pts;
+	return pts;
 }
+
+
+template <typename Real>
+std::vector<Scalar> NURBS::NURBSRectangle<Real>::GetControlWeightsU( int uIndex )
+{
+	std::vector<Scalar> weights;
+
+	for(int i = 0; i < (int)mCtrlWeight.size(); i++)
+		weights.push_back(mCtrlWeight[i][uIndex]);
+
+
+	return weights;
+}
+
+template <typename Real>
+std::vector<Scalar> NURBS::NURBSRectangle<Real>::GetControlWeightsV( int vIndex )
+{
+	return mCtrlWeight[vIndex];
+}
+
 
 template <typename Real>
 std::vector<Vec3d> NURBSRectangle<Real>::intersect( NURBSRectangle<Real> & other, double resolution,
@@ -1207,6 +1227,7 @@ Array2D_Vector3 NURBS::NURBSRectangle<Real>::simpleRemove( int idx, int dir )
 
 	return Qw;
 }
+
 
 //----------------------------------------------------------------------------
 // Explicit instantiation.

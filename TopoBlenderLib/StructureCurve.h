@@ -35,6 +35,7 @@ struct Curve : public Node
 	void scale( Scalar scaleFactor );
 	void rotate( double angle, Vector3 axis );
 	std::vector<Vec3d> foldTo( Vec4d & foldPoint, bool isApply = false );
+	void refineControlPoints(int nU, int nV = 0);
 	void equalizeControlPoints( Structure::Node * other );
 	void deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid );
 
@@ -55,6 +56,7 @@ struct Curve : public Node
 
 	// Geometric properties
 	Scalar area();
+	Vec3d direction();
 
     // Connections
 

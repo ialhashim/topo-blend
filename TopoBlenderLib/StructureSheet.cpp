@@ -320,7 +320,6 @@ void Sheet::equalizeControlPoints( Structure::Node * _other )
 
 	int nU = qMax(other->surface.mNumUCtrlPoints,surface.mNumUCtrlPoints);
 	int nV = qMax(other->surface.mNumVCtrlPoints,surface.mNumVCtrlPoints);
-	Array2D_Real cw(nU, Array1D_Real(nV, 1.0));
 
 	Array2D_Vector3 my_cp, other_cp;
 
@@ -370,4 +369,95 @@ void Sheet::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
 		this->moveBy( delta );
 		return;
 	}
+}
+
+void Structure::Sheet::refineControlPoints( int nU, int nV /*= 0*/ )
+{
+	Array2D_Vector3 my_cp;
+
+	NURBS::NURBSRectangled mySurface = surface;
+
+	int k = 0;
+
+	// Refine U
+	k = nU - mySurface.mNumUCtrlPoints;
+	my_cp = mySurface.simpleRefine(k, 0);
+	mySurface = NURBS::NURBSRectangled::createSheetFromPoints(my_cp);
+
+	// Refine V
+	k = nV - mySurface.mNumVCtrlPoints;
+	my_cp = mySurface.simpleRefine(k, 1);
+	surface = NURBS::NURBSRectangled::createSheetFromPoints(my_cp);
+}
+
+int Structure::Sheet::numUCtrlPnts()
+{
+	return surface.mNumUCtrlPoints;
+}
+
+int Structure::Sheet::numVCtrlPnts()
+{
+	return surface.mNumVCtrlPoints;
+
+}
+
+
+NURBS::NURBSCurved Structure::Sheet::nurbCurve( Vec3d p, Vec3d dir )
+{
+	Vec3d uDir = surface.mCtrlPoint.front().back() - surface.mCtrlPoint.front().front();
+	Vec3d vDir = surface.mCtrlPoint.back().front() - surface.mCtrlPoint.front().front();
+	uDir.normalize(); vDir.normalize();
+
+	double uDot = dot(uDir, dir);
+	double vDot = dot(vDir, dir);
+
+	std::vector<Vec3d> curvePoints;
+	std::vector<double> curveWeights;
+
+	// along U
+	if (abs(uDot) > abs(vDot))
+	{
+		// get the row that closet to p
+		double minDis = DBL_MAX;
+		double minID = -1;
+		std::vector<Vec3d> uPoints0 = surface.GetControlPointsU(0);
+		for (int i = 0; i < (int)uPoints0.size(); i++)
+		{
+			double dis = (p - uPoints0[i]).norm();
+			if (dis < minDis)	{minDis = dis;	minID = i;}
+		}
+
+		curvePoints = surface.GetControlPointsV(minID);
+		curveWeights = surface.GetControlWeightsV(minID);
+
+		if (uDot < 0)
+		{
+			std::reverse(curvePoints.begin(), curvePoints.end());
+			std::reverse(curveWeights.begin(), curveWeights.end());
+		}
+	}
+	// along V
+	else
+	{
+		// get the row that closet to p
+		double minDis = DBL_MAX;
+		double minID = -1;
+		std::vector<Vec3d> vPoints0 = surface.GetControlPointsV(0);
+		for (int i = 0; i < (int)vPoints0.size(); i++)
+		{
+			double dis = (p - vPoints0[i]).norm();
+			if (dis < minDis)	{minDis = dis;	minID = i;}
+		}
+
+		curvePoints = surface.GetControlPointsU(minID);
+		curveWeights = surface.GetControlWeightsU(minID);
+
+		if (vDot < 0)
+		{
+			std::reverse(curvePoints.begin(), curvePoints.end());
+			std::reverse(curveWeights.begin(), curveWeights.end());
+		}
+	}
+
+	return NURBS::NURBSCurved(curvePoints, curveWeights);
 }

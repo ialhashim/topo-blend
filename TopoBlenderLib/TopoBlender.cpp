@@ -666,9 +666,6 @@ QVector<Structure::Link*> TopoBlender::nonCorrespondEdges( Structure::Node * nod
 
 void TopoBlender::generateSuperGraphs()
 {
-	// Equalize resolution for corresponded nodes
-	equalizeResolutions();
-
 	// Two super graphs have one-to-one correspondence between nodes and edges
 	// Two corresponded edge don't have to link two corresponded nodes
 	super_sg = new Structure::Graph(*sg);
@@ -676,6 +673,12 @@ void TopoBlender::generateSuperGraphs()
 
 	// Correspond nodes in super graphs
 	correspondSuperNodes();
+
+	// Equalize resolution for corresponded nodes
+	equalizeSuperNodeResolutions();
+
+	// Equalize type for corresponded nodes
+	equalizeSuperNodeTypes();
 
 	// Visualization - color similar items
 	foreach(Structure::Node * n, super_sg->nodes)
@@ -722,52 +725,171 @@ void TopoBlender::generateTasks()
 	}
 }
 
-
-void TopoBlender::equalizeResolutions()
+void TopoBlender::equalizeSuperNodeResolutions()
 {
-	foreach (PART_LANDMARK vec2vec, gcoor->correspondences)
+	foreach(QString snodeID, superNodeCorr.keys())
 	{
-		QVector<QString> sNodes = vec2vec.first;
-		QVector<QString> tNodes = vec2vec.second;
+		QString tnodeID = superNodeCorr[snodeID];
 
-		// Pick up the best one 
-		Structure::Node * bestNode = NULL;
-		int bestResolution = 0;
+		// skip non-corresponded nodes
+		if (snodeID.contains("null") || tnodeID.contains("null"))
+			continue;
 
-		foreach( QString sid, sNodes)
+		Structure::Node* snode = super_sg->getNode(snodeID);
+		Structure::Node* tnode = super_tg->getNode(tnodeID);
+
+		if (snode->type() == tnode->type())
 		{
-			Structure::Node * snode = sg->getNode(sid);
-			if (snode->numCtrlPnts() > bestResolution)
+			if (snode->numCtrlPnts() < tnode->numCtrlPnts())
+				snode->equalizeControlPoints(tnode);
+			else
+				tnode->equalizeControlPoints(snode);
+		}
+		// One sheet and one curve
+		// Sheet has squared resolution of curve
+		else
+		{
+			int sN, tN, betterN;
+
+			if (snode->type() == Structure::SHEET)
 			{
-				bestResolution = snode->numCtrlPnts();
-				bestNode = snode;
-			}
-		}
+				sN = qMax(((Structure::Sheet*) snode)->numUCtrlPnts(), ((Structure::Sheet*) snode)->numVCtrlPnts());
+				tN = tnode->numCtrlPnts();
+				betterN = qMax(sN, tN);
 
-		foreach( QString tid, tNodes)
-		{
-			Structure::Node * tnode = tg->getNode(tid);
-			if (tnode->numCtrlPnts() > bestResolution)
+				snode->refineControlPoints(betterN);
+				tnode->refineControlPoints(betterN, betterN);
+
+			}
+			else 
 			{
-				bestResolution = tnode->numCtrlPnts();
-				bestNode = tnode;
+				sN = snode->numCtrlPnts();
+				tN = qMax(((Structure::Sheet*) tnode)->numUCtrlPnts(), ((Structure::Sheet*) tnode)->numVCtrlPnts());
+				betterN = qMax(sN, tN);
+
+				snode->refineControlPoints(betterN);
+				tnode->refineControlPoints(betterN, betterN);
 			}
-		}
-
-		// Equalize resolution to the best one
-		foreach( QString sid, sNodes)
-		{
-			Structure::Node * snode = sg->getNode(sid);
-			if (snode != bestNode) snode->equalizeControlPoints(bestNode);
-		}
-
-		foreach( QString tid, tNodes)
-		{
-			Structure::Node * tnode = tg->getNode(tid);
-			if (tnode != bestNode) tnode->equalizeControlPoints(bestNode);
 		}
 	}
 }
+
+void TopoBlender::equalizeSuperNodeTypes()
+{
+	// initial tags and collect the node pairs that need to be converted
+	QMap<QString, QString> diffPairs;
+	foreach(QString snodeID, superNodeCorr.keys())
+	{
+		QString tnodeID = superNodeCorr[snodeID];
+
+		Structure::Node* snode = super_sg->getNode(snodeID);
+		Structure::Node* tnode = super_tg->getNode(tnodeID);
+
+		bool equalType = true;
+		if (snode->type() != tnode->type())
+		{
+			equalType = false;
+			diffPairs[snodeID] = tnodeID;
+		}
+
+		snode->property["type_equalized"] = equalType;
+		tnode->property["type_equalized"] = equalType;
+	}
+
+	// convert sheet to curve if corresponded to curve
+	// iteratively determine the orientation and location of the new curves
+	while(!diffPairs.isEmpty())
+	{
+		foreach(QString snodeID, diffPairs.keys())
+		{
+			QString tnodeID = diffPairs[snodeID];
+
+			Structure::Node* snode = super_sg->getNode(snodeID);
+			Structure::Node* tnode = super_tg->getNode(tnodeID);
+
+			// try to convert
+			bool converted;
+			if (snode->type() == Structure::SHEET)
+				converted = convertSheetToCurve(snodeID, tnodeID, super_sg, super_tg);
+			else
+				converted = convertSheetToCurve(tnodeID, snodeID, super_tg, super_sg);
+
+			// check if success
+			if (converted)  diffPairs.remove(snodeID);
+		}
+
+	}
+
+	// remove tags
+	foreach(Structure::Node* n, super_sg->nodes) n->property.remove("type_equalized");
+	foreach(Structure::Node* n, super_tg->nodes) n->property.remove("type_equalized");
+
+}
+
+// The sheet and curve should serve the same functionality in each shape
+// which implies the curve(s) lay within the BB of the sheet
+// some of the curves maintain the same connections to others
+// we can relink the new curves (converted sheet) in the same way as the curve
+bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structure::Graph* superG1, Structure::Graph* superG2 )
+{
+	Structure::Node* node1 = superG1->getNode(nodeID1);
+	Structure::Node* node2 = superG2->getNode(nodeID2);
+
+	Structure::Sheet *sheet1 = (Structure::Sheet*)node1;
+	Structure::Curve *curve2 = (Structure::Curve*)node2;
+
+	// Find a for-sure link(links with corresponded ends) to determine the new curve skeleton
+	bool converted = false;
+	foreach(Structure::Link* link2, superG2->getEdges(nodeID2))
+	{
+		Structure::Node* other2 = link2->otherNode(nodeID2);
+
+		// choose type-equalized neighbours
+		if (other2->property["type_equalized"].toBool())
+		{
+			QString otherID1 = other2->property["correspond"].toString();
+
+			if (converted)
+			{
+				// relink only the type-equalized neighbours
+				// Other neighbors will be relinked in future
+				superG1->addEdge(nodeID1, otherID1);
+			}
+			else
+			{
+				Structure::Node* other1 = superG1->getNode(otherID1);
+				Vec4d otherCoord = link2->getCoordOther(nodeID2).front();
+				Vec3d linkOtherPos1 = other1->position(otherCoord);
+
+				Vec3d direction2 = curve2->direction();
+				NURBS::NURBSCurved new_curve = sheet1->nurbCurve(linkOtherPos1, direction2);
+
+				// create new curve node with the same id
+				Structure::Curve *curve1 = new Structure::Curve(new_curve, nodeID1);
+
+				// copy properties
+				curve1->property = node1->property;
+				//curve1->property["original_sheet"].setValue(node1);
+			
+				// replace the sheet with curve
+				superG1->removeNode(nodeID1);
+				superG1->addNode(curve1);
+
+				// relink
+				superG1->addEdge(nodeID1, otherID1);
+
+				// mark the tag
+				curve1->property["type_equalized"] = true;
+				node2->property["type_equalized"] = true;
+
+				converted = true;
+			}
+		}
+	}
+
+	return converted;
+}
+
 
 Structure::Node * TopoBlender::addMissingNode( Structure::Graph *toGraph, Structure::Graph * fromGraph, Structure::Node * fromNode )
 {
