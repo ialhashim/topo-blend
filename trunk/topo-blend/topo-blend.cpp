@@ -638,6 +638,8 @@ void topoblend::modifyModel()
 	
 	widget->setCheckOption("showEdges");
 
+	viz_params["showNames"] = true;
+
     GraphModifyDialog modifyDialog(graphs.back());
 	drawArea()->connect(&modifyDialog, SIGNAL(updateView()), SLOT(updateGL()));
     modifyDialog.exec();
