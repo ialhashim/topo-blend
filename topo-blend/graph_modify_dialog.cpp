@@ -20,8 +20,6 @@ GraphModifyDialog::GraphModifyDialog(Structure::Graph * graph, QWidget *parent) 
 
 	this->connect(ui->renameButton, SIGNAL(clicked()), SLOT(renameNodes()) );
 
-	g->property["showNames"] = true;
-
 	updateLists();
 }
 
