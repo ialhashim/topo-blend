@@ -41,6 +41,7 @@ Graph::Graph( QString fileName )
 void Graph::init()
 {
 	property["showNodes"]	= true;
+	property["showNames"]	= false;
 	property["embeded2D"]	= false;
 	property["showAABB"]	= false;
 	property["showMeshes"]	= true;
@@ -369,7 +370,7 @@ void Graph::clearDebug()
 	ps.clear(); ps2.clear(); ps3.clear();
 }
 
-void Graph::draw()
+void Graph::draw( QGLViewer * drawArea )
 {
 	// Make sure we draw smooth objects
 	glEnable(GL_MULTISAMPLE_ARB);
@@ -410,7 +411,6 @@ void Graph::draw()
 
 		if (n->property.contains("isReady") && !n->property["isReady"].toBool())
 			continue;
-
 
         if(n->property.contains("samples"))
         {
@@ -578,6 +578,20 @@ void Graph::draw()
 			//glEnd();
 		}
     }
+
+	// Draw node names
+	if( property["showNames"].toBool() )
+	{
+		glColor3d(1,1,1);
+
+		foreach(Node * n, nodes)
+		{
+			if (n->property.contains("isReady") && !n->property["isReady"].toBool()) continue;
+			Vec3d position = n->bbox().center();
+			Vec proj = drawArea->camera()->projectedCoordinatesOf(Vec(position.x(), position.y(), position.z()));
+			drawArea->renderText(proj.x,proj.y,n->id);
+		}
+	}
 
 	// Splat rendering
 	if( points.size() && property["showMeshes"].toBool() )
@@ -1821,5 +1835,19 @@ void Graph::geometryMorph()
 			n->property["cached_points"].setValue(points);
 			n->property["cached_normals"].setValue(normals);
 		}
+	}
+}
+
+void Graph::renameNode( QString oldNodeID, QString newNodeID )
+{
+	Structure::Node * n = getNode(oldNodeID);
+	if(!n) return;
+
+	n->id = n->id.replace(oldNodeID, newNodeID);
+
+	foreach(Link * l, getEdges(oldNodeID))
+	{
+		if(l->id.contains(oldNodeID))
+			l->id = l->id.replace(oldNodeID, newNodeID);
 	}
 }

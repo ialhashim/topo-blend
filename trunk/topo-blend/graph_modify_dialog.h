@@ -28,6 +28,7 @@ public slots:
 	void visualizeSelections();
 
 	void updateLists();
+	void renameNodes();
 
 signals:
 	void updateView();

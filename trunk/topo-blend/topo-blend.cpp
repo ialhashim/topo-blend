@@ -133,7 +133,7 @@ void topoblend::decorate()
 	glEnable(GL_LIGHTING);
 
 	glColor3d(1,1,1);
-	drawArea()->drawText(40,40, "TopoBlend mode.");
+	drawArea()->renderText(40,40, "TopoBlend mode.");
 
 	if(blender) blender->drawDebug();
 
@@ -142,6 +142,7 @@ void topoblend::decorate()
 
 	double deltaX = boundX;
 	double posX = -(deltaX / 2) * (graphs.size() / 2);
+
 
 	for(int g = 0; g < (int) graphs.size(); g++)
 	{
@@ -153,11 +154,13 @@ void topoblend::decorate()
 		graphs[g]->property["isSplatsHQ"] = viz_params["isSplatsHQ"];
 		graphs[g]->property["splatSize"] = viz_params["splatSize"];
 		graphs[g]->property["showNodes"] = viz_params["showNodes"];
+		graphs[g]->property["showNodes"] = viz_params["showNodes"];
+		graphs[g]->property["showNames"] = viz_params["showNames"];
 
 		// Place and draw graph
 		glPushMatrix();
 		glTranslatef(posX, 0, 0);
-        graphs[g]->draw();
+        graphs[g]->draw( drawArea() );
 		glPopMatrix();
 
 		posX += deltaX;
@@ -715,6 +718,13 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 	{
 		for(int g = 0; g < (int) graphs.size(); g++)
 			graphs[g]->printAdjacency();
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_N)
+	{
+		viz_params["showNames"] = !viz_params["showNames"].toBool();
+
 		used = true;
 	}
 

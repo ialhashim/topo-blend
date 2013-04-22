@@ -80,7 +80,7 @@ void nurbs_plugin::decorate()
 		NURBS::SurfaceDraw::draw( &rects[i], randColors[i%randColors.size()], true );
 	}
 
-	if(graph) graph->draw();
+	if(graph) graph->draw( this->drawArea() );
 
 	ps.draw();
 	vs.draw();

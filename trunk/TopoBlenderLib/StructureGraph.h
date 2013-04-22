@@ -12,7 +12,7 @@ using namespace DynamicVoxelLib;
 #include "../CustomDrawObjects.h"
 
 // For camera
-#include "qglviewer/camera.h"
+#include "qglviewer/qglviewer.h"
 
 typedef QVector< QVector<QString> > NodeGroups;
 Q_DECLARE_METATYPE( NodeGroups )
@@ -76,6 +76,8 @@ struct Graph
 
 	bool shareEdge( Node * n1, Node * n2 );
 
+	void renameNode( QString oldNodeID, QString newNodeID );
+
     // Accessors
     Node* getNode(QString nodeID);
 	Link* getEdge(QString linkID);
@@ -96,7 +98,7 @@ struct Graph
 	void loadFromFile(QString fileName);
 
 	// Visualization
-    void draw();
+    void draw( QGLViewer * drawArea );
 	void drawAABB();
     void draw2D(int width, int height);
 	QImage fontImage;

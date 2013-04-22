@@ -1,5 +1,6 @@
 #include "graph_modify_dialog.h"
 #include "ui_graph_modify_dialog.h"
+#include <QInputDialog>
 
 GraphModifyDialog::GraphModifyDialog(Structure::Graph * graph, QWidget *parent) : QDialog(parent), ui(new Ui::GraphModifyDialog)
 {
@@ -17,12 +18,34 @@ GraphModifyDialog::GraphModifyDialog(Structure::Graph * graph, QWidget *parent) 
 
 	this->connect(ui->updateLinkButton, SIGNAL(clicked()), SLOT(updateLink()) );
 
+	this->connect(ui->renameButton, SIGNAL(clicked()), SLOT(renameNodes()) );
+
+	g->property["showNames"] = true;
+
 	updateLists();
 }
 
 GraphModifyDialog::~GraphModifyDialog()
 {
+	g->property["showNames"] = false;
+
     delete ui;
+}
+
+void GraphModifyDialog::renameNodes()
+{
+	foreach( QListWidgetItem *item, ui->list2->selectedItems())
+	{
+		QString nid = item->text();
+		bool ok;
+		QString newID = QInputDialog::getText(0,tr("Node name"),tr("User name:"),QLineEdit::Normal,nid, &ok);
+		if (ok && !newID.isEmpty())
+			g->renameNode(nid, newID);
+	}
+
+	updateLists();
+
+	emit ( updateView() );
 }
 
 void GraphModifyDialog::link()
@@ -146,6 +169,9 @@ void GraphModifyDialog::removeAll()
 
 void GraphModifyDialog::updateLists()
 {
+	ui->list1->clear();
+	ui->list2->clear();
+
 	// Populate lists
 	foreach(Structure::Node * n, g->nodes)
 	{

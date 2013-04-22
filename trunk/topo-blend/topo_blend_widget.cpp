@@ -73,7 +73,6 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	tb->viz_params["showNodes"] = true;
 	tb->viz_params["showMeshes"] = true;
 	tb->viz_params["splatSize"] = 0.008;
-	tb->connect(ui->splatSize, SIGNAL(), SLOT(updateDrawArea()));
 
 	this->connect(ui->splatSize, SIGNAL(valueChanged(double)), SLOT(splatSizeChanged(double)));
 }
