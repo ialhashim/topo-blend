@@ -23,7 +23,7 @@ using namespace DynamicGraphs;
 
 typedef std::pair<QString, QString> PairQString;
 
-Q_DECLARE_METATYPE( Structure::Node* )
+Q_DECLARE_METATYPE( Structure::Sheet* )
 Q_DECLARE_METATYPE( QSet<Structure::Node*> )
 
 TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
@@ -850,34 +850,25 @@ bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structu
 		{
 			QString otherID1 = other2->property["correspond"].toString();
 
-			if (converted)
-			{
-				// relink only the type-equalized neighbours
-				// Other neighbors will be relinked in future
-				superG1->addEdge(nodeID1, otherID1);
-			}
-			else
+			if (!converted)
 			{
 				Structure::Node* other1 = superG1->getNode(otherID1);
 				Vec4d otherCoord = link2->getCoordOther(nodeID2).front();
 				Vec3d linkOtherPos1 = other1->position(otherCoord);
 
 				Vec3d direction2 = curve2->direction();
-				NURBS::NURBSCurved new_curve = sheet1->nurbCurve(linkOtherPos1, direction2);
+				NURBS::NURBSCurved new_curve = sheet1->convertToNURBSCurve(linkOtherPos1, direction2);
 
 				// create new curve node with the same id
 				Structure::Curve *curve1 = new Structure::Curve(new_curve, nodeID1);
 
 				// copy properties
 				curve1->property = node1->property;
-				curve1->property["original_sheet"].setValue(node1);
+				curve1->property["original_sheet"].setValue(sheet1);
 			
 				// replace the sheet with curve
 				superG1->removeNode(nodeID1);
 				superG1->addNode(curve1);
-
-				// relink
-				superG1->addEdge(nodeID1, otherID1);
 
 				// mark the tag
 				curve1->property["type_equalized"] = true;
@@ -885,6 +876,10 @@ bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structu
 
 				converted = true;
 			}
+
+			// relink only the type-equalized neighbours
+			// Other neighbors will be relinked in future
+			superG1->addEdge(nodeID1, otherID1);
 		}
 	}
 

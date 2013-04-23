@@ -13,8 +13,9 @@ struct ParameterCoord{
 	double theta, psi;
 
 	double origOffset;
-	Structure::Node * origNode;
+	Vector3 origPoint;
 	Vector3 origNormal;
+	Structure::Node * origNode;
 
 	ParameterCoord(){ u = v = -1; theta = psi = 0; origOffset = 0; origNode = NULL; }
 	ParameterCoord(double theta, double psi, double u, double v = 0, double offset = 0, Structure::Node * node = NULL){

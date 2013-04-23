@@ -15,6 +15,8 @@
 Q_DECLARE_METATYPE(RMF)
 Q_DECLARE_METATYPE(RMF::Frame)
 Q_DECLARE_METATYPE(std::vector<RMF::Frame>)
+Q_DECLARE_METATYPE(NanoKdTree)
+Q_DECLARE_METATYPE( Structure::Sheet* )
 
 typedef std::pair<ParameterCoord,int> ParameterCoordInt;
 bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCoordInt& r)
@@ -23,7 +25,7 @@ bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCo
 // Parameters
 #define CURVE_FRAME_RESOLUTION 0.01
 #define SHEET_FRAME_RESOLUTION 0.01
-#define CURVE_FRAME_COUNT 100
+#define CURVE_FRAME_COUNT 100	// to match the resolution 0.01
 
 #define OCTREE_NODE_SIZE 40
 
@@ -57,6 +59,9 @@ RMF Synthesizer::consistentFrame( Structure::Curve * curve, Array1D_Vec4d & coor
 	return rmf;
 }
 
+
+/// SAMPLING
+// Ray parameters from points
 QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * curve, const std::vector<Vec3d> & points, const std::vector<Vec3d> & normals )
 {
 	QVector<ParameterCoord> samples(points.size());
@@ -69,6 +74,11 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 	NanoKdTree kdtree;
 	foreach(Vec3d p, rmf.point) kdtree.addPoint( p );
 	kdtree.build();
+
+	//// obtain rmf, kdtree and coords
+	//RMF &rmf = curve->property["rmf"].value<RMF>();
+	//NanoKdTree &kdtree = curve->property["kdtree"].value<NanoKdTree>();
+	//Array1D_Vec4d &coords = curve->property["coords"].value<Array1D_Vec4d>();
 
 	// Project
 	const std::vector<Vector3> curvePnts = curve->curve.mCtrlPoint;
@@ -93,7 +103,7 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 		Vec3d Z = rmf.U[closest_idx].t.normalized();
 
 		Vec3d curvePoint = mycurve.GetPosition(c[0]);
-		Vec3d delta = (point - curvePoint);
+		Vec3d delta = point - curvePoint;
 		Vec3d raydirection = delta.normalized();
 
 		globalToLocalSpherical(X, Y, Z, theta, psi, raydirection);
@@ -109,7 +119,10 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * she
 {
 	QVector<ParameterCoord> samples(points.size());
 
-	// Auto resolution
+	//// get stored kdtree and allCoords
+	//NanoKdTree &kdtree = sheet->property["kdtree"].value<NanoKdTree>();
+	//Array1D_Vec4d &allCoords = sheet->property["allCoords"].value<Array1D_Vec4d>();
+
 	double resolution = sheet->bbox().size().length() * SHEET_FRAME_RESOLUTION;
 
 	Array2D_Vec4d sheetCoords = sheet->discretizedPoints(resolution);
@@ -117,20 +130,18 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * she
 
 	qDebug() << "Sheet resolution count = " << sheetCoords.size();
 
-	// Add all curve points to kd-tree
 	NanoKdTree kdtree;
-	foreach(Array1D_Vec4d row, sheetCoords)
-	{
-		foreach(Vec4d c, row) 
-		{
+	foreach(Array1D_Vec4d row, sheetCoords){
+		foreach(Vec4d c, row) {
 			kdtree.addPoint( sheet->position(c) );
 			allCoords.push_back(c);
 		}
 	}
 	kdtree.build();
 
-	const Array2D_Vector3 sheetPnts = sheet->surface.mCtrlPoint;
+
 	int N = points.size();
+	const Array2D_Vector3 sheetPnts = sheet->surface.mCtrlPoint;
 
 	#pragma omp parallel for
 	for(int i = 0; i < N; i++)
@@ -160,11 +171,13 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * she
 
 		samples[i] = ParameterCoord(theta, psi, c[0], c[1], delta.norm(), sheet);
 		samples[i].origNormal = normals[i];
+		samples[i].origPoint = point;
 	}
 
     return samples;
 }
 
+// Different sampling methods to generate rays
 QVector<ParameterCoord> Synthesizer::genFeatureCoords( Structure::Node * node )
 {
 	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
@@ -297,22 +310,101 @@ QVector<ParameterCoord> Synthesizer::genUniformTrisCoords( Structure::Node * nod
 		return genPointCoordsSheet((Structure::Sheet*)node, samplePoints, sampleNormals);
 }
 
+// Generate rays depending on configuration of sampling types \s
 QVector<ParameterCoord> Synthesizer::genSampleCoordsCurve( Structure::Curve * curve, int s )
 {
+	//// Generate consistent frames along curve
+	Array1D_Vec4d coords;
+	RMF rmf = consistentFrame(curve,coords);
+
+	//// Add all curve points to kd-tree
+	//NanoKdTree kdtree;
+	//foreach(Vec3d p, rmf.point) kdtree.addPoint( p );
+	//kdtree.build();
+
+	//// store for further uses
+	//curve->property["rmf"].setValue(rmf);
+	//curve->property["kdtree"].setValue(kdtree);
+	//curve->property["coords"].setValue(coords);
+
+	// sampling
 	QVector<ParameterCoord> samples;
 
-	if (s & Synthesizer::Features)	samples += genFeatureCoords(curve);
-	if (s & Synthesizer::Edges)		samples += genEdgeCoords(curve);
-	if (s & Synthesizer::Random)	samples += genRandomCoords(curve, randomCount);
-	if (s & Synthesizer::Uniform)	samples += genUniformCoords(curve);
-	if (s & Synthesizer::Remeshing)	samples += genRemeshCoords(curve);
-	if (s & Synthesizer::TriUniform)samples += genUniformTrisCoords(curve);
+	if (!curve->property.contains("originalSheet"))
+	{
+		if (s & Synthesizer::Features)	samples += genFeatureCoords(curve);
+		if (s & Synthesizer::Edges)		samples += genEdgeCoords(curve);
+		if (s & Synthesizer::Random)	samples += genRandomCoords(curve, randomCount);
+		if (s & Synthesizer::Uniform)	samples += genUniformCoords(curve);
+		if (s & Synthesizer::Remeshing)	samples += genRemeshCoords(curve);
+		if (s & Synthesizer::TriUniform)samples += genUniformTrisCoords(curve);
+	}
+	else
+	{
+		// get samples using the original sheet
+		Structure::Sheet* originalSheet  = curve->property["original_sheet"].value<Structure::Sheet*>();
+		samples = genSampleCoordsSheet(originalSheet, s);
+
+		// adjust the coordinates
+		QString curveDirection = originalSheet->property["curveDirection"].toString();
+		for (int i = 0; i < (int)samples.size(); i++)
+		{
+			ParameterCoord &sample = samples[i];
+
+			// adjust u, which is also t for curve
+			if (curveDirection == "positiveU");
+			if (curveDirection == "negativeU")	sample.u = 1 - sample.u;
+			if (curveDirection == "positiveV")	sample.u = sample.v;
+			if (curveDirection == "positiveV")	sample.u = 1 - sample.v;
+
+			// the corresponding frame on curve
+			int idx = sample.u * (rmf.count() - 1);
+			Vec3d X = rmf.U[idx].r;
+			Vec3d Y = rmf.U[idx].s;
+			Vec3d Z = rmf.U[idx].t;
+
+			// encode the sample point in this frame
+			double theta, psi;
+			Vec3d delta = sample.origPoint - rmf.U[idx].center;
+			Vec3d raydirection = delta.normalized();
+			globalToLocalSpherical(X, Y, Z, theta, psi, raydirection);
+
+			// update
+			sample.theta = theta;
+			sample.psi = psi;
+			sample.origOffset = delta.norm();
+			sample.origNode = curve;
+		}
+	}
 
 	return samples;
 }
 
 QVector<ParameterCoord> Synthesizer::genSampleCoordsSheet( Structure::Sheet * sheet, int s )
 {
+	//// construct kd-tree of frame points
+	//double resolution = sheet->bbox().size().length() * SHEET_FRAME_RESOLUTION;
+
+	//Array2D_Vec4d sheetCoords = sheet->discretizedPoints(resolution);
+	//Array1D_Vec4d allCoords;
+
+	//qDebug() << "Sheet resolution count = " << sheetCoords.size();
+
+	//NanoKdTree kdtree;
+	//foreach(Array1D_Vec4d row, sheetCoords){
+	//	foreach(Vec4d c, row) {
+	//		kdtree.addPoint( sheet->position(c) );
+	//		allCoords.push_back(c);
+	//	}
+	//}
+	//kdtree.build();
+
+	//// store for further uses
+	//sheet->property["kdtree"].setValue(kdtree);
+	//sheet->property["allCoords"].setValue(allCoords);
+
+
+	// generate samples
 	QVector<ParameterCoord> samples;
 
 	if (s & Synthesizer::Features)	samples += genFeatureCoords(sheet);
@@ -325,8 +417,7 @@ QVector<ParameterCoord> Synthesizer::genSampleCoordsSheet( Structure::Sheet * sh
 	return samples;
 }
 
-
-
+// Compute offset and normal for each ray
 void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structure::Curve * curve, QVector<double> &offsets, QVector<Vec2d> &normals )
 {
 	SurfaceMesh::Model * model = curve->property["mesh"].value<SurfaceMesh::Model*>();
@@ -459,7 +550,97 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 	qDebug() << QString("Sheet [%1] Done.").arg(sheet->id);
 }
 
+// Co-sampling
+void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2, int s )
+{
+	if(!curve1 || !curve2 || !curve1->property.contains("mesh") || !curve2->property.contains("mesh")) return;
 
+	QElapsedTimer timer; timer.start();
+	qDebug() << "Generating samples..";
+
+	QVector<ParameterCoord> samples;
+	QVector<double> offsets1, offsets2;
+	QVector<Vec2d> normals1, normals2;
+
+	// Sample two curves to get rays
+	{
+		if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
+		if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
+
+		samples  = genSampleCoordsCurve(curve1, s);
+		samples += genSampleCoordsCurve(curve2, s);
+
+		// Why need sorting? -HH
+		// Sort samples by 'u'
+		//sort(samples.begin(), samples.end());
+	}
+
+	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());timer.restart();
+
+	qDebug() << "Re-sampling mesh..";
+
+	// Comptute offset and normal for each ray
+	{
+		sampleGeometryCurve(samples, curve1, offsets1, normals1);
+		curve1->property["samples"].setValue(samples);
+		curve1->property["offsets"].setValue(offsets1);
+		curve1->property["normals"].setValue(normals1);
+
+
+
+		sampleGeometryCurve(samples, curve2, offsets2, normals2);
+		curve2->property["samples"].setValue(samples);
+		curve2->property["offsets"].setValue(offsets2);
+		curve2->property["normals"].setValue(normals2);
+	}
+
+	qDebug() << QString("Resampling Time [ %1 ms ]\n==\n").arg(timer.elapsed());
+}
+
+void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2, int s )
+{
+	if(!sheet1 || !sheet2 || !sheet1->property.contains("mesh") || !sheet2->property.contains("mesh")) return;
+
+	QElapsedTimer timer; timer.start();
+	qDebug() << "Generating samples..";
+
+	QVector<ParameterCoord> samples;
+	QVector<double> offsets1, offsets2;
+	QVector<Vec2d> normals1, normals2;
+	bool c1_isSampled = false, c2_isSampled = false;
+
+	// Sample two sheets
+	{
+		if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
+		if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
+
+		samples  = genSampleCoordsSheet(sheet1, s);
+		samples += genSampleCoordsSheet(sheet2, s);
+	}
+
+	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());timer.restart();
+
+	qDebug() << "Re-sampling mesh..";
+
+	// Re-sample the meshes
+	{	
+		sampleGeometrySheet(samples, sheet1, offsets1, normals1);
+		sheet1->property["samples"].setValue(samples);
+		sheet1->property["offsets"].setValue(offsets1);
+		sheet1->property["normals"].setValue(normals1);
+
+		sampleGeometrySheet(samples, sheet2, offsets2, normals2);
+		sheet2->property["samples"].setValue(samples);
+		sheet2->property["offsets"].setValue(offsets2);
+		sheet2->property["normals"].setValue(normals2);
+	}
+
+	qDebug() << QString("Resampling Time [ %1 ms ]\n==\n").arg(timer.elapsed());
+}
+
+
+
+/// BLENDING
 void Synthesizer::blendCurveBases( Structure::Curve * curve1, Structure::Curve * curve2, double alpha )
 {
 	std::vector<Vector3> &ctrlPnts1 = curve1->curve.mCtrlPoint;
@@ -481,6 +662,65 @@ void Synthesizer::blendSheetBases( Structure::Sheet * sheet1, Structure::Sheet *
     alpha = alpha;
 }
 
+void Synthesizer::blendGeometryCurves( Structure::Curve * curve1, Structure::Curve * curve2, double alpha, QVector<Vector3> &points, QVector<Vector3> &normals )
+{
+	if(!curve1->property.contains("samples") || !curve2->property.contains("samples")) return;
+	alpha = qMax(0.0, qMin(alpha, 1.0));
+
+	QVector<ParameterCoord> samples = curve1->property["samples"].value< QVector<ParameterCoord> >();
+
+	QVector<double> offsets1 = curve1->property["offsets"].value< QVector<double> >();
+	QVector<double> offsets2 = curve2->property["offsets"].value< QVector<double> >();
+
+	QVector<Vec2d> normals1 = curve1->property["normals"].value< QVector<Vec2d> >();
+	QVector<Vec2d> normals2 = curve2->property["normals"].value< QVector<Vec2d> >();
+
+	// Blend Geometries 
+	QVector<double> blended_offsets;
+	QVector<Vec2d> blended_normals;
+	for( int i = 0; i < offsets1.size(); i++)
+	{
+		double off = ((1 - alpha) * offsets1[i]) + (alpha * offsets2[i]);
+		blended_offsets.push_back( off );
+
+		Vec2d n = ((1 - alpha) * normals1[i]) + (alpha * normals2[i]);
+		blended_normals.push_back( n );
+	}
+
+	// Reconstruct geometry on the new base
+	reconstructGeometryCurve(curve1, samples, blended_offsets, blended_normals, points, normals);
+}
+
+void Synthesizer::blendGeometrySheets( Structure::Sheet * sheet1, Structure::Sheet * sheet2, double alpha, QVector<Vector3> &points, QVector<Vector3> &normals )
+{
+	if(!sheet1->property.contains("samples") || !sheet2->property.contains("samples")) return;
+
+	QVector<ParameterCoord> samples = sheet1->property["samples"].value< QVector<ParameterCoord> >();
+
+	QVector<double> offsets1 = sheet1->property["offsets"].value< QVector<double> >();
+	QVector<double> offsets2 = sheet2->property["offsets"].value< QVector<double> >();
+
+	QVector<Vec2d> normals1 = sheet1->property["normals"].value< QVector<Vec2d> >();
+	QVector<Vec2d> normals2 = sheet2->property["normals"].value< QVector<Vec2d> >();
+
+	// Blend Geometries 
+	QVector<double> blended_offsets;
+	QVector<Vec2d> blended_normals;
+	for( int i = 0; i < offsets1.size(); i++)
+	{
+		double off = ((1 - alpha) * offsets1[i]) + (alpha * offsets2[i]);
+		blended_offsets.push_back( off );
+
+		Vec2d n = ((1 - alpha) * normals1[i]) + (alpha * normals2[i]);
+		blended_normals.push_back( n );
+	}
+	// Reconstruct geometry on the new base
+	reconstructGeometrySheet(sheet1, samples, blended_offsets, blended_normals, points, normals);
+}
+
+
+
+/// RECONSTRUCTION
 void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVector<ParameterCoord> in_samples, QVector<double> &in_offsets,
 	QVector<Vec2d> &in_normals, QVector<Vector3> &out_points, QVector<Vector3> &out_normals )
 {
@@ -579,92 +819,9 @@ void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVec
 	}
 }
 
-void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2, int s )
-{
-	if(!curve1 || !curve2 || !curve1->property.contains("mesh") || !curve2->property.contains("mesh")) return;
-
-	QElapsedTimer timer; timer.start();
-	qDebug() << "Generating samples..";
-	
-	QVector<ParameterCoord> samples;
-	QVector<double> offsets1, offsets2;
-	QVector<Vec2d> normals1, normals2;
-
-	// Sample two curves
-	{
-		if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
-		if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
-
-		samples  = genSampleCoordsCurve(curve1, s);
-		samples += genSampleCoordsCurve(curve2, s);
-		
-		// Sort samples by 'u'
-		sort(samples.begin(), samples.end());
-	}
-
-	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());timer.restart();
-
-	qDebug() << "Re-sampling mesh..";
-
-	// Re-sample the meshes
-	{
-		sampleGeometryCurve(samples, curve1, offsets1, normals1);
-		curve1->property["samples"].setValue(samples);
-		curve1->property["offsets"].setValue(offsets1);
-		curve1->property["normals"].setValue(normals1);
 
 
-
-		sampleGeometryCurve(samples, curve2, offsets2, normals2);
-		curve2->property["samples"].setValue(samples);
-		curve2->property["offsets"].setValue(offsets2);
-		curve2->property["normals"].setValue(normals2);
-	}
-
-	qDebug() << QString("Resampling Time [ %1 ms ]\n==\n").arg(timer.elapsed());
-}
-
-void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2, int s )
-{
-	if(!sheet1 || !sheet2 || !sheet1->property.contains("mesh") || !sheet2->property.contains("mesh")) return;
-
-	QElapsedTimer timer; timer.start();
-	qDebug() << "Generating samples..";
-
-	QVector<ParameterCoord> samples;
-	QVector<double> offsets1, offsets2;
-	QVector<Vec2d> normals1, normals2;
-	bool c1_isSampled = false, c2_isSampled = false;
-
-	// Sample two sheets
-	{
-		if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
-		if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
-
-		samples  = genSampleCoordsSheet(sheet1, s);
-		samples += genSampleCoordsSheet(sheet2, s);
-	}
-
-	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());timer.restart();
-
-	qDebug() << "Re-sampling mesh..";
-
-	// Re-sample the meshes
-	{	
-		sampleGeometrySheet(samples, sheet1, offsets1, normals1);
-		sheet1->property["samples"].setValue(samples);
-		sheet1->property["offsets"].setValue(offsets1);
-		sheet1->property["normals"].setValue(normals1);
-
-		sampleGeometrySheet(samples, sheet2, offsets2, normals2);
-		sheet2->property["samples"].setValue(samples);
-		sheet2->property["offsets"].setValue(offsets2);
-		sheet2->property["normals"].setValue(normals2);
-	}
-
-	qDebug() << QString("Resampling Time [ %1 ms ]\n==\n").arg(timer.elapsed());
-}
-
+/// I/O and copy
 void Synthesizer::copySynthData( Structure::Node * fromNode, Structure::Node * toNode )
 {
 	toNode->property["samples"].setValue( fromNode->property["samples"].value< QVector<ParameterCoord> >() );
@@ -681,62 +838,6 @@ void Synthesizer::clearSynthData( Structure::Node * fromNode )
 	// Visualization
 	fromNode->property.remove("cached_points");
 	fromNode->property.remove("cached_normals");
-}
-
-void Synthesizer::blendGeometryCurves( Structure::Curve * curve1, Structure::Curve * curve2, double alpha, QVector<Vector3> &points, QVector<Vector3> &normals )
-{
-	if(!curve1->property.contains("samples") || !curve2->property.contains("samples")) return;
-	alpha = qMax(0.0, qMin(alpha, 1.0));
-
-	QVector<ParameterCoord> samples = curve1->property["samples"].value< QVector<ParameterCoord> >();
-
-	QVector<double> offsets1 = curve1->property["offsets"].value< QVector<double> >();
-	QVector<double> offsets2 = curve2->property["offsets"].value< QVector<double> >();
-
-	QVector<Vec2d> normals1 = curve1->property["normals"].value< QVector<Vec2d> >();
-	QVector<Vec2d> normals2 = curve2->property["normals"].value< QVector<Vec2d> >();
-
-	// Blend Geometries 
-	QVector<double> blended_offsets;
-	QVector<Vec2d> blended_normals;
-	for( int i = 0; i < offsets1.size(); i++)
-	{
-		double off = ((1 - alpha) * offsets1[i]) + (alpha * offsets2[i]);
-		blended_offsets.push_back( off );
-
-		Vec2d n = ((1 - alpha) * normals1[i]) + (alpha * normals2[i]);
-		blended_normals.push_back( n );
-	}
-
-	// Reconstruct geometry on the new base
-	reconstructGeometryCurve(curve1, samples, blended_offsets, blended_normals, points, normals);
-}
-
-void Synthesizer::blendGeometrySheets( Structure::Sheet * sheet1, Structure::Sheet * sheet2, double alpha, QVector<Vector3> &points, QVector<Vector3> &normals )
-{
-	if(!sheet1->property.contains("samples") || !sheet2->property.contains("samples")) return;
-
-	QVector<ParameterCoord> samples = sheet1->property["samples"].value< QVector<ParameterCoord> >();
-
-	QVector<double> offsets1 = sheet1->property["offsets"].value< QVector<double> >();
-	QVector<double> offsets2 = sheet2->property["offsets"].value< QVector<double> >();
-
-	QVector<Vec2d> normals1 = sheet1->property["normals"].value< QVector<Vec2d> >();
-	QVector<Vec2d> normals2 = sheet2->property["normals"].value< QVector<Vec2d> >();
-
-	// Blend Geometries 
-	QVector<double> blended_offsets;
-	QVector<Vec2d> blended_normals;
-	for( int i = 0; i < offsets1.size(); i++)
-	{
-		double off = ((1 - alpha) * offsets1[i]) + (alpha * offsets2[i]);
-		blended_offsets.push_back( off );
-
-		Vec2d n = ((1 - alpha) * normals1[i]) + (alpha * normals2[i]);
-		blended_normals.push_back( n );
-	}
-	// Reconstruct geometry on the new base
-	reconstructGeometrySheet(sheet1, samples, blended_offsets, blended_normals, points, normals);
 }
 
 void Synthesizer::writeXYZ( QString filename, QVector<Vector3> &points, QVector<Vector3> &normals )
