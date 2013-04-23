@@ -402,7 +402,7 @@ int Structure::Sheet::numVCtrlPnts()
 }
 
 
-NURBS::NURBSCurved Structure::Sheet::nurbCurve( Vec3d p, Vec3d dir )
+NURBS::NURBSCurved Structure::Sheet::convertToNURBSCurve( Vec3d p, Vec3d dir )
 {
 	Vec3d uDir = surface.mCtrlPoint.front().back() - surface.mCtrlPoint.front().front();
 	Vec3d vDir = surface.mCtrlPoint.back().front() - surface.mCtrlPoint.front().front();
@@ -413,6 +413,7 @@ NURBS::NURBSCurved Structure::Sheet::nurbCurve( Vec3d p, Vec3d dir )
 
 	std::vector<Vec3d> curvePoints;
 	std::vector<double> curveWeights;
+	QString curveDirection;
 
 	// along U
 	if (abs(uDot) > abs(vDot))
@@ -429,11 +430,13 @@ NURBS::NURBSCurved Structure::Sheet::nurbCurve( Vec3d p, Vec3d dir )
 
 		curvePoints = surface.GetControlPointsV(minID);
 		curveWeights = surface.GetControlWeightsV(minID);
+		curveDirection = "positiveU";
 
 		if (uDot < 0)
 		{
 			std::reverse(curvePoints.begin(), curvePoints.end());
 			std::reverse(curveWeights.begin(), curveWeights.end());
+			curveDirection = "negativeU";
 		}
 	}
 	// along V
@@ -451,13 +454,16 @@ NURBS::NURBSCurved Structure::Sheet::nurbCurve( Vec3d p, Vec3d dir )
 
 		curvePoints = surface.GetControlPointsU(minID);
 		curveWeights = surface.GetControlWeightsU(minID);
+		curveDirection = "positiveV";
 
 		if (vDot < 0)
 		{
 			std::reverse(curvePoints.begin(), curvePoints.end());
 			std::reverse(curveWeights.begin(), curveWeights.end());
+			curveDirection = "negativeV";
 		}
 	}
 
+	this->property["curveDirection"] = curveDirection;
 	return NURBS::NURBSCurved(curvePoints, curveWeights);
 }

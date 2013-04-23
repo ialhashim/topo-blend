@@ -27,7 +27,6 @@ struct Sheet : public Node
 	int numCtrlPnts();
 	int numUCtrlPnts();
 	int numVCtrlPnts();
-	NURBS::NURBSCurved nurbCurve(Vec3d p, Vec3d dir); 
 
 	// Modifiers
 	void moveBy( const Vec3d & delta );
@@ -37,6 +36,7 @@ struct Sheet : public Node
 	void refineControlPoints(int nU, int nV = 0);
 	void equalizeControlPoints( Structure::Node * other );
 	void deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid );
+	NURBS::NURBSCurved convertToNURBSCurve(Vec3d p, Vec3d dir); 
 
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
 	std::vector< std::vector<Vec4d> > discretizedPoints(Scalar resolution);

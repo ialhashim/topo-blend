@@ -371,6 +371,6 @@ void Structure::Curve::refineControlPoints( int nU, int nV /*= 0*/ )
 
 Vec3d Structure::Curve::direction()
 {
-	Vec3d dir = curve.mCtrlPoint.front() - curve.mCtrlPoint.back();
+	Vec3d dir = curve.mCtrlPoint.back() - curve.mCtrlPoint.front();
 	return dir.normalized();
 }
