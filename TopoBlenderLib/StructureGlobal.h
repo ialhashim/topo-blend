@@ -8,10 +8,10 @@
 #include <QDir>
 
 #include "SurfaceMeshHelper.h"
-#include "NurbsDraw.h"
 #include "../CustomDrawObjects.h"
 
 #undef max
+#define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )
 
 /** Sorts a vector and returns index of the sorted values
  * \param Index Contains the index of sorted values in the original vector
@@ -63,20 +63,20 @@ QList< QPair<S, F> > sortQMapByValue(const QMap<F,S> & map)
 	return result;
 }
 
-static inline std::vector<Vector3> noFrame(){
-	return std::vector<Vector3>();
+static inline std::vector<Vec3d> noFrame(){
+	return std::vector<Vec3d>();
 }
 
-static inline Vector3 orthogonalVector(const Vector3& n) {
+static inline Vec3d orthogonalVector(const Vec3d& n) {
 	if ((abs(n.y()) >= 0.9 * abs(n.x())) &&
-		abs(n.z()) >= 0.9 * abs(n.x())) return Vector3(0.0, -n.z(), n.y());
+		abs(n.z()) >= 0.9 * abs(n.x())) return Vec3d(0.0, -n.z(), n.y());
 	else if ( abs(n.x()) >= 0.9 * abs(n.y()) &&
-		abs(n.z()) >= 0.9 * abs(n.y()) ) return Vector3(-n.z(), 0.0, n.x());
-	else return Vector3(-n.y(), n.x(), 0.0);
+		abs(n.z()) >= 0.9 * abs(n.y()) ) return Vec3d(-n.z(), 0.0, n.x());
+	else return Vec3d(-n.y(), n.x(), 0.0);
 }
 
 // Coordinates utility functions
-static inline Vec4d coord(Scalar u = 0, Scalar v = 0)	{ return Vec4d(u, v, 0, 0); }
+static inline Vec4d coord(double u = 0, double v = 0)	{ return Vec4d(u, v, 0, 0); }
 static inline Vec4d inverseCoord(const Vec4d& c)		{ return Vec4d(1 - c.x(), 1 - c.y(), 0,0); }
 static inline std::vector<Vec4d> inverseCoords(const std::vector<Vec4d>& fromCoords)	{ 
 	std::vector<Vec4d> invertedCoords;
@@ -90,12 +90,12 @@ static inline bool isSameHalf(const Vec4d& A, const Vec4d& B){
 	return result;
 }
 
-static inline double signedAngle(const Vector3 &a, const Vector3 &b, const Vector3 &axis)
+static inline double signedAngle(const Vec3d &a, const Vec3d &b, const Vec3d &axis)
 {
 	if(axis.norm() == 0.0) qDebug() << "warning: zero axis";
 	double cosAngle = dot(a.normalized(), b.normalized());
 	double angle = acos( qRanged(-1.0, cosAngle, 1.0) );
-	Vector3 c = cross(a, b);
+	Vec3d c = cross(a, b);
 	if (dot(c, axis) < 0) return -angle;
 	return angle;
 }
@@ -108,7 +108,7 @@ static inline Vec3d rotatedVec(const Vec3d & v, double theta, const Vec3d & axis
 
 /// Spherical Coordinates:
 /* From Spherical-coordinates to Vector 'v' */
-static inline void localSphericalToGlobal( Vector3 X, Vector3 Y, Vector3 Z, double theta, double psi, Vector3 &v )
+static inline void localSphericalToGlobal( Vec3d X, Vec3d Y, Vec3d Z, double theta, double psi, Vec3d &v )
 {
 	Q_UNUSED(X);
 	v = rotatedVec(Z, theta, Y);
@@ -116,7 +116,7 @@ static inline void localSphericalToGlobal( Vector3 X, Vector3 Y, Vector3 Z, doub
 }
 
 /* Encode vector 'v' to theta-psi in spherical coordinates of XYZ  */
-static inline void globalToLocalSpherical( Vector3 X, Vector3 Y, Vector3 Z, double &theta, double &psi, Vector3 v )
+static inline void globalToLocalSpherical( Vec3d X, Vec3d Y, Vec3d Z, double &theta, double &psi, Vec3d v )
 {
 	// Theta: angle from Z [0, PI]
 	// Psi: angle from X on XY plane [0, 2*PI)
@@ -129,9 +129,9 @@ static inline void globalToLocalSpherical( Vector3 X, Vector3 Y, Vector3 Z, doub
 	psi = signedAngle(X, proj_v, Z);
 }
 
-static inline Vector3 pointOnPlane(Vector3 p, Vector3 plane_normal, Scalar plane_d = 0)
+static inline Vec3d pointOnPlane(Vec3d p, Vec3d plane_normal, double plane_d = 0)
 {
-	Scalar t = dot(plane_normal, p) - plane_d;
+	double t = dot(plane_normal, p) - plane_d;
 	return p - (t * plane_normal);
 }
 
@@ -154,7 +154,7 @@ typedef std::pair< QVector<POINT_ID>, QVector<POINT_ID> > POINT_LANDMARK;
 #define AlphaBlend(alpha, start, end) ( ((1-alpha) * start) + (alpha * end) )
 
 // Spatial Hausdorff distance
-static double supInfDistance( const std::vector<Vector3> &A, const std::vector<Vector3> &B )
+static double supInfDistance( const std::vector<Vec3d> &A, const std::vector<Vec3d> &B )
 {
 	double supinfDis = -1;
 	for (int i = 0; i < (int)A.size(); i++)
@@ -175,7 +175,7 @@ static double supInfDistance( const std::vector<Vector3> &A, const std::vector<V
 	return supinfDis;
 }
 
-static double HausdorffDistance( const std::vector<Vector3> &A, const std::vector<Vector3> &B )
+static double HausdorffDistance( const std::vector<Vec3d> &A, const std::vector<Vec3d> &B )
 {
 	double ABDis = supInfDistance(A, B);
 	double BADis = supInfDistance(B, A);
@@ -258,12 +258,12 @@ static std::vector<Vec3d> refineByResolution(const std::vector<Vec3d> & fromPnts
 
 static std::vector<Vec3d> smoothPolyline(const std::vector<Vec3d> & fromPnts, int num_iterations)
 {
-	Array1D_Vector3 pnts = fromPnts;
+	std::vector<Vec3d> pnts = fromPnts;
 
 	// Laplacian smoothing - fixed ends
 	for(int itr = 0; itr < num_iterations; itr++)
 	{
-		Array1D_Vector3 newPos(pnts.size(), Vector3(0));
+		std::vector<Vec3d> newPos(pnts.size(), Vec3d(0));
 		newPos[0] = pnts[0];
 
 		for(int i = 1; i < (int)pnts.size() - 1; i++)
@@ -356,10 +356,10 @@ static void saveOBJ(SurfaceMesh::Model * mesh, QString filename)
 	
 	QTextStream out(&file);
 	out << "# NV = " << mesh->n_vertices() << " NF = " << mesh->n_faces() << "\n";
-	Vector3VertexProperty points = mesh->vertex_property<Vec3d>("v:point");
-	foreach( Vertex v, mesh->vertices() )
+	SurfaceMesh::Vector3VertexProperty points = mesh->vertex_property<Vec3d>("v:point");
+	foreach( SurfaceMesh::Vertex v, mesh->vertices() )
 		out << "v " << points[v][0] << " " << points[v][1] << " " << points[v][2] << "\n";
-	foreach( Face f, mesh->faces() ){
+	foreach( SurfaceMesh::Face f, mesh->faces() ){
 		out << "f ";
 		Surface_mesh::Vertex_around_face_circulator fvit=mesh->vertices(f), fvend=fvit;
 		do{	out << (((Surface_mesh::Vertex)fvit).idx()+1) << " ";} while (++fvit != fvend);
@@ -382,17 +382,17 @@ static void combineMeshes( QStringList filenames, QString outputFilename )
 
 		SurfaceMesh::SurfaceMeshModel * m = new SurfaceMesh::SurfaceMeshModel;
 		m->read( qPrintable(filename) );
-		Vector3VertexProperty points = m->vertex_property<Vector3>(VPOINT);
+		SurfaceMesh::Vector3VertexProperty points = m->vertex_property<Vec3d>("v:point");
 
 		out << "# Start of mesh " << fileInfo.baseName() << "\n";
 
 		// Vertices
-		foreach( Vertex v, m->vertices() )
+		foreach( SurfaceMesh::Vertex v, m->vertices() )
 			out << "v " << points[v][0] << " " << points[v][1] << " " << points[v][2] << "\n";
 
 		// Triangles
 		out << "g " << fileInfo.baseName() << "\n";
-		foreach( Face f, m->faces() ){
+		foreach( SurfaceMesh::Face f, m->faces() ){
 			out << "f ";
 			Surface_mesh::Vertex_around_face_circulator fvit = m->vertices(f), fvend = fvit;
 			do{	out << (((Surface_mesh::Vertex)fvit).idx() + 1 + v_offset) << " ";} while (++fvit != fvend);

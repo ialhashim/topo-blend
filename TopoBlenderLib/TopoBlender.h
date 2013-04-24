@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+
 #include "DynamicGraph.h"
 #include "StructureGraph.h"
 #include "GraphDistance.h"

@@ -60,6 +60,7 @@ HEADERS += StructureNode.h \
     StructureGlobal.h \
     Synthesizer.h \
     Sampler.h \
+    SimilarSampling.h \
     SpherePackSampling.h \
     AbsoluteOrientation.h \
     TaskCurve.h \
@@ -82,6 +83,7 @@ SOURCES += StructureGraph.cpp \
     TimelineSlider.cpp \
     Synthesizer.cpp \
     Sampler.cpp \
+    SimilarSampling.cpp \
     AbsoluteOrientation.cpp \
     TaskCurve.cpp \
     TaskSheet.cpp \

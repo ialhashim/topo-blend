@@ -839,6 +839,19 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 	if(event->key() == Qt::Key_F)
 	{  
+		SurfaceMeshHelper h(mesh());
+		Vector3VertexProperty points = h.getVector3VertexProperty(VPOINT);
+
+		Vertex vert = SurfaceMesh::Vertex(3);
+
+		Vec3d center(0);
+		foreach(Halfedge he, mesh()->onering_hedges(vert)){
+			center += points[mesh()->to_vertex(he)];
+		}
+		center /= mesh()->valence(vert);
+
+		points[vert] = AlphaBlend(0.1, points[vert], center);
+
 		QVector<Vector3> samples = SimilarSampler::FaceSamples(mesh());
 
 		PointSoup * ps = new PointSoup;
@@ -1296,7 +1309,7 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename )
 		QString node_filename = node->id + "_" + filename;
 
 		Synthesizer::writeXYZ(node_filename, points, normals);
-		PoissonRecon::makeFromCloudFile(filename, filename + ".off", 7);
+		//PoissonRecon::makeFromCloudFile(filename, filename + ".off", 7);
 	}
 }
 

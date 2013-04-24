@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StructureGlobal.h"
+#include "NurbsDraw.h"
 
 typedef Array1D_Vec4d LinkCoords;
 typedef QPair< QString,Vec4d > NodeCoord;

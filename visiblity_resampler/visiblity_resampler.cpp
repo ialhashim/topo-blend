@@ -6,6 +6,7 @@
 #include "../TopoBlenderLib/Sampler.h"
 #include "../TopoBlenderLib/Sampler.cpp"
 #include "../TopoBlenderLib/SimilarSampling.h"
+#include "../TopoBlenderLib/SimilarSampling.cpp"
 
 // OpenMP
 #include <omp.h>
