@@ -6,7 +6,6 @@ struct SimilarSampler{
 
 	// Similar Triangles sampling. [Meshlab]
 	// Skip vertex and edges
-	// Sample per edges includes vertexes, so here we should expect n_samples_per_edge >=4 
 	static QVector<Vector3> FaceSamples(SurfaceMeshModel * m, int sampleNum, QVector<Vector3> & samplesNormals)
 	{	
 		QVector<Vector3> samples;
@@ -19,9 +18,9 @@ struct SimilarSampler{
 
 		m->update_face_normals();
 		Vector3FaceProperty fnormals = m->get_face_property<Vector3>(FNORMAL);
-		
+
 		foreach(Face f, m->faces()) area += farea[f];
-		
+
 		Scalar samplePerAreaUnit = sampleNum / area;
 
 		// Mesh points
@@ -33,29 +32,31 @@ struct SimilarSampler{
 
 		foreach(SurfaceMeshModel::Face f, m->faces())
 		{
+			std::vector<Vector3> fpoints;
+			Surface_mesh::Vertex_around_face_circulator vit = m->vertices(f),vend=vit;
+			do{ fpoints.push_back(points[vit]); } while(++vit != vend);
+
 			// compute # samples in the current face.
 			n_samples_decimal += 0.5 * farea[f] * samplePerAreaUnit;
 			int n_samples = (int) n_samples_decimal;
 			if(n_samples > 0)
 			{
 				n_samples_per_edge = (int)((sqrt(1.0 + 8.0 * (Scalar)n_samples) + 5.0) / 2.0); // original for non dual case
-				
+
 				n_samples = 0;
 				int i, j;
 				Scalar segmentNum = n_samples_per_edge - 1 ;
 				Scalar segmentLen = 1.0 / segmentNum;
 
 				// face sampling
-				for(i=1; i < n_samples_per_edge - 1; i++){
-					for(j=1; j < n_samples_per_edge - 1 - i; j++)
+				for(i=1; i < (n_samples_per_edge - 1); i++){
+					for(j=1; j < (n_samples_per_edge - 1) - i; j++)
 					{
 						Scalar uvw[] = {i*segmentLen, j*segmentLen, 1.0 - (i*segmentLen + j*segmentLen)};
-						Vector3 p(0.0);
-
+					
 						// Get point from barycentric coords
-						int vi = 0;
-						Surface_mesh::Vertex_around_face_circulator vit = m->vertices(f),vend=vit;
-						do{ p += points[vit] * uvw[vi++]; } while(++vit != vend);
+						Vector3 p(0.0);
+						for(int vi = 0; vi < 3; vi++) p += fpoints[vi] * uvw[vi];
 
 						samples.push_back( p );
 						samplesNormals.push_back( fnormals[f] );

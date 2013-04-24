@@ -33,9 +33,12 @@ ARAPCurveDeformer * deformer = NULL;
 #include "ARAPCurveHandle.h"
 ARAPCurveHandle * handle = NULL;
 
+// Synthesis
 #include "Synthesizer.h"
 #include "normal_extrapolation.h"
+#include "SimilarSampling.h"
 
+// Reconstruction
 #include "poissonrecon.h"
 
 VectorSoup vs1,vs2;
@@ -834,6 +837,18 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		used = true;
 	}
 
+	if(event->key() == Qt::Key_F)
+	{  
+		QVector<Vector3> samples = SimilarSampler::FaceSamples(mesh());
+
+		PointSoup * ps = new PointSoup;
+		drawArea()->deleteAllRenderObjects();
+		foreach(Vector3 p, samples)	ps->addPoint(p);
+		drawArea()->addRenderObject(ps);
+
+		used = true;
+	}
+
 	drawArea()->updateGL();
 
 	return used;
@@ -1220,6 +1235,8 @@ void topoblend::renderAll()
 
 	for(int i = 0; i < scheduler->allGraphs.size(); i++)
 	{
+		if(i > 0) scheduler->allGraphs[i-1]->clearGeometryCache();
+
 		renderGraph( scheduler->allGraphs[i], QString("output_%1.off").arg(i) );
 	}
 }
@@ -1233,6 +1250,8 @@ void topoblend::renderCurrent()
 
 void topoblend::renderGraph( Structure::Graph * graph, QString filename )
 {
+	graph->geometryMorph();
+
 	foreach(Structure::Node * node, graph->nodes)
 	{
 		// Skip inactive nodes
@@ -1277,7 +1296,7 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename )
 		QString node_filename = node->id + "_" + filename;
 
 		Synthesizer::writeXYZ(node_filename, points, normals);
-		//PoissonRecon::makeFromCloud(finalP, finalN, node_filename);
+		PoissonRecon::makeFromCloudFile(filename, filename + ".off", 7);
 	}
 }
 

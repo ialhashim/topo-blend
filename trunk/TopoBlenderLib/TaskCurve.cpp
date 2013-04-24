@@ -289,7 +289,10 @@ void TaskCurve::prepareMorphCurve()
 	{
 		Vec4d scoord = l->getCoord(n->id).front();
 		Vec4d tcoord = target->getEdge(l->property["correspond"].toString())->getCoord(tn->id).front();
-		if(isSameHalf(scoord,tcoord)) continue;
+
+		bool isWithinThreshold = (abs(scoord[0]-tcoord[0]) < 0.5);
+
+		if(isSameHalf(scoord,tcoord) || isWithinThreshold ) continue;
 		l->invertCoords(n->id);
 	}
 

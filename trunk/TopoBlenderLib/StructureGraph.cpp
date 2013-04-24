@@ -1797,6 +1797,16 @@ void Graph::setColorAll( QColor newNodesColor )
 		n->vis_property["color"] = newNodesColor;
 }
 
+void Graph::clearGeometryCache()
+{
+	foreach(Node * n, nodes){
+		if(n->property.contains("cached_points")){
+			n->property.remove("cached_points");
+			n->property.remove("cached_normals");
+		}
+	}
+}
+
 void Graph::geometryMorph()
 {
 	foreach(Node * n, nodes)
