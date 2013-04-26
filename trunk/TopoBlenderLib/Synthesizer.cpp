@@ -75,11 +75,6 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 	foreach(Vec3d p, rmf.point) kdtree.addPoint( p );
 	kdtree.build();
 
-	//// obtain rmf, kdtree and coords
-	//RMF &rmf = curve->property["rmf"].value<RMF>();
-	//NanoKdTree &kdtree = curve->property["kdtree"].value<NanoKdTree>();
-	//Array1D_Vec4d &coords = curve->property["coords"].value<Array1D_Vec4d>();
-
 	// Project
 	const std::vector<Vector3> curvePnts = curve->curve.mCtrlPoint;
 	int N = points.size();
@@ -118,10 +113,6 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * sheet, const std::vector<Vec3d> & points, const std::vector<Vec3d> & normals )
 {
 	QVector<ParameterCoord> samples(points.size());
-
-	//// get stored kdtree and allCoords
-	//NanoKdTree &kdtree = sheet->property["kdtree"].value<NanoKdTree>();
-	//Array1D_Vec4d &allCoords = sheet->property["allCoords"].value<Array1D_Vec4d>();
 
 	double resolution = sheet->bbox().size().length() * SHEET_FRAME_RESOLUTION;
 
@@ -313,21 +304,6 @@ QVector<ParameterCoord> Synthesizer::genUniformTrisCoords( Structure::Node * nod
 // Generate rays depending on configuration of sampling types \s
 QVector<ParameterCoord> Synthesizer::genSampleCoordsCurve( Structure::Curve * curve, int s )
 {
-	//// Generate consistent frames along curve
-	Array1D_Vec4d coords;
-	RMF rmf = consistentFrame(curve,coords);
-
-	//// Add all curve points to kd-tree
-	//NanoKdTree kdtree;
-	//foreach(Vec3d p, rmf.point) kdtree.addPoint( p );
-	//kdtree.build();
-
-	//// store for further uses
-	//curve->property["rmf"].setValue(rmf);
-	//curve->property["kdtree"].setValue(kdtree);
-	//curve->property["coords"].setValue(coords);
-
-	// sampling
 	QVector<ParameterCoord> samples;
 
 	if (!curve->property.contains("originalSheet"))
@@ -346,6 +322,8 @@ QVector<ParameterCoord> Synthesizer::genSampleCoordsCurve( Structure::Curve * cu
 		samples = genSampleCoordsSheet(originalSheet, s);
 
 		// adjust the coordinates
+		Array1D_Vec4d coords;
+		RMF rmf = consistentFrame(curve,coords);
 		QString curveDirection = originalSheet->property["curveDirection"].toString();
 		for (int i = 0; i < (int)samples.size(); i++)
 		{
@@ -382,29 +360,6 @@ QVector<ParameterCoord> Synthesizer::genSampleCoordsCurve( Structure::Curve * cu
 
 QVector<ParameterCoord> Synthesizer::genSampleCoordsSheet( Structure::Sheet * sheet, int s )
 {
-	//// construct kd-tree of frame points
-	//double resolution = sheet->bbox().size().length() * SHEET_FRAME_RESOLUTION;
-
-	//Array2D_Vec4d sheetCoords = sheet->discretizedPoints(resolution);
-	//Array1D_Vec4d allCoords;
-
-	//qDebug() << "Sheet resolution count = " << sheetCoords.size();
-
-	//NanoKdTree kdtree;
-	//foreach(Array1D_Vec4d row, sheetCoords){
-	//	foreach(Vec4d c, row) {
-	//		kdtree.addPoint( sheet->position(c) );
-	//		allCoords.push_back(c);
-	//	}
-	//}
-	//kdtree.build();
-
-	//// store for further uses
-	//sheet->property["kdtree"].setValue(kdtree);
-	//sheet->property["allCoords"].setValue(allCoords);
-
-
-	// generate samples
 	QVector<ParameterCoord> samples;
 
 	if (s & Synthesizer::Features)	samples += genFeatureCoords(sheet);
