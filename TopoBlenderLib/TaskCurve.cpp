@@ -114,21 +114,10 @@ void TaskCurve::prepareShrinkCurve()
         property["pathA"].setValue( pathA );
         property["pathB"].setValue( pathB );
 
-		// Parameters needed for growing
-		RMF::Frame sframe = curveFrame( curve );
-		RMF::Frame tframe = sframe;
-
-		property["sframe"].setValue( sframe );
-		property["tframe"].setValue( tframe );
-		property["rotation"].setValue( Eigen::Quaterniond::Identity() );
-
 		// Encode curve
-		property["cpCoords"].setValue( encodeCurve(curve, linkA->position(n->id), linkB->position(n->id), sframe.r,sframe.s,sframe.t) );
+		property["cpCoords"].setValue( encodeCurve(curve, linkA->position(n->id), linkB->position(n->id)) );
 
 		// Visualization
-		n->property["frame"].setValue( sframe );
-		n->property["frame2"].setValue( tframe );
-
 		n->property["path"].setValue( positionalPath(pathA) );
 		n->property["path2"].setValue( positionalPath(pathB) );
     }
@@ -248,16 +237,8 @@ void TaskCurve::prepareGrowCurve()
         property["pathA"].setValue( pathA );
         property["pathB"].setValue( pathB );
 
-		// Parameters needed for growing
-		RMF::Frame tframe = curveFrame( tcurve );
-		RMF::Frame sframe = tframe;
-
-		property["sframe"].setValue( sframe );
-		property["tframe"].setValue( tframe );
-		property["rotation"].setValue( Eigen::Quaterniond::Identity() );
-
 		// Encode curve
-        property["cpCoords"].setValue( encodeCurve(tcurve, tlinkA->position(tn->id), tlinkB->position(tn->id), tframe.r,tframe.s,tframe.t) );
+        property["cpCoords"].setValue( encodeCurve(tcurve, tlinkA->position(tn->id), tlinkB->position(tn->id)) );
 
         // Initial position of curve node
         Vec4d midCoord(0.5);
@@ -265,9 +246,6 @@ void TaskCurve::prepareGrowCurve()
         curve->curve.translate(startPoint - curve->position(midCoord));
 
 		// Visualization
-		n->property["frame"].setValue( sframe );
-		n->property["frame2"].setValue( tframe );
-
 		n->property["path"].setValue( positionalPath(pathA) );
 		n->property["path2"].setValue( positionalPath(pathB) );
     }
@@ -342,21 +320,16 @@ void TaskCurve::prepareMorphCurve()
 
         property["path"].setValue( path );
 
-        // Consistent frames using path
-        RMF rmf( positionalPath(path, 2) );
-        property["rmf"].setValue( rmf );
-        Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
-
         // Encode source curve
         Vec3d startA = startPoint;
         Vec3d startB = n->position( coordB );
-        property["cpCoords"].setValue( encodeCurve((Curve*)n, startA, startB, X,Y,Z) );
+        property["cpCoords"].setValue( encodeCurve((Curve*)n, startA, startB) );
         property["endPointDelta"].setValue( startB - startA );
 
         // Encode target curve
         Vec3d tstartA = tn->position( coordA );
         Vec3d tstartB = tn->position( coordB );
-        property["cpCoordsT"].setValue( encodeCurve((Curve*)tn, tstartA, tstartB, X,Y,Z) );
+        property["cpCoordsT"].setValue( encodeCurve((Curve*)tn, tstartA, tstartB) );
         property["endPointDeltaT"].setValue( tstartB - tstartA );
 
         // DEBUG:
@@ -452,29 +425,14 @@ void TaskCurve::prepareMorphCurve()
         if( !isSameHalf(linkB->getCoord(n->id).front(), tlinkB->getCoord(tn->id).front()) )	isFlipB = true;
         isFlip = isFlipA && isFlipB;
 
-        // Get source and target frames
-        RMF::Frame sframe = curveFrame( curve );
-        RMF::Frame tframe = curveFrame( tcurve );
-
-        // Compute rotations between source and target sheet frames
-        Eigen::Quaterniond rotation;
-        AbsoluteOrientation::compute(sframe.r,sframe.s,sframe.t,
-                                     tframe.r,tframe.s,tframe.t, rotation);
 
         // Parameters needed for morphing
-        property["rotation"].setValue( rotation );
-        property["sframe"].setValue( sframe );
-        property["tframe"].setValue( tframe );
-
-        property["cpCoords"].setValue( encodeCurve((Curve*)n, startA, startB, sframe.r,sframe.s,sframe.t) );
-        property["cpCoordsT"].setValue( encodeCurve((Curve*)tn, tstartA, tstartB, tframe.r,tframe.s,tframe.t, isFlip) );
+        property["cpCoords"].setValue( encodeCurve((Curve*)n, startA, startB) );
+        property["cpCoordsT"].setValue( encodeCurve((Curve*)tn, tstartA, tstartB, isFlip) );
 
         property["isFlip"].setValue( isFlip );
 
         // Visualization
-		n->property["frame"].setValue( sframe );
-		n->property["frame2"].setValue( tframe );
-
         n->property["path"].setValue( positionalPath(pathA) );
         n->property["path2"].setValue( positionalPath(pathB) );
     }
@@ -549,17 +507,14 @@ void TaskCurve::executeMorphCurve( double t )
         CurveEncoding cpCoordsT = property["cpCoordsT"].value<CurveEncoding>();
         Vec3d endPointDelta = property["endPointDelta"].value<Vec3d>();
         Vec3d endPointDeltaT = property["endPointDeltaT"].value<Vec3d>();
-        RMF rmf = property["rmf"].value<RMF>();
 
         int idx = t * (path.size() - 1);
 
         Vec3d newHandlePos = path[idx].position(active); // Other end = newHandlePos + endPointDelta
 
-        Vector3 X = rmf.frameAt(t).r, Y = rmf.frameAt(t).s, Z = rmf.frameAt(t).t;
-
         // Decode and blend
-        Array1D_Vector3 newPnts = decodeCurve( cpCoords, newHandlePos, newHandlePos + endPointDelta, X, Y, Z );
-        Array1D_Vector3 newPntsT = decodeCurve( cpCoordsT, newHandlePos, newHandlePos + endPointDeltaT, X, Y, Z );
+        Array1D_Vector3 newPnts = decodeCurve( cpCoords, newHandlePos, newHandlePos + endPointDelta );
+        Array1D_Vector3 newPntsT = decodeCurve( cpCoordsT, newHandlePos, newHandlePos + endPointDeltaT );
         Array1D_Vector3 blendedPnts;
 
         for(int i = 0; i < (int)newPnts.size(); i++)
@@ -588,24 +543,10 @@ void TaskCurve::executeMorphCurve( double t )
         // Decode
         SheetEncoding cpCoords = property["cpCoords"].value<SheetEncoding>();
         SheetEncoding cpCoordsT = property["cpCoordsT"].value<SheetEncoding>();
-
-        // Frames
-        RMF::Frame sframe = property["sframe"].value<RMF::Frame>();
-        RMF::Frame tframe = property["tframe"].value<RMF::Frame>();
-        Eigen::Quaterniond rotation = property["rotation"].value<Eigen::Quaterniond>(),
-            eye = Eigen::Quaterniond::Identity();
-
-        // Source curve
-        Eigen::Vector3d R = V2E(sframe.r), S = V2E(sframe.s), T = V2E(sframe.t);
-        R = eye.slerp(t, rotation) * R;
-        S = eye.slerp(t, rotation) * S;
-        T = eye.slerp(t, rotation) * T;
-        RMF::Frame curFrame (E2V(R),E2V(S),E2V(T));
-
         bool isFlip = property["isFlip"].toBool();
 
-        Array1D_Vector3 newPnts = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, curFrame.r,curFrame.s,curFrame.t);
-        Array1D_Vector3 newPntsT = decodeCurve(property["cpCoordsT"].value<CurveEncoding>(), pointA, pointB, tframe.r,tframe.s,tframe.t);
+        Array1D_Vector3 newPnts = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB);
+        Array1D_Vector3 newPntsT = decodeCurve(property["cpCoordsT"].value<CurveEncoding>(), pointA, pointB);
 
 		if(!newPntsT.size()) newPntsT = newPnts;
 
@@ -617,11 +558,6 @@ void TaskCurve::executeMorphCurve( double t )
         }
 
         structure_curve->setControlPoints( blendedPnts );
-
-		// DEBUG:
-		curFrame.center = pointA;
-		RMF rmf; rmf.U.push_back( curFrame );
-		n->property["rmf"].setValue( rmf );
     }
 
     // When this task is done

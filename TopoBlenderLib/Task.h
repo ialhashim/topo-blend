@@ -48,9 +48,9 @@ public:
 	Structure::Node * prepareEnd( Structure::Node * n, Structure::Link * slink );
 	QPair<Structure::Node*,Structure::Node*> prepareEnd2( Structure::Node * n, Structure::Link * linkA, Structure::Link * linkB );
 
-	CurveEncoding encodeCurve(Array1D_Vector3 points, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z, bool isFlip = false);
-	CurveEncoding encodeCurve(Structure::Curve * curve, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z, bool isFlip = false);
-	Array1D_Vector3 decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z, double t = 1.0);
+	CurveEncoding encodeCurve(Array1D_Vector3 points, Vector3 start, Vector3 end, bool isFlip = false);
+	CurveEncoding encodeCurve(Structure::Curve * curve, Vector3 start, Vector3 end, bool isFlip = false);
+	Array1D_Vector3 decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, double t = 1.0);
 
 	SheetEncoding encodeSheet( Structure::Sheet * sheet, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z );
 	Array1D_Vector3 decodeSheet( SheetEncoding cpCoords, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z );

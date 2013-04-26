@@ -249,12 +249,15 @@ void TopoBlender::correspondSuperNodes()
 		if (sN > 1)	{
 			QVector<QString> ctnodeIDs = cloneGraphNode(super_tg, tnode->id, sN);
 			for (int i = 0; i < sN; i++) superNodeCorr[sNodes[i]] = ctnodeIDs[i];
+			super_tg->addGroup(ctnodeIDs);
 		}
 
 		// 1-to-N
 		if (tN > 1)	{
 			QVector<QString> csnodeIDs = cloneGraphNode(super_sg, snode->id, tN);
 			for (int i = 0; i < tN; i++) superNodeCorr[csnodeIDs[i]] = tNodes[i];
+			super_tg->addGroup(csnodeIDs);
+
 		}
 	}
 
@@ -707,8 +710,8 @@ void TopoBlender::generateTasks()
                 task = new TaskCurve( active, super_tg, Task::GROW, scheduler->tasks.size() );
             else if (tnodeID.contains("null")) // Shrink
                 task = new TaskCurve( active, super_tg, Task::SHRINK, scheduler->tasks.size() );
-            else
-                task = new TaskCurve( active, super_tg, Task::MORPH, scheduler->tasks.size() );
+			else
+				task = new TaskCurve( active, super_tg, Task::MORPH, scheduler->tasks.size() );
         }
 
         if(active->getNode(snodeID)->type() == Structure::SHEET)
@@ -758,8 +761,8 @@ void TopoBlender::equalizeSuperNodeResolutions()
 				tN = tnode->numCtrlPnts();
 				betterN = qMax(sN, tN);
 
-				snode->refineControlPoints(betterN);
-				tnode->refineControlPoints(betterN, betterN);
+				snode->refineControlPoints(betterN, betterN);
+				tnode->refineControlPoints(betterN);
 
 			}
 			else 
@@ -879,7 +882,7 @@ bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structu
 
 			// relink only the type-equalized neighbours
 			// Other neighbors will be relinked in future
-			superG1->addEdge(nodeID1, otherID1);
+			superG1->addEdge(otherID1, nodeID1);
 		}
 	}
 

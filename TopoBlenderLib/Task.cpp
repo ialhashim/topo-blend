@@ -423,11 +423,19 @@ Structure::Link * Task::preferredEnd(Structure::Node * n, QVector<Structure::Lin
 }
 
 /* Curve encoding, to decode you need two points A,B and a frame XYZ */
-CurveEncoding Task::encodeCurve( Array1D_Vector3 points, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z, bool isFlip )
+CurveEncoding Task::encodeCurve( Array1D_Vector3 points, Vector3 start, Vector3 end, bool isFlip )
 {
 	CurveEncoding cpCoords;
 
 	Line segment(start, end);
+
+	// compute frame
+	Vec x(1, 0, 0), y(0, 1, 0), z(0, 0, 1);
+	Vec3d Z = (end - start).normalized();
+	qglviewer::Quaternion q(z, Vec(Z));
+	x = q * x; y = q * y;
+	Vec3d X(x[0], x[1], x[2]);
+	Vec3d Y(y[0], y[1], y[2]);
 
 	for(int i = 0; i < (int)points.size(); i++)
 	{
@@ -456,16 +464,24 @@ CurveEncoding Task::encodeCurve( Array1D_Vector3 points, Vector3 start, Vector3 
 	return cpCoords;
 }
 
-CurveEncoding Task::encodeCurve( Structure::Curve * curve, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z, bool isFlip )
+CurveEncoding Task::encodeCurve( Structure::Curve * curve, Vector3 start, Vector3 end, bool isFlip )
 {
-	return encodeCurve(curve->controlPoints(),start,end,X,Y,Z, isFlip);
+	return encodeCurve(curve->controlPoints(),start,end,isFlip);
 }
 
-Array1D_Vector3 Task::decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z, double T)
+Array1D_Vector3 Task::decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, double T)
 {
 	Array1D_Vector3 controlPoints (cpCoords.size(), Vector3(0));
 
 	Line segment(start, end);
+
+	// compute frame
+	Vec x(1, 0, 0), y(0, 1, 0), z(0, 0, 1);
+	Vec3d Z = (end - start).normalized();
+	qglviewer::Quaternion q(z, Vec(Z));
+	x = q * x; y = q * y;
+	Vec3d X(x[0], x[1], x[2]);
+	Vec3d Y(y[0], y[1], y[2]);
 
 	for(int i = 0; i < (int)controlPoints.size(); i++)
 	{

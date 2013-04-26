@@ -212,9 +212,7 @@ void TaskSheet::executeGrowShrinkSheet( double t )
         Vector3 pointA = pathA[idxA].position(active);
         Vector3 pointB = pathB[idxB].position(active);
 
-        RMF rmf = property["rmf"].value<RMF>();
-        Vector3 X = rmf.frameAt(dt).r, Y = rmf.frameAt(dt).s, Z = rmf.frameAt(dt).t;
-        Array1D_Vector3 decoded = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, X,Y,Z, decodeT);
+        Array1D_Vector3 decoded = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, decodeT);
         structure_sheet->setControlPoints( decoded );
     }
 
@@ -283,12 +281,12 @@ void TaskSheet::executeMorphSheet( double t )
 SheetEncoding TaskSheet::encodeSheetAsCurve( Structure::Sheet * sheet, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
 {
     Array1D_Vector3 controlPoints = sheet->controlPoints();
-    return encodeCurve(controlPoints,start,end,X,Y,Z);
+    return encodeCurve(controlPoints,start,end);
 }
 
 Array1D_Vector3 TaskSheet::decodeSheetFromCurve( double t, SheetEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
 {
-    return decodeCurve(cpCoords,start,end,X,Y,Z,t);
+    return decodeCurve(cpCoords,start,end,t);
 }
 
 Structure::Sheet * TaskSheet::targetSheet()
