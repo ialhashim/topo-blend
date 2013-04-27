@@ -7,16 +7,15 @@ struct SimilarSampler{
 
 	// Similar Triangles sampling. [Meshlab]
 	// Skip vertex and edges
-    static QVector<Vector3> FaceSamples(SurfaceMeshModel * m, int sampleNum, QVector<Vector3> & samplesNormals);
-
+    static QVector<Vector3> FaceSamples(SurfaceMeshModel * m, int sampleNum, QVector<Vector3> & samplesNormals, double * avgSpacing = NULL);
     static QVector<Vector3> FaceSamples(SurfaceMeshModel * m, int sampleNum = 100000)
 	{
         QVector<Vector3> samplesNormals;
 		return FaceSamples(m, sampleNum, samplesNormals);
 	}
 
+	static QVector<Vector3> EdgeUniformFixed(SurfaceMeshModel * m, QVector<Vector3> & samplesNormals, double spacing);
     static QVector<Vector3> EdgeUniform(SurfaceMeshModel * m, int sampleNum, QVector<Vector3> & samplesNormals);
-
     static QVector<Vector3> EdgeUniform(SurfaceMeshModel * m, int sampleNum = 100000)
 	{
         QVector<Vector3> samplesNormals;
@@ -43,23 +42,13 @@ struct SimilarSampler{
 
 		return samples;
 	}
-
     static QVector<Vector3> Vertices(SurfaceMeshModel * m)
 	{
         QVector<Vector3> samplesNormals;
 		return Vertices(m, samplesNormals);
 	}
 
-    static QVector<Vector3> All(SurfaceMeshModel * m, int sampleNum, QVector<Vector3> & samplesNormals){
-        QVector<Vector3> samples;
-
-		samples += SimilarSampler::FaceSamples( m, sampleNum, samplesNormals );
-		samples += SimilarSampler::EdgeUniform( m, sampleNum / 4, samplesNormals );
-		samples += SimilarSampler::Vertices( m, samplesNormals );
-
-		return samples;
-	}
-
+    static QVector<Vector3> All(SurfaceMeshModel * m, int sampleNum, QVector<Vector3> & samplesNormals);
     static QVector<Vector3> All(SurfaceMeshModel * m, int sampleNum = 100000){
         QVector<Vector3> samplesNormals;
 		return All(m,sampleNum,samplesNormals);

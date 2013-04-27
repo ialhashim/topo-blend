@@ -1179,6 +1179,10 @@ void topoblend::loadSynthesisData()
 		Synthesizer::loadSynthesisData(node, "[targetGraph]");
 	}
 
+	this->graphs.clear();
+	this->graphs.push_back(new Structure::Graph(*scheduler->activeGraph));
+	this->graphs.push_back(new Structure::Graph(*scheduler->targetGraph));
+
 	statusBarMessage("Synth data loaded.");
 
 	drawArea()->updateGL();
@@ -1246,24 +1250,59 @@ void topoblend::renderAll()
 {
 	if(!scheduler) return;
 
-	for(int i = 0; i < scheduler->allGraphs.size(); i++)
+#ifdef Q_OS_WIN
+	QtConcurrent::run( this, &topoblend::doRenderAll );
+#else // OpenMP issue on OSX (Linux too?)
+	doRenderAll();
+#endif
+}
+
+void topoblend::doRenderAll()
+{	
+	QElapsedTimer timer; timer.start();
+
+	int stepSize = 1;
+	int N = scheduler->allGraphs.size();
+
+	if(scheduler->property.contains("renderCount")){
+		int renderCount = scheduler->property["renderCount"].toInt();
+		if(renderCount > 1)
+			stepSize = double(N) / renderCount;
+	}
+
+	for(int i = 0; i < N; i += stepSize)
 	{
+		Structure::Graph * currentGraph = scheduler->allGraphs[i];
+
 		if(i > 0) scheduler->allGraphs[i-1]->clearGeometryCache();
 
-		renderGraph( scheduler->allGraphs[i], QString("output_%1.off").arg(i) );
+		updateActiveGraph( currentGraph );
+
+		int progress = (double(i) / (N-1)) * 100;
+		mainWindow()->setStatusBarMessage(QString("Rendering sequence [%1 %]").arg(progress));
+
+		renderGraph( currentGraph, QString("output_%1.off").arg(progress) );
 	}
+
+	mainWindow()->setStatusBarMessage(QString("Sequence rendered [%1 ms]").arg(timer.elapsed()));
 }
 
 void topoblend::renderCurrent()
 {
 	if(!scheduler) return;
+	QElapsedTimer timer; timer.start();
+
 	Structure::Graph * lastGraph = this->graphs.back();
 	renderGraph(lastGraph, "currentGraph.off");
+
+	mainWindow()->setStatusBarMessage(QString("Current graph rendered [%1 ms]").arg(timer.elapsed()));
 }
 
 void topoblend::renderGraph( Structure::Graph * graph, QString filename )
 {
 	graph->geometryMorph();
+
+	QStringList generatedFiles, tempFiles;
 
 	foreach(Structure::Node * node, graph->nodes)
 	{
@@ -1279,38 +1318,65 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename )
 		std::vector<Vec3d> clean_points;
 		foreach(Vec3d p, points) clean_points.push_back(p);
 			 
-		// Clean up and compute normals
-		std::vector<size_t> xrefs;
-		weld(clean_points, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
-	
-		// Estimate Normals
-		//int num_nighbours = 10;
-		//NormalExtrapolation::ExtrapolateNormals(clean_points, normals, num_nighbours);
+		/// Clean up duplicated points
+		std::vector< Vec3d > finalP, finalN;
+		{
+			std::vector<size_t> xrefs;
+			weld(clean_points, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
 
-		// Send to reconstruction
-		std::vector< std::vector<float> > finalP, finalN;
+			QSet<int> uniqueIds;
+			for(int i = 0; i < (int)points.size(); i++)	uniqueIds.insert(xrefs[i]);
 
-		foreach(Vec3d p, clean_points){
-			std::vector<float> point(3, 0);
-			point[0] = p[0];
-			point[1] = p[1];
-			point[2] = p[2];
-			finalP.push_back(point);
+			foreach(int id, uniqueIds)
+			{
+				finalP.push_back( points[id] );
+				finalN.push_back( normals[id] );
+			}
 		}
 
-		foreach(Vec3d n, normals){
-			std::vector<float> normal(3, 0);
-			normal[0] = n[0];
-			normal[1] = n[1];
-			normal[2] = n[2];
-			finalN.push_back(normal);
+		/// Better Estimate Normals
+		{
+			//int num_nighbours = 10;
+			//NormalExtrapolation::ExtrapolateNormals(clean_points, normals, num_nighbours);
+
+			NanoKdTree tree;
+			foreach(Vector3 p, finalP) tree.addPoint(p);
+			tree.build();
+
+			for(int i = 0; i < (int)finalP.size(); i++)
+			{
+				Vec3d newNormal(0);
+
+				int k = 12;
+
+				KDResults matches;
+				tree.k_closest(finalP[i], k, matches);
+				foreach(KDResultPair match, matches) newNormal += finalN[match.first];
+				newNormal /= 12.0;
+
+				finalN[i] = newNormal;
+			}
 		}
 
-		QString node_filename = node->id + "_" + filename;
+		/// Send for reconstruction:
+		//QString xyz_filename = node->id + "_" + filename + ".xyz";
+		//tempFiles << xyz_filename;
+		//Synthesizer::writeXYZ( xyz_filename, finalP, finalN );
+		
+		//QString node_reconfile = xyz_filename.replace(".","_") + ".off";
+		//generatedFiles << node_reconfile;
+		//PoissonRecon::makeFromCloudFile(filename, node_reconfile, 7);
 
-		Synthesizer::writeXYZ(node_filename, points, normals);
-		//PoissonRecon::makeFromCloudFile(filename, filename + ".off", 7);
+		QString node_filename = node->id + ".off";
+		generatedFiles << node_filename;
+		PoissonRecon::makeFromCloud(pointCloudf(finalP), pointCloudf(finalN), node_filename);
 	}
+
+	combineMeshes(generatedFiles, filename + ".obj");
+
+	// Clean up
+	foreach(QString filename, generatedFiles)
+		QFile::remove(filename);
 }
 
 void topoblend::draftRender()

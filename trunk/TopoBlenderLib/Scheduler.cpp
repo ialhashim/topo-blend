@@ -428,6 +428,7 @@ void Scheduler::timeChanged( int newTime )
 	int idx = allGraphs.size() * (double(newTime) / totalExecutionTime());
 
 	idx = qRanged(0, idx, allGraphs.size() - 1);
+	allGraphs[idx]->property["index"] = idx;
 
 	emit( activeGraphChanged(allGraphs[idx]) );
 }
