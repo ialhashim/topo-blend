@@ -23,4 +23,5 @@ private:
 public slots:
 	void progressStarted();
 	void progressDone();
+	void changeRenderCount(int value);
 };

@@ -797,7 +797,7 @@ void Synthesizer::clearSynthData( Structure::Node * fromNode )
 
 void Synthesizer::writeXYZ( QString filename, QVector<Vector3> &points, QVector<Vector3> &normals )
 {
-	QFile file(filename + ".xyz");
+	QFile file(filename);
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
 	QTextStream out(&file);
 

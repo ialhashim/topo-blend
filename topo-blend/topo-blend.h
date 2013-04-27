@@ -90,6 +90,7 @@ public slots:
 	void reconstructXYZ();
 	void combineMeshesToOne();
 
+	void doRenderAll();
 	void renderAll();
 	void renderCurrent();
 	void renderGraph(Structure::Graph *, QString filename);

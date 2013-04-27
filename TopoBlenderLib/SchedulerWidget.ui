@@ -289,6 +289,13 @@
          <string>Output</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_3">
+         <item row="0" column="0">
+          <widget class="QPushButton" name="draftRenderButton">
+           <property name="text">
+            <string>Draft Render..</string>
+           </property>
+          </widget>
+         </item>
          <item row="0" column="1">
           <spacer name="horizontalSpacer_5">
            <property name="orientation">
@@ -315,7 +322,7 @@
            </property>
           </spacer>
          </item>
-         <item row="0" column="5">
+         <item row="0" column="6">
           <spacer name="horizontalSpacer_3">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -328,7 +335,7 @@
            </property>
           </spacer>
          </item>
-         <item row="0" column="4">
+         <item row="0" column="5">
           <widget class="QPushButton" name="renderAllButton">
            <property name="text">
             <string>Render all..</string>
@@ -342,10 +349,22 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="0">
-          <widget class="QPushButton" name="draftRenderButton">
-           <property name="text">
-            <string>Draft Render..</string>
+         <item row="0" column="4">
+          <widget class="QSpinBox" name="renderCount">
+           <property name="toolTip">
+            <string>Value of -1 gives entire sequence</string>
+           </property>
+           <property name="minimum">
+            <number>-1</number>
+           </property>
+           <property name="maximum">
+            <number>500</number>
+           </property>
+           <property name="singleStep">
+            <number>10</number>
+           </property>
+           <property name="value">
+            <number>10</number>
            </property>
           </widget>
          </item>

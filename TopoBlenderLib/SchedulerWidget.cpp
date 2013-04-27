@@ -29,6 +29,8 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
 
 	scheduler->connect( ui->draftRenderButton, SIGNAL(clicked()), SLOT(doDraftRender()));
 
+	this->connect( ui->renderCount, SIGNAL(valueChanged(int)), SLOT(changeRenderCount(int)));
+
 	ui->progressBar->setVisible(false);
 }
 
@@ -45,4 +47,9 @@ void SchedulerWidget::progressStarted()
 void SchedulerWidget::progressDone()
 {
 	ui->progressBar->setVisible(false);
+}
+
+void SchedulerWidget::changeRenderCount(int value)
+{
+	s->property["renderCount"] = value;
 }
