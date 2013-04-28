@@ -412,6 +412,18 @@ void Graph::draw( QGLViewer * drawArea )
 		if (n->property.contains("isReady") && !n->property["isReady"].toBool())
 			continue;
 
+		if (property["showCurveFrames"].toBool())
+		{
+			if (n->property.contains("rmf_frames"))
+			{
+				std::vector<RMF::Frame> frames = n->property["rmf_frames"].value< std::vector<RMF::Frame> >();
+				FrameSoup fs(0.05);
+				foreach (RMF::Frame f, frames)
+					fs.addFrame(f.r, f.s, f.t, f.center);
+				fs.draw();
+			}
+		}
+
         if(n->property.contains("samples"))
         {
             QVector<Vec3d> n_points, n_normals;

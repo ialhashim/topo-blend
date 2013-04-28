@@ -9,6 +9,8 @@ typedef unsigned int uint;
 #include "qglviewer/quaternion.h"
 using namespace qglviewer;
 
+#include "geometry/Vector.h"
+
 class RMF{
 public:
 	RMF(){}
@@ -58,7 +60,7 @@ public:
 		if(firstR.norm() > ZERO_NORM) 
 			firstR.normalize();
 		else 
-			firstR = orthogonalVector(firstT);
+			firstR = Frame::orthogonalVector(firstT);
 
 		// First frame
 		Frame firstFrame = Frame::fromTR( firstT, firstR.normalized() );
@@ -103,15 +105,26 @@ public:
 		tangent.push_back(tangent.back());
 
 		// generate frames
-		Vec X(1, 0, 0), Z(0, 0, 1);
-		for(uint i = 0; i < point.size(); i++){
+		// by rotating a fixed reference frame (R, S, T) to match T with the curve tangent
+		// the generated frames are not consistent the tangent is close to T
+		// which will create twisting artifacts
+		// That is why we picked up (1, 1, 1) as T with the assumption 
+		// that no curve has tangent along this direction
+		Vec T(1,  1, 1); T.normalize();
+		Vec R(1, -1, 0); R.normalize();
+		for(uint i = 0; i < point.size(); i++)
+		{
 			Vec3d t = tangent[i];
 
-			qglviewer::Quaternion q(Z, Vec(t));
-			Vec r = q * X;
+			qglviewer::Quaternion q(T, Vec(t));
+			Vec r = q * R;
 
 			U.push_back(Frame::fromTR(t, Vec3d(r.x, r.y, r.z)));
 		}
+
+		// RMF Visualization
+		for(int i = 0; i < (int)point.size(); i++)
+			U[i].center = point[i];
 	}
 
 	inline uint count() { return point.size(); }

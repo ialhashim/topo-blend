@@ -25,7 +25,7 @@ bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCo
 // Parameters
 #define CURVE_FRAME_RESOLUTION 0.01
 #define SHEET_FRAME_RESOLUTION 0.01
-#define CURVE_FRAME_COUNT 100	// to match the resolution 0.01
+#define CURVE_FRAME_COUNT 101	// to match the resolution 0.01
 
 #define OCTREE_NODE_SIZE 40
 
@@ -527,7 +527,7 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 
 		// Why need sorting? -HH
 		// Sort samples by 'u'
-		//sort(samples.begin(), samples.end());
+		sort(samples.begin(), samples.end());
 	}
 
 	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());timer.restart();
