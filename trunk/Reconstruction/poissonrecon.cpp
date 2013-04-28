@@ -31,7 +31,7 @@ void PoissonRecon::makeFromCloudFile(QString filename, QString out_filename, int
     Execute< 2 >(args.size(), convertArguments(args) );
 }
 
-void PoissonRecon::makeFromCloud( std::vector< std::vector<float> > & p, std::vector< std::vector<float> > & n, QString out_filename, int depth /*= 7*/ )
+void PoissonRecon::makeFromCloud( std::vector< std::vector<float> > p, std::vector< std::vector<float> > n, QString out_filename, int depth /*= 7*/ )
 {
 	QStringList args;
 

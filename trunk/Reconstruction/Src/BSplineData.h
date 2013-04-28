@@ -100,8 +100,8 @@ public:
 	PPolynomial< Degree   >  baseFunction ,  leftBaseFunction ,  rightBaseFunction ,  leftRightBaseFunction;
 	PPolynomial< Degree-1 > dBaseFunction , dLeftBaseFunction , dRightBaseFunction , dLeftRightBaseFunction;
 	BSplineComponents baseBSpline , leftBSpline , rightBSpline , leftRightBSpline;
-	PPolynomial<Degree>* baseFunctions;
-	BSplineComponents* baseBSplines;
+	std::vector< PPolynomial<Degree> > baseFunctions;
+	std::vector<BSplineComponents> baseBSplines;
 
 	BSplineData(void);
 	~BSplineData(void);

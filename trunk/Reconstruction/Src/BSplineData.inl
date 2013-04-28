@@ -108,8 +108,8 @@ void BSplineData<Degree,Real>::set( int maxDepth , bool useDotRatios , int bound
 	// [Warning] This assumes that the functions spacing is dual
 	functionCount = BinaryNode< double >::CumulativeCenterCount( depth );
 	sampleCount   = BinaryNode< double >::CenterCount( depth ) + BinaryNode< double >::CornerCount( depth );
-	baseFunctions = new PPolynomial<Degree>[functionCount];
-	baseBSplines = new BSplineComponents[functionCount];
+	baseFunctions = std::vector< PPolynomial<Degree> >(functionCount);
+	baseBSplines = std::vector<BSplineComponents>(functionCount);
 
 	baseFunction = PPolynomial< Degree >::BSpline();
 	for( int i=0 ; i<=Degree ; i++ ) baseBSpline[i] = Polynomial< Degree >::BSplineComponent( i ).shift( double(-(Degree+1)/2) + i - 0.5 );
