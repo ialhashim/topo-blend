@@ -1194,57 +1194,6 @@ void topoblend::loadSynthesisData()
 void topoblend::outputPointCloud()
 {
 	if(!blender) return;
-
-	foreach(Structure::Node * n, blender->active->nodes)
-	{
-		if(n->property.contains("correspond"))
-		{
-			QString nodeID = n->id;
-			QString tnodeID = n->property["correspond"].toString();
-
-			//Synthesizer::writeXYZ();
-			QVector<Vec3d> points, normals;
-
-			if(!n->property.contains("cached_points"))
-			{
-				// Without blending!
-				if(n->type() == Structure::CURVE){
-					Structure::Curve * curve = (Structure::Curve *)n;
-					Synthesizer::blendGeometryCurves(curve,curve,0,points,normals);
-				}
-				if(n->type() == Structure::SHEET){
-					Structure::Sheet * sheet = (Structure::Sheet *)n;
-					Synthesizer::blendGeometrySheets(sheet,sheet,0,points,normals);
-				}
-
-				n->property["cached_points"].setValue(points);
-			}
-			else
-			{
-				points = n->property["cached_points"].value< QVector<Vec3d> >();
-			}
-
-			// Estimate normals
-			if(points.size())
-			{
-				int num_nighbours = 16;
-				normals.clear();
-
-				std::vector<Vec3d> clean_points;
-				foreach(Vec3d p, points) clean_points.push_back(p);
-
-				std::vector<size_t> xrefs;
-				weld(clean_points, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
-	
-				NormalExtrapolation::ExtrapolateNormals(clean_points, normals, num_nighbours);
-
-				QString xyz_filename = n->id + ".xyz";
-				Synthesizer::writeXYZ(xyz_filename, points, normals);
-
-				PoissonRecon::makeFromCloudFile(xyz_filename, xyz_filename + ".off");
-			}
-		}
-	}
 }
 
 void topoblend::renderAll()
@@ -1256,6 +1205,8 @@ void topoblend::renderAll()
 #else // OpenMP issue on OSX (Linux too?)
 	doRenderAll();
 #endif
+
+	//doRenderAll();
 }
 
 void topoblend::doRenderAll()
@@ -1277,15 +1228,15 @@ void topoblend::doRenderAll()
 
 		if(i > 0) scheduler->allGraphs[i-1]->clearGeometryCache();
 
-		updateActiveGraph( currentGraph );
+		//updateActiveGraph( currentGraph );
 
 		int progress = (double(i) / (N-1)) * 100;
-		mainWindow()->setStatusBarMessage(QString("Rendering sequence [%1 %]").arg(progress));
+		qDebug() << QString("Rendering sequence [%1 %]").arg(progress);
 
 		renderGraph( currentGraph, QString("output_%1.off").arg(progress) );
 	}
 
-	mainWindow()->setStatusBarMessage(QString("Sequence rendered [%1 ms]").arg(timer.elapsed()));
+	qDebug() << QString("Sequence rendered [%1 ms]").arg(timer.elapsed());
 }
 
 void topoblend::renderCurrent()
@@ -1294,12 +1245,12 @@ void topoblend::renderCurrent()
 	QElapsedTimer timer; timer.start();
 
 	Structure::Graph * lastGraph = this->graphs.back();
-	renderGraph(lastGraph, "currentGraph.off");
+	renderGraph(lastGraph, "currentGraph.off", true);
 
 	mainWindow()->setStatusBarMessage(QString("Current graph rendered [%1 ms]").arg(timer.elapsed()));
 }
 
-void topoblend::renderGraph( Structure::Graph * graph, QString filename )
+void topoblend::renderGraph( Structure::Graph * graph, QString filename, bool isOutPointCloud )
 {
 	graph->geometryMorph();
 
@@ -1360,13 +1311,16 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename )
 		}
 
 		/// Send for reconstruction:
-		//QString xyz_filename = node->id + "_" + filename + ".xyz";
-		//tempFiles << xyz_filename;
-		//Synthesizer::writeXYZ( xyz_filename, finalP, finalN );
-		
-		//QString node_reconfile = xyz_filename.replace(".","_") + ".off";
-		//generatedFiles << node_reconfile;
-		//PoissonRecon::makeFromCloudFile(filename, node_reconfile, 7);
+		if(isOutPointCloud)
+		{
+			QString xyz_filename = node->id + "_" + filename + ".xyz";
+			tempFiles << xyz_filename;
+			Synthesizer::writeXYZ( xyz_filename, finalP, finalN );
+
+			//QString node_reconfile = xyz_filename.replace(".","_") + ".off";
+			//generatedFiles << node_reconfile;
+			//PoissonRecon::makeFromCloudFile(filename, node_reconfile, 7);
+		}
 
 		QString node_filename = node->id + ".off";
 		generatedFiles << node_filename;

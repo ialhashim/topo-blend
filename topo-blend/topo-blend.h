@@ -93,7 +93,7 @@ public slots:
 	void doRenderAll();
 	void renderAll();
 	void renderCurrent();
-	void renderGraph(Structure::Graph *, QString filename);
+	void renderGraph(Structure::Graph *, QString filename, bool isOutPointCloud = false);
 	void draftRender();
 
 	void setStatusBarMessage(QString);

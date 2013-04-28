@@ -40,6 +40,7 @@ const Real EPSILON=Real(1e-6);
 const Real ROUND_EPS=Real(1e-5);
 
 
+#define Max(a,b) ((a < b) ? b : a)
 
 /////////////////////
 // SortedTreeNodes //
@@ -1473,8 +1474,10 @@ int Octree< Degree >::SetMatrixRow( const OctNode< TreeNodeData , Real >::Neighb
 
 	bool hasYZPoints[3] , hasZPoints[3][3];
 	Real diagonal = 0;
-	Real splineValues[3*3*3*3*3];
-	memset( splineValues , 0 , sizeof( Real ) * 3 * 3 * 3 * 3 * 3 );
+
+	//Real splineValues[];
+	//memset( splineValues , 0 , sizeof( Real ) * 3 * 3 * 3 * 3 * 3 );
+	std::vector<Real> splineValues(3*3*3*3*3, 0);
 
 	int count = 0;
 	const TreeOctNode* node = neighbors5.neighbors[2][2][2];
@@ -1506,14 +1509,24 @@ int Octree< Degree >::SetMatrixRow( const OctNode< TreeNodeData , Real >::Neighb
 					if( _node && _node->nodeData.pointIndex!=-1 )
 					{
 						const PointData& pData = _points[ _node->nodeData.pointIndex ];
-						Real* _splineValues = splineValues + 3*3*(3*(3*j+k)+l);
+						//Real* _splineValues = splineValues + 3*3*(3*(3*j+k)+l);
+						Real* _splineValues = &splineValues[3*3*(3*(3*j+k)+l)];
+
 						Real weight = pData.weight;
 						Point3D< Real > p = pData.position;
 						for( int s=0 ; s<3 ; s++ )
 						{
-							_splineValues[3*0+s] = Real( fData.baseBSplines[ idx[0]+j-s][s]( p[0] ) );
-							_splineValues[3*1+s] = Real( fData.baseBSplines[ idx[1]+k-s][s]( p[1] ) );
-							_splineValues[3*2+s] = Real( fData.baseBSplines[ idx[2]+l-s][s]( p[2] ) );
+							int idx0 = 3*0+s;
+							int idx1 = 3*1+s;
+							int idx2 = 3*2+s;
+
+							int idxJ = Max(0,(idx[0]+j-s)) % fData.baseBSplines.size();
+							int idxK = Max(0,(idx[1]+k-s)) % fData.baseBSplines.size();
+							int idxL = Max(0,(idx[2]+l-s)) % fData.baseBSplines.size();
+
+							_splineValues[idx0] = Real( fData.baseBSplines[idxJ][s]( p[0] ) );
+							_splineValues[idx1] = Real( fData.baseBSplines[idxK][s]( p[1] ) );
+							_splineValues[idx2] = Real( fData.baseBSplines[idxL][s]( p[2] ) );
 						}
 						Real value = _splineValues[3*0+j] * _splineValues[3*1+k] * _splineValues[3*2+l];
 						Real weightedValue = value * weight;
@@ -1533,9 +1546,14 @@ int Octree< Degree >::SetMatrixRow( const OctNode< TreeNodeData , Real >::Neighb
 			for( int j=0 ; j<3 ; j++ ) if( hasZPoints[i][j] )
 				for( int k=0 ; k<3 ; k++ )
 				{
-					const Real* _splineValuesX = splineValues + 3*(3*(3*(3*i+j)+k)+0)+2;
-					const Real* _splineValuesY = splineValues + 3*(3*(3*(3*i+j)+k)+1)+2;
-					const Real* _splineValuesZ = splineValues + 3*(3*(3*(3*i+j)+k)+2)+2;
+					//const Real* _splineValuesX = splineValues + 3*(3*(3*(3*i+j)+k)+0)+2;
+					//const Real* _splineValuesY = splineValues + 3*(3*(3*(3*i+j)+k)+1)+2;
+					//const Real* _splineValuesZ = splineValues + 3*(3*(3*(3*i+j)+k)+2)+2;
+					
+					const Real* _splineValuesX = &splineValues[3*(3*(3*(3*i+j)+k)+0)+2];
+					const Real* _splineValuesY = &splineValues[3*(3*(3*(3*i+j)+k)+1)+2];
+					const Real* _splineValuesZ = &splineValues[3*(3*(3*(3*i+j)+k)+2)+2];
+
 					const TreeOctNode* _node = neighbors5.neighbors[i+1][j+1][k+1];
 					if( _node && _node->nodeData.pointIndex!=-1 )
 						for( int ii=0 ; ii<=2 ; ii++ )
@@ -2140,6 +2158,8 @@ Real Octree< Degree >::WeightedCoarserFunctionValue( const OctNode< TreeNodeData
 		_idx[1] = BinaryNode< double >::CenterIndex( d , _idx[1]-1 );
 		_idx[2] = BinaryNode< double >::CenterIndex( d , _idx[2]-1 );
 
+		if(_idx[0] < 0) return 0;
+
 		for( int j=0 ; j<3 ; j++ )
 		{
 			double xValue = fData.baseBSplines[ _idx[0]+j ][2-j]( p[0] );
@@ -2190,7 +2210,13 @@ int Octree< Degree >::GetFixedDepthLaplacian( SparseSymmetricMatrix< Real >& mat
 			}
 
 			// Set the row entries
-			if( insetSupported ) matrix.rowSizes[i] = SetMatrixRow( neighborKey5.neighbors[depth] , matrix[i] , start , stencil );
+			if( insetSupported ) 
+			{
+				//#pragma omp critical
+				{
+					matrix.rowSizes[i] = SetMatrixRow( neighborKey5.neighbors[depth] , matrix[i] , start , stencil );
+				}
+			}
 			else
 			{
 				matrix[i][0] = MatrixEntry< Real >( i , Real(1) );
