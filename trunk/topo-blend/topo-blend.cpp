@@ -159,6 +159,7 @@ void topoblend::decorate()
 		graphs[g]->property["showNodes"] = viz_params["showNodes"];
 		graphs[g]->property["showNodes"] = viz_params["showNodes"];
 		graphs[g]->property["showNames"] = viz_params["showNames"];
+		graphs[g]->property["showCurveFrames"] = viz_params["showCurveFrames"];
 
 		// Place and draw graph
 		glPushMatrix();

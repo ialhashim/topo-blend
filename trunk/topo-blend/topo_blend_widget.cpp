@@ -169,6 +169,7 @@ void topo_blend_widget::vizButtonClicked(QAbstractButton* b)
 	tb->viz_params["showMeshes"] = ui->showMeshes->isChecked();
 	tb->viz_params["showTasks"] = ui->showTasks->isChecked();
 	tb->viz_params["showCtrlPts"] = ui->showCtrlPts->isChecked();
+	tb->viz_params["showCurveFrames"] = ui->showCurveFrames->isChecked();
 	tb->viz_params["isSplatsHQ"] = ui->isSplatsHQ->isChecked();
 	tb->viz_params["splatSize"] = ui->splatSize->value();
 
