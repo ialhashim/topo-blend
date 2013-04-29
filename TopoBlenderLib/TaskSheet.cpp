@@ -54,6 +54,10 @@ void TaskSheet::prepareSheetOneEdge( Structure::Link * l )
 void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link * linkB )
 {
     Structure::Node * n = node();
+	Structure::Node * tn = targetNode();
+
+	Structure::Link * tlinkA = target->getEdge( linkA->property["correspond"].toString() );
+	Structure::Link * tlinkB = target->getEdge( linkB->property["correspond"].toString() );
 
     // Corresponding stuff on ACTIVE
     Vec3d pointA = linkA->positionOther(n->id);
@@ -92,14 +96,14 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
     }
 
     // Add smooth ending on both paths
-    //Vec3d endDeltaA = tn->position(tlinkA->getCoord(tn->id).front()) - totherA->position(othercoordA);
-    //Vec3d endDeltaB = tn->position(tlinkB->getCoord(tn->id).front()) - totherB->position(othercoordB);
-    //Node * auxA = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, pointA + endDeltaA ) ), "auxA_" + n->id);
-    //Node * auxB = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, pointB + endDeltaB ) ), "auxB_" + n->id);
-    //active->aux_nodes.push_back( auxA );
-    //active->aux_nodes.push_back( auxB );
-    //pathA = smoothEnd(auxA, Vec4d(0), pathA);
-    //pathB = smoothEnd(auxB, Vec4d(0), pathB);
+    Vec3d endDeltaA = tlinkA->position(tn->id) - tlinkA->positionOther(tn->id);
+    Vec3d endDeltaB = tlinkB->position(tn->id) - tlinkB->positionOther(tn->id);
+    Node * auxA = new Structure::Curve(NURBS::NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, pointA + endDeltaA ) ), "auxA_" + n->id);
+    Node * auxB = new Structure::Curve(NURBS::NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, pointB + endDeltaB ) ), "auxB_" + n->id);
+    active->aux_nodes.push_back( auxA );
+    active->aux_nodes.push_back( auxB );
+    pathA = smoothEnd(auxA, Vec4d(0), pathA);
+    pathB = smoothEnd(auxB, Vec4d(0), pathB);
 
     // Record path
     property["pathA"].setValue( pathA );
