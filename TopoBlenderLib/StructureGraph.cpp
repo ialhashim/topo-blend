@@ -664,6 +664,13 @@ void Graph::draw( QGLViewer * drawArea )
 		}
 	}
 
+	if(property.contains("selectedSample"))
+	{
+		glDisable(GL_LIGHTING);
+		glColor3d(1,1,0); glPointSize(20);
+		glBegin(GL_POINTS); glVector3(property["selectedSample"].value<Vec3d>()); glEnd();
+	}
+
 	glDisable(GL_LIGHTING);
 	glColor3d(1,1,0); glPointSize(20);
 	glBegin(GL_POINTS); foreach(Vector3 p, debugPoints) glVector3(p); glEnd();

@@ -28,11 +28,6 @@ using namespace NURBS;
 TopoBlender * blender = NULL;
 Scheduler * scheduler = NULL;
 
-#include "ARAPCurveDeformer.h"
-ARAPCurveDeformer * deformer = NULL;
-#include "ARAPCurveHandle.h"
-ARAPCurveHandle * handle = NULL;
-
 // Synthesis
 #include "Synthesizer.h"
 #include "normal_extrapolation.h"
@@ -189,7 +184,6 @@ void topoblend::drawWithNames()
 		{
 			g->nodes[nID]->drawWithNames(nodeID_base + nID, POINT_ID_RANGE);
 		}
-
 
 		glPopMatrix();
 
@@ -743,28 +737,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		}
 		used = true;
 	}
-
-	if(event->key() == Qt::Key_O)
-	{
-		if(graphs.size() < 1) return true;
-
-		Structure::Node * n = graphs.front()->nodes.front();
-		std::vector<Vec3d> orgCtrlPnts = n->controlPoints();
-
-		deformer = new ARAPCurveDeformer( orgCtrlPnts, orgCtrlPnts.size() * 0.25 );
-
-		deformer->SetAnchor( orgCtrlPnts.size() - 1 );		// Last point as anchor
-		deformer->UpdateControl( 0, orgCtrlPnts.front());	// First point moves
-
-		qDebug() << "Curve deformation performed!"; 
-
-		handle = new ARAPCurveHandle(orgCtrlPnts.front(), 0.0);
-		drawArea()->setManipulatedFrame( handle );
-		this->connect(handle, SIGNAL(manipulated()), SLOT(experimentSlot()));
-
-		used = true;
-	}
-
+	
 	if(event->key() == Qt::Key_T)
 	{
 		qglviewer::Vec q = drawArea()->camera()->revolveAroundPoint();
@@ -773,9 +746,15 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		double minDist = DBL_MAX;
 		QString sample_details = "";
 
-		foreach(Structure::Graph * g, graphs)
+		double deltaX = boundX;
+		double posX = -(deltaX / 2) * (graphs.size() / 2);
+
+		for(int gi = 0; gi < (int) graphs.size(); gi++)
 		{
-			foreach(Structure::Node * node, scheduler->activeGraph->nodes)
+			Structure::Graph * g = graphs[gi];
+			g->property.remove("selectedSample");
+
+			foreach(Structure::Node * node, g->nodes)
 			{
 				if(node->property.contains("cached_points"))
 				{
@@ -783,20 +762,30 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 					QVector<ParameterCoord> samples = node->property["samples"].value< QVector<ParameterCoord> >();
 					QVector<double> offsets = node->property["offsets"].value< QVector<double> >();
 
+					Vec3d delta = Vec3d(posX,0,0);
+					Vec3d q = p - delta;
+
 					for(int i = 0; i < (int)pnts.size(); i++)
 					{
-						double dist = (pnts[i] - p).norm();
-						if(dist < minDist){
+						double dist = (pnts[i] - q).norm();
+						if(dist < minDist && dist < 0.01){
 							ParameterCoord s = samples[i];
 							sample_details = QString("[%5] u= %1  v= %2  theta= %3  psi= %4 offset = %6").arg(s.u
 								).arg(s.v).arg(s.theta).arg(s.psi).arg(node->id).arg(offsets[i]);
 							minDist = dist;
 							g->property["selectedSample"].setValue(pnts[i]);
 							g->property["selectedNode"].setValue(node->id);
+
+							if(s.origNode) sample_details += QString(" [orig %1][").arg(s.origNode->id);
+							
+							QString graphName = g->property["name"].toString().section('\\', -1).section('.', 0, 0);
+							sample_details = "["+graphName+"] " + sample_details;
 						}
 					}
 				}
 			}
+
+			posX += deltaX;
 		}
 
 		setStatusBarMessage(sample_details);
@@ -826,15 +815,6 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		drawArea()->setStateFileName( value );
 		drawArea()->restoreStateFromFile();
 		mainWindow()->setStatusBarMessage("Viewer state loaded.");
-		used = true;
-	}
-
-	if(event->key() == Qt::Key_L)
-	{
-		Structure::Graph * g = graphs.front();
-
-		QVector< QVector<Node*> > parts = g->split("Central");
-
 		used = true;
 	}
 
@@ -870,13 +850,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 void topoblend::experimentSlot()
 {
-	Structure::Node * n = graphs.front()->nodes.front();
 
-	qglviewer::Vec v = handle->position();
-	deformer->points[0] = Vec3d(v[0],v[1],v[2]);
-
-	deformer->Deform(3);
-	n->setControlPoints( deformer->points );
 }
 
 void topoblend::doBlend()

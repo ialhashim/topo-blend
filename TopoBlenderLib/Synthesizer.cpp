@@ -53,8 +53,8 @@ RMF Synthesizer::consistentFrame( Structure::Curve * curve, Array1D_Vec4d & coor
 	std::vector<Vec3d> samplePoints;
 	foreach(Vec4d c, coords) samplePoints.push_back( curve->position(c) );
 
-    RMF rmf = RMF( samplePoints, false );
-	rmf.generate();
+    RMF rmf = RMF( samplePoints );
+	//rmf.generate();
 
 	return rmf;
 }
@@ -672,8 +672,6 @@ void Synthesizer::blendGeometrySheets( Structure::Sheet * sheet1, Structure::She
 	// Reconstruct geometry on the new base
 	reconstructGeometrySheet(sheet1, samples, blended_offsets, blended_normals, points, normals);
 }
-
-
 
 /// RECONSTRUCTION
 void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVector<ParameterCoord> in_samples, QVector<double> &in_offsets,
