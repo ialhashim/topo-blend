@@ -1324,7 +1324,7 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename, bool is
 
 		QString node_filename = node->id + ".off";
 		generatedFiles << node_filename;
-		PoissonRecon::makeFromCloud(pointCloudf(finalP), pointCloudf(finalN), node_filename);
+		PoissonRecon::makeFromCloud(pointCloudf(finalP), pointCloudf(finalN), node_filename, 8);
 	}
 
 	combineMeshes(generatedFiles, filename + ".obj");
