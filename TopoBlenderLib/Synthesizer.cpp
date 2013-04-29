@@ -54,7 +54,11 @@ RMF Synthesizer::consistentFrame( Structure::Curve * curve, Array1D_Vec4d & coor
 	foreach(Vec4d c, coords) samplePoints.push_back( curve->position(c) );
 
     RMF rmf = RMF( samplePoints );
+	rmf.compute();
 	//rmf.generate();
+
+	// Save RMF frames
+	curve->property["rmf_frames"].setValue(rmf.U);
 
 	return rmf;
 }
@@ -720,9 +724,6 @@ void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVect
 
 		out_normals[ i ] = normal.normalized();
 	}
-
-	// Save RMF frames
-	base_curve->property["rmf_frames"].setValue(rmf.U);
 }
 
 void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVector<ParameterCoord> in_samples, QVector<double> &in_offsets,
