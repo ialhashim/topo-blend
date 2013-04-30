@@ -33,8 +33,14 @@ public:
 	void compute()
 	{
 		Vec3d firstT = (point[1] - point[0]).normalized();
-		Vec3d firstR = orthogonalVector( firstT );
+		//Vec3d firstR = orthogonalVector( firstT );
 
+		Vec T(1,  1, 1); T.normalize();
+		Vec R(1, -1, 0); R.normalize();
+		qglviewer::Quaternion q(T, Vec(firstT));
+		Vec r = q * R;
+
+		Vec3d firstR(r[0], r[1], r[2]);
 		compute( firstR );
 	}
 
