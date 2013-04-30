@@ -289,6 +289,26 @@
          <string>Output</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_3">
+         <item row="0" column="5">
+          <widget class="QSpinBox" name="reconLevel">
+           <property name="minimum">
+            <number>4</number>
+           </property>
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>8</number>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QPushButton" name="renderCurrentButton">
+           <property name="text">
+            <string>Render current</string>
+           </property>
+          </widget>
+         </item>
          <item row="0" column="0">
           <widget class="QPushButton" name="draftRenderButton">
            <property name="text">
@@ -322,7 +342,7 @@
            </property>
           </spacer>
          </item>
-         <item row="0" column="6">
+         <item row="0" column="9">
           <spacer name="horizontalSpacer_3">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -335,21 +355,14 @@
            </property>
           </spacer>
          </item>
-         <item row="0" column="5">
+         <item row="0" column="8">
           <widget class="QPushButton" name="renderAllButton">
            <property name="text">
             <string>Render all..</string>
            </property>
           </widget>
          </item>
-         <item row="0" column="2">
-          <widget class="QPushButton" name="renderCurrentButton">
-           <property name="text">
-            <string>Render current</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="4">
+         <item row="0" column="7">
           <widget class="QSpinBox" name="renderCount">
            <property name="toolTip">
             <string>Value of -1 gives entire sequence</string>
@@ -365,6 +378,20 @@
            </property>
            <property name="value">
             <number>10</number>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="6">
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>Frames</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="4">
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Level</string>
            </property>
           </widget>
          </item>

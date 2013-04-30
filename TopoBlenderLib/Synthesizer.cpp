@@ -794,7 +794,7 @@ void Synthesizer::clearSynthData( Structure::Node * fromNode )
 	fromNode->property.remove("cached_normals");
 }
 
-void Synthesizer::writeXYZ( QString filename, std::vector<Vector3> &points, std::vector<Vector3> &normals )
+void Synthesizer::writeXYZ( QString filename, std::vector<Vector3> points, std::vector<Vector3> normals )
 {
 	QFile file(filename);
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
