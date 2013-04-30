@@ -83,7 +83,7 @@ struct Synthesizer{
 	// IO
 	static void saveSynthesisData(Structure::Node *node, QString prefix = "");
 	static void loadSynthesisData(Structure::Node *node, QString prefix = "");
-	static void writeXYZ( QString filename, std::vector<Vector3> &points, std::vector<Vector3> &normals );
+	static void writeXYZ( QString filename, std::vector<Vector3> points, std::vector<Vector3> normals );
 
 	static void copySynthData( Structure::Node * fromNode, Structure::Node * toNode );
 	static void clearSynthData( Structure::Node * fromNode );

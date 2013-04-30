@@ -875,9 +875,9 @@ void topoblend::doBlend()
 
 	this->connect(scheduler, SIGNAL(activeGraphChanged( Structure::Graph* )), SLOT(updateActiveGraph( Structure::Graph* )));
 	
-	this->connect(scheduler, SIGNAL(renderAll()), SLOT(renderAll()));
-	this->connect(scheduler, SIGNAL(renderCurrent()), SLOT(renderCurrent()));
-	this->connect(scheduler, SIGNAL(draftRender()), SLOT(draftRender()));
+	this->connect(scheduler, SIGNAL(renderAll()), SLOT(renderAll()), Qt::UniqueConnection);
+	this->connect(scheduler, SIGNAL(renderCurrent()), SLOT(renderCurrent()), Qt::UniqueConnection);
+	this->connect(scheduler, SIGNAL(draftRender()), SLOT(draftRender()), Qt::UniqueConnection);
 
 	//this->graphs.clear();
 	//this->graphs.push_back(scheduler->activeGraph);
@@ -1108,6 +1108,9 @@ void topoblend::setStatusBarMessage(QString message)
 void topoblend::generateSynthesisData()
 {
 	if(!blender) return;
+
+	setStatusBarMessage("Generating synthesis samples...");
+
 #ifdef Q_OS_WIN
     QtConcurrent::run( this, &topoblend::genSynData );
 #else // OpenMP issue on OSX (Linux too?)
@@ -1174,6 +1177,13 @@ void topoblend::renderAll()
 {
 	if(!scheduler) return;
 
+	int reconLevel = 7;
+	if(scheduler->property.contains("reconLevel")){
+		reconLevel = scheduler->property["reconLevel"].toInt();
+	}
+
+	setStatusBarMessage(QString("Rendering  requested frames [depth=%1]...").arg(reconLevel));
+
 #ifdef Q_OS_WIN
 	QtConcurrent::run( this, &topoblend::doRenderAll );
 #else // OpenMP issue on OSX (Linux too?)
@@ -1196,18 +1206,21 @@ void topoblend::doRenderAll()
 			stepSize = double(N) / renderCount;
 	}
 
+	int reconLevel = 7;
+	if(scheduler->property.contains("reconLevel")){
+		scheduler->property["reconLevel"].toInt();
+	}
+
 	for(int i = 0; i < N; i += stepSize)
 	{
-		Structure::Graph * currentGraph = scheduler->allGraphs[i];
+		Structure::Graph currentGraph = *(scheduler->allGraphs[i]);
 
 		if(i > 0) scheduler->allGraphs[i-1]->clearGeometryCache();
-
-		//updateActiveGraph( currentGraph );
 
 		int progress = (double(i) / (N-1)) * 100;
 		qDebug() << QString("Rendering sequence [%1 %]").arg(progress);
 
-		renderGraph( currentGraph, QString("output_%1.off").arg(progress) );
+		renderGraph( currentGraph, QString("output_%1").arg(progress), false, reconLevel );
 	}
 
 	qDebug() << QString("Sequence rendered [%1 ms]").arg(timer.elapsed());
@@ -1216,21 +1229,41 @@ void topoblend::doRenderAll()
 void topoblend::renderCurrent()
 {
 	if(!scheduler) return;
+
 	QElapsedTimer timer; timer.start();
 
-	Structure::Graph * lastGraph = this->graphs.back();
-	renderGraph(lastGraph, "currentGraph.off", true);
+	int reconLevel = 7;
+	if(scheduler->property.contains("reconLevel")){
+		reconLevel = scheduler->property["reconLevel"].toInt();
+	}
+
+	setStatusBarMessage(QString("Rendering current frame [depth=%1]..").arg(reconLevel));
+
+	Structure::Graph * currentGraph = this->graphs.back();
+
+	// Reconstruct
+	QString filename = "currentGraph";
+	Structure::Graph lastGraph = *currentGraph;
+	renderGraph(lastGraph, filename, true, reconLevel);
+
+	// Load and display as mesh in viewer
+	SurfaceMesh::SurfaceMeshModel * m = new SurfaceMesh::SurfaceMeshModel(filename+".obj", "reconMesh");
+	m->read(qPrintable(filename+".obj"));
+	currentGraph->property["reconMesh"].setValue( m );
+
+	updateDrawArea();
 
 	mainWindow()->setStatusBarMessage(QString("Current graph rendered [%1 ms]").arg(timer.elapsed()));
 }
 
-void topoblend::renderGraph( Structure::Graph * graph, QString filename, bool isOutPointCloud )
+void topoblend::renderGraph( Structure::Graph graph, QString filename, bool isOutPointCloud, int reconLevel )
 {
-	graph->geometryMorph();
+	graph.clearGeometryCache();
+	graph.geometryMorph();
 
 	QStringList generatedFiles, tempFiles;
 
-	foreach(Structure::Node * node, graph->nodes)
+	foreach(Structure::Node * node, graph.nodes)
 	{
 		// Skip inactive nodes
 		if(	node->property["toGrow"].toBool() ||
@@ -1243,14 +1276,16 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename, bool is
 		if(!points.size()) continue;
 		std::vector<Vec3d> clean_points;
 		foreach(Vec3d p, points) clean_points.push_back(p);
-			 
-		/// Clean up duplicated points
+
 		std::vector< Vec3d > finalP, finalN;
+
+		/// Clean up duplicated points
+		if( false )
 		{
 			std::vector<size_t> xrefs;
 			weld(clean_points, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
 
-			QSet<int> uniqueIds;
+			std::set<int> uniqueIds;
 			for(int i = 0; i < (int)points.size(); i++)	uniqueIds.insert(xrefs[i]);
 
 			foreach(int id, uniqueIds)
@@ -1259,12 +1294,21 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename, bool is
 				finalN.push_back( normals[id] );
 			}
 		}
+		else
+		{
+			foreach(Vec3d p, points) finalP.push_back(p);
+			foreach(Vec3d n, normals) finalN.push_back(n);
+		}
 
 		/// Better Estimate Normals
 		{
 			//int num_nighbours = 10;
 			//NormalExtrapolation::ExtrapolateNormals(clean_points, normals, num_nighbours);
+		}
 
+		/// Smooth normals
+		if( true )
+		{
 			NanoKdTree tree;
 			foreach(Vector3 p, finalP) tree.addPoint(p);
 			tree.build();
@@ -1290,29 +1334,36 @@ void topoblend::renderGraph( Structure::Graph * graph, QString filename, bool is
 			QString xyz_filename = node->id + "_" + filename + ".xyz";
 			tempFiles << xyz_filename;
 			Synthesizer::writeXYZ( xyz_filename, finalP, finalN );
-
-			//QString node_reconfile = xyz_filename.replace(".","_") + ".off";
-			//generatedFiles << node_reconfile;
-			//PoissonRecon::makeFromCloudFile(filename, node_reconfile, 7);
 		}
 
 		QString node_filename = node->id + ".off";
 		generatedFiles << node_filename;
-		PoissonRecon::makeFromCloud(pointCloudf(finalP), pointCloudf(finalN), node_filename, 8);
+		PoissonRecon::makeFromCloud( pointCloudf(finalP), pointCloudf(finalN), node_filename, reconLevel );
 	}
 
 	combineMeshes(generatedFiles, filename + ".obj");
 
 	// Clean up
-	foreach(QString filename, generatedFiles)
-		QFile::remove(filename);
+	if(!isOutPointCloud)
+	{
+		foreach(QString filename, generatedFiles)
+			QFile::remove(filename);
+	}
 }
 
 void topoblend::draftRender()
 {
 	if(!scheduler) return;
 
+	int stepSize = 1;
 	int N = scheduler->allGraphs.size();
+
+	if(scheduler->property.contains("renderCount")){
+		int renderCount = scheduler->property["renderCount"].toInt();
+		if(renderCount > 1)
+			stepSize = double(N) / renderCount;
+	}
+
 	if(N < 1) return;
 
 	// Setup camera
@@ -1320,7 +1371,7 @@ void topoblend::draftRender()
 
 	QString folderPath = QFileDialog::getExistingDirectory();
 
-	for(int i = 0; i < N; i++)
+	for(int i = 0; i < N; i += stepSize)
 	{
 		graphs.clear();
 		this->graphs.push_back( scheduler->allGraphs[i] );
@@ -1328,7 +1379,8 @@ void topoblend::draftRender()
 
 		// Save snapshot
 		QString snapshotFile;
-		snapshotFile.sprintf("draft_%05d.png", i);
+		int progress = (double(i) / (N-1)) * 100;
+		snapshotFile.sprintf("draft_%05d.png", progress);
 		snapshotFile = folderPath + "/" + snapshotFile;
 		drawArea()->saveSnapshot(snapshotFile, true);
 
