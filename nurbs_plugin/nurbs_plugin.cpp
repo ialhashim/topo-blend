@@ -746,7 +746,7 @@ void nurbs_plugin::convertToSheet()
 	document()->setSelectedModel( m );
 
 	prepareSkeletonize(); 
-	for(int i = 0; i < 3; i++)
+	for(int i = 0; i < widget->contractIterations(); i++)
 	{
 		stepSkeletonizeMesh();
 	}

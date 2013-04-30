@@ -212,8 +212,6 @@ void topoblend::postSelection( const QPoint& point )
 	qDebug() << "Selected ID is " << selectedID;
 }
 
-
-
 void topoblend::generateChairModels()
 {
 	QElapsedTimer assembleTimer; assembleTimer.start(); 
