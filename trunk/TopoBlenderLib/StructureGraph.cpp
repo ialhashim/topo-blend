@@ -1668,8 +1668,14 @@ void Graph::transform( QMatrix4x4 mat )
 {
 	Vector3 c = bbox().center();
 
+	// Selective transformation
+	bool isSelective = false;
+	foreach (Node * node, nodes) if(node->selections.size()) isSelective = true;
+
 	foreach (Node * node, nodes)
 	{
+		if(isSelective && !node->selections.size()) continue;
+		
 		Array1D_Vector3 controlPoints = node->controlPoints();
 		for(int i = 0; i < (int)controlPoints.size(); i++)
 			controlPoints[i] = mat * controlPoints[i];
