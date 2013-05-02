@@ -340,10 +340,10 @@ void LandmarksDialog::updateCorrTableWidget()
 {
 	// Clear
 	ui->corrTable->clearContents();
+	ui->corrTable->setRowCount(gcorr->correspondences.size());
 
 	// Add items
 	int nCoor = gcorr->correspondences.size();
-	int rowID = 0;
 	for (int i = 0; i < nCoor; i++)
 	{
 		// Correspondences and scores
@@ -354,42 +354,32 @@ void LandmarksDialog::updateCorrTableWidget()
 		if (vec2vec.first.size() == 1)
 		{
 			QString sID = vec2vec.first.front();
-			for (int j = 0; j < (int)vec2vec.second.size(); j++, rowID++)
+			QString tIDs, scoreStr;
+			for (int j = 0; j < (int)vec2vec.second.size(); j++)
 			{
-				QString tID = vec2vec.second[j];
-				QString score = QString::number(scores[j], 'f', 4);
-
-				// Add row if need
-				if (rowID >= ui->corrTable->rowCount())	ui->corrTable->insertRow(rowID);
-
-				ui->corrTable->setItem(rowID, 0, new QTableWidgetItem(sID));
-				ui->corrTable->setItem(rowID, 1, new QTableWidgetItem(tID));
-				ui->corrTable->setItem(rowID, 2, new QTableWidgetItem(score));
+				tIDs += vec2vec.second[j] +  " ";
+				scoreStr += QString::number(scores[j], 'f', 4) + " ";
 			}
+
+			ui->corrTable->setItem(i, 0, new QTableWidgetItem(sID));
+			ui->corrTable->setItem(i, 1, new QTableWidgetItem(tIDs));
+			ui->corrTable->setItem(i, 2, new QTableWidgetItem(scoreStr));
 		}
 		// Many to one
 		else
 		{
 			QString tID = vec2vec.second.front();
-			for (int j = 0; j < (int)vec2vec.first.size(); j++, rowID++)
+			QString sIDs, scoreStr;
+			for (int j = 0; j < (int)vec2vec.first.size(); j++)
 			{
-				QString sID = vec2vec.first[j];
-				QString score = QString::number(scores[j], 'f', 4);
-
-				// Add row if need
-				if (rowID >= ui->corrTable->rowCount())	ui->corrTable->insertRow(rowID);
-				ui->corrTable->setItem(rowID, 0, new QTableWidgetItem(sID));
-				ui->corrTable->setItem(rowID, 1, new QTableWidgetItem(tID));
-				ui->corrTable->setItem(rowID, 2, new QTableWidgetItem(score));
+				sIDs += vec2vec.first[j] + " ";
+				scoreStr += QString::number(scores[j], 'f', 4) + " ";
 			}
-		}
-	}
 
-	// Resize the table
-	int nRows = ui->corrTable->rowCount();
-	if (rowID < nRows)	{
-		for (int i = nRows - 1; i > rowID - 1; i--)
-			ui->corrTable->removeRow(i);
+			ui->corrTable->setItem(i, 0, new QTableWidgetItem(sIDs));
+			ui->corrTable->setItem(i, 1, new QTableWidgetItem(tID));
+			ui->corrTable->setItem(i, 2, new QTableWidgetItem(scoreStr));
+		}
 	}
 }
 

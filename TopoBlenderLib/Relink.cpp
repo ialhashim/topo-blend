@@ -57,7 +57,7 @@ void Relink::relink( int globalTime )
         Structure::Node * other = otherTask->node();
 		Structure::Node * tother = targetGraph->getNode( other->property["correspond"].toString() );
 
-		double hdistBefore = HausdorffDistance( other->controlPoints(), tother->controlPoints() );
+		//double hdistBefore = HausdorffDistance( other->controlPoints(), tother->controlPoints() );
 		Array1D_Vector3 cptsBefore = other->controlPoints();
 
         QVector<LinkConstraint> consts = constraints[otherTask];
@@ -82,10 +82,10 @@ void Relink::relink( int globalTime )
 
             bool isRigid = otherTask->isDone;
 
-            if(other->type() == Structure::CURVE){
-                if( abs(handle[0] - 0.5) < 0.1 )
+            //if(other->type() == Structure::CURVE){
+                //if( abs(handle[0] - 0.5) < 0.1 )
                     isRigid = true;
-            }
+            //}
 
             other->deformTo( handle, newPos, isRigid );
 
@@ -120,11 +120,11 @@ void Relink::relink( int globalTime )
             activeGraph->vs.addVector( other->position(Vec4d(0.5)), delta );
         }
 
-		double hdistAfter = HausdorffDistance( other->controlPoints(), tother->controlPoints() );
+		//double hdistAfter = HausdorffDistance( other->controlPoints(), tother->controlPoints() );
 
-		if(hdistAfter > hdistBefore)
+		//if(hdistAfter > hdistBefore)
 		{
-			other->setControlPoints( cptsBefore );
+			//other->setControlPoints( cptsBefore );
 		}
 
         // Modify actual geometry
