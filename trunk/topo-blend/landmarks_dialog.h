@@ -85,7 +85,7 @@ public slots:
 
 	void alignAllNodes();
 	void computeCorrespondences();
-
+	void visualizeCorr(int row, int column);
 
 	void visualizePart2PartDistance(int id);
 

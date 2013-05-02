@@ -1411,4 +1411,29 @@ void topoblend::combineMeshesToOne()
 	combineMeshes(fileNames, out_filename);
 }
 
+void topoblend::swapSourceAndTarget()
+{
+	if (graphs.size() >= 2)
+	{
+		Structure::Graph* sg = graphs[0];
+		graphs[0] = graphs[1];
+		graphs[1] = sg;
+
+		if (gcoor)	delete gcoor;
+	}
+
+	drawArea()->updateGL();
+}
+
+void topoblend::normalizeAllGraphs()
+{
+	foreach (Structure::Graph* g, graphs)
+	{
+		g->moveBottomCenterToOrigin();
+		g->normalize();
+	}
+
+	drawArea()->updateGL();
+}
+
 Q_EXPORT_PLUGIN(topoblend)
