@@ -171,6 +171,7 @@ void Scheduler::order()
 		if(i == Task::SHRINK)
 		{
 			curTasks = tasksByType.values(Task::GROW);
+			if(!curTasks.size()) continue;
 
 			QMutableListIterator<Task*> itr(curTasks);
 			while (itr.hasNext()) 
@@ -226,6 +227,8 @@ void Scheduler::order()
 
 void Scheduler::groupStart( Structure::Graph * g, QList<Task*> curTasks, int curStart, int & futureStart )
 {
+	if(!curTasks.size()) return;
+
 	NodeGroups groups = g->property["groups"].value<NodeGroups>();
 
 	int i = curTasks.front()->type;
