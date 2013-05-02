@@ -31,6 +31,8 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
     topo_blend->connect(ui->clearButton, SIGNAL(clicked()), SLOT(clearGraphs()));
     topo_blend->connect(ui->linksButton, SIGNAL(clicked()), SLOT(modifyModel()));
     topo_blend->connect(ui->alignButton, SIGNAL(clicked()), SLOT(quickAlign()));
+	topo_blend->connect(ui->swapButton, SIGNAL(clicked()), SLOT(swapSourceAndTarget()));
+	topo_blend->connect(ui->normalizeButton, SIGNAL(clicked()), SLOT(normalizeAllGraphs()));
 
 	// Animation widget
 	topo_blend->connect(ui->button4, SIGNAL(clicked()), SLOT(currentExperiment()));

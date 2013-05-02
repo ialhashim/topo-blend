@@ -687,6 +687,15 @@ void GraphCorresponder::computePartToPartCorrespondences()
 		for (int j = 0; j < tN; j++) // Row r
 			disMatrix[r][j] = INVALID_VALUE;
 	}
+
+	// Add the part landmarks as correspondences too
+	foreach(PART_LANDMARK landmark, landmarks)
+	{
+		correspondences.push_back(landmark);
+		int n = qMax(landmark.first.size(),landmark.second.size());
+		std::vector<float> fake_score(n, -1);
+		corrScores.push_back(fake_score);
+	}
 }
 
 
@@ -949,15 +958,6 @@ void GraphCorresponder::computeCorrespondences()
 
 	// Point to Point correspondence
 	correspondAllNodes();
-
-	// Add the part landmarks as correspondences too
-	foreach(PART_LANDMARK landmark, landmarks)
-	{
-		correspondences.push_back(landmark);
-		int n = qMax(landmark.first.size(),landmark.second.size());
-		std::vector<float> fake_score(n, -1);
-		corrScores.push_back(fake_score);
-	}
 
 	// Mark the correponded nodes
 	sIsCorresponded.resize(sg->nodes.size(), false);

@@ -64,6 +64,8 @@ public slots:
     void clearGraphs();
     void modifyModel();
     void quickAlign();
+	void swapSourceAndTarget();
+	void normalizeAllGraphs();
 
 	void experiment1();
 	void currentExperiment();

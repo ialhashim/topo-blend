@@ -76,6 +76,7 @@ LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QD
 	this->connect(ui->alignNodesButton, SIGNAL(clicked()), SLOT(alignAllNodes()));
 
 	this->connect(ui->runButton, SIGNAL(clicked()), SLOT(computeCorrespondences()));
+	this->connect(ui->corrTable, SIGNAL(cellClicked(int, int)), SLOT(visualizeCorr(int, int)));
 
 	this->connect(ui->sourceID, SIGNAL(valueChanged(int)), SLOT(visualizePart2PartDistance(int)));
 	tb->connect(ui->p2pButton, SIGNAL(clicked()), SLOT(testPoint2PointCorrespondences()));
@@ -677,4 +678,37 @@ void LandmarksDialog::basicAlign()
 	}
 
 	tb->updateDrawArea();
+}
+
+void LandmarksDialog::visualizeCorr( int row, int column )
+{
+	if (row >= 0 && row < gcorr->correspondences.size())
+	{
+		// Set black for all
+		for (int i = 0; i < sg()->nodes.size(); i++)
+		{
+			Structure::Node * node = sNode(i);
+			node->vis_property["color"] = Qt::lightGray;
+			node->vis_property["showControl"] = false;
+		}
+
+		for (int i = 0; i < tg()->nodes.size(); i++)
+		{
+			Structure::Node * node = tNode(i);
+			node->vis_property["color"] = Qt::lightGray;
+			node->vis_property["showControl"] = false;
+		}
+
+		// Get the correspondence
+		PART_LANDMARK set2set = gcorr->correspondences[row];
+
+		// Set red for landmark
+		foreach (QString sID, set2set.first)
+			sg()->getNode(sID)->vis_property["color"] = Qt::red;
+
+		foreach (QString tID, set2set.second)
+			tg()->getNode(tID)->vis_property["color"] = Qt::red;
+
+		tb->updateDrawArea();
+	}
 }
