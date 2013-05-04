@@ -344,6 +344,11 @@ void Scheduler::executeAll()
         // Relink
         Relink linker(this);
 
+		// active tasks
+		QVector<QString> aTs = activeTasks(globalTime * totalTime);
+		activeGraph->property["activeTasks"].setValue( aTs );
+
+		// For visualization
 		activeGraph->setPropertyAll("isActive", false);
 
 		/// Prepare and execute current tasks
@@ -351,16 +356,13 @@ void Scheduler::executeAll()
 		{
 			Task * task = allTasks[i];
 			double localTime = task->localT( globalTime * totalTime );
-
-			activeGraph->property["activeTasks"].setValue( activeTasks(globalTime * totalTime) );
-
 			if( localTime < 0 || task->isDone ) continue;
 
 			// 1) Prepare task for grow, shrink, morph
 			task->prepare();
 
 			// 2) Prepare linking with other nodes
-            linker.prepare( task );
+            //linker.prepare( task );
 
 			// 3) Execute current task at current time
 			task->execute( localTime );
@@ -370,7 +372,8 @@ void Scheduler::executeAll()
 		}
 
 		/// Apply relinking
-        linker.relink( globalTime );
+        //linker.relink( globalTime );
+		linker.execute(globalTime);
 
 		/// Geometry morphing
 		foreach(Task * task, allTasks)
@@ -488,8 +491,10 @@ QVector<QString> Scheduler::activeTasks( double globalTime )
 		// Consider future growing cut nodes as active
 		bool isUngrownCut = (!task->isDone) && (task->type == Task::GROW) && (task->node()->property.contains("isCutGroup"));
 
+		// HH - Why?
 		// Consider dead links as active tasks
-		bool isDeadLink = task->isDone && (task->type == Task::SHRINK);
+		//bool isDeadLink = task->isDone && (task->type == Task::SHRINK);
+		bool isDeadLink = false;
 
 		if ( isActive || isUngrownCut || isDeadLink )
 		{

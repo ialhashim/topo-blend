@@ -1,6 +1,7 @@
 #pragma once
 #include "StructureGraph.h"
 #include "Task.h"
+#include "QQueue"
 
 struct LinkConstraint{
     Structure::Link *link;
@@ -22,5 +23,12 @@ struct Relink
     TasksConstraints constraints;
 
     void prepare( Task * task );
-    void relink( int globalTime );
+    void relink( int globalTime ); 
+
+	QQueue<Task*> propagationQueue;
+	void execute(int globalTime);
+	void relinkTask(Task* task, int globalTime);
+	void propagateFrom(Task* task);
+	void createConstraintsFromTask(Task* task);
+
 };
