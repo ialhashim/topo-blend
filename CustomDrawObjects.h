@@ -203,9 +203,9 @@ public:
 
 	void draw(QGLWidget &widget){this->draw();widget;}
 
-    void draw(){
+    void draw(float thickness = 1.0f){
         glDisable(GL_LIGHTING);
-        glLineWidth(1);
+        glLineWidth(thickness);
         glBegin(GL_LINES);
         for(int i = 0; i < (int) vectors.size(); i++){
             // Color
@@ -219,7 +219,7 @@ public:
         }
         glEnd();
 
-        glPointSize(3);
+        glPointSize(thickness * 2);
         glBegin(GL_POINTS);
         for(int i = 0; i < (int) vectors.size(); i++){
             // Color

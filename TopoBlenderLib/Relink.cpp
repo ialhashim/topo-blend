@@ -53,6 +53,10 @@ void Relink::createConstraintsFromTask( Task* task )
         Structure::Node * other = link->otherNode(n->id);
         Task * otherTask = s->getTaskFromNodeID(other->id);
 
+		// Skip shrunk and non-grown nodes
+		if (otherTask->node()->property["shrunk"].toBool()) continue;
+		if (otherTask->type == Task::GROW && !otherTask->isDone) continue;
+
 		// skip relinked task
 		if (otherTask->property["relinked"].toBool()) continue;
         
@@ -88,76 +92,93 @@ void Relink::relinkTask( Task* otherTask, int globalTime )
 	QVector<LinkConstraint> consts = constraints[otherTask];
 	int N = consts.size();
 
-	double t = (double)globalTime / s->totalExecutionTime();
+	// Translate done tasks
+	if (otherTask->isDone && N > 0)
+	{
+		// Use all constraints
+		Vec3d translation(0);
+		foreach(LinkConstraint c, consts)
+		{
+			Structure::Link * link = c.link;
 
-	if( N == 1 )
+			Vec3d oldPos = link->position(other->id);
+			Vec3d linkPosOther = link->positionOther(other->id);
+			Vec3d delta = getDelta(link, other->id);
+			Vector3 newPos = linkPosOther + delta;
+
+			translation += newPos - oldPos;
+		}
+		other->moveBy(translation / N);
+		
+		// Visualization
+		foreach(LinkConstraint c, consts)
+		{
+			Structure::Link* link = c.link;
+			Vector3 linkPosOther = link->positionOther(other->id);
+			Vec3d delta = getDelta(link, other->id);
+
+			activeGraph->vs2.addVector( linkPosOther, delta );
+		}
+
+	}
+	// Translate future tasks if only one constraint
+	else if( N == 1 )
 	{
 		LinkConstraint constraint = consts.front();
+		Structure::Link * link = constraint.link;
 
-		Task * task = constraint.task;
-		Structure::Link *link = constraint.link;
-		Structure::Node * n = task->node();
+		Vec3d oldPos = link->position(other->id);
+		Vec3d linkPosOther = link->positionOther(other->id);
+		Vec3d delta = getDelta(link, other->id);
+		Vector3 newPos = linkPosOther + delta;
 
-		// Check for changing end edges
-		if( !link->hasNode(n->id) || !link->hasNode(other->id) )	return;
-
-		Vec4d handle = link->getCoordOther(n->id).front();
-		Vector3 linkPos = link->position(n->id);
-		Vector3 delta = getDelta(link, other->id, t);
-		Vector3 newPos = linkPos + delta;
-
-		// translate by moving handle
-		other->deformTo( handle, newPos, true );
+		// Translate
+		other->moveBy(newPos - oldPos);
 
 		// Visualization
-		activeGraph->vs.addVector( linkPos, delta );
+		activeGraph->vs2.addVector( linkPosOther, delta );
 	}
-
-	if( N > 1 )
+	// Deform future tasks by two handles if multiple constrains exist
+	else if (N > 1)
 	{
 		// Pickup two constrains to deform the node
 		LinkConstraint cA = consts.front();
 		LinkConstraint cB = consts.back();
-
-		// Two Handles:
-		Task *taskA = cA.task, *taskB = cB.task;
 		Structure::Link *linkA = cA.link, *linkB = cB.link;
 
-		QStringList activeNodes = taskA->property["activeNodes"].value<QStringList>();
-		activeNodes << taskB->property["activeNodes"].value<QStringList>();
-
-		foreach(QString id, activeNodes){
-			if(linkA->id.contains(id) || linkB->id.contains(id)) 
-				return;
-		}
-
+		// Two Handles and newPos:
 		Vec4d handleA = linkA->getCoord(other->id).front();
-		Vector3 linkPosA = linkA->positionOther(other->id);
-		Vector3 deltaA = getDelta(linkA, other->id, t);
-		Vector3 newPosA = linkPosA + deltaA;
+		Vector3 linkPosOtherA = linkA->positionOther(other->id);
+		Vector3 deltaA = getDelta(linkA, other->id);
+		Vector3 newPosA = linkPosOtherA + deltaA;
 
 		Vec4d handleB = linkB->getCoord(other->id).front();
-		Vector3 linkPosB = linkB->positionOther(other->id);
-		Vector3 deltaB = getDelta(linkB, other->id, t);
-		Vector3 newPosB = linkPosB + deltaB;
+		Vector3 linkPosOtherB = linkB->positionOther(other->id);
+		Vector3 deltaB = getDelta(linkB, other->id);
+		Vector3 newPosB = linkPosOtherB + deltaB;
 
+		// Deform two handles
 		other->deformTwoHandles(handleA, newPosA, handleB, newPosB);
 
 		// Visualization
-		activeGraph->vs.addVector( linkPosA, deltaA );
-		activeGraph->vs.addVector( linkPosB, deltaB );
+		activeGraph->vs2.addVector( linkPosOtherA, deltaA );
+		activeGraph->vs2.addVector( linkPosOtherB, deltaB );
+	}
+
+	// Visualization
+	foreach(LinkConstraint c, consts)
+	{
+		Structure::Link* link = c.link;
+		Vector3 linkPosOther = link->positionOther(other->id);
+		Vec3d delta = getDelta(link, other->id);
+
+		activeGraph->vs.addVector( linkPosOther, delta );
 	}
 }
 
-Vector3 Relink::getDelta(Structure::Link * link, QString otherID, double t)
+Vector3 Relink::getDelta( Structure::Link * link, QString otherID )
 {
-	Structure::Link * tlink = targetGraph->getEdge( link->property["correspond"].toString() );
-
-	Vector3 delta = tlink->property["delta"].value<Vector3>();
-	if( link->n1->id == otherID ) delta *= -1;
-
-	Vector3 tdelta = tlink->property["delta"].value<Vector3>();
-	if( tlink->n1->id == activeGraph->getNode(otherID)->property["correspond"].toString() ) tdelta *= -1;
-
-	return AlphaBlend(t, delta, tdelta);
+	Vector3 delta = link->property["blendedDelta"].value<Vector3>();
+	if(link->n1->id == otherID) delta *= -1;
+	return delta;
 }
