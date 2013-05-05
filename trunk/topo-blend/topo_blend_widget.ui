@@ -105,7 +105,7 @@
            <number>4</number>
           </property>
           <property name="topMargin">
-           <number>0</number>
+           <number>4</number>
           </property>
           <property name="rightMargin">
            <number>4</number>
@@ -116,6 +116,13 @@
           <property name="horizontalSpacing">
            <number>0</number>
           </property>
+          <item row="9" column="0">
+           <widget class="QLabel" name="numStepsLabel">
+            <property name="text">
+             <string>Num. steps</string>
+            </property>
+           </widget>
+          </item>
           <item row="5" column="1">
            <widget class="QPushButton" name="animationButton">
             <property name="text">
@@ -138,7 +145,7 @@
             </property>
            </widget>
           </item>
-          <item row="12" column="0" colspan="2">
+          <item row="13" column="0" colspan="2">
            <layout class="QGridLayout" name="gridLayout_4">
             <item row="0" column="1">
              <widget class="QPushButton" name="groupButton">
@@ -228,13 +235,6 @@
             </property>
            </widget>
           </item>
-          <item row="9" column="0">
-           <widget class="QLabel" name="numStepsLabel">
-            <property name="text">
-             <string>Num. steps</string>
-            </property>
-           </widget>
-          </item>
           <item row="1" column="0">
            <widget class="QPushButton" name="genSimpleButton">
             <property name="text">
@@ -242,7 +242,7 @@
             </property>
            </widget>
           </item>
-          <item row="11" column="0">
+          <item row="12" column="0">
            <widget class="QCheckBox" name="isModifyModel">
             <property name="text">
              <string>Modify on load</string>
@@ -342,6 +342,19 @@
              <string>Experimental...</string>
             </property>
            </widget>
+          </item>
+          <item row="11" column="0" colspan="2">
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </widget>

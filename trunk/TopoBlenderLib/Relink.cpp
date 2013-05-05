@@ -124,6 +124,14 @@ void Relink::relinkTask( Task* otherTask, int globalTime )
 		Task *taskA = cA.task, *taskB = cB.task;
 		Structure::Link *linkA = cA.link, *linkB = cB.link;
 
+		QStringList activeNodes = taskA->property["activeNodes"].value<QStringList>();
+		activeNodes << taskB->property["activeNodes"].value<QStringList>();
+
+		foreach(QString id, activeNodes){
+			if(linkA->id.contains(id) || linkB->id.contains(id)) 
+				return;
+		}
+
 		Vec4d handleA = linkA->getCoord(other->id).front();
 		Vector3 linkPosA = linkA->positionOther(other->id);
 		Vector3 deltaA = linkA->property["delta"].value<Vector3>();
