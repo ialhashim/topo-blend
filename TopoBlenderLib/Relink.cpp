@@ -88,12 +88,14 @@ void Relink::relinkTask( Task* otherTask, int globalTime )
 	QVector<LinkConstraint> consts = constraints[otherTask];
 	int N = consts.size();
 
+	double t = (double)globalTime / s->totalExecutionTime();
+
 	if( N == 1 )
 	{
 		LinkConstraint constraint = consts.front();
 
 		Task * task = constraint.task;
-		Structure::Link * link = constraint.link;
+		Structure::Link *link = constraint.link;
 		Structure::Node * n = task->node();
 
 		// Check for changing end edges
@@ -101,10 +103,7 @@ void Relink::relinkTask( Task* otherTask, int globalTime )
 
 		Vec4d handle = link->getCoordOther(n->id).front();
 		Vector3 linkPos = link->position(n->id);
-
-		Vector3 delta = link->property["delta"].value<Vector3>();
-		if(link->n1->id == other->id) delta *= -1;
-
+		Vector3 delta = getDelta(link, other->id, t);
 		Vector3 newPos = linkPos + delta;
 
 		// translate by moving handle
@@ -134,14 +133,12 @@ void Relink::relinkTask( Task* otherTask, int globalTime )
 
 		Vec4d handleA = linkA->getCoord(other->id).front();
 		Vector3 linkPosA = linkA->positionOther(other->id);
-		Vector3 deltaA = linkA->property["delta"].value<Vector3>();
-		if(linkA->n1->id == other->id) deltaA *= -1;
+		Vector3 deltaA = getDelta(linkA, other->id, t);
 		Vector3 newPosA = linkPosA + deltaA;
 
 		Vec4d handleB = linkB->getCoord(other->id).front();
 		Vector3 linkPosB = linkB->positionOther(other->id);
-		Vector3 deltaB = linkB->property["delta"].value<Vector3>();
-		if(linkB->n1->id == other->id) deltaB *= -1;
+		Vector3 deltaB = getDelta(linkB, other->id, t);
 		Vector3 newPosB = linkPosB + deltaB;
 
 		other->deformTwoHandles(handleA, newPosA, handleB, newPosB);
@@ -150,4 +147,17 @@ void Relink::relinkTask( Task* otherTask, int globalTime )
 		activeGraph->vs.addVector( linkPosA, deltaA );
 		activeGraph->vs.addVector( linkPosB, deltaB );
 	}
+}
+
+Vector3 Relink::getDelta(Structure::Link * link, QString otherID, double t)
+{
+	Structure::Link * tlink = targetGraph->getEdge( link->property["correspond"].toString() );
+
+	Vector3 delta = tlink->property["delta"].value<Vector3>();
+	if( link->n1->id == otherID ) delta *= -1;
+
+	Vector3 tdelta = tlink->property["delta"].value<Vector3>();
+	if( tlink->n1->id == activeGraph->getNode(otherID)->property["correspond"].toString() ) tdelta *= -1;
+
+	return AlphaBlend(t, delta, tdelta);
 }
