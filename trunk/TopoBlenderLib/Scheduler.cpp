@@ -363,6 +363,18 @@ void Scheduler::executeAll()
 		// DEBUG - per pass
 		activeGraph->clearDebug();
 
+		// Blend edges deltas5
+		foreach(Structure::Link* l, activeGraph->edges)
+		{
+			Structure::Link* tl = targetGraph->getEdge(l->property["correspond"].toString());
+			if (tl)
+			{
+				Vec3d sDelta = l->property["delta"].value<Vec3d>();
+				Vec3d tDelta = tl->property["delta"].value<Vec3d>();
+				l->property["blendedDelta"].setValue( (1-globalTime) * sDelta + globalTime * tDelta);
+			}
+		}
+
 		// active tasks
 		QVector<QString> aTs = activeTasks(globalTime * totalTime);
 		activeGraph->property["activeTasks"].setValue( aTs );
@@ -406,6 +418,9 @@ void Scheduler::executeAll()
 
 		// Output current active graph:
 		allGraphs.push_back( new Structure::Graph( *activeGraph ) );
+
+		activeGraph->vs.clear();
+		activeGraph->vs2.clear();
 
 		// UI - visual indicator:
 		int percent = globalTime * 100;

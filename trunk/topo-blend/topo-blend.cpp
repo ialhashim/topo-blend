@@ -1015,6 +1015,19 @@ Structure::Graph * topoblend::getGraph(int id)
 }
 void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 {
+	// Debug:
+	if( blender )
+	{
+		if( !newActiveGraph->nodes.front()->property.contains("samples") )
+		{
+			viz_params["showMeshes"] = false;
+			viz_params["showTasks"] = true;
+		}
+
+		//newActiveGraph->normalize();
+		//newActiveGraph->moveBottomCenterToOrigin();
+	}	
+	
 	graphs.clear();
 	this->graphs.push_back(newActiveGraph);
 	drawArea()->updateGL();

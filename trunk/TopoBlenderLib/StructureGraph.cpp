@@ -51,6 +51,10 @@ void Graph::init()
 	property["isSplatsHQ"]	= false;
 
 	property["isBusy"] = false;
+
+	vs = VectorSoup(Qt::blue);
+	vs2 = VectorSoup(Qt::red);
+	vs3 = VectorSoup(Qt::green);
 }
 
 Graph::Graph( const Graph & other )
@@ -383,8 +387,8 @@ void Graph::draw( QGLViewer * drawArea )
 
 	if( property["showTasks"].toBool() )
 	{
-		vs.draw();	vs2.draw();	vs3.draw();
-		ps.draw();	vs2.draw();	vs3.draw();
+		vs.draw();	vs2.draw(5); vs3.draw(9);
+		ps.draw();	ps2.draw();	ps3.draw();
 	}
 
 	// Geometry of graph

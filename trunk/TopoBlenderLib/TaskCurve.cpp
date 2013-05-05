@@ -237,6 +237,9 @@ void TaskCurve::prepareGrowCurve()
 		property["pathA"].setValue( pathA );
 		property["pathB"].setValue( pathB );
 
+		// geometry ends
+
+
 		// Encode curve
 		property["cpCoords"].setValue( Structure::Curve::encodeCurve(tcurve, tlinkA->position(tn->id), tlinkB->position(tn->id)) );
 
@@ -301,7 +304,9 @@ void TaskCurve::prepareMorphCurve()
 
 		// Smooth transition from start point
 		if( !isPathOnSingleNode( path ) )
+		{
 			path = smoothStart( node(), link->getCoord(n->id).front(), path );
+		}
 		else
 		{
 			// Add a "static" point
@@ -311,7 +316,7 @@ void TaskCurve::prepareMorphCurve()
 		}
 
 		// Smooth transition to end point
-		path = smoothEnd( prepareEnd(n, link), Vec4d(0), path );
+		//path = smoothEnd( prepareEnd(n, link), Vec4d(0), path );
 
 		// Replace coordinates and such
 		link->replace( otherNode, active->getNode(fnc.first), std::vector<Vec4d>(1,fnc.second) );
@@ -341,13 +346,13 @@ void TaskCurve::prepareMorphCurve()
 	{
 		// Start and end for both links
 		Link * linkA = edges.front();
-		Vec3d startA = linkA->position(n->id);
-		NodeCoord edA = futureLinkCoord(linkA);
+		Vec3d startA = linkA->positionOther(n->id);
+		NodeCoord edA = futureOtherNodeCoord(linkA);
 		Vec3d endA = active->position(edA.first,edA.second);
 
 		Link * linkB = edges.back();
-		Vec3d startB = linkB->position(n->id);
-		NodeCoord edB = futureLinkCoord(linkB);
+		Vec3d startB = linkB->positionOther(n->id);
+		NodeCoord edB = futureOtherNodeCoord(linkB);
 		Vec3d endB = active->position(edB.first,edB.second);
 
 		// Geodesic distances on the active graph excluding the running tasks
@@ -367,8 +372,8 @@ void TaskCurve::prepareMorphCurve()
 				Node * aux = addAuxNode(linkA->position(n->id), active);
 				pathA.push_back( GraphDistance::PathPointPair( PathPoint (aux->id, Vec4d(0)) ) );
 			}
-			else
-				pathA = smoothStart(node(), linkA->getCoord(n->id).front(), pathA);
+			//else
+			//    pathA = smoothStart(node(), linkA->getCoord(n->id).front(), pathA);
 
 			if( isPathOnSingleNode(pathB) )
 			{
@@ -377,8 +382,8 @@ void TaskCurve::prepareMorphCurve()
 				Node * aux = addAuxNode(linkB->position(n->id), active);
 				pathB.push_back( GraphDistance::PathPointPair( PathPoint (aux->id, Vec4d(0)) ) );
 			}
-			else
-				pathB = smoothStart(node(), linkB->getCoord(n->id).front(), pathB);
+			//else
+			//    pathB = smoothStart(node(), linkB->getCoord(n->id).front(), pathB);
 		}
 
 		// Replace destination
@@ -399,11 +404,6 @@ void TaskCurve::prepareMorphCurve()
 				}
 			}
 		}
-
-		// Smooth transition to end point
-		QPair<Node*,Node*> auxAB = prepareEnd2(n,linkA,linkB);
-		pathA = smoothEnd(auxAB.first, Vec4d(0), pathA);
-		pathB = smoothEnd(auxAB.second, Vec4d(0), pathB);
 
 		// Remove redundancy along paths
 		pathA = this->weldPath( pathA );
@@ -426,10 +426,24 @@ void TaskCurve::prepareMorphCurve()
 		isFlip = isFlipA && isFlipB;
 
 		// Parameters needed for morphing
-		property["cpCoords"].setValue( Structure::Curve::encodeCurve((Curve*)n, startA, startB) );
-		property["cpCoordsT"].setValue( Structure::Curve::encodeCurve((Curve*)tn, tstartA, tstartB, isFlip) );
-
 		property["isFlip"].setValue( isFlip );
+
+		Vector3 sourceA = n->position(Vec4d(0)), sourceB = n->position(Vec4d(1));
+		Vector3 targetA = tn->position(Vec4d(0)), targetB = tn->position(Vec4d(1));
+
+		property["cpCoords"].setValue( Structure::Curve::encodeCurve((Curve*)n, sourceA, sourceB) );
+		property["cpCoordsT"].setValue( Structure::Curve::encodeCurve((Curve*)tn, targetA, targetB, isFlip) );
+
+		// Absolute end points
+		property["sourceA"].setValue( sourceA );
+		property["sourceB"].setValue( sourceB );
+
+		property["targetA"].setValue( targetA );
+		property["targetB"].setValue( targetB );
+
+		// Two ends
+		property["linkA"].setValue( linkA );
+		property["linkB"].setValue( linkB );
 
 		// Visualization
 		n->property["path"].setValue( positionalPath(pathA) );
@@ -445,7 +459,40 @@ void TaskCurve::executeGrowShrinkCurve( double t )
 	if (property.contains("deltas"))
 		foldCurve(t);
 	else if (property.contains("pathA") && property.contains("pathB"))
-		executeMorphCurve(t);
+	{
+		QVector< GraphDistance::PathPointPair > pathA = property["pathA"].value< QVector< GraphDistance::PathPointPair > >();
+		QVector< GraphDistance::PathPointPair > pathB = property["pathB"].value< QVector< GraphDistance::PathPointPair > >();
+
+		int nA = pathA.size(), nB = pathB.size();
+
+		if(nA == 0 || nB == 0)  return;
+
+		int idxA = t * (pathA.size() - 1);
+		int idxB = t * (pathB.size() - 1);
+
+		// Move to next step
+		Vector3 pointA = pathA[idxA].position(active);
+		Vector3 pointB = pathB[idxB].position(active);
+
+		// Decode
+		SheetEncoding cpCoords = property["cpCoords"].value<SheetEncoding>();
+		SheetEncoding cpCoordsT = property["cpCoordsT"].value<SheetEncoding>();
+		bool isFlip = property["isFlip"].toBool();
+
+		Array1D_Vector3 newPnts = Curve::decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB);
+		Array1D_Vector3 newPntsT = Curve::decodeCurve(property["cpCoordsT"].value<CurveEncoding>(), pointA, pointB);
+
+		if(!newPntsT.size()) newPntsT = newPnts;
+
+		Array1D_Vector3 blendedPnts;
+
+		for(int i = 0; i < (int)newPnts.size(); i++)
+		{
+			blendedPnts.push_back( AlphaBlend(t, newPnts[i], newPntsT[i]) );
+		}
+
+		n->setControlPoints( blendedPnts );
+	}
 
 	// When task is done
 	if (t == 1)
@@ -529,25 +576,34 @@ void TaskCurve::executeMorphCurve( double t )
 		QVector< GraphDistance::PathPointPair > pathB = property["pathB"].value< QVector< GraphDistance::PathPointPair > >();
 
 		int nA = pathA.size(), nB = pathB.size();
-
 		if(nA == 0 || nB == 0)	return;
 
+		if (node()->id == "RightDownBar")
+		{
+			int a = 0;
+		}
+
+		Structure::Link * linkA = property["linkA"].value<Structure::Link*>();
+		Structure::Link * linkB = property["linkB"].value<Structure::Link*>();
+		if(!linkA || !linkB) return;
+
+		// Local link coordinates
 		int idxA = t * (pathA.size() - 1);
 		int idxB = t * (pathB.size() - 1);
 
-		// Move to next step
-		Vector3 pointA = pathA[idxA].position(active);
-		Vector3 pointB = pathB[idxB].position(active);
+		GraphDistance::PathPointPair curA = pathA[idxA];
+		GraphDistance::PathPointPair curB = pathB[idxB];
 
-		QStringList activeNodes;
-		activeNodes << pathA[idxA].a.first << pathA[idxA].b.first
-					<< pathB[idxB].a.first << pathB[idxB].b.first;
-		property["activeNodes"] = activeNodes;
+		linkA->replace( linkA->otherNode(n->id)->id, active->getNode(curA.a.first), std::vector<Vec4d>(1,curA.a.second) );
+		linkB->replace( linkB->otherNode(n->id)->id, active->getNode(curB.a.first), std::vector<Vec4d>(1,curB.a.second) );
+
+		// Shape and size of curve
+		Vector3 pointA = AlphaBlend(t, property["sourceA"].value<Vector3>(), property["targetA"].value<Vector3>());
+		Vector3 pointB = AlphaBlend(t, property["sourceB"].value<Vector3>(), property["targetB"].value<Vector3>());
 
 		// Decode
 		SheetEncoding cpCoords = property["cpCoords"].value<SheetEncoding>();
 		SheetEncoding cpCoordsT = property["cpCoordsT"].value<SheetEncoding>();
-		bool isFlip = property["isFlip"].toBool();
 
 		Array1D_Vector3 newPnts = Curve::decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB);
 		Array1D_Vector3 newPntsT = Curve::decodeCurve(property["cpCoordsT"].value<CurveEncoding>(), pointA, pointB);
