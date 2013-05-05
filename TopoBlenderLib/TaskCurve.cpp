@@ -539,6 +539,11 @@ void TaskCurve::executeMorphCurve( double t )
 		Vector3 pointA = pathA[idxA].position(active);
 		Vector3 pointB = pathB[idxB].position(active);
 
+		QStringList activeNodes;
+		activeNodes << pathA[idxA].a.first << pathA[idxA].b.first
+					<< pathB[idxB].a.first << pathB[idxB].b.first;
+		property["activeNodes"] = activeNodes;
+
 		// Decode
 		SheetEncoding cpCoords = property["cpCoords"].value<SheetEncoding>();
 		SheetEncoding cpCoordsT = property["cpCoordsT"].value<SheetEncoding>();
