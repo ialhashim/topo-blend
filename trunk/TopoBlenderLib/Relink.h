@@ -6,9 +6,8 @@
 struct LinkConstraint{
     Structure::Link *link;
     Task *task, *otherTask;
-    Vector3 delta;
-    LinkConstraint(Vector3 d = Vector3(0), Structure::Link * l=NULL, Task* t=NULL, Task* otherT=NULL)
-    { link = l; task = t; otherTask = otherT; delta = d; }
+    LinkConstraint(Structure::Link * l=NULL, Task* t=NULL, Task* otherT=NULL)
+    { link = l; task = t; otherTask = otherT; }
 };
 typedef QMap< Task*, QVector<LinkConstraint> > TasksConstraints;
 
@@ -21,9 +20,6 @@ struct Relink
     Scheduler * s;
     Structure::Graph *activeGraph, *targetGraph;
     TasksConstraints constraints;
-
-    void prepare( Task * task );
-    void relink( int globalTime ); 
 
 	QQueue<Task*> propagationQueue;
 	void execute(int globalTime);

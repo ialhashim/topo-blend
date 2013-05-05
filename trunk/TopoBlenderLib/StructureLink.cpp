@@ -47,6 +47,8 @@ Vec4d Link::getMiddleCoord( QString nodeID )
 
 void Link::replace(QString oldNodeID, Node *newNode, std::vector<Vec4d> newCoord)
 {
+	if(!newNode) return;
+
 	if(n1->id == oldNodeID){
 		n1 = newNode;
 		coord[0] = newCoord;
@@ -180,8 +182,13 @@ QVector<Link*> Link::haveProperty( QVector<Link*> links, QString propertyName, Q
 	return result;
 }
 
-void Structure::Link::invertCoords( QString nodeID )
+void Link::invertCoords( QString nodeID )
 {
 	if(nodeID == n1->id) coord[0] = inverseCoords(coord[0]);
 	if(nodeID == n2->id) coord[1] = inverseCoords(coord[1]);
+}
+
+Vec3d Link::delta()
+{
+	return position(n2->id) - position(n1->id);
 }

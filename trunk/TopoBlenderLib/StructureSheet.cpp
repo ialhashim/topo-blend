@@ -2,6 +2,7 @@
 #include "NanoKdTree.h"
 #include "GraphDistance.h"
 #include "PCA.h"
+using namespace qglviewer;
 
 #if defined(Q_OS_MAC)
 #include <OpenGL/glu.h>
@@ -314,9 +315,9 @@ void Sheet::rotate( double angle, Vector3 axis )
 	this->surface.quads.clear();
 }
 
-void Sheet::equalizeControlPoints( Structure::Node * _other )
+void Sheet::equalizeControlPoints( Node * _other )
 {
-	Structure::Sheet *other = (Structure::Sheet*) _other;
+	Sheet *other = (Sheet*) _other;
 
 	int nU = qMax(other->surface.mNumUCtrlPoints,surface.mNumUCtrlPoints);
 	int nV = qMax(other->surface.mNumVCtrlPoints,surface.mNumVCtrlPoints);
@@ -356,22 +357,7 @@ int Sheet::numCtrlPnts()
 	return surface.mNumUCtrlPoints * surface.mNumVCtrlPoints;
 }
 
-void Sheet::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
-{
-	Vector3 p = position( handle );
-
-	double diff = (p - to).norm();
-	if(diff < 1e-7) return;
-
-	//if( isRigid )
-	{
-		Vec3d delta = to - p;
-		this->moveBy( delta );
-		return;
-	}
-}
-
-void Structure::Sheet::refineControlPoints( int nU, int nV /*= 0*/ )
+void Sheet::refineControlPoints( int nU, int nV /*= 0*/ )
 {
 	Array2D_Vector3 my_cp;
 
@@ -390,19 +376,19 @@ void Structure::Sheet::refineControlPoints( int nU, int nV /*= 0*/ )
 	surface = NURBS::NURBSRectangled::createSheetFromPoints(my_cp);
 }
 
-int Structure::Sheet::numUCtrlPnts()
+int Sheet::numUCtrlPnts()
 {
 	return surface.mNumUCtrlPoints;
 }
 
-int Structure::Sheet::numVCtrlPnts()
+int Sheet::numVCtrlPnts()
 {
 	return surface.mNumVCtrlPoints;
 
 }
 
 
-NURBS::NURBSCurved Structure::Sheet::convertToNURBSCurve( Vec3d p, Vec3d dir )
+NURBS::NURBSCurved Sheet::convertToNURBSCurve( Vec3d p, Vec3d dir )
 {
 	Vec3d uDir = surface.mCtrlPoint.front().back() - surface.mCtrlPoint.front().front();
 	Vec3d vDir = surface.mCtrlPoint.back().front() - surface.mCtrlPoint.front().front();
@@ -466,4 +452,92 @@ NURBS::NURBSCurved Structure::Sheet::convertToNURBSCurve( Vec3d p, Vec3d dir )
 
 	this->property["curveDirection"] = curveDirection;
 	return NURBS::NURBSCurved(curvePoints, curveWeights);
+}
+
+
+SheetEncoding Sheet::encodeSheet( Sheet * sheet, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z )
+{
+	SheetEncoding cpCoords;
+	Array1D_Vector3 controlPoints = sheet->controlPoints();
+
+	for(int i = 0; i < (int)controlPoints.size(); i++)
+	{
+		Vector3 p = controlPoints[i];
+		Vector3 dir = p - origin;
+
+		// Parameters: offset, theta, psi
+		Array1D_Real params(3,0);
+		if(dir.norm() > 0){
+			params[0] = dir.norm();
+			dir = dir.normalized();
+		}
+		globalToLocalSpherical(X,Y,Z, params[1], params[2], dir);
+
+		cpCoords[i] = params;
+	}
+
+	return cpCoords;
+}
+
+Array1D_Vector3 Sheet::decodeSheet( SheetEncoding cpCoords, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z )
+{
+	Array1D_Vector3 pnts( cpCoords.size(), Vector3(0) );
+
+	for(int i = 0; i < (int)pnts.size(); i++)
+	{
+		double offset = cpCoords[i][0];
+		double theta = cpCoords[i][1];
+		double psi = cpCoords[i][2];
+
+		Vector3 dir(0);
+		localSphericalToGlobal(X,Y,Z,theta,psi,dir);
+
+		pnts[i] = origin + (dir * offset);
+	}
+
+	return pnts;
+}
+
+void Sheet::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
+{
+	Vector3 p = position( handle );
+
+	double diff = (p - to).norm();
+	if(diff < 1e-7) return;
+
+	//if( isRigid )
+	{
+		Vec3d delta = to - p;
+		this->moveBy( delta );
+		return;
+	}
+}
+
+
+void Sheet::deformTwoHandles( Vec4d handleA, Vector3 newPosA, Vec4d handleB, Vector3 newPosB )
+{
+	Vec3d oldA = position(handleA);
+	Vec3d oldB = position(handleB);
+
+	double diffOld = (oldA - oldB).norm();
+	if(diffOld < 1e-7) return;
+
+	this->moveBy(newPosA - oldA);
+
+	Vec3d oldX = (oldB - oldA).normalized();
+	Vec3d oldY = orthogonalVector(oldX);
+	Vec3d oldZ = cross(oldX, oldY);
+	SheetEncoding SE = encodeSheet(this, newPosA, oldX, oldY, oldZ);
+
+	double scale = (newPosB - newPosA).norm() / (oldB - oldA).norm();
+	foreach(int i, SE.keys()) SE[i][0] *= scale;
+
+	Vec3d newX = (newPosB - newPosA).normalized();
+	qglviewer::Vec tempOldX(oldX), tempNewX(newX);
+	const qglviewer::Quaternion q(tempOldX, tempNewX);
+
+	qglviewer::Vec Y = q * Vec(oldY);
+	qglviewer::Vec Z = q * Vec(oldZ);
+
+	this->setControlPoints( decodeSheet( SE, newPosA, newX, Vec3d(Y[0], Y[1], Y[2]), Vec3d(Z[0], Z[1], Z[2]) ) );
 }

@@ -2,6 +2,8 @@
 #include "LineSegment.h"
 using namespace Structure;
 
+#include "qglviewer/quaternion.h"
+
 #if defined(Q_OS_MAC)
 #include <OpenGL/glu.h>
 #else
@@ -296,9 +298,9 @@ void Curve::drawWithNames( int nID, int pointIDRange )
 	}
 }
 
-void Curve::equalizeControlPoints( Structure::Node * _other )
+void Curve::equalizeControlPoints( Node * _other )
 {
-	Structure::Curve *other = (Structure::Curve *)_other;
+	Curve *other = (Curve *)_other;
 
 	int targetNumber = other->curve.mNumCtrlPoints;
 	int diff = targetNumber - curve.mNumCtrlPoints;
@@ -314,10 +316,106 @@ int Curve::numCtrlPnts()
 	return curve.mNumCtrlPoints;
 }
 
+void Curve::refineControlPoints( int nU, int nV /*= 0*/ )
+{
+	int diff = nU - curve.mNumCtrlPoints;
+	if(diff == 0) return;
+
+	std::vector<Vec3d> newPnts = this->curve.simpleRefine( diff );
+
+	this->curve = NURBS::NURBSCurved(newPnts, std::vector<double>( newPnts.size(), 1.0 ));
+}
+
+Vec3d Curve::direction()
+{
+	Vec3d dir = curve.mCtrlPoint.back() - curve.mCtrlPoint.front();
+	return dir.normalized();
+}
+
+
+
+/* Curve encoding, to decode you need two points A,B and a frame XYZ */
+CurveEncoding Curve::encodeCurve( Array1D_Vector3 points, Vector3 start, Vector3 end, bool isFlip )
+{
+	CurveEncoding cpCoords;
+
+	NURBS::Line segment(start, end);
+
+	// compute frame
+	qglviewer::Vec x(1, 0, 0), y(0, 1, 0), z(0, 0, 1);
+	Vec3d Z = (end - start).normalized();
+	qglviewer::Quaternion q(z, qglviewer::Vec(Z));
+	x = q * x; y = q * y;
+	Vec3d X(x[0], x[1], x[2]);
+	Vec3d Y(y[0], y[1], y[2]);
+
+	for(int i = 0; i < (int)points.size(); i++)
+	{
+		double t;
+		Vector3 p = points[i], proj;
+		segment.ClosestPoint(p, t, proj);
+
+		Vector3 dir = p - proj;
+
+		// Parameters: t, offset, theta, psi
+		Array1D_Real params(4,0);
+		params[0] = t;
+		if(dir.norm() > 0){
+			params[1] = dir.norm() / segment.length;
+			dir = dir.normalized();
+		}
+		globalToLocalSpherical(X,Y,Z, params[2], params[3], dir);
+
+		// Flipping case
+		int idx = i;
+		if(isFlip) idx = (points.size()-1) - i; 
+
+		cpCoords[idx] = params;
+	}
+
+	return cpCoords;
+}
+
+CurveEncoding Curve::encodeCurve( Curve * curve, Vector3 start, Vector3 end, bool isFlip )
+{
+	return encodeCurve(curve->controlPoints(),start,end,isFlip);
+}
+
+Array1D_Vector3 Curve::decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, double T)
+{
+	Array1D_Vector3 controlPoints (cpCoords.size(), Vector3(0));
+
+	NURBS::Line segment(start, end);
+
+	// compute frame
+	qglviewer::Vec x(1, 0, 0), y(0, 1, 0), z(0, 0, 1);
+	Vec3d Z = (end - start).normalized();
+	qglviewer::Quaternion q(z, qglviewer::Vec(Z));
+	x = q * x; y = q * y;
+	Vec3d X(x[0], x[1], x[2]);
+	Vec3d Y(y[0], y[1], y[2]);
+
+	for(int i = 0; i < (int)controlPoints.size(); i++)
+	{
+		double t = cpCoords[i][0];
+		double offset = cpCoords[i][1];
+		double theta = cpCoords[i][2];
+		double psi = cpCoords[i][3];
+
+		Vector3 dir(0);
+		localSphericalToGlobal(X,Y,Z,theta,psi,dir);
+
+		controlPoints[i] = segment.pointAt(t) + (dir * ((offset * T) * segment.length));
+	}
+
+	return controlPoints;
+}
+
+
 void Curve::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
 {
 	Vec4d otherEndCoord = Vec4d((handle[0] > 0.5) ? 0 : 1);
-	
+
 	Vector3 p = position( handle );
 
 	double diff = (p-to).norm();
@@ -359,18 +457,10 @@ void Curve::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
 	setControlPoints( ctrlPnts );
 }
 
-void Structure::Curve::refineControlPoints( int nU, int nV /*= 0*/ )
+void Curve::deformTwoHandles( Vec4d handleA, Vector3 newPosA, Vec4d handleB, Vector3 newPosB )
 {
-	int diff = nU - curve.mNumCtrlPoints;
-	if(diff == 0) return;
+	Vec3d oldA = position(handleA);
+	Vec3d oldB = position(handleB);
 
-	std::vector<Vec3d> newPnts = this->curve.simpleRefine( diff );
-
-	this->curve = NURBS::NURBSCurved(newPnts, std::vector<double>( newPnts.size(), 1.0 ));
-}
-
-Vec3d Structure::Curve::direction()
-{
-	Vec3d dir = curve.mCtrlPoint.back() - curve.mCtrlPoint.front();
-	return dir.normalized();
+	setControlPoints( decodeCurve( encodeCurve(this, oldA, oldB), newPosA, newPosB ) );
 }

@@ -3,6 +3,8 @@
 #include "StructureNode.h"
 #include "NURBSCurve.h"
 
+typedef QMap<int, Array1D_Real> CurveEncoding;
+
 namespace Structure{
 
 struct Curve : public Node
@@ -38,6 +40,7 @@ struct Curve : public Node
 	void refineControlPoints(int nU, int nV = 0);
 	void equalizeControlPoints( Structure::Node * other );
 	void deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid );
+	void deformTwoHandles( Vec4d handleA, Vector3 newPosA, Vec4d handleB, Vector3 newPosB );
 
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
 	std::vector< std::vector<Vec4d> > discretizedPoints(Scalar resolution);
@@ -50,9 +53,9 @@ struct Curve : public Node
 	Vector3 center();
 
 	// Encoding
-	void encodeShape();
-	void decodeShape(QVector<Vec3d> & deltas);
-
+	static CurveEncoding encodeCurve( Array1D_Vector3 points, Vector3 start, Vector3 end, bool isFlip = false );
+	static CurveEncoding encodeCurve( Curve * curve, Vector3 start, Vector3 end, bool isFlip = false );
+	static Array1D_Vector3 decodeCurve( CurveEncoding cpCoords, Vector3 start, Vector3 end, double T = 1.0 );
 
 	// Geometric properties
 	Scalar area();
