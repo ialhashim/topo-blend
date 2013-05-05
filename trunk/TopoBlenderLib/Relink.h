@@ -27,4 +27,6 @@ struct Relink
 	void propagateFrom(Task* task);
 	void createConstraintsFromTask(Task* task);
 
+	// Helpers
+	Vector3 getDelta(Structure::Link * link, QString otherID, double t);
 };
