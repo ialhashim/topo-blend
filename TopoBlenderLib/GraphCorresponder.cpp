@@ -712,7 +712,7 @@ void GraphCorresponder::correspondAllNodes()
 		// One to many
 		if (sVector.size() == 1)
 		{
-			Structure::Node *sNode = sg->getNode(*sVector.begin());
+			Structure::Node *sNode = sg->getNode(sVector.front());
 			foreach(QString tID, tVector)
 			{
 				Structure::Node *tNode = tg->getNode(tID);
@@ -722,7 +722,7 @@ void GraphCorresponder::correspondAllNodes()
 		// Many to one
 		else if (tVector.size() == 1)
 		{
-			Structure::Node *tNode = tg->getNode(*tVector.begin());
+			Structure::Node *tNode = tg->getNode(tVector.front());
 			foreach(QString sID, sVector)
 			{
 				Structure::Node *sNode = sg->getNode(sID);

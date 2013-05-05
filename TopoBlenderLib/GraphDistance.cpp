@@ -318,6 +318,12 @@ double GraphDistance::pathCoordTo( Vector3 point, QVector< QPair<QString, Vec4d>
 	path.erase( path.begin() );
 	std::reverse(path.begin(), path.end());
 
+	if(dists.empty()) 
+	{
+		path.push_back( allCoords[closest] );
+		return 0;
+	}
+
 	// Return distance
 	return dists[closest];
 }

@@ -52,6 +52,9 @@ static void DijkstraComputePaths(vertex_t source,
 			vertex_t v = neighbor_iter->target;
 			weight_t weight = neighbor_iter->weight;
 			weight_t distance_through_u = dist + weight;
+
+			if(v < 0) return;
+
 			if (distance_through_u < min_distance[v]) {
 				vertex_queue.erase(std::make_pair(min_distance[v], v));
 

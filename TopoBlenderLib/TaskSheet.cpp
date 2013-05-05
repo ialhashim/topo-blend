@@ -1,6 +1,8 @@
 #include "TaskSheet.h"
 #include "AbsoluteOrientation.h"
 
+#include "StructureCurve.h"
+
 using namespace Structure;
 
 void TaskSheet::prepareSheet()
@@ -169,8 +171,8 @@ void TaskSheet::prepareMorphSheet()
     property["sframe"].setValue( sframe );
     property["tframe"].setValue( tframe );
 
-    property["cpCoords"].setValue( encodeSheet(sheet, sframe.center, sframe.r,sframe.s,sframe.t) );
-    property["cpCoordsT"].setValue( encodeSheet(tsheet, tframe.center, tframe.r,tframe.s,tframe.t) );
+    property["cpCoords"].setValue( Structure::Sheet::encodeSheet(sheet, sframe.center, sframe.r,sframe.s,sframe.t) );
+    property["cpCoordsT"].setValue( Structure::Sheet::encodeSheet(tsheet, tframe.center, tframe.r,tframe.s,tframe.t) );
 
     // Visualization
     std::vector<RMF::Frame> frames = smoothRotateFrame(sframe, rotation, 100);
@@ -216,7 +218,7 @@ void TaskSheet::executeGrowShrinkSheet( double t )
         Vector3 pointA = pathA[idxA].position(active);
         Vector3 pointB = pathB[idxB].position(active);
 
-        Array1D_Vector3 decoded = decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, decodeT);
+        Array1D_Vector3 decoded = Curve::decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, decodeT);
         structure_sheet->setControlPoints( decoded );
     }
 
@@ -269,8 +271,8 @@ void TaskSheet::executeMorphSheet( double t )
 
     curFrame.center = tframe.center = AlphaBlend(t, sframe.center, tframe.center);
 
-    Array1D_Vector3 newPnts = decodeSheet( cpCoords, curFrame.center, curFrame.r, curFrame.s, curFrame.t );
-    Array1D_Vector3 newPntsT = decodeSheet( cpCoordsT, tframe.center, tframe.r, tframe.s, tframe.t );
+    Array1D_Vector3 newPnts = Sheet::decodeSheet( cpCoords, curFrame.center, curFrame.r, curFrame.s, curFrame.t );
+    Array1D_Vector3 newPntsT = Sheet::decodeSheet( cpCoordsT, tframe.center, tframe.r, tframe.s, tframe.t );
 
     Array1D_Vector3 blendedPnts;
 
@@ -285,12 +287,12 @@ void TaskSheet::executeMorphSheet( double t )
 SheetEncoding TaskSheet::encodeSheetAsCurve( Structure::Sheet * sheet, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
 {
     Array1D_Vector3 controlPoints = sheet->controlPoints();
-    return encodeCurve(controlPoints,start,end);
+    return Structure::Curve::encodeCurve(controlPoints,start,end);
 }
 
 Array1D_Vector3 TaskSheet::decodeSheetFromCurve( double t, SheetEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
 {
-    return decodeCurve(cpCoords,start,end,t);
+    return Structure::Curve::decodeCurve(cpCoords,start,end,t);
 }
 
 Structure::Sheet * TaskSheet::targetSheet()

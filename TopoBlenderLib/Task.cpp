@@ -422,82 +422,6 @@ Structure::Link * Task::preferredEnd(Structure::Node * n, QVector<Structure::Lin
 	return preferredLink;
 }
 
-/* Curve encoding, to decode you need two points A,B and a frame XYZ */
-CurveEncoding Task::encodeCurve( Array1D_Vector3 points, Vector3 start, Vector3 end, bool isFlip )
-{
-	CurveEncoding cpCoords;
-
-	Line segment(start, end);
-
-	// compute frame
-	Vec x(1, 0, 0), y(0, 1, 0), z(0, 0, 1);
-	Vec3d Z = (end - start).normalized();
-	qglviewer::Quaternion q(z, Vec(Z));
-	x = q * x; y = q * y;
-	Vec3d X(x[0], x[1], x[2]);
-	Vec3d Y(y[0], y[1], y[2]);
-
-	for(int i = 0; i < (int)points.size(); i++)
-	{
-		double t;
-		Vector3 p = points[i], proj;
-		segment.ClosestPoint(p, t, proj);
-
-		Vector3 dir = p - proj;
-
-		// Parameters: t, offset, theta, psi
-		Array1D_Real params(4,0);
-		params[0] = t;
-		if(dir.norm() > 0){
-			params[1] = dir.norm() / segment.length;
-			dir = dir.normalized();
-		}
-		globalToLocalSpherical(X,Y,Z, params[2], params[3], dir);
-
-		// Flipping case
-		int idx = i;
-		if(isFlip) idx = (points.size()-1) - i; 
-
-		cpCoords[idx] = params;
-	}
-
-	return cpCoords;
-}
-
-CurveEncoding Task::encodeCurve( Structure::Curve * curve, Vector3 start, Vector3 end, bool isFlip )
-{
-	return encodeCurve(curve->controlPoints(),start,end,isFlip);
-}
-
-Array1D_Vector3 Task::decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector3 end, double T)
-{
-	Array1D_Vector3 controlPoints (cpCoords.size(), Vector3(0));
-
-	Line segment(start, end);
-
-	// compute frame
-	Vec x(1, 0, 0), y(0, 1, 0), z(0, 0, 1);
-	Vec3d Z = (end - start).normalized();
-	qglviewer::Quaternion q(z, Vec(Z));
-	x = q * x; y = q * y;
-	Vec3d X(x[0], x[1], x[2]);
-	Vec3d Y(y[0], y[1], y[2]);
-
-	for(int i = 0; i < (int)controlPoints.size(); i++)
-	{
-		double t = cpCoords[i][0];
-		double offset = cpCoords[i][1];
-		double theta = cpCoords[i][2];
-		double psi = cpCoords[i][3];
-
-		Vector3 dir(0);
-		localSphericalToGlobal(X,Y,Z,theta,psi,dir);
-	
-		controlPoints[i] = segment.pointAt(t) + (dir * ((offset * T) * segment.length));
-	}
-
-	return controlPoints;
-}
 
 RMF::Frame Task::sheetFrame( Structure::Sheet * sheet )
 {
@@ -523,49 +447,6 @@ Array1D_Vector3 Task::sheetDeltas( Structure::Sheet * sheet )
 	for(int i = 0; i < (int)controlPoints.size(); i++)
 		deltas.push_back( controlPoints[i] - frame.center );
 	return deltas;
-}
-
-SheetEncoding Task::encodeSheet( Structure::Sheet * sheet, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z )
-{
-	SheetEncoding cpCoords;
-	Array1D_Vector3 controlPoints = sheet->controlPoints();
-	
-	for(int i = 0; i < (int)controlPoints.size(); i++)
-	{
-		Vector3 p = controlPoints[i];
-		Vector3 dir = p - origin;
-
-		// Parameters: offset, theta, psi
-		Array1D_Real params(3,0);
-		if(dir.norm() > 0){
-			params[0] = dir.norm();
-			dir = dir.normalized();
-		}
-		globalToLocalSpherical(X,Y,Z, params[1], params[2], dir);
-
-		cpCoords[i] = params;
-	}
-
-	return cpCoords;
-}
-
-Array1D_Vector3 Task::decodeSheet( SheetEncoding cpCoords, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z )
-{
-	Array1D_Vector3 pnts( cpCoords.size(), Vector3(0) );
-
-	for(int i = 0; i < (int)pnts.size(); i++)
-	{
-		double offset = cpCoords[i][0];
-		double theta = cpCoords[i][1];
-		double psi = cpCoords[i][2];
-
-		Vector3 dir(0);
-		localSphericalToGlobal(X,Y,Z,theta,psi,dir);
-
-		pnts[i] = origin + (dir * offset);
-	}
-
-	return pnts;
 }
 
 RMF::Frame Task::curveFrame( Structure::Curve * curve, bool isFlip )

@@ -62,6 +62,8 @@ struct Link
 	/// Helpers:
 	static QVector<Link*> haveProperty( QVector<Link*> links, QString propertyName );
 	static QVector<Link*> haveProperty( QVector<Link*> links, QString propertyName, QVariant propertyValue );
+
+	Vec3d delta();
 };
 
 }

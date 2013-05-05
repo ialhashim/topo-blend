@@ -32,6 +32,7 @@ struct Node
 	virtual void refineControlPoints(int nU, int nV = 0) = 0;
 	virtual void equalizeControlPoints( Structure::Node * other ) = 0;
 	virtual void deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid ) = 0;
+	virtual void deformTwoHandles( Vec4d handleA, Vector3 newPosA, Vec4d handleB, Vector3 newPosB ) = 0;
 
 	// Coordinates
     virtual void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame ) = 0;
@@ -75,6 +76,10 @@ struct Node
     virtual void draw(bool isShowCtrlPts = false) = 0;
     QMap< QString, QVariant > vis_property;
 	virtual void drawWithNames(int nID, int pointIDRange) = 0;
+
+
+
+
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
 };
 

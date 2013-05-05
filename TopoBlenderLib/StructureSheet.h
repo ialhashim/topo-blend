@@ -4,6 +4,8 @@
 #include "NURBSCurve.h"
 #include "NURBSRectangle.h"
 
+typedef QMap<int, Array1D_Real> SheetEncoding;
+
 namespace Structure{
 
 struct Sheet : public Node
@@ -36,6 +38,7 @@ struct Sheet : public Node
 	void refineControlPoints(int nU, int nV = 0);
 	void equalizeControlPoints( Structure::Node * other );
 	void deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid );
+	void deformTwoHandles( Vec4d handleA, Vector3 newPosA, Vec4d handleB, Vector3 newPosB );
 	NURBS::NURBSCurved convertToNURBSCurve(Vec3d p, Vec3d dir); 
 
 	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
@@ -50,6 +53,10 @@ struct Sheet : public Node
 
 	// Geometric properties
 	Scalar area();
+
+	// Encode and decode
+	static SheetEncoding encodeSheet( Sheet * sheet, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z );
+	static Array1D_Vector3 decodeSheet( SheetEncoding cpCoords, Vector3 origin, Vector3 X, Vector3 Y, Vector3 Z );
 
     // Connections
 

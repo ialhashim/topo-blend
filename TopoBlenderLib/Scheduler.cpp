@@ -201,25 +201,47 @@ void Scheduler::order()
 		}
 	}
 
-	// Remove empty spaces between tasks [inefficient?]
-	int curTime = 0;
-	forever{
-		QList<Task*> before, after;
-		splitTasksStartTime(curTime, before, after);
+	// Remove large empty spaces between tasks [inefficient?]
+	{
+		int curTime = 0;
+		forever{
+			QList<Task*> before, after;
+			splitTasksStartTime(curTime, before, after);
 
-		if(after.empty()) break;
+			if(after.empty()) break;
 
-		if(!before.empty())
-		{
-			int end = endOf( before );
-			int start = startOf( after );
+			if(!before.empty())
+			{
+				int end = endOf( before );
+				int start = startOf( after );
 
-			int delta = end - start;
-			if(delta < 0) 
-				slideTasksTime(after, delta);
+				int delta = end - start;
+				if(delta < 0) 
+					slideTasksTime(after, delta);
+			}
+			curTime += 50;
 		}
+	}
 
-		curTime += 50;
+	// Add spaces between tasks
+	{
+		int timeSpacing = 5;
+
+		QVector<Task*> allTasks = tasksSortedByStart();
+
+		int N = allTasks.size();
+		for(int i = 0; i < N; i++)
+		{
+			Task * currTask = allTasks[i];
+
+			QList<Task*> before, after;
+			splitTasksStartTime(currTask->endTime() - 1, before, after);
+			
+			foreach(Task* t, after)
+				t->setStart( t->start + timeSpacing );
+
+			while(i < N-1 && allTasks[i+1]->start == currTask->start) i++;
+		}
 	}
 
 	// To-do: Collect tasks together?
@@ -341,15 +363,15 @@ void Scheduler::executeAll()
 		// DEBUG - per pass
 		activeGraph->clearDebug();
 
-        // Relink
-        Relink linker(this);
-
 		// active tasks
 		QVector<QString> aTs = activeTasks(globalTime * totalTime);
 		activeGraph->property["activeTasks"].setValue( aTs );
 
 		// For visualization
 		activeGraph->setPropertyAll("isActive", false);
+
+		// Relink
+		Relink linker(this);
 
 		/// Prepare and execute current tasks
 		for(int i = 0; i < (int)allTasks.size(); i++)
@@ -371,10 +393,6 @@ void Scheduler::executeAll()
 			if(localTime >= 0.0 && localTime < 1.0) task->node()->property["isActive"] = true;
 		}
 
-		/// Apply relinking
-        //linker.relink( globalTime );
-		linker.execute(globalTime);
-
 		/// Geometry morphing
 		foreach(Task * task, allTasks)
 		{
@@ -382,7 +400,10 @@ void Scheduler::executeAll()
 			if( localTime < 0 ) continue;
 			task->geometryMorph( localTime );
 		}
-		
+
+		/// Apply relinking
+		linker.execute( globalTime );
+
 		// Output current active graph:
 		allGraphs.push_back( new Structure::Graph( *activeGraph ) );
 
