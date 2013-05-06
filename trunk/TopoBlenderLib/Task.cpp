@@ -540,15 +540,6 @@ void Task::execute( double t )
 			}
 		}
 	}
-
-	// Special cases
-	if(t >= 0)
-	{
-		if(type == GROW)
-		{
-			node()->property["toGrow"] = false;
-		}
-	}
 }
 
 QVector< GraphDistance::PathPointPair > Task::smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
@@ -662,13 +653,6 @@ void Task::setNode( QString node_ID )
 {
 	property["nodeID"] = node_ID;
 	this->nodeID = node_ID;
-	node()->property["taskType"] = type;
-
-	if(type == GROW)
-	{
-		node()->property["toGrow"] = true;
-	}
-
 	node()->property["taskType"] = type;
 }
 
@@ -801,4 +785,11 @@ bool Task::isCrossing()
 
 	property["isCrossing"] = isCross;
 	return isCross;
+}
+
+bool Task::isConsistant( Link* slink, Link* tlink )
+{
+	Node *sn1 = slink->n1;
+	Node *tn1 = tlink->n1;
+	return sn1->id == tn1->property["correspond"].toString();
 }

@@ -17,10 +17,10 @@ public:
 
     /// Prepare sub-routines
     void prepareShrinkCurveOneEdge( Structure::Link* l );
-	void prepareCrossing();
+	void prepareCrossingMorphCurve();
 
     /// Execute
-    void executeGrowShrinkCurve( double t );
+    void executeCrossingCurve( double t );
     void executeMorphCurve( double t );
     void foldCurve( double t );
 

@@ -696,7 +696,18 @@ void TopoBlender::generateSuperGraphs()
 	correspondSuperEdges();
 
 	// Initial edge radius
+	foreach(Link * l, super_sg->edges) l->property["delta"].setValue( l->delta() );
 	foreach(Link * l, super_tg->edges) l->property["delta"].setValue( l->delta() );
+
+	// Fix edges for null nodes
+	foreach (Node* n, super_sg->nodes){
+		if (n->id.contains("null"))	foreach(Link* l, super_sg->getEdges(n->id)) l->property["delta"].setValue(Vec3d(0));
+	}
+	foreach (Node* n, super_tg->nodes){
+		if (n->id.contains("null"))	foreach(Link* l, super_tg->getEdges(n->id)) l->property["delta"].setValue(Vec3d(0));
+	}
+
+
 }
 
 void TopoBlender::generateTasks()

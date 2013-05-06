@@ -36,12 +36,15 @@ public:
 	void geometryMorph( double t );
 
 	// Helper functions
-	QVector< GraphDistance::PathPointPair > weldPath( QVector< GraphDistance::PathPointPair > oldPath );
 	bool isActive(double t);
+	bool isCrossing();
+
+	bool isConsistant( Structure::Link* slink, Structure::Link* tlink );
+	
+	QVector< GraphDistance::PathPointPair > weldPath( QVector< GraphDistance::PathPointPair > oldPath );
 	QVector< GraphDistance::PathPointPair > smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
 	QVector< GraphDistance::PathPointPair > smoothEnd( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
 	bool isPathOnSingleNode( QVector< GraphDistance::PathPointPair > path );
-	bool isCrossing();
 
 	Structure::Node * addAuxNode(Vec3d position, Structure::Graph * g);
 	Structure::Node * prepareEnd( Structure::Node * n, Structure::Link * slink );
