@@ -22,9 +22,12 @@ struct Relink
     TasksConstraints constraints;
 
 	QQueue<Task*> propagationQueue;
+
 	void execute(int globalTime);
-	void relinkTask(Task* task, int globalTime);
+	void fixTask(Task* task, int globalTime);
 	void propagateFrom(Task* task);
-	void createConstraintsFromTask(Task* task);
-	Vector3 getDelta( Structure::Link * link, QString otherID );
+
+	// Helpers
+	Vector3 getToDelta( Structure::Link * link, QString otherID );
+	bool isRelinkable(Task* task);
 };

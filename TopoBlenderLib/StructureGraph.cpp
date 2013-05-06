@@ -587,6 +587,8 @@ void Graph::draw( QGLViewer * drawArea )
 				if( l->property.contains("path") )
 				{
 					QVector< GraphDistance::PathPointPair > pathRelative = l->property["path"].value< QVector< GraphDistance::PathPointPair > >();
+					if(!pathRelative.size()) continue;
+
 					Array1D_Vector3 path = GraphDistance::positionalPath(this, pathRelative);
 
 					PointSoup ps(10);

@@ -601,6 +601,11 @@ void Scheduler::blendDeltas( double globalTime, double timeStep )
 		{
 			Vec3d sDelta = l->delta();
 			Vec3d tDelta = tl->property["delta"].value<Vec3d>();
+
+			// flip sDelta if need
+			Node *n1 = l->n1, *tn1 = targetGraph->getNode(n1->property["correspond"].toString());
+			if ( n1->id == tn1->property["correspond"].toString() ) tDelta *= -1;
+
 			l->property["blendedDelta"].setValue( AlphaBlend(alpha, sDelta, tDelta) );
 		}
 	}

@@ -61,7 +61,6 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
 	Structure::Link * tlinkA = target->getEdge( linkA->property["correspond"].toString() );
 	Structure::Link * tlinkB = target->getEdge( linkB->property["correspond"].toString() );
 
-    // Corresponding stuff on ACTIVE
     Vec3d pointA = linkA->positionOther(n->id);
     Vec3d pointB = linkB->positionOther(n->id);
 
@@ -98,14 +97,14 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
     }
 
     // Add smooth ending on both paths
-    Vec3d endDeltaA = tlinkA->position(tn->id) - tlinkA->positionOther(tn->id);
-    Vec3d endDeltaB = tlinkB->position(tn->id) - tlinkB->positionOther(tn->id);
-    Node * auxA = new Structure::Curve(NURBS::NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, pointA + endDeltaA ) ), "auxA_" + n->id);
-    Node * auxB = new Structure::Curve(NURBS::NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, pointB + endDeltaB ) ), "auxB_" + n->id);
-    active->aux_nodes.push_back( auxA );
-    active->aux_nodes.push_back( auxB );
-    pathA = smoothEnd(auxA, Vec4d(0), pathA);
-    pathB = smoothEnd(auxB, Vec4d(0), pathB);
+    //Vec3d endDeltaA = tlinkA->position(tn->id) - tlinkA->positionOther(tn->id);
+    //Vec3d endDeltaB = tlinkB->position(tn->id) - tlinkB->positionOther(tn->id);
+    //Node * auxA = new Structure::Curve(NURBS::NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, pointA + endDeltaA ) ), "auxA_" + n->id);
+    //Node * auxB = new Structure::Curve(NURBS::NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, pointB + endDeltaB ) ), "auxB_" + n->id);
+    //active->aux_nodes.push_back( auxA );
+    //active->aux_nodes.push_back( auxB );
+    //pathA = smoothEnd(auxA, Vec4d(0), pathA);
+    //pathB = smoothEnd(auxB, Vec4d(0), pathB);
 
     // Record path
     property["pathA"].setValue( pathA );
@@ -137,6 +136,8 @@ void TaskSheet::prepareGrowShrinkSheet()
 {
     Structure::Node * n = node();
     QVector<Structure::Link*> edges = filterEdges(n, active->getEdges(n->id));
+
+	property["edges"].setValue( edges );
 
     if (edges.size() == 1)
     {
@@ -188,6 +189,7 @@ void TaskSheet::prepareMorphSheet()
 void TaskSheet::executeGrowShrinkSheet( double t )
 {
     Structure::Sheet* structure_sheet = ((Structure::Sheet*)node());
+	QVector<Link*> edges = property["edges"].value< QVector<Link*> >();
 
     /// Single edge case
     if ( property.contains("deltas") )
@@ -209,7 +211,7 @@ void TaskSheet::executeGrowShrinkSheet( double t )
         if(pathA.size() == 0 || pathB.size() == 0)	return;
 
         double dt = t;
-        if(this->type == SHRINK) dt = 1 - t;
+        if(type == SHRINK) dt = 1 - t;
 
 		double decodeT = qMin(1.0, dt * 2.0);
 
@@ -220,7 +222,20 @@ void TaskSheet::executeGrowShrinkSheet( double t )
         Vector3 pointA = pathA[idxA].position(active);
         Vector3 pointB = pathB[idxB].position(active);
 
-        Array1D_Vector3 decoded = Curve::decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB, decodeT);
+		Structure::Link *linkA = edges.front(), *linkB = edges.back();
+		if (type == GROW){
+			linkA = target->getEdge(linkA->property["correspond"].toString());
+			linkB = target->getEdge(linkB->property["correspond"].toString());
+		}
+
+		Vec3d deltaA = linkA->property["delta"].value<Vec3d>() * dt;
+		Vec3d deltaB = linkB->property["delta"].value<Vec3d>() * dt;
+		
+		// Visualize
+		active->vs.addVector(pointA,deltaA);
+		active->vs.addVector(pointB,deltaB);
+		
+        Array1D_Vector3 decoded = Curve::decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA + deltaA, pointB + deltaB, decodeT);
         structure_sheet->setControlPoints( decoded );
     }
 
