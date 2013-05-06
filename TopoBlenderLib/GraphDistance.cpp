@@ -440,3 +440,19 @@ double GraphDistance::smoothPathCoordTo( Vector3 point, QVector< PathPointPair >
 
 	return dist;
 }
+
+
+Array1D_Vector3 GraphDistance::positionalPath( Structure::Graph * graph, QVector< PathPointPair > & from_path, int smoothingIters /*= 0 */ )
+{
+	Array1D_Vector3 pnts;
+	if(!from_path.size()) return pnts;
+
+	foreach(GraphDistance::PathPointPair p, from_path) 
+		pnts.push_back(p.position( graph ));
+
+	// To ensure unique points
+	std::vector<size_t> xrefs;
+	weld(pnts, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
+
+	return smoothPolyline(pnts, smoothingIters);
+}

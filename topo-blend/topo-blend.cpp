@@ -1018,10 +1018,13 @@ void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 	// Debug:
 	if( blender )
 	{
-		if( !newActiveGraph->nodes.front()->property.contains("samples") )
+		if(false)
 		{
-			viz_params["showMeshes"] = false;
-			viz_params["showTasks"] = true;
+			if( !newActiveGraph->nodes.front()->property.contains("samples") )
+			{
+				viz_params["showMeshes"] = false;
+				viz_params["showTasks"] = true;
+			}
 		}
 
 		//newActiveGraph->normalize();

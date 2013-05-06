@@ -363,24 +363,15 @@ void Scheduler::executeAll()
 		// DEBUG - per pass
 		activeGraph->clearDebug();
 
-		// Blend edges deltas5
-		foreach(Structure::Link* l, activeGraph->edges)
-		{
-			Structure::Link* tl = targetGraph->getEdge(l->property["correspond"].toString());
-			if (tl)
-			{
-				Vec3d sDelta = l->property["delta"].value<Vec3d>();
-				Vec3d tDelta = tl->property["delta"].value<Vec3d>();
-				l->property["blendedDelta"].setValue( (1-globalTime) * sDelta + globalTime * tDelta);
-			}
-		}
-
 		// active tasks
 		QVector<QString> aTs = activeTasks(globalTime * totalTime);
 		activeGraph->property["activeTasks"].setValue( aTs );
 
 		// For visualization
 		activeGraph->setPropertyAll("isActive", false);
+
+		// Blend deltas
+		blendDeltas( globalTime, timeStep );
 
 		// Relink
 		Relink linker(this);
@@ -421,6 +412,7 @@ void Scheduler::executeAll()
 
 		activeGraph->vs.clear();
 		activeGraph->vs2.clear();
+		activeGraph->debugPoints3.clear();
 
 		// UI - visual indicator:
 		int percent = globalTime * 100;
@@ -594,4 +586,22 @@ void Scheduler::addMorphTask( QString nodeID )
 
 	// Add to scene
 	this->addItem( task );
+}
+
+void Scheduler::blendDeltas( double globalTime, double timeStep )
+{
+	if (globalTime >= 1) return;
+
+	double alpha = timeStep / (1 - globalTime);
+
+	foreach(Structure::Link* l, activeGraph->edges)
+	{
+		Structure::Link* tl = targetGraph->getEdge(l->property["correspond"].toString());
+		if (tl)
+		{
+			Vec3d sDelta = l->delta();
+			Vec3d tDelta = tl->property["delta"].value<Vec3d>();
+			l->property["blendedDelta"].setValue( AlphaBlend(alpha, sDelta, tDelta) );
+		}
+	}
 }

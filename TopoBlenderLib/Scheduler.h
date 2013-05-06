@@ -29,6 +29,7 @@ public:
 	void order();
 	void executeAll();
 
+	void blendDeltas( double globalTime, double timeStep );
 	int totalExecutionTime();
 
 	// Dependency

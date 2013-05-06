@@ -112,7 +112,7 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
     property["pathB"].setValue( pathB );
 
     // Encode curve
-    RMF rmf( positionalPath(pathA, 1) );
+    RMF rmf( GraphDistance::positionalPath(active, pathA, 1) );
     property["rmf"].setValue( rmf );
     if(!rmf.count()) return;
 
@@ -124,7 +124,7 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
 
     // DEBUG frames
     node()->property["rmf"].setValue( rmf );
-    node()->property["rmf2"].setValue( RMF ( positionalPath(pathB, 3) ) );
+    node()->property["rmf2"].setValue( RMF ( GraphDistance::positionalPath(active, pathB, 3) ) );
 
     if(this->type == GROW)
     {
@@ -180,6 +180,8 @@ void TaskSheet::prepareMorphSheet()
     n->property["frames"].setValue( frames );
     n->property["frame"].setValue( sframe );
     tn->property["frame"].setValue( tframe );
+
+	prepareMorphEdges();
 }
 
 

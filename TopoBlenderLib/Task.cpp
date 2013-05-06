@@ -484,6 +484,9 @@ void Task::execute( double t )
         executeSheet(t);
 	}
 
+
+	executeMorphEdges(t);
+
 	// Post execution steps
 	if(t >= 1.0)
 	{
@@ -546,21 +549,6 @@ void Task::execute( double t )
 			node()->property["toGrow"] = false;
 		}
 	}
-}
-
-Array1D_Vector3 Task::positionalPath( QVector< GraphDistance::PathPointPair > & from_path, int smoothingIters )
-{
-	Array1D_Vector3 pnts;
-	if(!from_path.size()) return pnts;
-
-	foreach(GraphDistance::PathPointPair p, from_path) 
-		pnts.push_back(p.position(active));
-
-	// To ensure unique points
-	std::vector<size_t> xrefs;
-	weld(pnts, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
-
-	return smoothPolyline(pnts, smoothingIters);
 }
 
 QVector< GraphDistance::PathPointPair > Task::smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
@@ -680,6 +668,8 @@ void Task::setNode( QString node_ID )
 	{
 		node()->property["toGrow"] = true;
 	}
+
+	node()->property["taskType"] = type;
 }
 
 std::vector<RMF::Frame> Task::smoothRotateFrame( RMF::Frame sframe, Eigen::Quaterniond & rotation, int steps )
@@ -702,4 +692,113 @@ std::vector<RMF::Frame> Task::smoothRotateFrame( RMF::Frame sframe, Eigen::Quate
 		frames.push_back(curFrame);
 	}
 	return frames;
+}
+
+void Task::prepareMorphEdges()
+{
+	Node * n = node(), *tn = targetNode();
+	QVector<Link*> allEdges = active->getEdges(n->id), edges;
+
+	// Filter edges
+	foreach(Link * l, allEdges)
+	{
+		Structure::Node* other = l->otherNode(n->id);
+
+		// Skip shrunk and non-grown nodes
+		if (other->property["shrunk"].toBool()) continue;
+		if (other->property["taskType"].toInt() == Task::GROW && !other->property["taskIsDone"].toBool()) continue;
+		
+		// Skip edges that will leave me in future
+		Structure::Link* tl = target->getEdge(l->property["correspond"].toString());
+		if (!tl->hasNode(tn->id)) continue;
+
+		edges.push_back(l);
+
+		// Make sure local link coordinates are consistent from source to target
+		//Vec4d scoord = l->getCoord(n->id).front();
+		//Vec4d tcoord = target->getEdge(l->property["correspond"].toString())->getCoord(tn->id).front();
+		//bool isWithinThreshold = (abs(scoord[0]-tcoord[0]) < 0.5);
+		//if(isSameHalf(scoord,tcoord) || isWithinThreshold ) continue;
+		//l->invertCoords(n->id);
+	}
+	property["edges"].setValue( edges );
+
+	// Compute paths for all edges
+	foreach(Link * link, edges)
+	{
+		Vec3d start = link->positionOther(n->id);
+		NodeCoord ed = futureOtherNodeCoord(link);
+		Vec3d end = active->position(ed.first,ed.second);
+
+		// Geodesic distances on the active graph excluding the running tasks
+		QVector< GraphDistance::PathPointPair > path;
+		
+		QString otherOld = link->otherNode(n->id)->id;
+		QString otherNew = ed.first;
+
+		if( otherOld == otherNew )
+		{
+			GraphDistance gd( active->getNode(otherOld) );
+			gd.computeDistances( end, DIST_RESOLUTION );	
+			gd.smoothPathCoordTo( start, path );
+		}
+		else
+		{
+			QVector<QString> exclude = active->property["activeTasks"].value< QVector<QString> >();
+			GraphDistance gd( active, exclude );
+			gd.computeDistances( end, DIST_RESOLUTION );	
+			gd.smoothPathCoordTo( start, path );
+		}
+
+
+		link->property["path"].setValue(path);
+	}
+}
+
+void Task::executeMorphEdges( double t )
+{
+	Node * n = node();
+
+	QVector<Structure::Link*> edges = property["edges"].value< QVector<Structure::Link*> >();
+	foreach (Structure::Link* link, edges)
+	{
+		QVector< GraphDistance::PathPointPair > path = link->property["path"].value< QVector< GraphDistance::PathPointPair > >();
+		if(!path.size()) continue;
+
+		// Local link coordinates
+		int idx = t * (path.size() - 1);
+		GraphDistance::PathPointPair cur = path[idx];
+		Structure::Node *otherOld = link->otherNode(n->id);
+		Structure::Node *otherNew = active->getNode(cur.a.first);
+
+		link->replace( otherOld->id, otherNew, std::vector<Vec4d>(1,cur.a.second) );
+	}
+}
+
+bool Task::isCrossing()
+{
+	Structure::Node *n = node(), *tn = targetNode();
+
+	bool isCross = false;
+
+	foreach(Link * l, active->getEdges(n->id))
+	{
+		Structure::Node* other = l->otherNode(n->id);
+
+		// Skip shrunk and non-grown nodes
+		if (other->property["shrunk"].toBool()) continue;
+		if (other->property["taskType"].toInt() == Task::GROW && !other->property["taskIsDone"].toBool()) continue;
+
+		// check if my neighbor will change
+		Structure::Link* tl = target->getEdge(l->property["correspond"].toString());
+		Structure::Node* sNb = l->otherNode(n->id);
+		QString tNbID = tl->otherNode(tn->id)->id;
+		if (sNb->property["correspond"].toString() != tNbID){
+			isCross = true;
+			break;
+		}
+	}
+
+	property["isCrossing"] = isCross;
+	return isCross;
 }

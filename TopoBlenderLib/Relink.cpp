@@ -12,21 +12,25 @@ void Relink::execute(int globalTime)
 {
 	// initial
 	constraints.clear();
+	propagationQueue.clear();
 	foreach (Task* t, s->tasks) 
 	{
 		t->property["relinked"] = false;
 		t->property["propagated"] = false;
 	}
 
-	// active tasks are sources of propagation
+	// Set up source nodes
 	QVector<QString> activeNodeIDs = activeGraph->property["activeTasks"].value< QVector<QString> >();
+	if( activeNodeIDs.isEmpty() ) return;
+
+	Task* currTask = s->getTaskFromNodeID(activeNodeIDs.front());
+	if (currTask->type != Task::MORPH) return;
+	if (currTask->property["isCrossing"].toBool()) return;
+	
+	// All active tasks are sources
 	foreach (QString nID, activeNodeIDs)
 	{
 		Task* task = s->getTaskFromNodeID(nID);
-
-		// relink only when there are links are broken
-		if (task->type != Task::MORPH ) return;
-
 		propagationQueue.enqueue(task);
 		task->property["propagated"] = true;
 	}
@@ -36,8 +40,10 @@ void Relink::execute(int globalTime)
 	{
 		Task* nextTask = propagationQueue.dequeue();
 
+		// Fix nextTask according to constraints
 		relinkTask(nextTask, globalTime);
 
+		// Propagate through nextTask
 		createConstraintsFromTask(nextTask);
 		propagateFrom(nextTask);
 	}
@@ -74,6 +80,10 @@ void Relink::propagateFrom( Task* task )
 		Structure::Node * other = link->otherNode(n->id);
 		Task * otherTask = s->getTaskFromNodeID(other->id);
 
+		// Skip shrunk and non-grown nodes
+		if (otherTask->node()->property["shrunk"].toBool()) continue;
+		if (otherTask->type == Task::GROW && !otherTask->isDone) continue;
+
 		// skip propagated task
 		if (otherTask->property["propagated"].toBool()) continue;
 
@@ -89,7 +99,9 @@ void Relink::relinkTask( Task* otherTask, int globalTime )
 
 	Structure::Node * other = otherTask->node();
 
-	QVector<LinkConstraint> consts = constraints[otherTask];
+	QVector<LinkConstraint> consts;
+	if (constraints.contains(otherTask)) consts = constraints[otherTask];
+
 	int N = consts.size();
 
 	// Translate done tasks

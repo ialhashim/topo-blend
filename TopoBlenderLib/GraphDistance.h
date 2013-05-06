@@ -78,7 +78,9 @@ public:
 		}
 	};
 	double smoothPathCoordTo( Vector3 point, QVector< PathPointPair > & smooth_path );
-
+		
+	static Array1D_Vector3 positionalPath( Structure::Graph * graph, QVector< GraphDistance::PathPointPair > & from_path, int smoothingIters = 0 );
+	
 	// DEBUG:
 	void draw();
 };
@@ -86,3 +88,5 @@ public:
 static inline QVector<QString> SingleNode(const QString & nodeID){
 	return QVector<QString>(1, nodeID);
 }
+
+Q_DECLARE_METATYPE( QVector< GraphDistance::PathPointPair > )

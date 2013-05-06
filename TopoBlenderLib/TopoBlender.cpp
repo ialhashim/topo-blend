@@ -696,7 +696,6 @@ void TopoBlender::generateSuperGraphs()
 	correspondSuperEdges();
 
 	// Initial edge radius
-	foreach(Link * l, super_sg->edges) l->property["delta"].setValue( l->delta() );
 	foreach(Link * l, super_tg->edges) l->property["delta"].setValue( l->delta() );
 }
 

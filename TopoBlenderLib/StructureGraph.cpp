@@ -11,11 +11,12 @@ GlSplatRenderer * splat_renderer = NULL;
 #include "StructureGraph.h"
 using namespace Structure;
 
+#include "GraphDistance.h"
+
 #include "Synthesizer.h"
 
 #include "GraphEmbed.h"
 #include "GraphDraw2D.h"
-
 #include "GenericGraph.h"
 
 #include "QuickMeshDraw.h"
@@ -61,14 +62,16 @@ Graph::Graph( const Graph & other )
 {
 	foreach(Node * n, other.nodes)
 	{
-		this->addNode(n->clone());
+		this->addNode( n->clone() );
 	}
 
 	foreach(Link * e, other.edges)
 	{
 		Node * n1 = this->getNode(e->n1->id);
 		Node * n2 = this->getNode(e->n2->id);
-		this->addEdge(n1, n2, e->coord[0], e->coord[1], e->id);
+		
+		Structure::Link * newEdge = this->addEdge(n1, n2, e->coord[0], e->coord[1], e->id);
+		newEdge->property = e->property;
 	}
 
 	property = other.property;
@@ -577,6 +580,29 @@ void Graph::draw( QGLViewer * drawArea )
 				}
 			}
 
+			// For edges
+			glDisable(GL_LIGHTING);
+			foreach(Structure::Link * l, edges)
+			{
+				if( l->property.contains("path") )
+				{
+					QVector< GraphDistance::PathPointPair > pathRelative = l->property["path"].value< QVector< GraphDistance::PathPointPair > >();
+					Array1D_Vector3 path = GraphDistance::positionalPath(this, pathRelative);
+
+					PointSoup ps(10);
+					LineSegments ls;
+					Vec3d lastP = path.front();
+					foreach(Vector3 p, path)
+					{
+						ps.addPoint(p, Qt::green);
+						ls.addLine(lastP, p, QColor(255,255,255,100));
+						lastP = p;
+					}
+					ps.draw();
+					ls.draw();
+				}
+			}
+
 			glEnable(GL_LIGHTING);
 		}
 
@@ -695,7 +721,15 @@ void Graph::draw( QGLViewer * drawArea )
 	glBegin(GL_POINTS); foreach(Vector3 p, debugPoints2) glVector3(p); glEnd();
 
 	glColor3d(1,0,1); glPointSize(40);
-	glBegin(GL_POINTS); foreach(Vector3 p, debugPoints3) glVector3(p); glEnd();
+	glBegin(GL_POINTS); 
+	int idx = 0;
+	foreach(Vector3 p, debugPoints3){ 
+		double t = double(idx) / debugPoints3.size(); 
+		glColor3d(1,1,t*1);
+		glVector3(p);
+		idx++;
+	} 
+	glEnd();
 	glEnable(GL_LIGHTING);
 
 	// Materialized
