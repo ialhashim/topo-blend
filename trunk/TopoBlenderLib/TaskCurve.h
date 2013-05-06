@@ -17,6 +17,7 @@ public:
 
     /// Prepare sub-routines
     void prepareShrinkCurveOneEdge( Structure::Link* l );
+	void prepareCrossing();
 
     /// Execute
     void executeGrowShrinkCurve( double t );

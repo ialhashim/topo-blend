@@ -26,9 +26,11 @@ public:
 
 	// Prepare stage
 	void prepare();
+	void prepareMorphEdges();
 
 	// Execution stage
 	void execute( double t );
+	void executeMorphEdges( double t );
 
     // Geometry morphing stage
 	void geometryMorph( double t );
@@ -36,11 +38,11 @@ public:
 	// Helper functions
 	QVector< GraphDistance::PathPointPair > weldPath( QVector< GraphDistance::PathPointPair > oldPath );
 	bool isActive(double t);
-	Array1D_Vector3 positionalPath( QVector< GraphDistance::PathPointPair > & from_path, int smoothingIters = 0 );
 	QVector< GraphDistance::PathPointPair > smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
 	QVector< GraphDistance::PathPointPair > smoothEnd( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
 	bool isPathOnSingleNode( QVector< GraphDistance::PathPointPair > path );
-	
+	bool isCrossing();
+
 	Structure::Node * addAuxNode(Vec3d position, Structure::Graph * g);
 	Structure::Node * prepareEnd( Structure::Node * n, Structure::Link * slink );
 	QPair<Structure::Node*,Structure::Node*> prepareEnd2( Structure::Node * n, Structure::Link * linkA, Structure::Link * linkB );
@@ -116,13 +118,13 @@ Q_DECLARE_METATYPE( Vector3 )
 Q_DECLARE_METATYPE( Vec4d )
 Q_DECLARE_METATYPE( VectorPairDouble )
 Q_DECLARE_METATYPE( GraphDistance::PathPointPair )
-Q_DECLARE_METATYPE( QVector< GraphDistance::PathPointPair > )
 Q_DECLARE_METATYPE( RMF )
 Q_DECLARE_METATYPE( RMF::Frame )
 Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
 Q_DECLARE_METATYPE( CurveEncoding )
 Q_DECLARE_METATYPE( Eigen::Quaterniond )
 Q_DECLARE_METATYPE( QVector<QString> )
+Q_DECLARE_METATYPE( QVector<Structure::Link*> )
 
 static inline double rad_to_deg(const double& _angle){ return 180.0*(_angle/M_PI); }
 
