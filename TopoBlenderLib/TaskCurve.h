@@ -16,7 +16,8 @@ public:
     void prepareMorphCurve();
 
     /// Prepare sub-routines
-    void prepareShrinkCurveOneEdge( Structure::Link* l );
+    void prepareShrinkCurveOneEdge( Structure::Link* link );
+	void prepareGrowCurveOneEdge( Structure::Link * tlink );
 	void prepareCrossingMorphCurve();
 
     /// Execute
@@ -26,4 +27,5 @@ public:
 
     // Quick access
     Structure::Curve * targetCurve();
+
 };

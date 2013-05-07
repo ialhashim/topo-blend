@@ -80,6 +80,7 @@ void TaskCurve::prepareShrinkCurve()
 		// No path = Cut node case
 		if( !path.size() )
 		{
+			property["isCutNode"] = true;
 			prepareShrinkCurveOneEdge( preferredEnd(n, edges, active) );
 			return;
 		}
@@ -119,65 +120,70 @@ void TaskCurve::prepareShrinkCurve()
 	}
 }
 
+void TaskCurve::prepareGrowCurveOneEdge( Structure::Link * tlink )
+{
+	Node *n = node(), *tn = targetNode();
+
+	Structure::Curve * curve = (Structure::Curve *)n;
+	Node * tbase = tlink->otherNode(tn->id);
+
+	Vec4d coordBase = tlink->getCoord(tbase->id).front();
+	Vec4d coordSelf = tlink->getCoord(tn->id).front();
+
+	QString baseID = tbase->property["correspond"].toString();
+	Node* base = active->getNode(baseID);
+
+	Vector3 linkPositionBase = base->position(coordBase);
+	int cpIDX = curve->controlPointIndexFromCoord( coordSelf );
+
+	/// Place curve:
+
+	// Make origin the position on me in which I will grow from
+	curve->moveBy( -n->position(coordSelf)  );
+
+	Vec3d endDelta = tlink->position(tn->id) - tlink->positionOther(tn->id);
+	QString corrBaseNodeID = tlink->otherNode(tn->id)->property["correspond"].toString();
+	Vec3d posOther = active->getNode(corrBaseNodeID)->position(tlink->getCoordOther(tn->id).front());
+	if(n->property["isCutGroup"].toBool()) endDelta = Vec3d(0);
+
+	// Move curve to start point computed by looking at target geometry
+	curve->moveBy( posOther + endDelta );
+
+	// Curve folding
+	Array1D_Vector3 deltas = curve->foldTo( coordSelf, true );
+
+	// Growing instructions
+	property["deltas"].setValue( deltas );
+	property["orgCtrlPoints"].setValue( curve->curve.mCtrlPoint );
+}
+
 void TaskCurve::prepareGrowCurve()
 {
-	Node * n = node();
-	Node * tn = targetNode();
+	Node *n = node(), *tn = targetNode();
 	QVector<Link*> all_tedges = target->getEdges(tn->id);
 
 	Curve * curve = (Curve *)n;
 	Curve * tcurve = (Curve *)tn;
 
-	// Do not consider edges with non-ready nodes
+	// Isolated branch growth: do not consider edges with non-ready nodes
 	std::vector<Link*> tedges;
 	foreach(Link* edge, all_tedges){
-		Node * tother = edge->otherNode( tn->id );
-		Node * other = active->getNode( tother->property["correspond"].toString() );
-		if( other->property.contains("taskIsDone") )
+		if( n->property.contains("nullSet") )
+		{
+			Node * tother = edge->otherNode( tn->id );
+			Node * other = active->getNode( tother->property["correspond"].toString() );
+			if( other->property.contains("taskIsDone") )
+				tedges.push_back(edge);
+		}
+		else
+		{
 			tedges.push_back(edge);
-	}
-
-	if( all_tedges.empty() ) return;
-
-	// Cut nodes grow case
-	if( tedges.empty() )
-	{
-		tedges.push_back( preferredEnd(tn, all_tedges, target) );
+		}
 	}
 
 	if (tedges.size() == 1)
 	{
-		Link * tlink = tedges.front();
-		Node * tbase = tlink->otherNode(tn->id);
-
-		Vec4d coordBase = tlink->getCoord(tbase->id).front();
-		Vec4d coordSelf = tlink->getCoord(tn->id).front();
-
-		QString baseID = tbase->property["correspond"].toString();
-		Node* base = active->getNode(baseID);
-
-		Vector3 linkPositionBase = base->position(coordBase);
-		int cpIDX = curve->controlPointIndexFromCoord( coordSelf );
-
-		/// Place curve:
-
-		// Make origin the position on me in which I will grow from
-		curve->moveBy( -n->position(coordSelf)  );
-
-		Vec3d endDelta = tlink->position(tn->id) - tlink->positionOther(tn->id);
-		QString corrBaseNodeID = tlink->otherNode(tn->id)->property["correspond"].toString();
-		Vec3d posOther = active->getNode(corrBaseNodeID)->position(tlink->getCoordOther(tn->id).front());
-		if(n->property["isCutGroup"].toBool()) endDelta = Vec3d(0);
-
-		// Move curve to start point computed by looking at target geometry
-		curve->moveBy( posOther + endDelta );
-
-		// Curve folding
-		Array1D_Vector3 deltas = curve->foldTo( coordSelf, true );
-
-		// Growing instructions
-		property["deltas"].setValue( deltas );
-		property["orgCtrlPoints"].setValue( curve->curve.mCtrlPoint );
+		prepareGrowCurveOneEdge( tedges.front() );
 	}
 
 	if (tedges.size() == 2)
@@ -191,21 +197,46 @@ void TaskCurve::prepareGrowCurve()
 		Vec4d othercoordB = tlinkB->getCoord(totherB->id).front();
 
 		// Corresponding stuff on ACTIVE
+		Link *linkA = active->getEdge( tlinkA->property["correspond"].toString() );
+		Link *linkB = active->getEdge( tlinkB->property["correspond"].toString() );
 		Node *otherA = active->getNode( totherA->property["correspond"].toString() );
 		Node *otherB = active->getNode( totherB->property["correspond"].toString() );
 		Vec3d pointA = otherA->position(othercoordA);
 		Vec3d pointB = otherB->position(othercoordB);
 
 		// Geodesic distance between two link positions on the active graph excluding the running tasks
-		QVector<QString> exclude = active->property["activeTasks"].value< QVector<QString> >();
-		GraphDistance gd( active, exclude );
+		QVector<QString> excludeNodes = active->property["activeTasks"].value< QVector<QString> >();
+		
+		QVector<QString> excludeEdges;
+		excludeEdges << tlinkA->property["correspond"].toString();
+		excludeEdges << tlinkB->property["correspond"].toString();
+
+		GraphDistance gd( active, excludeNodes, excludeEdges );
 		gd.computeDistances( pointA, DIST_RESOLUTION );
 		QVector< GraphDistance::PathPointPair > path;
 		gd.smoothPathCoordTo(pointB, path);
-		path = weldPath( path );
+
+		// No path = Cut node case
+		if( !path.size() )
+		{
+			property["isCutNode"] = true;
+			
+			// Replace active edges to their target counterparts
+			active->removeEdge(linkA->n1->id, linkA->n2->id);
+			active->removeEdge(linkB->n1->id, linkB->n2->id);
+
+			Link* linkA = active->addEdge( n, otherA, tlinkA->getCoord(tn->id), tlinkA->getCoordOther(tn->id) );
+			Link* linkB = active->addEdge( n, otherB, tlinkB->getCoord(tn->id), tlinkB->getCoordOther(tn->id) );
+			
+			linkA->property["delta"].setValue( Vector3(0) );
+			linkB->property["delta"].setValue( Vector3(0) );
+
+			prepareGrowCurveOneEdge( tedges.front() );
+
+			return;
+		}
 
 		// Use the center of the path as the start point
-		if(path.size() < 1) return;
 		GraphDistance::PathPointPair startPointCoord = path[path.size() / 2];
 		Vec3d startPoint = startPointCoord.position( active );
 
@@ -366,25 +397,25 @@ void TaskCurve::executeCrossingCurve( double t )
 		SheetEncoding cpCoords = property["cpCoords"].value<SheetEncoding>();
 		SheetEncoding cpCoordsT = property["cpCoordsT"].value<SheetEncoding>();
 
-		double dt = t;
-		if(type == SHRINK) dt = 1 - t;
-
-		// Delta
+		// Blend Deltas, directions are the same as source
 		Structure::Link *slinkA = edges.front(), *slinkB = edges.back();
 		Vec3d sDeltaA = slinkA->property["delta"].value<Vec3d>();
 		Vec3d sDeltaB = slinkB->property["delta"].value<Vec3d>();
 
 		Structure::Link* tlinkA = target->getEdge(slinkA->property["correspond"].toString());
 		Structure::Link* tlinkB = target->getEdge(slinkB->property["correspond"].toString());
-		Vec3d tDeltaA = slinkA->property["delta"].value<Vec3d>();
-		Vec3d tDeltaB = slinkB->property["delta"].value<Vec3d>();
+		Vec3d tDeltaA = tlinkA->property["delta"].value<Vec3d>();
+		Vec3d tDeltaB = tlinkB->property["delta"].value<Vec3d>();
 
-		Vec3d deltaA = AlphaBlend(dt, sDeltaA, tDeltaA);
-		Vec3d deltaB = AlphaBlend(dt, sDeltaB, tDeltaB);
+		if ( !areConsistentST(slinkA, tlinkA) ) tDeltaA *= -1;
+		if ( !areConsistentST(slinkB, tlinkB) ) tDeltaB *= -1;
 
-		// Delta checking:
-		if( !isConsistant(slinkA, tlinkA) ) deltaA *= -1;
-		if( isConsistant(slinkB, tlinkB) ) deltaB *= -1;
+		Vec3d deltaA = AlphaBlend(t, sDeltaA, tDeltaA);
+		Vec3d deltaB = AlphaBlend(t, sDeltaB, tDeltaB);
+
+		// Deltas to myself
+		if (slinkA->n1->id == n->id) deltaA *= -1;
+		if (slinkB->n1->id == n->id) deltaB *= -1;
 
 		// Visualize
 		active->vs.addVector(pointA, deltaA);

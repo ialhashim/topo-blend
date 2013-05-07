@@ -787,7 +787,7 @@ bool Task::isCrossing()
 	return isCross;
 }
 
-bool Task::isConsistant( Link* slink, Link* tlink )
+bool Task::areConsistentST( Link* slink, Link* tlink )
 {
 	Node *sn1 = slink->n1;
 	Node *tn1 = tlink->n1;

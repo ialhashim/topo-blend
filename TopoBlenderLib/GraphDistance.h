@@ -20,7 +20,7 @@ typedef QPair<QString, Vec4d> PathPoint;
 class GraphDistance
 {
 public:
-    GraphDistance(Structure::Graph * graph, QVector<QString> exclude_nodes = QVector<QString>());
+    GraphDistance(Structure::Graph * graph, QVector<QString> exclude_nodes = QVector<QString>(), QVector<QString> exclude_edges = QVector<QString>());
 	GraphDistance(Structure::Node * n);
 
 	int globalID;
@@ -53,7 +53,7 @@ public:
 	std::vector<double> dists;
 	std::vector<Structure::Node *> correspond;
 	std::set< std::pair<int,int> > jumpPoints;
-	QVector<QString> excludeNodes;
+	QVector<QString> excludeNodes, excludeEdges;
 
 	bool isReady;
 
