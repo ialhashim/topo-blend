@@ -9,10 +9,11 @@ using namespace Structure;
 	double DIST_RESOLUTION = 0.1;
 #endif
 
-GraphDistance::GraphDistance( Structure::Graph * graph, QVector<QString> exclude_nodes )
+GraphDistance::GraphDistance( Structure::Graph * graph, QVector<QString> exclude_nodes, QVector<QString> exclude_edges )
 {
     this->g = graph;
 	this->excludeNodes = exclude_nodes;
+	this->excludeEdges = exclude_edges;
 	this->isReady = false;
 	this->globalID = 0;
 
@@ -189,6 +190,7 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	foreach(Link * e, g->edges)
 	{
 		if(excludeNodes.contains(e->n1->id) || excludeNodes.contains(e->n2->id)) continue;
+		if(excludeEdges.contains(e->id)) continue;
 
 		int gid1 = nodesMap[e->n1].front().gid;
 		int gid2 = nodesMap[e->n2].front().gid;
@@ -206,12 +208,14 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 			QMap<double,int> dists1, dists2;
 
 			// Find closest on node 1
-			for(int i = 0; i < (int)samplePoints[e->n1].size(); i++) 
+			int N1 = samplePoints[e->n1].size();
+			for(int i = 0; i < N1; i++) 
 				dists1[(pos1-samplePoints[e->n1][i]).norm()] = i;
 			int id1 = dists1.values().first();
 
 			// Find closest on node 2
-			for(int i = 0; i < (int)samplePoints[e->n2].size(); i++) 
+			int N2 = samplePoints[e->n2].size();
+			for(int i = 0; i < N2; i++) 
 				dists2[(pos2-samplePoints[e->n2][i]).norm()] = i;
 			int id2 = dists2.values().first();
 

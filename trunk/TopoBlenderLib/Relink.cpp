@@ -179,6 +179,9 @@ Vector3 Relink::getToDelta( Structure::Link * link, QString toOtherID )
 
 bool Relink::isRelinkable(Task* task)
 {
+	// Shrink/Grow cut node 
+	if (task->type != Task::MORPH && task->property["isCutNode"].toBool()) return true;
+
 	// Shrunk node 
 	if (task->node()->property["shrunk"].toBool()) return false;
 

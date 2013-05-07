@@ -194,10 +194,10 @@ void Scheduler::order()
 			curStart = futureStart;
 
 			// Experiment:
-			foreach(Task* t, curTasks) 
-			{
-				addMorphTask( t->node()->id );
-			}
+			//foreach(Task* t, curTasks) 
+			//{
+			//	addMorphTask( t->node()->id );
+			//}
 		}
 	}
 
@@ -602,7 +602,7 @@ void Scheduler::blendDeltas( double globalTime, double timeStep )
 			Vec3d sDelta = l->delta();
 			Vec3d tDelta = tl->property["delta"].value<Vec3d>();
 
-			// flip sDelta if need
+			// flip tDelta if is not consistent with sDeltass
 			Node *n1 = l->n1, *tn1 = targetGraph->getNode(n1->property["correspond"].toString());
 			if ( n1->id == tn1->property["correspond"].toString() ) tDelta *= -1;
 

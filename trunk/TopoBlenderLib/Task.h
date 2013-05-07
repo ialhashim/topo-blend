@@ -39,7 +39,7 @@ public:
 	bool isActive(double t);
 	bool isCrossing();
 
-	bool isConsistant( Structure::Link* slink, Structure::Link* tlink );
+	bool areConsistentST( Structure::Link* slink, Structure::Link* tlink );
 	
 	QVector< GraphDistance::PathPointPair > weldPath( QVector< GraphDistance::PathPointPair > oldPath );
 	QVector< GraphDistance::PathPointPair > smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
