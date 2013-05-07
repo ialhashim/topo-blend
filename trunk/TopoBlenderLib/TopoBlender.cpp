@@ -209,9 +209,6 @@ void TopoBlender::correspondSuperNodes()
 
 		ctnode->id = snodeID + "_null";
 		superNodeCorr[snodeID] = ctnode->id;
-
-		if(sg->isCutNode(snodeID))
-			ctnode->property["isPossibleCut"] = true;
 	}
 
 	// To grow:
@@ -223,11 +220,6 @@ void TopoBlender::correspondSuperNodes()
 
 		csnode->id = tnodeID + "_null";
 		superNodeCorr[csnode->id] = tnodeID;
-
-		csnode->property["isReady"] = false;
-
-		if(tg->isCutNode(tnodeID)) 
-			csnode->property["isPossibleCut"] = true;
 	}
 
 	// Build node correspondence for corresponded nodes
@@ -261,9 +253,6 @@ void TopoBlender::correspondSuperNodes()
 		}
 	}
 
-	// Keep tack of missing / extra nodes
-	QVector<QString> missingNodes, extraNodes;
-
 	// Store correspondences in the graphs
 	foreach(QString snode, superNodeCorr.keys())
 	{
@@ -271,15 +260,6 @@ void TopoBlender::correspondSuperNodes()
 
 		Structure::Node * sn = super_sg->getNode(snode);
 		Structure::Node * tn = super_tg->getNode(tnode);
-
-		// UNDEFINED: When does this happen?
-		{
-			if(!sn) sn = addMissingNode(super_sg, super_tg, tn);
-			if(!tn) tn = addMissingNode(super_tg, super_sg, sn);
-		}
-
-		if(tnode.contains("null")) extraNodes.push_back( snode );
-		if(snode.contains("null")) missingNodes.push_back( tnode );
 
 		sn->property["correspond"] = tnode;
 		tn->property["correspond"] = snode;
@@ -294,125 +274,211 @@ void TopoBlender::correspondTwoEdges( Structure::Link *slink, Structure::Link *t
 }
 
 // This function could be written with [graphA] and [graphB] but we should 
-// keep it this way to ensure correspondence happen together and once
+// keep it this way to ensure correspondence happen together, once and at same time
 void TopoBlender::correspondSuperEdges()
 {
-	bool CASE_1 = true;		// Trivial edges, both nodes exist on both graphs
-	bool CASE_2 = true;		// Edges between two [extra] or two [missing] nodes
-	bool CASE_3 = true;		// Edges connecting null groups to existing nodes
-	bool CASE_4 = true;		// Edges with changed ends
-	bool CASE_5 = true;		// UNDEFINED: When does this happen?
+	bool CASE_1 = true;
+	bool CASE_2 = true;
+	bool CASE_3 = true;
+	bool CASE_4 = true;
+	bool CASE_5 = true;
+	bool CASE_6 = true;
 
-	/// CASE 1: correspond trivial edges, i.e. both nodes exist on both graphs
+	/// Correspond trivial edges, i.e. both nodes exist on both graphs
 	if( CASE_1 )
 	{
-		// Source graph pass
-		foreach(Structure::Link * slink, super_sg->edges)
-		{
-			Structure::Node *sn1 = slink->n1, *sn2 = slink->n2;
-			Structure::Node *tn1 = super_tg->getNode(sn1->property["correspond"].toString()),
-							*tn2 = super_tg->getNode(sn2->property["correspond"].toString());
-			Structure::Link * tlink = super_tg->getEdge(tn1->id, tn2->id);
-
-			if(!tlink) continue;
-
-			correspondTwoEdges(slink,tlink);
-		}
-
-		// Target graph pass
-		foreach(Structure::Link * tlink, super_tg->edges)
-		{
-			Structure::Node *tn1 = tlink->n1, *tn2 = tlink->n2;
-			Structure::Node *sn1 = super_sg->getNode(tn1->property["correspond"].toString()),
-							*sn2 = super_sg->getNode(tn2->property["correspond"].toString());
-			Structure::Link * slink = super_sg->getEdge(sn1->id, sn2->id);
-
-			if(!slink) continue;
-
-			correspondTwoEdges(slink,tlink);
-		}
+		correspondTrivialEdges ( super_sg, super_tg );
+		correspondTrivialEdges ( super_tg, super_sg );
 	}
 
-	/// CASE 2: correspond edges between two [extra] or two [missing] nodes
+	/// Correspond edges between two [extra] or two [missing] nodes
 	if( CASE_2 )
 	{
-		// Source graph pass
-		foreach(Structure::Link * slink, super_sg->edges)
-		{
-			Structure::Node *sn1 = slink->n1, *sn2 = slink->n2;
-			Structure::Node *tn1 = super_tg->getNode(sn1->property["correspond"].toString()),
-							*tn2 = super_tg->getNode(sn2->property["correspond"].toString());
-		
-			// We are only looking for missing edges
-			if(!(tn1->id.contains("null") && tn2->id.contains("null"))) continue;
-		
-			Structure::Link * tlink = addMissingLink(super_tg, slink);
-			correspondTwoEdges(slink,tlink);
-		}
-
-		// Target pass
-		foreach(Structure::Link * tlink, super_tg->edges)
-		{
-			Structure::Node *tn1 = tlink->n1, *tn2 = tlink->n2;
-			Structure::Node *sn1 = super_sg->getNode(tn1->property["correspond"].toString()),
-							*sn2 = super_sg->getNode(tn2->property["correspond"].toString());
-
-			// We are only looking for missing edges
-			if(!(sn1->id.contains("null") && sn2->id.contains("null"))) continue;
-
-			Structure::Link * slink = addMissingLink(super_sg, tlink);
-			correspondTwoEdges(slink,tlink);
-		}
+		correspondSimilarType( super_sg, super_tg );
+		correspondSimilarType( super_tg, super_sg );
 	}
-
-	/// CASE 3: Connect null groups to existing nodes
-	if( CASE_3 )
+	
+	/// Creating one edge for floating null nodes
+	if (CASE_3)
 	{
-		// Source graph pass
-		foreach( SetNodes set, nullNodeSets( super_sg, super_tg ) )
-			connectNullSet( set, super_sg, super_tg );
-
-		// Target pass
-		foreach( SetNodes set, nullNodeSets( super_tg, super_sg ) )
-			connectNullSet( set, super_tg, super_sg );
+		connectNullNodes( super_sg, super_tg );
+		connectNullNodes( super_tg, super_sg );
 	}
 
-	/// CASE 4: edges with changed ends
+	/// Correspond edges with changed ends
 	if( CASE_4 )
 	{
-		foreach(Structure::Node * snode, super_sg->nodes){
-			Structure::Node * tnode = super_tg->getNode( snode->property["correspond"].toString() );
-			
-			QVector<Structure::Link*> sedges = edgesNotContain( super_sg->getEdges(snode->id), "correspond" );
-			QVector<Structure::Link*> tedges = edgesNotContain( super_tg->getEdges(tnode->id), "correspond" );
-
-			if(!sedges.size() || (sedges.size() != tedges.size())) continue;
-
-			/// Match edges:
-			// For now, arbitrarily = by index
-			for(int i = 0; i < (int)sedges.size(); i++)
-			{
-				Structure::Link * slink = sedges[i];
-				Structure::Link * tlink = tedges[i];
-
-				correspondTwoEdges(slink,tlink);
-			}
-		}
+		correspondChangedEnds( super_sg, super_tg );
+		correspondChangedEnds( super_tg, super_sg );
 	}
 
-	// UNDEFINED: When does this happen?
+	/// Do remaining edges
 	if( CASE_5 )
 	{
-		correspondMissingEdges(super_sg, super_tg);
-		correspondMissingEdges(super_tg, super_sg);
-
-		//removeMissingEdges(super_sg);
-		//removeMissingEdges(super_tg);
+		remainingUncorrespondedEdges( super_sg, super_tg );
+		remainingUncorrespondedEdges( super_tg, super_sg );
 	}
 
-	/// Post processing:
-	checkIntermediateCuts(tg, super_sg, super_tg);
-	checkIntermediateCuts(sg, super_tg, super_sg);
+	/// Remove excess edges (edges of core nodes still uncorresponded)
+	if( CASE_6 )
+
+	{
+		removeRedundantEdges( super_sg );
+		removeRedundantEdges( super_tg );
+	}
+	
+	// Visualization: assign global unique ids
+	int uid = 0;
+	foreach(Structure::Link * slink, super_sg->edges){
+		if(!slink->property.contains("correspond")) continue;
+		Link* tlink = super_tg->getEdge(slink->property["correspond"].toString());
+		if(!tlink) continue;
+		slink->property["uid"] = tlink->property["uid"] = uid++;
+	}
+}
+
+void TopoBlender::removeRedundantEdges( Structure::Graph * source )
+{
+	foreach(Structure::Node * snode, source->nodes)
+	{
+		if (snode->id.contains("null")) continue;
+
+		foreach(Link* link, edgesNotContain( source->getEdges(snode->id), "correspond" ))
+			source->removeEdge(link->n1, link->n2);
+	}
+}
+
+void TopoBlender::remainingUncorrespondedEdges( Structure::Graph * source, Structure::Graph * target )
+{
+	foreach(Structure::Node * snode, source->nodes)
+	{
+		if (!snode->id.contains("null")) continue;
+		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
+
+		// Get uncorresponded of target
+		QVector<Structure::Link*> tedges = edgesNotContain( target->getEdges(tnode->id), "correspond" );
+		if(tedges.isEmpty()) continue;
+
+		foreach(Link * tlink, tedges)
+		{
+			Link * slink = addMissingLink( source, tlink );
+			correspondTwoEdges(slink, tlink);
+		}
+	}
+}
+
+void TopoBlender::correspondTrivialEdges( Structure::Graph * source, Structure::Graph * target )
+{
+	foreach(Structure::Link * slink, source->edges)
+	{
+		Structure::Node *sn1 = slink->n1, *sn2 = slink->n2;
+		Structure::Node *tn1 = target->getNode( sn1->property["correspond"].toString() ),
+						*tn2 = target->getNode( sn2->property["correspond"].toString() );
+		Structure::Link * tlink = target->getEdge(tn1->id, tn2->id);
+
+		if(!tlink) continue;
+
+		correspondTwoEdges(slink, tlink);
+	}
+}
+
+void TopoBlender::correspondSimilarType( Structure::Graph * source, Structure::Graph * target )
+{
+	foreach(Structure::Link * slink, source->edges)
+	{
+		if (slink->property.contains("correspond")) continue;
+
+		Structure::Node *sn1 = slink->n1, *sn2 = slink->n2;
+		Structure::Node *tn1 = target->getNode(sn1->property["correspond"].toString()),
+			*tn2 = target->getNode(sn2->property["correspond"].toString());
+
+		// We are only looking for missing edges
+		if(!(tn1->id.contains("null") && tn2->id.contains("null"))) continue;
+
+		Structure::Link * tlink = addMissingLink(target, slink);
+		correspondTwoEdges(slink, tlink);
+	}
+}
+
+void TopoBlender::connectNullNodes( Structure::Graph * source, Structure::Graph * target )
+{
+	foreach(Structure::Node * snode, source->nodes)
+	{
+		if (!snode->id.contains("null")) continue;
+
+		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
+
+		// Get edges of target node
+		QVector<Structure::Link*> tedges = edgesNotContain( target->getEdges(tnode->id), "correspond" );
+		if(tedges.isEmpty()) continue;
+
+		// Collect names, in source, of target's neighboring nodes
+		QStringList nodesKeep;
+		foreach(Link * tlink, tedges){
+			Node* tOther = tlink->otherNode(tnode->id);
+			Node* sOther = source->getNode(tOther->property["correspond"].toString());
+			nodesKeep << sOther->id;
+		}
+
+		// Keep only subgraph with names from above
+		Structure::Graph copy(*source);
+		foreach(Node*n, source->nodes) if(!nodesKeep.contains(n->id)) copy.removeNode(n->id);
+		
+		// Find node with most valence, otherwise pick first
+		int bestValence = 0;
+		QString bestID = copy.nodes.front()->id;
+		foreach(Node * n, copy.nodes){
+			int valence = copy.valence(n);
+			if (valence > bestValence){
+				bestID = n->id;
+				bestValence = valence;
+			}
+		}
+
+		// Find corresponding link on target
+		Node* bestTNode = target->getNode( source->getNode(bestID)->property["correspond"].toString() );
+		Link* bestTLink = target->getEdge( tnode->id, bestTNode->id ); 
+
+		// Add the link to source
+		Link* slink = addMissingLink(source, bestTLink);
+		correspondTwoEdges(slink, bestTLink);
+	}
+}
+
+void TopoBlender::correspondChangedEnds( Structure::Graph * source, Structure::Graph * target )
+{
+	bool isRunning = true;
+	do{
+		isRunning = false;
+
+		foreach(Structure::Node * snode, source->nodes)
+		{
+			Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
+
+			QVector<Structure::Link*> sedges = edgesNotContain( source->getEdges(snode->id), "correspond" );
+			QVector<Structure::Link*> tedges = edgesNotContain( target->getEdges(tnode->id), "correspond" );
+
+
+			if( sedges.size() == tedges.size() && !sedges.isEmpty())
+			{
+				for( int i = 0; i < (int)sedges.size(); i++)
+					correspondTwoEdges(sedges[i], tedges[i]);
+
+				isRunning = true;
+			}
+		}
+	} while (isRunning);
+}
+
+void TopoBlender::removeUncorrespondedEdges( Structure::Graph * graph )
+{
+	QVector<Link*> linksToRemove;
+
+	foreach(Link * link, graph->edges) 
+		if( !link->property.contains("correspond") ) linksToRemove << link;
+
+	foreach(Link* link, linksToRemove) 
+		graph->removeEdge(link->n1, link->n2);
 }
 
 void TopoBlender::checkIntermediateCuts(Structure::Graph * original, Structure::Graph * super_s, Structure::Graph * super_t)
@@ -561,19 +627,10 @@ QVector< SetNodes > TopoBlender::nullNodeSets( Structure::Graph * sgraph, Struct
 
 void TopoBlender::connectNullSet( SetNodes nullSet, Structure::Graph * source, Structure::Graph * target )
 {
-	/// 0) Find outer nodes 
-	QSet< Structure::Node* > s_outter_nodes = nullSet.property["outerNodes"].value< QSet< Structure::Node* > >();
-	foreach(Structure::Node * snode, nullSet.set){
-		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
-        foreach(Structure::Link * tlink, nonCorrespondEdges(tnode, target))
-        {
-            Structure::Node *s1 = source->getNode( correspondingNode(tlink,0) );
-            Structure::Node *s2 = source->getNode( correspondingNode(tlink,1) );
-        }
-	}
-
 	/// 1) Find external edges = not yet corresponded
 	QSet< Structure::Link* > t_ext_edges, s_ext_edges;
+
+	QSet< Structure::Node* > s_outter_nodes = nullSet.property["outerNodes"].value< QSet< Structure::Node* > >();
 
 	foreach(Structure::Node * snode, nullSet.set){
 		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );

@@ -52,7 +52,15 @@ public:
 	QString correspondingNode( Structure::Link *link, int i );
 	void correspondMissingEdges( Structure::Graph * sgraph, Structure::Graph * tgraph );
 	void removeMissingEdges( Structure::Graph * sgraph );
+	void removeUncorrespondedEdges( Structure::Graph * graph );
+	void remainingUncorrespondedEdges( Structure::Graph * source, Structure::Graph * target );
+	void removeRedundantEdges( Structure::Graph * source );
 
+	// Edge correspondence cases
+	void correspondTrivialEdges( Structure::Graph * source, Structure::Graph * target );
+	void correspondSimilarType( Structure::Graph * source, Structure::Graph * target );
+	void connectNullNodes( Structure::Graph * source, Structure::Graph * target );
+	void correspondChangedEnds( Structure::Graph * source, Structure::Graph * target );
 
 	// Query
 	bool isExtraNode(Structure::Node *node);

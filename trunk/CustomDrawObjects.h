@@ -640,9 +640,9 @@ static std::vector<double> randomColor()
 {
     std::vector<double> color;
 
-    float r = ((rand() % 225) + 30) / 255.0f;
-    float g = ((rand() % 230) + 25) / 255.0f;
-    float b = ((rand() % 235) + 20) / 255.0f;
+    float r = float( qMin(((rand() % 225) + 30), 255) ) / 255.0f;
+    float g = float( qMin(((rand() % 230) + 25), 255) ) / 255.0f;
+    float b = float( qMin(((rand() % 235) + 20), 255) ) / 255.0f;
 
     color.push_back(r);
     color.push_back(g);

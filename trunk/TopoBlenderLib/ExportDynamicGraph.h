@@ -201,7 +201,13 @@ static void toGraphviz(DynamicGraphs::DynamicGraph g, QString fileName = "mygrap
 		QString colorHex;
 		colorHex.sprintf("#%02X%02X%02X", color.red(), color.green(), color.blue());
 
-		out << "\t" << QString("%1 [label = \"%2\", color = \"%3\"];").arg(n.idx).arg(n.property["original"].toString()).arg(colorHex) << "\n";
+		QString shape = "rectangle";
+		if(node->id.contains("_null")) shape = "ellipse";
+
+		QString nodeName = n.property["original"].toString();
+		if(nodeName.contains("_null")) nodeName = "# " + nodeName.replace("_null","");
+
+		out << "\t" << QString("%1 [label = \"%2\", color = \"%3\", shape = %4];").arg(n.idx).arg( nodeName ).arg(colorHex).arg(shape) << "\n";
 
 		// Move virtual cursor
 		x += dx;
@@ -221,15 +227,21 @@ static void toGraphviz(DynamicGraphs::DynamicGraph g, QString fileName = "mygrap
 
 		Structure::Link * link = g.mGraph->getEdge(n1.property["original"].toString(),n2.property["original"].toString());
 		
-		QString color = "black";
+		QString color = "black", lcolor = "gray";
 		QString lable = "";
 
 		if(link && !link->property.contains("correspond"))
 			color = "red";
-		//else
-		//	lable = link->property["correspond"].toString();
+		else
+		{
+			QString correspond = link->property["correspond"].toString();
+			int uid = -1;
+			if(link->property.contains("uid")) uid = link->property["uid"].toInt();
+			lable = QString::number( uid );// + " : " +  correspond;
+		}
 
-		out << "\t\"" << n1.idx << "\" -- \"" << n2.idx << "\"" << QString(" [color=\"%1\",label=\"%2\"] ").arg(color).arg(lable) << ";\n";
+		out << "\t\"" << n1.idx << "\" -- \"" << n2.idx << "\"" 
+			<< QString(" [color=\"%1\",label=\"%2\",fontcolor=\"%3\"] ").arg(color).arg(lable).arg(lcolor) << ";\n";
 	}
 
 	// Labels
@@ -238,12 +250,15 @@ static void toGraphviz(DynamicGraphs::DynamicGraph g, QString fileName = "mygrap
 
 	out << "}\n";
 
+	file.flush();
 	file.close();
 
 	// Show image of graph (assuming Graphviz is installed)
 	if(isOutputImage)
 	{
-		system(qPrintable(QString("dot %1 -Tpng > %2").arg(fileName+".gv").arg(fileName+".png")));
+		QString command = QString("dot %1 -Tpng > %2").arg(fileName+".gv").arg(fileName+".png");
+		qDebug() << "Executing: " << command;
+		system(qPrintable(command));
 	}
 }
 
