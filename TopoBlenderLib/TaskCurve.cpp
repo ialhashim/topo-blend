@@ -10,7 +10,6 @@ Curve * TaskCurve::targetCurve()
 	return (Curve *)n;
 }
 
-
 void TaskCurve::prepareCurve()
 {
 	switch(type)
@@ -29,7 +28,6 @@ void TaskCurve::prepareCurve()
 	}
 }
 
-
 void TaskCurve::prepareShrinkCurveOneEdge( Link* l )
 {
 	Node * n = node();
@@ -39,7 +37,6 @@ void TaskCurve::prepareShrinkCurveOneEdge( Link* l )
 
 	Vec4d coordBase = l->getCoord(base->id).front();
 	Vec4d coordSelf = l->getCoord(n->id).front();
-
 	Vector3 linkPositionBase = l->position( base->id );
 
 	// Curve folding
@@ -273,7 +270,6 @@ void TaskCurve::prepareGrowCurve()
 	}
 }
 
-
 void TaskCurve::prepareMorphCurve()
 {
 	Node * n = node(), *tn = targetNode();
@@ -331,8 +327,6 @@ void TaskCurve::prepareCrossingMorphCurve()
 	property["edges"].setValue( edges );
 }
 
-
-
 void TaskCurve::executeCurve(double t)
 {
 	switch(type)
@@ -351,7 +345,6 @@ void TaskCurve::executeCurve(double t)
 		break;
 	}
 }
-
 
 void TaskCurve::foldCurve( double t )
 {

@@ -55,11 +55,13 @@ void GraphDistance::prepareNodes( Scalar resolution, const std::vector<Vector3> 
 
 		Array2D_Vec4d coords = node->discretizedPoints( resolution );
 
-		if (coords.empty()) 
-		{
-			excludeNodes.push_back(node->id);
-			continue;
-		}
+		// Zero area?
+		//if (coords.empty()) 
+		//{
+		//	excludeNodes.push_back(node->id);
+		//	continue;
+		//}
+		if (coords.empty()) coords.push_back( Array1D_Vec4d(1, Vec4d(0)) );
 
 		Array2D_Vector3 discretization = node->getPoints( coords );
 		nodeCount[node] = std::make_pair(discretization.size(), discretization.front().size());
