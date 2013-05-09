@@ -354,6 +354,20 @@ void Scheduler::executeAll()
 	int totalTime = totalExecutionTime();
 
 	QVector<Task*> allTasks = tasksSortedByStart();
+	
+	// Relink once to place null nodes at initial positions:
+	QVector<QString> aTs; aTs.push_back( allTasks.front()->nodeID );
+	activeGraph->property["activeTasks"].setValue( aTs );
+
+	Relink linker(this);
+	linker.checkRelinkability = false;
+	linker.execute( 0 );
+	linker.checkRelinkability = true;
+	
+
+	// Debug: 
+	allGraphs.push_back( new Structure::Graph( *activeGraph ) );
+
 
 	// Execute all tasks
 	for(double globalTime = 0; globalTime <= (1.0 + timeStep); globalTime += timeStep)
@@ -372,9 +386,6 @@ void Scheduler::executeAll()
 
 		// Blend deltas
 		blendDeltas( globalTime, timeStep );
-
-		// Relink
-		Relink linker(this);
 
 		/// Prepare and execute current tasks
 		for(int i = 0; i < (int)allTasks.size(); i++)
@@ -410,11 +421,10 @@ void Scheduler::executeAll()
 		// Output current active graph:
 		allGraphs.push_back( new Structure::Graph( *activeGraph ) );
 
-		activeGraph->vs.clear();
-		activeGraph->vs2.clear();
-		activeGraph->debugPoints3.clear();
+		// DEBUG:
+		activeGraph->clearDebug();
 
-		// UI - visual indicator:
+		// UI - progress visual indicator:
 		int percent = globalTime * 100;
 		emit( progressChanged(percent) );
 
@@ -492,6 +502,15 @@ void Scheduler::startAllSameTime()
 {
 	foreach(Task * t, tasks)
 		t->setX(0);
+}
+
+void Scheduler::startDiffTime()
+{
+	for(int i = 0; i < (int)tasks.size(); i++){
+		int startTime = 0;
+		if(i > 0) startTime = tasks[i - 1]->endTime();
+		tasks[i]->setX( startTime );
+	}
 }
 
 void Scheduler::prepareSynthesis()
@@ -590,7 +609,7 @@ void Scheduler::addMorphTask( QString nodeID )
 
 void Scheduler::blendDeltas( double globalTime, double timeStep )
 {
-	if (globalTime >= 1) return;
+	if (globalTime >= 1.0) return;
 
 	double alpha = timeStep / (1 - globalTime);
 
@@ -602,11 +621,15 @@ void Scheduler::blendDeltas( double globalTime, double timeStep )
 			Vec3d sDelta = l->delta();
 			Vec3d tDelta = tl->property["delta"].value<Vec3d>();
 
-			// flip tDelta if is not consistent with sDeltass
-			Node *n1 = l->n1, *tn1 = targetGraph->getNode(n1->property["correspond"].toString());
-			if ( n1->id == tn1->property["correspond"].toString() ) tDelta *= -1;
+			// flip tDelta if is not consistent with sDeltas
+			Node *sn1 = l->n1;
 
-			l->property["blendedDelta"].setValue( AlphaBlend(alpha, sDelta, tDelta) );
+			Vec3d blendedDelta = AlphaBlend(alpha, sDelta, tDelta);
+			l->property["blendedDelta"].setValue( blendedDelta );
+
+			// Visualization
+			activeGraph->vs3.addVector(l->position(sn1->id), blendedDelta);
+			//activeGraph->vs.addVector(l->position(sn1->id), tDelta);
 		}
 	}
 }

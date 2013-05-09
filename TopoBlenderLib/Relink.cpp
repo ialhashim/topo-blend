@@ -6,6 +6,8 @@ Relink::Relink(Scheduler *scheduler)
     this->s = scheduler;
     this->activeGraph = scheduler->activeGraph;
     this->targetGraph = scheduler->targetGraph;
+
+	checkRelinkability = true;
 }
 
 void Relink::execute(int globalTime)
@@ -59,6 +61,17 @@ void Relink::propagateFrom( Task* task )
 		// Skip un-relinkable tasks
 		if (!isRelinkable(otherTask)) continue;
 
+
+		// For first time (placing null nodes): 
+		// Do not propagate from null to real
+		if (checkRelinkability == false)
+		{
+			checkRelinkability = true;
+			if (isRelinkable(otherTask)) continue;
+			checkRelinkability = false;
+		}
+
+
 		// Add to queue
 		if (!otherTask->property["propagated"].toBool())
 		{
@@ -83,9 +96,17 @@ void Relink::fixTask( Task* task, int globalTime )
 	if (constraints.contains(task)) consts = constraints[task];
 
 	int N = consts.size();
+	if (N == 0) return;
 
+	// Crossing node is still fixable 
 	// Translate done tasks
-	if (task->isDone && N > 0)
+
+	bool fixedSize = false;
+	if (task->type == Task::MORPH && task->isDone && !task->property["isCrossing"].toBool())
+		fixedSize = true;
+
+
+	if (fixedSize && N > 0 )
 	{
 		// Use all constraints
 		Vec3d translation(0);
@@ -113,48 +134,60 @@ void Relink::fixTask( Task* task, int globalTime )
 		}
 
 	}
-	// Translate future tasks if only one constraint
-	else if( N == 1 )
+	else 
 	{
-		LinkConstraint constraint = consts.front();
-		Structure::Link * link = constraint.link;
+		// Special case to relink null nodes
+		if (checkRelinkability == false)
+		{
+			checkRelinkability = true;
+			if (!isRelinkable(task)) 
+				N = 1;
+			checkRelinkability = false;
+		}
 
-		Vec3d oldPos = link->position(n->id);
-		Vec3d linkPosOther = link->positionOther(n->id);
-		Vec3d delta = getToDelta(link, n->id);
-		Vector3 newPos = linkPosOther + delta;
+		// Translate future tasks if only one constraint
+		if( N == 1)
+		{
+			LinkConstraint constraint = consts.front();
+			Structure::Link * link = constraint.link;
 
-		// Translate
-		n->moveBy(newPos - oldPos);
+			Vec3d oldPos = link->position(n->id);
+			Vec3d linkPosOther = link->positionOther(n->id);
+			Vec3d delta = getToDelta(link, n->id);
+			Vector3 newPos = linkPosOther + delta;
 
-		// Visualization
-		activeGraph->vs2.addVector( linkPosOther, delta );
-	}
-	// Deform future tasks by two handles if multiple constrains exist
-	else if (N > 1)
-	{
-		// Pickup two constrains to deform the node
-		LinkConstraint cA = consts.front();
-		LinkConstraint cB = consts.back();
-		Structure::Link *linkA = cA.link, *linkB = cB.link;
+			// Translate
+			n->moveBy(newPos - oldPos);
 
-		// Two Handles and newPos:
-		Vec4d handleA = linkA->getCoord(n->id).front();
-		Vector3 linkPosOtherA = linkA->positionOther(n->id);
-		Vector3 deltaA = getToDelta(linkA, n->id);
-		Vector3 newPosA = linkPosOtherA + deltaA;
+			// Visualization
+			activeGraph->vs2.addVector( linkPosOther, delta );
+		}
+		// Deform future tasks by two handles if multiple constrains exist
+		else if (N > 1)
+		{
+			// Pickup two constrains to deform the node
+			LinkConstraint cA = consts.front();
+			LinkConstraint cB = consts.back();
+			Structure::Link *linkA = cA.link, *linkB = cB.link;
 
-		Vec4d handleB = linkB->getCoord(n->id).front();
-		Vector3 linkPosOtherB = linkB->positionOther(n->id);
-		Vector3 deltaB = getToDelta(linkB, n->id);
-		Vector3 newPosB = linkPosOtherB + deltaB;
+			// Two Handles and newPos:
+			Vec4d handleA = linkA->getCoord(n->id).front();
+			Vector3 linkPosOtherA = linkA->positionOther(n->id);
+			Vector3 deltaA = getToDelta(linkA, n->id);
+			Vector3 newPosA = linkPosOtherA + deltaA;
 
-		// Deform two handles
-		n->deformTwoHandles(handleA, newPosA, handleB, newPosB);
+			Vec4d handleB = linkB->getCoord(n->id).front();
+			Vector3 linkPosOtherB = linkB->positionOther(n->id);
+			Vector3 deltaB = getToDelta(linkB, n->id);
+			Vector3 newPosB = linkPosOtherB + deltaB;
 
-		// Visualization
-		activeGraph->vs2.addVector( linkPosOtherA, deltaA );
-		activeGraph->vs2.addVector( linkPosOtherB, deltaB );
+			// Deform two handles
+			n->deformTwoHandles(handleA, newPosA, handleB, newPosB);
+
+			// Visualization
+			activeGraph->vs2.addVector( linkPosOtherA, deltaA );
+			activeGraph->vs2.addVector( linkPosOtherB, deltaB );
+		}
 	}
 
 	// Visualization
@@ -179,18 +212,26 @@ Vector3 Relink::getToDelta( Structure::Link * link, QString toOtherID )
 
 bool Relink::isRelinkable(Task* task)
 {
-	// Shrink/Grow cut node 
-	if (task->type != Task::MORPH && task->property["isCutNode"].toBool()) return true;
+	// Relink all
+	if (!checkRelinkability) return true;
 
-	// Shrunk node 
-	if (task->node()->property["shrunk"].toBool()) return false;
+	// Cut node: ALWAYS YES
+	if (task->property["isCutNode"].toBool()) return true;
 
-	// Not fully grown
-	if (task->type == Task::GROW && !task->isDone) return false;
+	// Shrink node: Yes ---> start  --> No 
+	if (task->type == Task::SHRINK) return !task->isReady;
 
-	// Grow/shrink and crossing morph
-	if (task->type != Task::MORPH) return false;
-	if (task->property["isCrossing"].toBool() && !task->isDone) return false;
+	// Grow: NO --> done --> YES
+	if (task->type == Task::GROW) return task->isDone;
+	
+	// Morph: YES, but NO if crossing
+	if (task->type == Task::MORPH)
+	{
+		if (task->property["isCrossing"].toBool() && !task->isDone) 
+			return false;
+		else
+			return true;
+	}
 
 	return true;
 }

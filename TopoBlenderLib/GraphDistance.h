@@ -31,12 +31,6 @@ public:
 	void computeDistances( Vector3 startingPoint, double resolution );
 	void computeDistances( std::vector<Vector3> startingPoints, double resolution );
 
-	double distance( Vector3 point );
-    double pathTo( Vector3 point, std::vector<Vector3> & path );
-	double pathCoordTo( Vector3 point, QVector< PathPoint > & path );
-	Structure::Node * closestNeighbourNode( Vector3 to, double resolution = 0.25 );
-	void clear();
-
 	Structure::Graph * g;
 	double used_resolution;
 
@@ -77,8 +71,19 @@ public:
 			return (posA * wA) + (posB * wB);
 		}
 	};
+
+	double pathTo( Vector3 point, std::vector<Vector3> & path );
+	double pathCoordTo( Vector3 point, QVector< PathPoint > & path );
+	double pathCoordTo( NodeCoord relativePoint, QVector< QPair<QString, Vec4d> > & path );
+	Structure::Node * closestNeighbourNode( Vector3 to, double resolution = 0.25 );
+	double distance( Vector3 point );
+	void clear();
+
 	double smoothPathCoordTo( Vector3 point, QVector< PathPointPair > & smooth_path );
-		
+	double smoothPathCoordTo( NodeCoord relativePoint, QVector< PathPointPair > & smooth_path );
+
+	// Helpers
+	void smoothPath( QVector< QPair<QString, Vec4d> > path, QVector< PathPointPair > & smooth_path );
 	static Array1D_Vector3 positionalPath( Structure::Graph * graph, QVector< GraphDistance::PathPointPair > & from_path, int smoothingIters = 0 );
 	
 	// DEBUG:

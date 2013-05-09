@@ -48,13 +48,13 @@ public:
 	Structure::Node * addMissingNode( Structure::Graph *toGraph, Structure::Graph * fromGraph, Structure::Node * fromNode );
 	void tagEdge(Structure::Link *link, QString tag);
 	bool taggedEdge(Structure::Link *link, QString tag);
-	void correspondTwoEdges(Structure::Link *slink, Structure::Link *tlink);
+	void correspondTwoEdges( Structure::Link *slink, Structure::Link *tlink, bool isFlip, Structure::Graph* source );
 	QString correspondingNode( Structure::Link *link, int i );
-	void correspondMissingEdges( Structure::Graph * sgraph, Structure::Graph * tgraph );
 	void removeMissingEdges( Structure::Graph * sgraph );
 	void removeUncorrespondedEdges( Structure::Graph * graph );
 	void remainingUncorrespondedEdges( Structure::Graph * source, Structure::Graph * target );
 	void removeRedundantEdges( Structure::Graph * source );
+	void postprocessSuperEdges();
 
 	// Edge correspondence cases
 	void correspondTrivialEdges( Structure::Graph * source, Structure::Graph * target );
@@ -74,7 +74,6 @@ public:
 	
 	// Null sets
 	QVector< SetNodes > nullNodeSets( Structure::Graph * sgraph, Structure::Graph * tgraph );
-	void connectNullSet( SetNodes nullSet, Structure::Graph * source, Structure::Graph * target );
 	QVector<Structure::Link*> nonCorrespondEdges( Structure::Node * node, Structure::Graph * graph );
 	
 	void checkIntermediateCuts(Structure::Graph * original, Structure::Graph * super_s, Structure::Graph * super_t);

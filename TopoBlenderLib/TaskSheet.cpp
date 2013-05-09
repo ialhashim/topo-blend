@@ -27,10 +27,15 @@ void TaskSheet::executeSheet(double t)
     {
     case GROW:
     case SHRINK:
-        executeGrowShrinkSheet(t);
+        executeCrossingSheet(t);
         break;
     case MORPH:
-        executeMorphSheet(t);
+		{
+			if( property["isCrossing"].toBool() )
+				executeCrossingSheet(t);
+			else
+				executeMorphSheet(t);
+		}
         break;
     }
 }
@@ -96,32 +101,21 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
         pathB.push_back(path[hN-1-i]);
     }
 
-    // Add smooth ending on both paths
-    //Vec3d endDeltaA = tlinkA->position(tn->id) - tlinkA->positionOther(tn->id);
-    //Vec3d endDeltaB = tlinkB->position(tn->id) - tlinkB->positionOther(tn->id);
-    //Node * auxA = new Structure::Curve(NURBS::NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, pointA + endDeltaA ) ), "auxA_" + n->id);
-    //Node * auxB = new Structure::Curve(NURBS::NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, pointB + endDeltaB ) ), "auxB_" + n->id);
-    //active->aux_nodes.push_back( auxA );
-    //active->aux_nodes.push_back( auxB );
-    //pathA = smoothEnd(auxA, Vec4d(0), pathA);
-    //pathB = smoothEnd(auxB, Vec4d(0), pathB);
-
     // Record path
     property["pathA"].setValue( pathA );
     property["pathB"].setValue( pathB );
 
-    // Encode curve
-    RMF rmf( GraphDistance::positionalPath(active, pathA, 1) );
-    property["rmf"].setValue( rmf );
-    if(!rmf.count()) return;
-
-    Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
-
     // Encode sheet on a line segment
-    SheetEncoding cpCoords = encodeSheetAsCurve((Structure::Sheet*)n, linkA->position(n->id), linkB->position(n->id), X,Y,Z);
-    property["cpCoords"].setValue( cpCoords );
+	RMF rmf( GraphDistance::positionalPath(active, pathA, 1) );
+	property["rmf"].setValue( rmf );
+	if(!rmf.count()) return;
 
-    // DEBUG frames
+	Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
+
+    SheetEncoding cpCoords = encodeSheetAsCurve((Structure::Sheet*)tn, tlinkA->position(tn->id), tlinkB->position(tn->id), X,Y,Z);
+	property["cpCoords"].setValue( cpCoords );
+
+    // DEBUG
     node()->property["rmf"].setValue( rmf );
     node()->property["rmf2"].setValue( RMF ( GraphDistance::positionalPath(active, pathB, 3) ) );
 
@@ -186,7 +180,7 @@ void TaskSheet::prepareMorphSheet()
 }
 
 
-void TaskSheet::executeGrowShrinkSheet( double t )
+void TaskSheet::executeCrossingSheet( double t )
 {
     Structure::Sheet* structure_sheet = ((Structure::Sheet*)node());
 	QVector<Link*> edges = property["edges"].value< QVector<Link*> >();
@@ -250,17 +244,11 @@ void TaskSheet::executeGrowShrinkSheet( double t )
         if (type == SHRINK)
         {
             n->property["isReady"] = false;
-
-            // Delete all edges
-            //foreach(Structure::Link *link, edges)
-            //{
-            //    active->removeEdge(link->n1, link->n2);
-            //}
         }
 
         if (type == GROW)
         {
-            if(tedges.size()) copyTargetEdge(tedges.front());
+
         }
     }
 }
