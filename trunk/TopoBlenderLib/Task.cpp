@@ -14,6 +14,8 @@
 using namespace NURBS;
 using namespace Structure;
 
+Q_DECLARE_METATYPE( Task* )
+
 Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, TaskType taskType, int ID )
 {
 	// Task properties
@@ -467,77 +469,39 @@ void Task::execute( double t )
 {	
 	if( !isActive(t) ) return;
 
-	currentTime = start + (t * length);
-
 	// Range check
 	t = qRanged(0.0, t, 1.0);
+	property["t"] = t;
 
-	// Execute curve tasks
-	if (node()->type() == Structure::CURVE)
-	{
-        executeCurve(t);
-	}
+	currentTime = start + (t * length);
+
+	// Make available for reconstruction
+	if( t > 0.0 ) node()->property["inactive"] = false;
+
+	// Execute task by type
+	if (node()->type() == Structure::CURVE)	executeCurve( t );
+	if (node()->type() == Structure::SHEET)	executeSheet( t );
 	
-	// Execute sheet tasks
-	if (node()->type() == Structure::SHEET)
-	{
-        executeSheet(t);
-	}
-
-
-	executeMorphEdges(t);
+	// Fix the other end of all edges
+	executeMorphEdges( t );
 
 	// Post execution steps
 	if(t >= 1.0)
 	{
 		Structure::Node * n = node();
-		Structure::Node * tn = targetNode();
 
 		this->isDone = true;
 		n->property["taskIsDone"] = true;
 
 		if(type == SHRINK)
-		{
 			n->property["shrunk"] = true;
-		}
 
-		// Case: done growing a cut node
-		if(type == GROW && n->property["isCutGroup"].toBool())
+		// Clean up:
+		n->property.remove("path");
+		n->property.remove("path2");
+		foreach(Structure::Link * l, property["edges"].value< QVector<Link*> >())
 		{
-			// re-link adjacent nodes
-			QVector<Structure::Link*> edges = active->getEdges(n->id);
-			QVector<Structure::Link*> tedges = target->getEdges(tn->id);
-
-			// Re-assign source edges based on target counterparts
-			QVector<Node*> tadjN;
-			active->removeEdges( n->id );
-			foreach(Structure::Link * l, tedges){
-				Node * n1 = active->getNode(l->n1->property["correspond"].toString());
-				Node * n2 = active->getNode(l->n2->property["correspond"].toString());
-				Array1D_Vec4d coord1 = l->getCoord(l->n1->id);
-				Array1D_Vec4d coord2 = l->getCoord(l->n2->id);
-				Link * newEdge = active->addEdge(n1,n2,coord1,coord2);
-				newEdge->property["correspond"] = l->id;
-				
-				if(l->n1 != tn) tadjN.push_back(l->n1);
-				if(l->n2 != tn) tadjN.push_back(l->n2);
-			}
-			
-			// Make a copy of target graph and cut current target node
-			Structure::Graph targetCopy( *target );
-			targetCopy.removeNode( tn->id );
-			
-			// Search if paths are not valid then disconnect at source graph
-			for(int i = 0; i < (int)tadjN.size(); i++){
-				for(int j = i + 1; j < (int)tadjN.size(); j++){
-					QVector<Node*> path = targetCopy.path(tadjN[i], tadjN[j]);
-					if( path.size() < 2 ){
-						Node * n1 = active->getNode(tadjN[i]->property["correspond"].toString());
-						Node * n2 = active->getNode(tadjN[j]->property["correspond"].toString());
-						active->removeEdge(n1->id, n2->id);
-					}
-				}
-			}
+			l->property.remove("path");
 		}
 	}
 }
@@ -654,6 +618,7 @@ void Task::setNode( QString node_ID )
 	property["nodeID"] = node_ID;
 	this->nodeID = node_ID;
 	node()->property["taskType"] = type;
+	node()->property["task"].setValue( this );
 }
 
 std::vector<RMF::Frame> Task::smoothRotateFrame( RMF::Frame sframe, Eigen::Quaterniond & rotation, int steps )
@@ -711,14 +676,14 @@ void Task::prepareMorphEdges()
 	foreach(Link * link, edges)
 	{
 		Vec3d start = link->positionOther(n->id);
-		NodeCoord ed = futureOtherNodeCoord(link);
-		Vec3d end = active->position(ed.first,ed.second);
+		NodeCoord futureNodeCord = futureOtherNodeCoord(link);
+		Vec3d end = active->position(futureNodeCord.first, futureNodeCord.second);
 
 		// Geodesic distances on the active graph excluding the running tasks
 		QVector< GraphDistance::PathPointPair > path;
 		
 		QString otherOld = link->otherNode(n->id)->id;
-		QString otherNew = ed.first;
+		QString otherNew = futureNodeCord.first;
 
 		if( otherOld == otherNew )
 		{
@@ -734,14 +699,21 @@ void Task::prepareMorphEdges()
 			gd.smoothPathCoordTo( start, path );
 		}
 
+		// End of path should be exactly as in target
+		path.back() = GraphDistance::PathPointPair( PathPoint(futureNodeCord.first, futureNodeCord.second)  );
 
-		link->property["path"].setValue(path);
+		link->property["path"].setValue( path );
 	}
 }
 
 void Task::executeMorphEdges( double t )
 {
 	Node * n = node();
+
+	if (t == 1)
+	{
+		int a  = 0;
+	}
 
 	QVector<Structure::Link*> edges = property["edges"].value< QVector<Structure::Link*> >();
 	foreach (Structure::Link* link, edges)
@@ -770,8 +742,8 @@ bool Task::isCrossing()
 		Structure::Node* other = l->otherNode(n->id);
 
 		// Skip shrunk and non-grown nodes
-		if (other->property["shrunk"].toBool()) continue;
-		if (other->property["taskType"].toInt() == Task::GROW && !other->property["taskIsDone"].toBool()) continue;
+		//if (other->property["shrunk"].toBool()) continue;
+		//if (other->property["taskType"].toInt() == Task::GROW && !other->property["taskIsDone"].toBool()) continue;
 
 		// check if my neighbor will change
 		Structure::Link* tl = target->getEdge(l->property["correspond"].toString());
@@ -787,9 +759,31 @@ bool Task::isCrossing()
 	return isCross;
 }
 
-bool Task::areConsistentST( Link* slink, Link* tlink )
+
+bool Task::isCutting()
 {
-	Node *sn1 = slink->n1;
-	Node *tn1 = tlink->n1;
-	return sn1->id == tn1->property["correspond"].toString();
+	Structure::Graph copyActive(*active);
+
+	// Exclude nodes that is active and non-existing
+	QSet<QString>excludeNodes;
+	 
+	foreach(QString nid, active->property["activeTasks"].value< QVector<QString> >())
+		 excludeNodes.insert(nid);
+
+	foreach (Node* n, active->nodes)
+	{
+		Task * task = n->property["task"].value<Task*>();
+
+		// Shrunk node 
+		if (task->type == SHRINK && task->isReady) excludeNodes.insert(n->id);
+
+		// Not fully grown
+		if(task->type == GROW && !task->isDone) excludeNodes.insert(n->id);
+	}
+	
+	// Keep myself in graph for checking
+	excludeNodes.remove(nodeID);
+	foreach (QString nid, excludeNodes)	copyActive.removeNode(nid);
+	
+	return copyActive.isCutNode(nodeID);
 }

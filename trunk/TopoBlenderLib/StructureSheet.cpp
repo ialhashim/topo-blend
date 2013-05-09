@@ -503,7 +503,7 @@ void Sheet::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
 	Vector3 p = position( handle );
 
 	double diff = (p - to).norm();
-	if(diff < 1e-7) return;
+	if(diff < DECODE_ZERO_THRESHOLD) return;
 
 	//if( isRigid )
 	{
@@ -519,8 +519,9 @@ void Sheet::deformTwoHandles( Vec4d handleA, Vector3 newPosA, Vec4d handleB, Vec
 	Vec3d oldA = position(handleA);
 	Vec3d oldB = position(handleB);
 
-	double diffOld = (oldA - oldB).norm();
-	if(diffOld < 1e-7) return;
+	// Numerical checks
+	double diffOld = (oldA - oldB).norm();	if(diffOld < DECODE_ZERO_THRESHOLD) return;
+	double diff = (newPosA - newPosB).norm();	if(diff < DECODE_ZERO_THRESHOLD) return;
 
 	this->moveBy(newPosA - oldA);
 

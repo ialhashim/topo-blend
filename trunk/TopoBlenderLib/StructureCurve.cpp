@@ -387,6 +387,10 @@ Array1D_Vector3 Curve::decodeCurve(CurveEncoding cpCoords, Vector3 start, Vector
 
 	NURBS::Line segment(start, end);
 
+	if(segment.length < DECODE_ZERO_THRESHOLD){
+		return Array1D_Vector3( cpCoords.size(), start );
+	}
+
 	// compute frame
 	qglviewer::Vec x(1, 0, 0), y(0, 1, 0), z(0, 0, 1);
 	Vec3d Z = (end - start).normalized();
@@ -419,7 +423,7 @@ void Curve::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
 	Vector3 p = position( handle );
 
 	double diff = (p-to).norm();
-	if(diff < 1e-7) return;
+	if(diff < DECODE_ZERO_THRESHOLD) return;
 
 	if( isRigid )
 	{
@@ -432,6 +436,7 @@ void Curve::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
 
 	// Find new scale
 	double d = (p - otherEnd).norm();
+	if(d < DECODE_ZERO_THRESHOLD) return;
 
 	double scale = (to - otherEnd).norm() / d;
 
@@ -461,6 +466,10 @@ void Curve::deformTwoHandles( Vec4d handleA, Vector3 newPosA, Vec4d handleB, Vec
 {
 	Vec3d oldA = position(handleA);
 	Vec3d oldB = position(handleB);
+
+	// Numerical checks
+	double oldDiff = (oldA-oldB).norm(); if(oldDiff < DECODE_ZERO_THRESHOLD) return;
+	double diff = (newPosA-newPosB).norm();	if(diff < DECODE_ZERO_THRESHOLD) return;
 
 	setControlPoints( decodeCurve( encodeCurve(this, oldA, oldB), newPosA, newPosB ) );
 }

@@ -3,6 +3,8 @@
 #include "StructureGlobal.h"
 #include "StructureLink.h"
 
+#define DECODE_ZERO_THRESHOLD 1e-7
+
 namespace Structure{
 
 struct Node
@@ -76,9 +78,6 @@ struct Node
     virtual void draw(bool isShowCtrlPts = false) = 0;
     QMap< QString, QVariant > vis_property;
 	virtual void drawWithNames(int nID, int pointIDRange) = 0;
-
-
-
 
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
 };

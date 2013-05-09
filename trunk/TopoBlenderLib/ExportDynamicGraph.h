@@ -237,7 +237,7 @@ static void toGraphviz(DynamicGraphs::DynamicGraph g, QString fileName = "mygrap
 			QString correspond = link->property["correspond"].toString();
 			int uid = -1;
 			if(link->property.contains("uid")) uid = link->property["uid"].toInt();
-			lable = QString::number( uid );// + " : " +  correspond;
+			lable = QString::number( uid ); // +  correspond;
 		}
 
 		out << "\t\"" << n1.idx << "\" -- \"" << n2.idx << "\"" 

@@ -134,6 +134,7 @@ struct Graph
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
 	VectorSoup vs,vs2,vs3;
 	PolygonSoup ps,ps2,ps3;
+	SphereSoup spheres, spheres2;
 	void printAdjacency();
 	void printLinksInfo();
 	void clearDebug();

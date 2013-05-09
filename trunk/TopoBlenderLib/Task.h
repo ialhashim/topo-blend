@@ -38,9 +38,8 @@ public:
 	// Helper functions
 	bool isActive(double t);
 	bool isCrossing();
+	bool isCutting();
 
-	bool areConsistentST( Structure::Link* slink, Structure::Link* tlink );
-	
 	QVector< GraphDistance::PathPointPair > weldPath( QVector< GraphDistance::PathPointPair > oldPath );
 	QVector< GraphDistance::PathPointPair > smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
 	QVector< GraphDistance::PathPointPair > smoothEnd( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
@@ -117,6 +116,7 @@ protected:
 // Useful global definitions
 typedef std::vector< std::pair<double,double> > VectorPairDouble;
 
+// Global meta types
 Q_DECLARE_METATYPE( Vector3 )
 Q_DECLARE_METATYPE( Vec4d )
 Q_DECLARE_METATYPE( VectorPairDouble )

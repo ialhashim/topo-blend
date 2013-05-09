@@ -21,6 +21,7 @@ struct Relink
     Structure::Graph *activeGraph, *targetGraph;
     TasksConstraints constraints;
 
+	bool checkRelinkability;
 	QQueue<Task*> propagationQueue;
 
 	void execute(int globalTime);

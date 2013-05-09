@@ -56,6 +56,9 @@ void Graph::init()
 	vs = VectorSoup(Qt::blue);
 	vs2 = VectorSoup(Qt::red);
 	vs3 = VectorSoup(Qt::green);
+
+	spheres = SphereSoup(Qt::yellow);
+	spheres2 = SphereSoup(Qt::blue);
 }
 
 Graph::Graph( const Graph & other )
@@ -84,6 +87,7 @@ Graph::Graph( const Graph & other )
 
 	vs = other.vs; vs2 = other.vs2; vs3 = other.vs3;
 	ps = other.ps; ps2 = other.ps2; ps3 = other.ps3;
+	spheres = other.spheres; spheres2 = other.spheres2;
 }
 
 Graph::~Graph()
@@ -377,6 +381,7 @@ void Graph::clearDebug()
 	debugPoints.clear(); debugPoints2.clear(); debugPoints3.clear();
 	vs.clear(); vs2.clear(); vs3.clear();
 	ps.clear(); ps2.clear(); ps3.clear();
+	spheres.clear(); spheres2.clear();
 }
 
 void Graph::draw( QGLViewer * drawArea )
@@ -390,8 +395,9 @@ void Graph::draw( QGLViewer * drawArea )
 
 	if( property["showTasks"].toBool() )
 	{
-		vs.draw();	vs2.draw(5); vs3.draw(9);
+		vs.draw();	vs2.draw(5); vs3.draw();
 		ps.draw();	ps2.draw();	ps3.draw();
+		spheres.draw(); spheres2.draw();
 	}
 
 	// Geometry of graph
@@ -421,6 +427,9 @@ void Graph::draw( QGLViewer * drawArea )
 		}
 
 		if (n->property.contains("isReady") && !n->property["isReady"].toBool())
+			continue;
+
+		if ( n->property["shrunk"].toBool() )
 			continue;
 
 		if (property["showCurveFrames"].toBool())
@@ -567,7 +576,7 @@ void Graph::draw( QGLViewer * drawArea )
 				{
 					RMF::Frame f = n->property["frame"].value<RMF::Frame>();
 					FrameSoup fs(0.01f);
-					fs.addFrame(f.r, f.s, f.t, f.center);
+					fs.addFrame(f.r, f.s, f.t, n->bbox().center());
 					fs.draw();
 				}
 
@@ -575,7 +584,7 @@ void Graph::draw( QGLViewer * drawArea )
 				{
 					RMF::Frame f = n->property["frame2"].value<RMF::Frame>();
 					FrameSoup fs(0.01f);
-					fs.addFrame(f.r, f.s, f.t, f.center);
+					fs.addFrame(f.r, f.s, f.t, n->bbox().center());
 					fs.draw();
 				}
 			}

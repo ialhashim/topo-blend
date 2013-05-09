@@ -1018,7 +1018,7 @@ void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 	// Debug:
 	if( blender )
 	{
-		if(false)
+		if( true )
 		{
 			if( !newActiveGraph->nodes.front()->property.contains("samples") )
 			{
@@ -1031,6 +1031,8 @@ void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 		//newActiveGraph->moveBottomCenterToOrigin();
 	}	
 	
+	//setSceneBounds();
+
 	graphs.clear();
 	this->graphs.push_back(newActiveGraph);
 	drawArea()->updateGL();
@@ -1280,7 +1282,7 @@ void topoblend::renderGraph( Structure::Graph graph, QString filename, bool isOu
 	foreach(Structure::Node * node, graph.nodes)
 	{
 		// Skip inactive nodes
-		if(	node->property["shrunk"].toBool() || 
+		if( node->property["inactive"].toBool() || node->property["shrunk"].toBool() || 
 			!node->property.contains("cached_points")) continue;
 
 		QVector<Vec3d> points = node->property["cached_points"].value< QVector<Vec3d> >();

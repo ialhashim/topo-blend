@@ -266,9 +266,22 @@ void TopoBlender::correspondSuperNodes()
 	}
 }
 
-void TopoBlender::correspondTwoEdges( Structure::Link *slink, Structure::Link *tlink )
+void TopoBlender::correspondTwoEdges( Structure::Link *slink, Structure::Link *tlink, bool isFlip, Structure::Graph* source )
 {
 	if(slink->property.contains("correspond") || tlink->property.contains("correspond")) return;
+
+	// Force flip order of nodes of link on super_sg
+	if (isFlip)
+	{
+		QString n1 = slink->n1->id;
+		QString n2 = slink->n2->id;
+		Array1D_Vec4d c1 = slink->coord.front();
+		Array1D_Vec4d c2 = slink->coord.back();
+
+		source->removeEdge(n1,n2);
+		slink = source->addEdge(source->getNode(n2), source->getNode(n1), c2, c1, source->linkName(n2,n1) );
+	}
+
 	slink->property["correspond"] = tlink->id;
 	tlink->property["correspond"] = slink->id;
 }
@@ -362,7 +375,8 @@ void TopoBlender::remainingUncorrespondedEdges( Structure::Graph * source, Struc
 		foreach(Link * tlink, tedges)
 		{
 			Link * slink = addMissingLink( source, tlink );
-			correspondTwoEdges(slink, tlink);
+
+			correspondTwoEdges(slink, tlink, false, source);
 		}
 	}
 }
@@ -378,7 +392,8 @@ void TopoBlender::correspondTrivialEdges( Structure::Graph * source, Structure::
 
 		if(!tlink) continue;
 
-		correspondTwoEdges(slink, tlink);
+		bool isFlip = ( tlink->n1->id != tn1->id );
+		correspondTwoEdges(slink, tlink, isFlip, source);
 	}
 }
 
@@ -396,7 +411,7 @@ void TopoBlender::correspondSimilarType( Structure::Graph * source, Structure::G
 		if(!(tn1->id.contains("null") && tn2->id.contains("null"))) continue;
 
 		Structure::Link * tlink = addMissingLink(target, slink);
-		correspondTwoEdges(slink, tlink);
+		correspondTwoEdges(slink, tlink, false, source);
 	}
 }
 
@@ -441,7 +456,7 @@ void TopoBlender::connectNullNodes( Structure::Graph * source, Structure::Graph 
 
 		// Add the link to source
 		Link* slink = addMissingLink(source, bestTLink);
-		correspondTwoEdges(slink, bestTLink);
+		correspondTwoEdges(slink, bestTLink, false, source);
 	}
 }
 
@@ -462,7 +477,16 @@ void TopoBlender::correspondChangedEnds( Structure::Graph * source, Structure::G
 			if( sedges.size() == tedges.size() && !sedges.isEmpty())
 			{
 				for( int i = 0; i < (int)sedges.size(); i++)
-					correspondTwoEdges(sedges[i], tedges[i]);
+				{
+					Link* slink = sedges[i], *tlink = tedges[i];
+
+					bool sFromMe = ( slink->n1->id == snode->id );
+					bool tFromMe = ( tlink->n1->id == tnode->id );
+
+					bool isFlip = (sFromMe != tFromMe);
+
+					correspondTwoEdges(slink, tlink, isFlip, source);
+				}
 
 				isRunning = true;
 			}
@@ -514,22 +538,6 @@ void TopoBlender::checkIntermediateCuts(Structure::Graph * original, Structure::
 		{
 			snode->property["isCutGroup"] = true;
 			tnode->property["isCutGroup"] = true;
-		}
-	}
-}
-
-void TopoBlender::correspondMissingEdges( Structure::Graph * sgraph, Structure::Graph * tgraph )
-{
-	foreach(Structure::Node * snode, sgraph->nodes)
-	{
-		QVector<Structure::Link*> sedges = edgesNotContain( sgraph->getEdges(snode->id), "correspond" );
-		if(!sedges.size()) continue;
-
-		foreach(Structure::Link * slink, sedges)
-		{
-			Structure::Link * tlink = addMissingLink(tgraph, slink);
-
-			correspondTwoEdges(slink,tlink);
 		}
 	}
 }
@@ -625,101 +633,6 @@ QVector< SetNodes > TopoBlender::nullNodeSets( Structure::Graph * sgraph, Struct
 	return result;
 }
 
-void TopoBlender::connectNullSet( SetNodes nullSet, Structure::Graph * source, Structure::Graph * target )
-{
-	/// 1) Find external edges = not yet corresponded
-	QSet< Structure::Link* > t_ext_edges, s_ext_edges;
-
-	QSet< Structure::Node* > s_outter_nodes = nullSet.property["outerNodes"].value< QSet< Structure::Node* > >();
-
-	foreach(Structure::Node * snode, nullSet.set){
-		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
-		foreach(Structure::Link * tlink, nonCorrespondEdges(tnode, target))
-		{
-			// Links to correspond in target graph
-			t_ext_edges.insert( tlink );
-			
-			// Links to correspond in source graph
-			Structure::Node *s1 = source->getNode( correspondingNode(tlink,0) );
-			Structure::Node *s2 = source->getNode( correspondingNode(tlink,1) );
-			QVector<Structure::Link*> non_corr_edges = nonCorrespondEdges(s1, source) + nonCorrespondEdges(s2, source);
-
-			foreach(Structure::Link* slink, non_corr_edges) 
-			{
-				if( s_outter_nodes.contains(slink->n1) && s_outter_nodes.contains(slink->n2) )
-					s_ext_edges.insert( slink );
-			}
-		}
-	}
-	if( !t_ext_edges.size() ) return; // shouldn't happen?
-
-	// Count number of edges toward each outer node on target
-	QMap<Structure::Node*,int> s_outter_counts;
-	foreach( Structure::Link * l, t_ext_edges )
-	{
-		Structure::Node * n1 = source->getNode(l->n1->property["correspond"].toString());
-		Structure::Node * n2 = source->getNode(l->n2->property["correspond"].toString());
-		if(s_outter_nodes.contains(n1)) s_outter_counts[n1]++;
-		if(s_outter_nodes.contains(n2)) s_outter_counts[n2]++;
-	}
-
-	bool isCutGroup = false;
-
-	/// 2) Classify external edges either as [1-paring] or otherwise
-	//	a. 1-paring find existing and match
-	//	b. otherwise add edge
-	foreach( Structure::Link * tlink, t_ext_edges )
-	{
-		Structure::Link * slink = NULL;
-
-		// Find candidate edges to match with tlink
-		QVector<Structure::Link *> s_candidates;
-
-		foreach( Structure::Link * otherLink, s_ext_edges )
-		{
-			if(s_outter_counts[otherLink->n1] > 1) { isCutGroup = true; continue;}
-			if(s_outter_counts[otherLink->n2] > 1) { isCutGroup = true; continue;}
-
-			if( isShareCorrespondedNode( otherLink, tlink ) )
-				s_candidates.push_back( otherLink );
-		}
-
-		if( s_candidates.size() == 1 )
-		{
-			slink = s_candidates.front();
-			isCutGroup = true;
-
-			slink->property["changingEnd"] = true;
-			tlink->property["changingEnd"] = true;
-		}
-		else
-		{
-			slink = addMissingLink( source, tlink );
-		}
-
-		correspondTwoEdges(slink,tlink);
-	}
-
-	/// 3) Clean up "redundant" edges
-	foreach( Structure::Link * l, s_ext_edges )
-	{
-		if(!l->property.contains("correspond")){
-			source->removeEdge(l->n1->id, l->n2->id);
-		}
-	}
-
-	foreach(Structure::Node * snode, nullSet.set)
-	{
-		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
-
-		if( isCutGroup )
-		{
-			snode->property["isCutGroup"] = true;
-			tnode->property["isCutGroup"] = true;
-		}
-	}
-}
-
 QVector<Structure::Link*> TopoBlender::nonCorrespondEdges( Structure::Node * node, Structure::Graph * graph )
 {
 	return edgesNotContain(graph->getEdges( node->id ), "correspond");
@@ -732,6 +645,7 @@ void TopoBlender::generateSuperGraphs()
 	super_sg = new Structure::Graph(*sg);
 	super_tg = new Structure::Graph(*tg);
 
+	/// NODES:
 	// Correspond nodes in super graphs
 	correspondSuperNodes();
 
@@ -749,22 +663,63 @@ void TopoBlender::generateSuperGraphs()
 		if(other) n->vis_property["color"].setValue( other->vis_property["color"] );
 	}
 
+	/// EDGES:
 	// Correspond edges in super graphs
 	correspondSuperEdges();
+	
+	postprocessSuperEdges();
+}
 
-	// Initial edge radius
+void TopoBlender::postprocessSuperEdges()
+{
+	// Zero the geometry
+	foreach(Structure::Node * snode, super_sg->nodes)
+	{
+		if (!snode->id.contains("null")) continue;
+		snode->setControlPoints( Array1D_Vector3(snode->numCtrlPnts(), Vector3(0)) );
+		snode->property["inactive"] = true;
+	}
+
+	// Initial edge radius for all nodes = using actual delta
 	foreach(Link * l, super_sg->edges) l->property["delta"].setValue( l->delta() );
 	foreach(Link * l, super_tg->edges) l->property["delta"].setValue( l->delta() );
 
-	// Fix edges for null nodes
+	// Edges of null nodes have same delta as corresponded edge
 	foreach (Node* n, super_sg->nodes){
-		if (n->id.contains("null"))	foreach(Link* l, super_sg->getEdges(n->id)) l->property["delta"].setValue(Vec3d(0));
+		if (n->id.contains("null")){
+			foreach(Link* sl, super_sg->getEdges( n->id )) {
+				Link* tl = super_tg->getEdge(sl->property["correspond"].toString());
+
+				Node *sn1 = sl->n1;
+				Node *tn1 = tl->n1;
+
+				Vector3 delta = tl->delta();
+				bool isConsistent = (sn1->id == tn1->property["correspond"].toString());
+				if(!isConsistent) delta *= -1;
+
+				sl->property["delta"].setValue( delta );
+			}
+		}
 	}
 	foreach (Node* n, super_tg->nodes){
-		if (n->id.contains("null"))	foreach(Link* l, super_tg->getEdges(n->id)) l->property["delta"].setValue(Vec3d(0));
+		if (n->id.contains("null")){
+			foreach(Link* tl, super_tg->getEdges(n->id)) {
+				Link* sl = super_sg->getEdge(tl->property["correspond"].toString());
+
+				Node *sn1 = sl->n1;
+				Node *tn1 = tl->n1;
+				
+				Vector3 delta = sl->delta();
+				bool isConsistent = (sn1->id == tn1->property["correspond"].toString());
+				if(!isConsistent) delta *= -1;
+
+				tl->property["delta"].setValue( delta );
+			}
+		}
 	}
 
-
+	// Set blended delta for first time relinking
+	foreach(Link * l, super_sg->edges) l->property["blendedDelta"].setValue( l->property["delta"].value<Vec3d>() );
 }
 
 void TopoBlender::generateTasks()

@@ -19,7 +19,7 @@ public:
     void prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link * linkB );
 
     /// Execute
-    void executeGrowShrinkSheet( double t );
+    void executeCrossingSheet( double t );
     void executeMorphSheet( double t );
 
     // Quick access

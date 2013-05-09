@@ -486,7 +486,7 @@ class SphereSoup : public RenderObject::Base{
 	QVector< float > radii;
 	QVector< QColor > colors;
 public:
-	SphereSoup():RenderObject::Base(1, Qt::black){}
+	SphereSoup(const QColor& c = Qt::yellow):RenderObject::Base(1, c){}
 
 	void clear(){
 		centers.clear();
@@ -505,7 +505,13 @@ public:
 		}
 	}
 
-	void addSphere(const QVector3D& center, float radius, const QColor& c = Qt::yellow){
+	void addSphere(const QVector3D& center, float radius = 0.1f){
+		centers.push_back(center);
+		radii.push_back(radius);
+		colors.push_back(_color);
+	}
+
+	void addSphere(const QVector3D& center, float radius, const QColor& c){
 		centers.push_back(center);
 		radii.push_back(radius);
 		colors.push_back(c);

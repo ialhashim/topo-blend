@@ -298,6 +298,32 @@ double GraphDistance::pathTo( Vector3 point, std::vector<Vector3> & path )
 	return dists[closest];
 }
 
+double GraphDistance::pathCoordTo( NodeCoord relativePoint, QVector< QPair<QString, Vec4d> > & path )
+{
+	// Check if relative point is in an excluded node
+	if( excludeNodes.contains( relativePoint.first ) ) return DBL_MAX;
+
+	// Find closest relative point
+	Vector3 startPoint = g->position( relativePoint.first, relativePoint.second );
+	double minDist = DBL_MAX;
+	int closest = -1;
+
+	for(int i = 0; i < (int)allCoords.size(); i++)
+	{
+		if( allCoords[i].first != relativePoint.first ) continue;
+
+		double dist = (allPoints[i] - startPoint).norm();
+		if(dist < minDist){
+			minDist = dist;
+			closest = i;
+		}
+	}
+
+	if(closest == -1) return DBL_MAX;
+
+	return pathCoordTo( allPoints[closest], path );
+}
+
 double GraphDistance::pathCoordTo( Vector3 point, QVector< QPair<QString, Vec4d> > & path )
 {
 	// Find closest destination point
@@ -408,11 +434,24 @@ Structure::Node * GraphDistance::closestNeighbourNode( Vector3 to, double resolu
 	return closestNode;
 }
 
+double GraphDistance::smoothPathCoordTo( NodeCoord relativePoint, QVector< PathPointPair > & smooth_path )
+{
+	QVector< QPair<QString, Vec4d> > path;
+	double dist = this->pathCoordTo( relativePoint, path );
+	smoothPath( path, smooth_path );
+	return dist;
+}
+
 double GraphDistance::smoothPathCoordTo( Vector3 point, QVector< PathPointPair > & smooth_path )
 {
 	QVector< QPair<QString, Vec4d> > path;
 	double dist = this->pathCoordTo( point, path );
+	smoothPath( path, smooth_path );
+	return dist;
+}
 
+void GraphDistance::smoothPath( QVector< QPair<QString, Vec4d> > path, QVector< PathPointPair > & smooth_path )
+{
 	for(int i = 0; i < (int)path.size(); i++){
 		if(i < 1){
 			smooth_path.push_back( PathPointPair(path[i]) );
@@ -426,9 +465,9 @@ double GraphDistance::smoothPathCoordTo( Vector3 point, QVector< PathPointPair >
 
 			Vector3 start = g->position(a.first, a.second);
 			Vector3 end = g->position(b.first, b.second);
-			
+
 			double dist = (start - end).norm();
-			
+
 			// Add virtual path points if needed
 			if(dist > used_resolution)
 			{
@@ -443,10 +482,7 @@ double GraphDistance::smoothPathCoordTo( Vector3 point, QVector< PathPointPair >
 
 		smooth_path.push_back( PathPointPair(path[i]) );
 	}
-
-	return dist;
 }
-
 
 Array1D_Vector3 GraphDistance::positionalPath( Structure::Graph * graph, QVector< PathPointPair > & from_path, int smoothingIters /*= 0 */ )
 {
