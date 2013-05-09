@@ -26,6 +26,8 @@ typedef std::pair<QString, QString> PairQString;
 Q_DECLARE_METATYPE( Structure::Sheet* )
 Q_DECLARE_METATYPE( QSet<Structure::Node*> )
 
+#define CORRESPOND_WARNING(sn,tn) ( qDebug() << QString("Warning: correspondence issue [%1] [%2] ").arg(sn ? sn->id : "NULL").arg(tn ? tn->id : "NULL") )
+
 TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 	GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent ) : QObject(parent)
 {
@@ -261,6 +263,12 @@ void TopoBlender::correspondSuperNodes()
 		Structure::Node * sn = super_sg->getNode(snode);
 		Structure::Node * tn = super_tg->getNode(tnode);
 
+		if(!sn || !tn) 
+		{
+			CORRESPOND_WARNING(sn,tn);
+			continue;
+		}
+
 		sn->property["correspond"] = tnode;
 		tn->property["correspond"] = snode;
 	}
@@ -388,6 +396,13 @@ void TopoBlender::correspondTrivialEdges( Structure::Graph * source, Structure::
 		Structure::Node *sn1 = slink->n1, *sn2 = slink->n2;
 		Structure::Node *tn1 = target->getNode( sn1->property["correspond"].toString() ),
 						*tn2 = target->getNode( sn2->property["correspond"].toString() );
+
+		if(!tn1 || !tn2)
+		{
+			CORRESPOND_WARNING(tn1,tn2);
+			continue;
+		}
+
 		Structure::Link * tlink = target->getEdge(tn1->id, tn2->id);
 
 		if(!tlink) continue;
@@ -814,6 +829,12 @@ void TopoBlender::equalizeSuperNodeTypes()
 
 		Structure::Node* snode = super_sg->getNode(snodeID);
 		Structure::Node* tnode = super_tg->getNode(tnodeID);
+
+		if(!snode || !tnode)
+		{
+			CORRESPOND_WARNING(snode,tnode);
+			continue;
+		}
 
 		bool equalType = true;
 		if (snode->type() != tnode->type())

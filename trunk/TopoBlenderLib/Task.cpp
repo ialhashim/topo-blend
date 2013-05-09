@@ -471,7 +471,6 @@ void Task::execute( double t )
 
 	// Range check
 	t = qRanged(0.0, t, 1.0);
-	property["t"] = t;
 
 	currentTime = start + (t * length);
 
@@ -504,6 +503,9 @@ void Task::execute( double t )
 			l->property.remove("path");
 		}
 	}
+
+	// Record current time
+	property["t"] = t;
 }
 
 QVector< GraphDistance::PathPointPair > Task::smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath )

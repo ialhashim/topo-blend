@@ -71,7 +71,6 @@ void Relink::propagateFrom( Task* task )
 			checkRelinkability = false;
 		}
 
-
 		// Add to queue
 		if (!otherTask->property["propagated"].toBool())
 		{
