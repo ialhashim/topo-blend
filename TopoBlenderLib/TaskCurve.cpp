@@ -344,6 +344,10 @@ void TaskCurve::prepareCrossingMorphCurve()
 		gdA.computeDistances( endA, DIST_RESOLUTION );  gdA.smoothPathCoordTo( startA, pathA );
 		gdB.computeDistances( endB, DIST_RESOLUTION );  gdB.smoothPathCoordTo( startB, pathB );
 
+		// Checks
+		if(pathA.isEmpty()) pathA.push_back(GraphDistance::PathPointPair( PathPoint(futureNodeCordA.first, futureNodeCordA.second)));
+		if(pathB.isEmpty()) pathB.push_back(GraphDistance::PathPointPair( PathPoint(futureNodeCordB.first, futureNodeCordB.second)));
+
 		property["pathA"].setValue( GraphDistance::positionalPath(active, pathA) );
 		property["pathB"].setValue( GraphDistance::positionalPath(active, pathB) );
 

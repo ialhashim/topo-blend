@@ -611,25 +611,44 @@ void Scheduler::blendDeltas( double globalTime, double timeStep )
 {
 	if (globalTime >= 1.0) return;
 
-	double alpha = timeStep / (1 - globalTime);
+	//double alpha = timeStep / (1 - globalTime);
 
 	foreach(Structure::Link* l, activeGraph->edges)
 	{
 		Structure::Link* tl = targetGraph->getEdge(l->property["correspond"].toString());
-		if (tl)
+		if (!tl) continue;
+
+		// Alpha value:
+		double alpha = 0;
 		{
-			Vec3d sDelta = l->delta();
-			Vec3d tDelta = tl->property["delta"].value<Vec3d>();
-
-			// flip tDelta if is not consistent with sDeltas
-			Node *sn1 = l->n1;
-
-			Vec3d blendedDelta = AlphaBlend(alpha, sDelta, tDelta);
-			l->property["blendedDelta"].setValue( blendedDelta );
-
-			// Visualization
-			activeGraph->vs3.addVector(l->position(sn1->id), blendedDelta);
-			//activeGraph->vs.addVector(l->position(sn1->id), tDelta);
+			Task * sTask1 = l->n1->property["task"].value<Task*>();
+			Task * sTask2 = l->n2->property["task"].value<Task*>();
+			
+			if(sTask1->isDone && sTask2->isDone) 
+			{
+				alpha = 1.0;
+			}
+			else if( sTask1->isDone )
+			{
+				alpha = sTask2->property["t"].toDouble();
+			}
+			else
+			{
+				alpha = sTask1->property["t"].toDouble();
+			}
 		}
+
+		Vec3d sDelta = l->delta();
+		Vec3d tDelta = tl->property["delta"].value<Vec3d>();
+
+		// flip tDelta if is not consistent with sDeltas
+		Node *sn1 = l->n1;
+
+		Vec3d blendedDelta = AlphaBlend(alpha, sDelta, tDelta);
+		l->property["blendedDelta"].setValue( blendedDelta );
+
+		// Visualization
+		activeGraph->vs3.addVector(l->position(sn1->id), blendedDelta);
+		//activeGraph->vs.addVector(l->position(sn1->id), tDelta);
 	}
 }
