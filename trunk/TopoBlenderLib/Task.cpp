@@ -738,13 +738,12 @@ bool Task::isCrossing()
 	Structure::Node *n = node(), *tn = targetNode();
 
 	bool isCross = false;
-
 	foreach(Link * l, active->getEdges(n->id))
 	{
 		Structure::Node* other = l->otherNode(n->id);
 
 		// Skip shrunk and non-grown nodes
-		//if (other->property["shrunk"].toBool()) continue;
+		if (other->property["shrunk"].toBool()) continue;
 		//if (other->property["taskType"].toInt() == Task::GROW && !other->property["taskIsDone"].toBool()) continue;
 
 		// check if my neighbor will change

@@ -26,8 +26,6 @@ typedef std::pair<QString, QString> PairQString;
 Q_DECLARE_METATYPE( Structure::Sheet* )
 Q_DECLARE_METATYPE( QSet<Structure::Node*> )
 
-#define CORRESPOND_WARNING(sn,tn) ( qDebug() << QString("Warning: correspondence issue [%1] [%2] ").arg(sn ? sn->id : "NULL").arg(tn ? tn->id : "NULL") )
-
 TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
 	GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent ) : QObject(parent)
 {
@@ -207,9 +205,9 @@ void TopoBlender::correspondSuperNodes()
 	{
 		Structure::Node *snode = super_sg->getNode(snodeID);
 		Structure::Node *ctnode = snode->clone();
-		super_tg->addNode(ctnode);
-
 		ctnode->id = snodeID + "_null";
+
+		super_tg->addNode(ctnode);
 		superNodeCorr[snodeID] = ctnode->id;
 	}
 
@@ -218,9 +216,9 @@ void TopoBlender::correspondSuperNodes()
 	{
 		Structure::Node *tnode = super_tg->getNode(tnodeID);
 		Structure::Node *csnode = tnode->clone();
+		csnode->id = tnodeID + "_null";
 		super_sg->addNode(csnode);
 
-		csnode->id = tnodeID + "_null";
 		superNodeCorr[csnode->id] = tnodeID;
 	}
 
@@ -262,12 +260,6 @@ void TopoBlender::correspondSuperNodes()
 
 		Structure::Node * sn = super_sg->getNode(snode);
 		Structure::Node * tn = super_tg->getNode(tnode);
-
-		if(!sn || !tn) 
-		{
-			CORRESPOND_WARNING(sn,tn);
-			continue;
-		}
 
 		sn->property["correspond"] = tnode;
 		tn->property["correspond"] = snode;
@@ -397,12 +389,6 @@ void TopoBlender::correspondTrivialEdges( Structure::Graph * source, Structure::
 		Structure::Node *tn1 = target->getNode( sn1->property["correspond"].toString() ),
 						*tn2 = target->getNode( sn2->property["correspond"].toString() );
 
-		if(!tn1 || !tn2)
-		{
-			CORRESPOND_WARNING(tn1,tn2);
-			continue;
-		}
-
 		Structure::Link * tlink = target->getEdge(tn1->id, tn2->id);
 
 		if(!tlink) continue;
@@ -417,7 +403,7 @@ void TopoBlender::correspondSimilarType( Structure::Graph * source, Structure::G
 	foreach(Structure::Link * slink, source->edges)
 	{
 		if (slink->property.contains("correspond")) continue;
-
+		 
 		Structure::Node *sn1 = slink->n1, *sn2 = slink->n2;
 		Structure::Node *tn1 = target->getNode(sn1->property["correspond"].toString()),
 			*tn2 = target->getNode(sn2->property["correspond"].toString());
@@ -699,20 +685,17 @@ void TopoBlender::postprocessSuperEdges()
 	foreach(Link * l, super_sg->edges) l->property["delta"].setValue( l->delta() );
 	foreach(Link * l, super_tg->edges) l->property["delta"].setValue( l->delta() );
 
-	// Edges of null nodes have same delta as corresponded edge
+	// Set delta for edges of null nodes, because now we can not determin the 
+	// Null-to-Null: use the corresponded real delta
+	// Null-to-Real: 
+	// >> One real: use the corresponded real delta
+	// >> More real: put null at the centoid of relative joint to all real neighbours
+	//               and the delta is computed thus from there
 	foreach (Node* n, super_sg->nodes){
 		if (n->id.contains("null")){
 			foreach(Link* sl, super_sg->getEdges( n->id )) {
 				Link* tl = super_tg->getEdge(sl->property["correspond"].toString());
-
-				Node *sn1 = sl->n1;
-				Node *tn1 = tl->n1;
-
-				Vector3 delta = tl->delta();
-				bool isConsistent = (sn1->id == tn1->property["correspond"].toString());
-				if(!isConsistent) delta *= -1;
-
-				sl->property["delta"].setValue( delta );
+				sl->property["delta"].setValue( tl->delta() );
 			}
 		}
 	}
@@ -720,15 +703,7 @@ void TopoBlender::postprocessSuperEdges()
 		if (n->id.contains("null")){
 			foreach(Link* tl, super_tg->getEdges(n->id)) {
 				Link* sl = super_sg->getEdge(tl->property["correspond"].toString());
-
-				Node *sn1 = sl->n1;
-				Node *tn1 = tl->n1;
-				
-				Vector3 delta = sl->delta();
-				bool isConsistent = (sn1->id == tn1->property["correspond"].toString());
-				if(!isConsistent) delta *= -1;
-
-				tl->property["delta"].setValue( delta );
+				tl->property["delta"].setValue( sl->delta() );
 			}
 		}
 	}
@@ -829,12 +804,6 @@ void TopoBlender::equalizeSuperNodeTypes()
 
 		Structure::Node* snode = super_sg->getNode(snodeID);
 		Structure::Node* tnode = super_tg->getNode(tnodeID);
-
-		if(!snode || !tnode)
-		{
-			CORRESPOND_WARNING(snode,tnode);
-			continue;
-		}
 
 		bool equalType = true;
 		if (snode->type() != tnode->type())
