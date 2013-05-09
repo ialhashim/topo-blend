@@ -67,7 +67,11 @@ void Relink::propagateFrom( Task* task )
 		if (checkRelinkability == false)
 		{
 			checkRelinkability = true;
-			if (isRelinkable(otherTask)) continue;
+			if (isRelinkable(otherTask)) 
+			{
+				checkRelinkability = false;
+				continue;
+			}
 			checkRelinkability = false;
 		}
 

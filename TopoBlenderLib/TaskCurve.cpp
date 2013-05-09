@@ -12,7 +12,8 @@ Curve * TaskCurve::targetCurve()
 
 void TaskCurve::prepareCurve()
 {
-	if (nodeID.contains("Spin"))
+	// Debug
+	if (nodeID.contains("MiddleLeftBar"))
 	{
 		int a = 0;
 	}
