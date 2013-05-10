@@ -18,7 +18,6 @@ public:
     ~topo_blend_widget();
 
 	int synthesisSamplesCount();
-	bool isModifyModelOnLoad();
 
 public slots:
     void renderViewer();
@@ -44,6 +43,10 @@ public slots:
 	void updatePartsList();
 
 	void splatSizeChanged(double newSize);
+
+	// Jobs
+	void loadJob();
+	void saveJob();
 
 private:
 	Ui::topo_blend_widget *ui;

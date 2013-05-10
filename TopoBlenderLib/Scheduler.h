@@ -3,7 +3,9 @@
 #include "StructureGraph.h"
 #include <QGraphicsScene>
 #include "TimelineSlider.h"
+
 class Task;
+class SchedulerWidget;
 
 class Scheduler : public QGraphicsScene
 {
@@ -19,6 +21,8 @@ public:
 	Structure::Graph * activeGraph;
 	Structure::Graph * sourceGraph;
 	Structure::Graph * targetGraph;
+
+	SchedulerWidget * widget;
 
     void prepareSynthesis();
 
@@ -86,6 +90,9 @@ public slots:
 
 	void setGDResolution(double r);
 	void setTimeStep(double dt);
+
+	void loadSchedule(QString filename);
+	void saveSchedule(QString filename);
 
 signals:
 	void activeGraphChanged( Structure::Graph* );

@@ -7,7 +7,10 @@
 
 #include "StructureGraph.h"
 
+// Forward declare
 class GraphCorresponder;
+class TopoBlender;
+class Scheduler;
 
 class topoblend : public SurfaceMeshModePlugin{
     Q_OBJECT
@@ -29,6 +32,9 @@ public:
 	void postSelection(const QPoint& p);
 
 	bool keyPressEvent( QKeyEvent* event );
+
+	TopoBlender * blender;
+	Scheduler * scheduler;
 
 	QMap<QString, QVariant> params;
 	QMap<QString, QVariant> viz_params;

@@ -911,6 +911,7 @@ void Graph::saveToFile( QString fileName ) const
 	QFile file(fileName);
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
 	QFileInfo fileInfo(file.fileName());
+	QDir graphDir( fileInfo.absolutePath() );
 
 	QTextStream out(&file);
 	out << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<document>\n";
@@ -925,14 +926,20 @@ void Graph::saveToFile( QString fileName ) const
 		out << QString("\t<type>%1</type>\n").arg(n->type());
 		out << QString("\t<mesh>%1</mesh>\n\n").arg(n->property["mesh_filename"].toString()); // relative
 
-		if(n->property.contains("mesh_filename")){
+		if(n->property.contains("mesh_filename"))
+		{
+			QString meshesFolder = "meshes";
+
+			graphDir.mkdir( meshesFolder );
+
 			QString mesh_filename = n->property["mesh_filename"].toString();
+			QFileInfo meshFileInfo( mesh_filename );
 
 			// Save modified mesh
 			SurfaceMesh::Model * mesh = n->property["mesh"].value<SurfaceMesh::Model*>();
 			if(mesh_filename.size() && mesh)
 			{
-				saveOBJ(mesh, mesh_filename);
+				saveOBJ( mesh, graphDir.path() + "/" + meshesFolder + "/" + meshFileInfo.baseName() + ".obj" );
 			}
 		}
 

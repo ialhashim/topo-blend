@@ -86,45 +86,38 @@ void SchedulerWidget::cleanUp()
 
 void SchedulerWidget::loadSchedule()
 {
-	QString filename = QFileDialog::getOpenFileName(0, tr("Load Schedule"), "schedule", tr("Schedule Files (*.txt)"));
-
-	QFile file(filename);
-	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
-	QFileInfo fileInfo(file.fileName());
-
-	QTextStream in(&file);
-
-	int N = 0; 
-	QString nodeID;
-	int start = 0, length = 0;
-
-	in >> N; if(N != s->tasks.size()) { qDebug() << "Invalid schedule!"; return; }
-
-	for(int i = 0; i < N; i++)
-	{
-		in >> nodeID >> start >> length;
-		Task * t = s->getTaskFromNodeID( nodeID );
-
-		if( t )
-		{
-			t->setStart( start );
-			t->setLength( length );
-		}
-	}
-
-	file.close();
+	s->loadSchedule(QFileDialog::getOpenFileName(0, tr("Load Schedule"), "schedule", tr("Schedule Files (*.txt)")));
 }
 
 void SchedulerWidget::saveSchedule()
 {
-	QString filename = QFileDialog::getSaveFileName(0, tr("Save Schedule"), "schedule", tr("Schedule Files (*.txt)"));
+	s->saveSchedule(QFileDialog::getSaveFileName(0, tr("Save Schedule"), "schedule", tr("Schedule Files (*.txt)")));
+}
 
-	QFile file(filename);
-	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
-	QFileInfo fileInfo(file.fileName());
+double SchedulerWidget::gdResolution()
+{
+	return ui->gdResolution->value();
+}
 
-	QTextStream out(&file);
-	out << s->tasks.size() << "\n";
-	foreach(Task * t, s->tasks)	out << t->nodeID << " " << t->start << " " << t->length << "\n";
-	file.close();
+double SchedulerWidget::timeStep()
+{
+	return ui->timeStep->value();
+}
+
+int SchedulerWidget::reconLevel()
+{
+	return ui->reconLevel->value();
+}
+
+int SchedulerWidget::renderCount()
+{
+	return ui->renderCount->value();
+}
+
+void SchedulerWidget::setParams( double gdRes, double tStep, int rLevel, int rCount )
+{
+	ui->gdResolution->setValue( gdRes );
+	ui->timeStep->setValue( tStep );
+	ui->reconLevel->setValue( rLevel );
+	ui->renderCount->setValue( rCount );
 }
