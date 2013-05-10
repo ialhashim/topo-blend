@@ -40,6 +40,8 @@ public:
 	bool isCrossing();
 	bool isCutting();
 
+	bool ungrownNode(QString nid);
+
 	QVector< GraphDistance::PathPointPair > weldPath( QVector< GraphDistance::PathPointPair > oldPath );
 	QVector< GraphDistance::PathPointPair > smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
 	QVector< GraphDistance::PathPointPair > smoothEnd( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
