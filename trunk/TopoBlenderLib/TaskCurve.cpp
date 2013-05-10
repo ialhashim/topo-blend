@@ -167,9 +167,10 @@ void TaskCurve::prepareGrowCurve()
 		Node * other = active->getNode( tother->property["correspond"].toString() );
 
 		// Skip not grown others
-		if( other->property["taskType"].toInt() == GROW && !other->property.contains("taskIsDone") ) continue;
-		
-		tedges.push_back(edge);
+		if( ungrownNode(other->id) )	continue;
+
+
+		tedges.push_back(edge);		
 	}
 
 	// Find corresponding edges

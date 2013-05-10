@@ -112,7 +112,11 @@ void topo_blend_widget::loadJob()
 	double gdResolution, timeStep;
 	int reconLevel, renderCount;
 
-	in >> sgFileName >> tgFileName >> correspondenceFileName >> scheduleFileName;
+	sgFileName = in.readLine();
+	tgFileName = in.readLine();
+	correspondenceFileName = in.readLine();
+	scheduleFileName = in.readLine();
+
 	in >> samplesCount;
 	in >> gdResolution >> timeStep;
 	in >> reconLevel >> renderCount;
@@ -136,7 +140,7 @@ void topo_blend_widget::loadJob()
 	tb->scheduler->widget->setParams( gdResolution, timeStep, reconLevel, renderCount );
 
 	// Sample meshes
-	tb->generateSynthesisData();
+	//tb->generateSynthesisData();
 }
 
 void topo_blend_widget::saveJob()
@@ -167,11 +171,12 @@ void topo_blend_widget::saveJob()
 	QString sgFileName = sDir + "/" + sGraphName + ".xml";
 	tb->blender->sg->saveToFile( sgFileName );
 
-	QString tgFileName = tDir + "/" + sGraphName + ".xml";
+	QString tgFileName = tDir + "/" + tGraphName + ".xml";
 	tb->blender->tg->saveToFile( tgFileName );
 
 	// Save correspondence file
 	QString correspondenceFileName = jobDir.path() + "/" + "correspondence.txt";
+	tb->corresponder()->computeCorrespondences();
 	tb->corresponder()->saveLandmarks( correspondenceFileName );
 
 	// Save the scheduler

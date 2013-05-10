@@ -359,8 +359,7 @@ QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Struct
 		}
 
 		// Skip edges not yet made
-		if( (!otherI) || (otherI->property["taskType"] == Task::GROW && !otherI->property.contains("taskIsDone")) )
-			continue;
+		if( (!otherI) || ungrownNode(otherI->id) ) continue;
 
 		if(otherI) edges.push_back(allEdges[i]);
 	}
@@ -786,4 +785,17 @@ bool Task::isCutting()
 	foreach (QString nid, excludeNodes)	copyActive.removeNode(nid);
 	
 	return copyActive.isCutNode(nodeID);
+}
+
+bool Task::ungrownNode( QString nid )
+{
+	Node* node = active->getNode(nid);
+
+	if( node->property["taskType"].toInt() != GROW) return false;
+
+	if (!node->property.contains("taskIsDone")) return true;
+
+	if ( node->property.contains("taskIsDone")  && !node->property["taskIsDone"].toBool() ) return true;
+
+	return false;
 }
