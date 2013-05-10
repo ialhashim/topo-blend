@@ -847,8 +847,7 @@ void TopoBlender::equalizeSuperNodeTypes()
 		{
 			QString tnodeID = diffPairs[snodeID];
 
-			Structure::Node* snode = super_sg->getNode(snodeID);
-			Structure::Node* tnode = super_tg->getNode(tnodeID);
+            Structure::Node* snode = super_sg->getNode(snodeID);
 
 			// try to convert
 			bool converted;

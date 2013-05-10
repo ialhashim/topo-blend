@@ -15,7 +15,7 @@ class Scheduler;
 
 struct Relink
 {
-    Relink(Scheduler * scheduler);
+    Relink( Scheduler * scheduler );
 
     Scheduler * s;
     Structure::Graph *activeGraph, *targetGraph;
@@ -24,11 +24,11 @@ struct Relink
 	bool checkRelinkability;
 	QQueue<Task*> propagationQueue;
 
-	void execute(int globalTime);
-	void fixTask(Task* task, int globalTime);
-	void propagateFrom(Task* task);
+	void execute();
+	void fixTask( Task* task );
+	void propagateFrom( Task* task );
 
 	// Helpers
 	Vector3 getToDelta( Structure::Link * link, QString otherID );
-	bool isRelinkable(Task* task);
+	bool isRelinkable( Task* task );
 };

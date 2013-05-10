@@ -318,6 +318,8 @@ int Curve::numCtrlPnts()
 
 void Curve::refineControlPoints( int nU, int nV /*= 0*/ )
 {
+    nV = nV;
+
 	int diff = nU - curve.mNumCtrlPoints;
 	if(diff == 0) return;
 

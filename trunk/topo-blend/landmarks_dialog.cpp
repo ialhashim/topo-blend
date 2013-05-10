@@ -672,7 +672,9 @@ void LandmarksDialog::basicAlign()
 
 void LandmarksDialog::visualizeCorr( int row, int column )
 {
-	if (row >= 0 && row < gcorr->correspondences.size())
+	Q_UNUSED(column)
+
+	if (row >= 0 && row < (int)gcorr->correspondences.size())
 	{
 		// Set black for all
 		for (int i = 0; i < sg()->nodes.size(); i++)

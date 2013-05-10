@@ -500,6 +500,8 @@ Array1D_Vector3 Sheet::decodeSheet( SheetEncoding cpCoords, Vector3 origin, Vect
 
 void Sheet::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
 {
+	Q_UNUSED(isRigid)
+
 	Vector3 p = position( handle );
 
 	double diff = (p - to).norm();
