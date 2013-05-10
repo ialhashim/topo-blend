@@ -24,10 +24,6 @@ using namespace NURBS;
 // Graph Correspondence
 #include "GraphCorresponder.h"
 
-// Temp
-TopoBlender * blender = NULL;
-Scheduler * scheduler = NULL;
-
 // Synthesis
 #include "Synthesizer.h"
 #include "normal_extrapolation.h"
@@ -47,10 +43,13 @@ Q_DECLARE_METATYPE(std::vector<RMF::Frame>)
 
 double boundX = -DBL_MAX;
 
-topoblend::topoblend(){
+topoblend::topoblend()
+{
 	widget = NULL;
 	gcoor = NULL;
 	layout = true;
+	blender = NULL;
+	scheduler = NULL;
 }
 
 void topoblend::create()
@@ -64,8 +63,6 @@ void topoblend::create()
 		mainWindow()->addDockWidget(Qt::RightDockWidgetArea,dockwidget);
 
 		points = mesh()->vertex_property<Vector3>("v:point");
-
-		loadModel();
 
 		// Events
 		this->connect(this,SIGNAL(statusBarMessage(QString)),SLOT(setStatusBarMessage(QString)));
@@ -580,15 +577,7 @@ void topoblend::loadModel()
 
 	foreach(QString file, fileNames)
 	{	
-		Structure::Graph * g = new Structure::Graph ( file );
-
-		if( widget->isModifyModelOnLoad() )
-		{
-			g->normalize();
-			g->moveBottomCenterToOrigin();
-		}
-
-		graphs.push_back( g );
+		graphs.push_back( new Structure::Graph ( file ) );
 	}
 
 	mainWindow()->setStatusBarMessage( "Loaded: \n" + fileNames.join("\n") );
@@ -886,8 +875,6 @@ void topoblend::doBlend()
 	//Structure::Graph * blendedGraph = blender->blend();
 
 	// Set options
-	//blender->params["NUM_STEPS"] = this->params["NUM_STEPS"];
-	//blender->params["materialize"] = this->params["materialize"];
 	//blender->materializeInBetween( blendedGraph, 0, source );
 	//graphs.push_back( blendedGraph );
 

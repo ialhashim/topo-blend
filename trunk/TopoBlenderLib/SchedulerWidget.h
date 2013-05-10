@@ -17,6 +17,13 @@ public:
     
     Scheduler * s;
 
+	// Parameters
+	void setParams( double gdRes, double tStep, int rLevel, int rCount );
+	double gdResolution();
+	double timeStep();
+	int reconLevel();
+	int renderCount();
+
 private:
     Ui::SchedulerWidget *ui;
 

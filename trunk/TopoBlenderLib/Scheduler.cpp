@@ -679,3 +679,44 @@ void Scheduler::setTimeStep( double dt )
 	time_step = dt;
 }
 
+void Scheduler::loadSchedule(QString filename)
+{
+	QFile file(filename);
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+	QFileInfo fileInfo(file.fileName());
+
+	QTextStream in(&file);
+
+	int N = 0; 
+	QString nodeID;
+	int start = 0, length = 0;
+
+	in >> N; if(N != tasks.size()) { qDebug() << "Invalid schedule!"; return; }
+
+	for(int i = 0; i < N; i++)
+	{
+		in >> nodeID >> start >> length;
+		Task * t = getTaskFromNodeID( nodeID );
+
+		if( t )
+		{
+			t->setStart( start );
+			t->setLength( length );
+		}
+	}
+
+	file.close();
+}
+
+void Scheduler::saveSchedule(QString filename)
+{
+	QFile file(filename);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+	QFileInfo fileInfo(file.fileName());
+
+	QTextStream out(&file);
+	out << tasks.size() << "\n";
+	foreach(Task * t, tasks)	out << t->nodeID << " " << t->start << " " << t->length << "\n";
+	file.close();
+}
+

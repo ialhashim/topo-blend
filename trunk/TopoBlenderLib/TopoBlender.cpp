@@ -79,9 +79,9 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2,
 	// END VIZ
 
 	// Show the scheduler window:
-	SchedulerWidget * sw = new SchedulerWidget( scheduler );
+	scheduler->widget = new SchedulerWidget( scheduler );
 	QDockWidget *dock = new QDockWidget("Scheduler");
-	dock->setWidget(sw);
+	dock->setWidget( scheduler->widget );
 	QMainWindow * win = (QMainWindow *) qApp->activeWindow();
 	win->addDockWidget(Qt::BottomDockWidgetArea, dock);
 

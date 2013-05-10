@@ -9,7 +9,14 @@
 #include "QuickViewer.h"
 #include "QuickGroup.h"
 #include <QFileDialog>
+#include <QDir>
 #include <QListWidgetItem>
+
+#include "topo-blend.h"
+#include "GraphCorresponder.h"
+#include "TopoBlender.h"
+#include "Scheduler.h"
+#include "SchedulerWidget.h"
 
 QuickViewer * viewer = NULL;
 QString cur_filename;
@@ -22,8 +29,8 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
     this->tb = topo_blend;
 	
 	// Generate models
-    topo_blend->connect(ui->genChairsButton, SIGNAL(clicked()), SLOT(generateChairModels()));
-	topo_blend->connect(ui->genSimpleButton, SIGNAL(clicked()), SLOT(generateTwoSimpleModels()));
+    //topo_blend->connect(ui->genChairsButton, SIGNAL(clicked()), SLOT(generateChairModels()));
+	//topo_blend->connect(ui->genSimpleButton, SIGNAL(clicked()), SLOT(generateTwoSimpleModels()));
 
 	// Save / load graphs
     topo_blend->connect(ui->loadButton, SIGNAL(clicked()), SLOT(loadModel()));
@@ -33,9 +40,13 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
     topo_blend->connect(ui->alignButton, SIGNAL(clicked()), SLOT(quickAlign()));
 	topo_blend->connect(ui->normalizeButton, SIGNAL(clicked()), SLOT(normalizeAllGraphs()));
 
+	// Save / load entire jobs
+	this->connect(ui->loadJobButton, SIGNAL(clicked()), SLOT(loadJob()));
+	this->connect(ui->saveJobButton, SIGNAL(clicked()), SLOT(saveJob()));
+
 	// Animation widget
-	topo_blend->connect(ui->button4, SIGNAL(clicked()), SLOT(currentExperiment()));
-	this->connect(ui->animationButton, SIGNAL(clicked()), SLOT(renderViewer()));
+	//topo_blend->connect(ui->button4, SIGNAL(clicked()), SLOT(currentExperiment()));
+	//this->connect(ui->animationButton, SIGNAL(clicked()), SLOT(renderViewer()));
 
 	// Main blending process
     this->connect(ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()), Qt::UniqueConnection);
@@ -85,9 +96,104 @@ topo_blend_widget::~topo_blend_widget()
 
 void topo_blend_widget::doBlend()
 {
-	tb->params["NUM_STEPS"] = ui->numSteps->value();
-	tb->params["materialize"] = ui->voxelSize->value();
     tb->doBlend();
+}
+
+void topo_blend_widget::loadJob()
+{
+	QFile job_file( QFileDialog::getOpenFileName(0, tr("Load Job"), "", tr("Job Files (*.job)")) );
+	if (!job_file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+	QFileInfo jobFileInfo(job_file.fileName());
+	QTextStream in(&job_file);
+
+	// Job file content
+	QString sgFileName, tgFileName, correspondenceFileName, scheduleFileName;
+	int samplesCount;
+	double gdResolution, timeStep;
+	int reconLevel, renderCount;
+
+	in >> sgFileName >> tgFileName >> correspondenceFileName >> scheduleFileName;
+	in >> samplesCount;
+	in >> gdResolution >> timeStep;
+	in >> reconLevel >> renderCount;
+
+	// Load graphs
+	tb->graphs.push_back( new Structure::Graph ( sgFileName ) );
+	tb->graphs.push_back( new Structure::Graph ( tgFileName ) );
+	tb->setSceneBounds();
+	tb->updateDrawArea();
+
+	// Load correspondence
+	tb->corresponder()->scoreThreshold = -1; // Only trust whats in file
+	tb->corresponder()->loadLandmarks( correspondenceFileName );
+
+	// Load schedule
+	tb->doBlend();
+	tb->scheduler->loadSchedule( scheduleFileName );
+
+	// Set parameters
+	ui->synthesisSamplesCount->setValue( samplesCount );
+	tb->scheduler->widget->setParams( gdResolution, timeStep, reconLevel, renderCount );
+
+	// Sample meshes
+	tb->generateSynthesisData();
+}
+
+void topo_blend_widget::saveJob()
+{
+	if(!tb->scheduler) return;
+
+	QString sGraphName = tb->corresponder()->sgName();
+	QString tGraphName = tb->corresponder()->tgName();
+
+	QString graph_names = ( sGraphName + "_" + tGraphName ) + ".job";
+
+	QString job_filename = QFileDialog::getSaveFileName(0, tr("Save Job"), graph_names, tr("Job Files (*.job)"));
+
+	QFile job_file( job_filename );
+	if (!job_file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+	QFileInfo jobFileInfo(job_file.fileName());
+	QTextStream out(&job_file);
+
+	// Create folders
+	QDir jobDir( jobFileInfo.absolutePath() );
+
+	QString sDir = jobDir.path() + "/Source";
+	QString tDir = jobDir.path() + "/Target";
+	jobDir.mkdir( sDir ); 
+	jobDir.mkdir( tDir );
+
+	// Save source and target graphs
+	QString sgFileName = sDir + "/" + sGraphName + ".xml";
+	tb->blender->sg->saveToFile( sgFileName );
+
+	QString tgFileName = tDir + "/" + sGraphName + ".xml";
+	tb->blender->tg->saveToFile( tgFileName );
+
+	// Save correspondence file
+	QString correspondenceFileName = jobDir.path() + "/" + "correspondence.txt";
+	tb->corresponder()->saveLandmarks( correspondenceFileName );
+
+	// Save the scheduler
+	QString scheduleFileName = jobDir.path() + "/" + "schedule.txt";
+	tb->scheduler->saveSchedule( scheduleFileName );
+
+	// Save paths & parameters
+	out << sgFileName << "\n";
+	out << tgFileName << "\n";
+	out << correspondenceFileName << "\n";
+	out << scheduleFileName << "\n";
+
+	// Synthesis
+	out << ui->synthesisSamplesCount->value() << "\t";
+
+	// Discretization 
+	out << tb->scheduler->widget->gdResolution() << "\t" << tb->scheduler->widget->timeStep() << "\n";
+
+	// Reconstruction
+	out << tb->scheduler->widget->reconLevel() << "\t" << tb->scheduler->widget->renderCount() << "\n";
+
+	job_file.close();
 }
 
 void topo_blend_widget::showGroupingDialog()
@@ -275,11 +381,6 @@ void topo_blend_widget::scaleModel()
 	tb->graphs.back()->transform( mat );
 	tb->setSceneBounds();
 	tb->updateDrawArea();
-}
-
-bool topo_blend_widget::isModifyModelOnLoad()
-{
-	return ui->isModifyModel->isChecked();
 }
 
 void topo_blend_widget::exportAsOBJ()
