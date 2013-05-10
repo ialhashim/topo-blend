@@ -365,6 +365,19 @@ QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Struct
 		if(otherI) edges.push_back(allEdges[i]);
 	}
 
+
+	// Remove any shrunken edges
+	QVector<Structure::Link*> afterShrink;
+	if(edges.size() > 1)
+	{
+		foreach(Structure::Link * l, edges){
+			if(!l->hasNodeProperty("shrunk", true))
+				afterShrink.push_back(l);
+		}
+
+		edges = afterShrink;
+	}
+
 	// Bin edges by their coordinates into 4 locations (2 for curves)
 	QMap< int, QVector<Structure::Link*> > bin;
 	foreach(Structure::Link * l, edges){
@@ -392,18 +405,6 @@ QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Struct
 			if(edges.size() < 2) edges.push_back( furthest );
 		}
 	//}
-
-	// Remove any shrunken edges
-	QVector<Structure::Link*> afterShrink;
-	if(edges.size() > 1)
-	{
-		foreach(Structure::Link * l, edges){
-			if(!l->hasNodeProperty("shrunk", true))
-				afterShrink.push_back(l);
-		}
-
-		edges = afterShrink;
-	}
 
 	return edges;
 }
@@ -475,7 +476,7 @@ void Task::execute( double t )
 	currentTime = start + (t * length);
 
 	// Make available for reconstruction
-	if( t > 0.0 ) node()->property["inactive"] = false;
+	if( t > 0.0 ) node()->property["zeroGeometry"] = false;
 
 	// Execute task by type
 	if (node()->type() == Structure::CURVE)	executeCurve( t );
@@ -493,7 +494,10 @@ void Task::execute( double t )
 		n->property["taskIsDone"] = true;
 
 		if(type == SHRINK)
+		{
 			n->property["shrunk"] = true;
+			node()->property["zeroGeometry"] = true;
+		}
 
 		// Clean up:
 		n->property.remove("path");

@@ -322,6 +322,8 @@ void TaskCurve::prepareCrossingMorphCurve()
 		// Save links paths
 		path.back() = GraphDistance::PathPointPair( PathPoint(futureNodeCord.first, futureNodeCord.second)  );
 		link->property["path"].setValue( path );
+
+		link->property["blendedDelta"].setValue(Vec3d(0));
 	}
 
 	if( edges.size() == 2 )

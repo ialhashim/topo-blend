@@ -36,7 +36,10 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2,
 	// Check for existing landmark file
 	QFileInfo landMarkFile(QString("%1_%2.txt").arg(graph1->name()).arg(graph2->name()));
 	if(landMarkFile.exists()) 
+	{
+		useCorresponder->scoreThreshold = -1; // Only trust whats in file
 		useCorresponder->loadLandmarks(landMarkFile.fileName());
+	}
 
 	/// STEP 1) Compute correspondences and align mis-aligned nodes
 	this->gcoor = useCorresponder;
@@ -428,36 +431,56 @@ void TopoBlender::connectNullNodes( Structure::Graph * source, Structure::Graph 
 		QVector<Structure::Link*> tedges = edgesNotContain( target->getEdges(tnode->id), "correspond" );
 		if(tedges.isEmpty()) continue;
 
-		// Collect names, in source, of target's neighboring nodes
-		QStringList nodesKeep;
-		foreach(Link * tlink, tedges){
-			Node* tOther = tlink->otherNode(tnode->id);
-			Node* sOther = source->getNode(tOther->property["correspond"].toString());
-			nodesKeep << sOther->id;
+		if (tedges.size() == 1)
+		{
+			Link* tlink = tedges.front();
+			Link* slink = addMissingLink(source, tlink);
+			correspondTwoEdges(slink, tlink, false, source);
 		}
 
-		// Keep only subgraph with names from above
-		Structure::Graph copy(*source);
-		foreach(Node*n, source->nodes) if(!nodesKeep.contains(n->id)) copy.removeNode(n->id);
-		
-		// Find node with most valence, otherwise pick first
-		int bestValence = 0;
-		QString bestID = copy.nodes.front()->id;
-		foreach(Node * n, copy.nodes){
-			int valence = copy.valence(n);
-			if (valence > bestValence){
-				bestID = n->id;
-				bestValence = valence;
+		else if (tedges.size() == 2)
+		{
+			foreach( Link* tlink, tedges)
+			{
+				Link* slink = addMissingLink(source, tlink);
+				correspondTwoEdges(slink, tlink, false, source);
 			}
 		}
 
-		// Find corresponding link on target
-		Node* bestTNode = target->getNode( source->getNode(bestID)->property["correspond"].toString() );
-		Link* bestTLink = target->getEdge( tnode->id, bestTNode->id ); 
+		
+		else
+		{
+			// Collect names, in source, of target's neighboring nodes
+			QStringList nodesKeep;
+			foreach(Link * tlink, tedges){
+				Node* tOther = tlink->otherNode(tnode->id);
+				Node* sOther = source->getNode(tOther->property["correspond"].toString());
+				nodesKeep << sOther->id;
+			}
 
-		// Add the link to source
-		Link* slink = addMissingLink(source, bestTLink);
-		correspondTwoEdges(slink, bestTLink, false, source);
+			// Keep only subgraph with names from above
+			Structure::Graph copy(*source);
+			foreach(Node*n, source->nodes) if(!nodesKeep.contains(n->id)) copy.removeNode(n->id);
+		
+			// Find node with most valence, otherwise pick first
+			int bestValence = 0;
+			QString bestID = copy.nodes.front()->id;
+			foreach(Node * n, copy.nodes){
+				int valence = copy.valence(n);
+				if (valence > bestValence){
+					bestID = n->id;
+					bestValence = valence;
+				}
+			}
+
+			// Find corresponding link on target
+			Node* bestTNode = target->getNode( source->getNode(bestID)->property["correspond"].toString() );
+			Link* bestTLink = target->getEdge( tnode->id, bestTNode->id ); 
+
+			// Add the link to source
+			Link* slink = addMissingLink(source, bestTLink);
+			correspondTwoEdges(slink, bestTLink, false, source);
+		}
 	}
 }
 
@@ -669,23 +692,23 @@ void TopoBlender::generateSuperGraphs()
 	correspondSuperEdges();
 	
 	postprocessSuperEdges();
-}
 
-void TopoBlender::postprocessSuperEdges()
-{
-	// Zero the geometry
+	// Zero the geometry for null nodes
 	foreach(Structure::Node * snode, super_sg->nodes)
 	{
 		if (!snode->id.contains("null")) continue;
 		snode->setControlPoints( Array1D_Vector3(snode->numCtrlPnts(), Vector3(0)) );
-		snode->property["inactive"] = true;
+		snode->property["zeroGeometry"] = true;
 	}
+}
 
+void TopoBlender::postprocessSuperEdges()
+{
 	// Initial edge radius for all nodes = using actual delta
 	foreach(Link * l, super_sg->edges) l->property["delta"].setValue( l->delta() );
 	foreach(Link * l, super_tg->edges) l->property["delta"].setValue( l->delta() );
 
-	// Set delta for edges of null nodes, because now we can not determin the 
+	// Set delta for edges of null nodes, because now we can not determine the 
 	// Null-to-Null: use the corresponded real delta
 	// Null-to-Real: 
 	// >> One real: use the corresponded real delta
