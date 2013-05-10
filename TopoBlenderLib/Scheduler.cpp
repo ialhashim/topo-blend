@@ -14,6 +14,8 @@ Scheduler::Scheduler()
 {
 	rulerHeight = 25;
 	sourceGraph = targetGraph = NULL;
+
+	time_step = 0.01;
 }
 
 void Scheduler::drawBackground( QPainter * painter, const QRectF & rect )
@@ -225,7 +227,7 @@ void Scheduler::order()
 
 	// Add spaces between tasks
 	{
-		int timeSpacing = 5;
+		int timeSpacing = totalExecutionTime() * time_step + 1;
 
 		QVector<Task*> allTasks = tasksSortedByStart();
 
@@ -350,7 +352,7 @@ void Scheduler::executeAll()
 
 	emit( progressStarted() );
 
-	double timeStep = 0.01;
+	double timeStep = time_step;
 	int totalTime = totalExecutionTime();
 
 	QVector<Task*> allTasks = tasksSortedByStart();
@@ -658,3 +660,22 @@ void Scheduler::blendDeltas( double globalTime, double timeStep )
 		//activeGraph->vs.addVector(l->position(sn1->id), tDelta);
 	}
 }
+
+void Scheduler::cleanUp()
+{
+	for(int i = 0; i < (int)allGraphs.size(); i++)
+	{
+		allGraphs[i]->clearGeometryCache();
+	}
+}
+
+void Scheduler::setGDResolution( double r)
+{
+	DIST_RESOLUTION = r;
+}
+
+void Scheduler::setTimeStep( double dt )
+{
+	time_step = dt;
+}
+

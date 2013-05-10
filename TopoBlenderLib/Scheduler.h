@@ -62,6 +62,8 @@ public:
 
 	TimelineSlider * slider;
 
+	double time_step;
+
 	void drawDebug();
 
 protected:
@@ -79,6 +81,11 @@ public slots:
 	void doRenderAll() { emit( renderAll() ); } 
 	void doRenderCurrent() { emit( renderCurrent() ); }
 	void doDraftRender() { emit(draftRender()); }
+		
+	void cleanUp();
+
+	void setGDResolution(double r);
+	void setTimeStep(double dt);
 
 signals:
 	void activeGraphChanged( Structure::Graph* );

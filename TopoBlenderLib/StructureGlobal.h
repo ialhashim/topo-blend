@@ -108,7 +108,8 @@ static inline Vec3d rotatedVec(const Vec3d & v, double theta, const Vec3d & axis
 
 /// Spherical Coordinates:
 /* From Spherical-coordinates to Vector 'v' */
-static inline void localSphericalToGlobal( Vec3d X, Vec3d Y, Vec3d Z, double theta, double psi, Vec3d &v )
+template<class VectorType, class ParamType>
+static inline void localSphericalToGlobal( VectorType X, VectorType Y, VectorType Z, ParamType theta, ParamType psi, VectorType &v )
 {
 	Q_UNUSED(X);
 	v = rotatedVec(Z, theta, Y);
@@ -116,7 +117,8 @@ static inline void localSphericalToGlobal( Vec3d X, Vec3d Y, Vec3d Z, double the
 }
 
 /* Encode vector 'v' to theta-psi in spherical coordinates of XYZ  */
-static inline void globalToLocalSpherical( Vec3d X, Vec3d Y, Vec3d Z, double &theta, double &psi, Vec3d v )
+template<class VectorType, class ParamType>
+static inline void globalToLocalSpherical( VectorType X, VectorType Y, VectorType Z, ParamType &theta, ParamType &psi, VectorType v )
 {
 	// Theta: angle from Z [0, PI]
 	// Psi: angle from X on XY plane [0, 2*PI)
