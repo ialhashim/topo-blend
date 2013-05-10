@@ -31,7 +31,7 @@ bool comparatorParameterCoordInt ( const ParameterCoordInt& l, const ParameterCo
 
 // Sampling
 #define RANDOM_COUNT 1e3
-#define UNIFORM_RESOLUTION 0.01
+#define UNIFORM_RESOLUTION 0.01f
 #define EDGE_RESOLUTION 0.05
 #define UNIFORM_TRI_SAMPLES 1e4
 
@@ -66,7 +66,7 @@ RMF Synthesizer::consistentFrame( Structure::Curve * curve, Array1D_Vec4d & coor
 
 /// SAMPLING
 // Ray parameters from points
-QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * curve, const std::vector<Vec3d> & points, const std::vector<Vec3d> & normals )
+QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * curve, const std::vector<Vec3f> & points, const std::vector<Vec3f> & normals )
 {
 	QVector<ParameterCoord> samples(points.size());
 
@@ -76,11 +76,11 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 
 	// Add all curve points to kd-tree
 	NanoKdTree kdtree;
-	foreach(Vec3d p, rmf.point) kdtree.addPoint( p );
+	foreach(Vec3f p, rmf.point) kdtree.addPoint( p );
 	kdtree.build();
 
 	// Project
-	const std::vector<Vector3> curvePnts = curve->curve.mCtrlPoint;
+	const std::vector<Vec3d> curvePnts = curve->curve.mCtrlPoint;
 	int N = points.size();
 
 	#pragma omp parallel for
@@ -88,22 +88,22 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 	{
 		NURBS::NURBSCurved mycurve = NURBS::NURBSCurved::createCurveFromPoints( curvePnts );
 
-		double theta, psi;
+		float theta, psi;
 
-		Vec3d point = points[i];
+		Vec3f point = points[i];
 
 		KDResults match;
 		kdtree.k_closest(point, 1, match);
 		int closest_idx = match.front().first;
 		Vec4d c = coords[closest_idx];
 
-		Vec3d X = rmf.U[closest_idx].r.normalized();
-		Vec3d Y = rmf.U[closest_idx].s.normalized();
-		Vec3d Z = rmf.U[closest_idx].t.normalized();
+		Vec3f X = rmf.U[closest_idx].r.normalized();
+		Vec3f Y = rmf.U[closest_idx].s.normalized();
+		Vec3f Z = rmf.U[closest_idx].t.normalized();
 
-		Vec3d curvePoint = mycurve.GetPosition(c[0]);
-		Vec3d delta = point - curvePoint;
-		Vec3d raydirection = delta.normalized();
+		Vec3f curvePoint = mycurve.GetPosition(c[0]);
+		Vec3f delta = point - curvePoint;
+		Vec3f raydirection = delta.normalized();
 
 		globalToLocalSpherical(X, Y, Z, theta, psi, raydirection);
 
@@ -114,11 +114,11 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 	return samples;
 }
 
-QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * sheet, const std::vector<Vec3d> & points, const std::vector<Vec3d> & normals )
+QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * sheet, const std::vector<Vec3f> & points, const std::vector<Vec3f> & normals )
 {
 	QVector<ParameterCoord> samples(points.size());
 
-	double resolution = sheet->bbox().size().length() * SHEET_FRAME_RESOLUTION;
+	float resolution = sheet->bbox().size().length() * SHEET_FRAME_RESOLUTION;
 
 	Array2D_Vec4d sheetCoords = sheet->discretizedPoints(resolution);
 	Array1D_Vec4d allCoords;
@@ -143,11 +143,11 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * she
 	{
 		NURBS::NURBSRectangled r = NURBS::NURBSRectangled::createSheetFromPoints(sheetPnts);
 
-		Vec3d point = points[i];
+		Vec3f point = points[i];
 
 		// Project
-		Vector3 X, Y, Z;
-		Vector3 vDirection, sheetPoint;
+		Vec3d X, Y, Z;
+		Vec3d vDirection, sheetPoint;
 
 		double theta, psi;
 
@@ -178,15 +178,15 @@ QVector<ParameterCoord> Synthesizer::genFeatureCoords( Structure::Node * node )
 	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
 
 	// Collect original mesh points
-	Vector3VertexProperty points = model->vertex_property<Vec3d>(VPOINT);
-	std::vector<Vec3d> meshPoints;
+	Vector3VertexProperty points = model->vertex_property<Vector3>(VPOINT);
+	std::vector<Vec3f> meshPoints;
 	foreach(Vertex v, model->vertices()) meshPoints.push_back(points[v]);
 
 	// Normals
 	model->update_face_normals();
 	model->update_vertex_normals();
-	Vector3VertexProperty normals = model->vertex_property<Vec3d>(VNORMAL);
-	std::vector<Vec3d> meshNormals;
+	Vector3VertexProperty normals = model->vertex_property<Vector3>(VNORMAL);
+	std::vector<Vec3f> meshNormals;
 	foreach(Vertex v, model->vertices()) meshNormals.push_back(normals[v]);
 
 	if(node->type() == Structure::CURVE)
@@ -195,7 +195,7 @@ QVector<ParameterCoord> Synthesizer::genFeatureCoords( Structure::Node * node )
 		return genPointCoordsSheet((Structure::Sheet*)node, meshPoints, meshNormals);
 }
 
-QVector<ParameterCoord> Synthesizer::genEdgeCoords( Structure::Node * node, double sampling_resolution /*= -1 */ )
+QVector<ParameterCoord> Synthesizer::genEdgeCoords( Structure::Node * node)
 {
 	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
 
@@ -205,10 +205,15 @@ QVector<ParameterCoord> Synthesizer::genEdgeCoords( Structure::Node * node, doub
 	std::vector<Vec3d> samplePoints = sample_points.toStdVector();
 	std::vector<Vec3d> sampleNormals = sample_normals.toStdVector();
 
+	// Double to float...
+	std::vector<Vec3f> samplePointsF,sampleNormalsF;
+	foreach(Vec3d p, sample_points) samplePointsF.push_back(p);
+	foreach(Vec3d n, sampleNormals) sampleNormalsF.push_back(n);
+
 	if(node->type() == Structure::CURVE)
-		return genPointCoordsCurve((Structure::Curve*)node, samplePoints, sampleNormals);
+		return genPointCoordsCurve((Structure::Curve*)node, samplePointsF, sampleNormalsF);
 	else
-		return genPointCoordsSheet((Structure::Sheet*)node, samplePoints, sampleNormals);
+		return genPointCoordsSheet((Structure::Sheet*)node, samplePointsF, sampleNormalsF);
 }
 
 QVector<ParameterCoord> Synthesizer::genRandomCoords(Node *node, int samples_count)
@@ -219,13 +224,18 @@ QVector<ParameterCoord> Synthesizer::genRandomCoords(Node *node, int samples_cou
 	std::vector<Vec3d> samplePoints, sampleNormals;
 	samplePoints = SpherePackSampling::getRandomSamples(model, samples_count, sampleNormals);
 
+	// Double to float...
+	std::vector<Vec3f> samplePointsF,sampleNormalsF;
+	foreach(Vec3d p, samplePoints) samplePointsF.push_back(p);
+	foreach(Vec3d n, sampleNormals) sampleNormalsF.push_back(n);
+
 	if(node->type() == Structure::CURVE)
-		return genPointCoordsCurve((Structure::Curve*)node, samplePoints, sampleNormals);
+		return genPointCoordsCurve((Structure::Curve*)node, samplePointsF, sampleNormalsF);
 	else
-		return genPointCoordsSheet((Structure::Sheet*)node, samplePoints, sampleNormals);
+		return genPointCoordsSheet((Structure::Sheet*)node, samplePointsF, sampleNormalsF);
 }
 
-QVector<ParameterCoord> Synthesizer::genUniformCoords(Node *node, double sampling_resolution)
+QVector<ParameterCoord> Synthesizer::genUniformCoords(Node *node, float sampling_resolution)
 {
     SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
 
@@ -236,10 +246,15 @@ QVector<ParameterCoord> Synthesizer::genUniformCoords(Node *node, double samplin
     std::vector<Vec3d> samplePoints, sampleNormals, gp;
     samplePoints = SpherePackSampling::sample(model, 1e4, sampling_resolution, gp, sampleNormals, 1);
 
+	// Double to float...
+	std::vector<Vec3f> samplePointsF,sampleNormalsF;
+	foreach(Vec3d p, samplePoints) samplePointsF.push_back(p);
+	foreach(Vec3d n, sampleNormals) sampleNormalsF.push_back(n);
+
     if(node->type() == Structure::CURVE)
-        return genPointCoordsCurve((Structure::Curve*)node, samplePoints, sampleNormals);
+        return genPointCoordsCurve((Structure::Curve*)node, samplePointsF, sampleNormalsF);
     else
-        return genPointCoordsSheet((Structure::Sheet*)node, samplePoints, sampleNormals);
+        return genPointCoordsSheet((Structure::Sheet*)node, samplePointsF, sampleNormalsF);
 }
 
 QVector<ParameterCoord> Synthesizer::genRemeshCoords( Structure::Node * node )
@@ -247,9 +262,9 @@ QVector<ParameterCoord> Synthesizer::genRemeshCoords( Structure::Node * node )
 	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
 	SurfaceMesh::Model copyModel;
 
-	std::vector<Vec3d> samplePoints, sampleNormals;
+	std::vector<Vec3f> samplePoints, sampleNormals;
 
-	Vector3VertexProperty points = model->vertex_property<Vector3>(VPOINT);
+	Vector3VertexProperty points = model->vertex_property<Vec3d>(VPOINT);
 
 	foreach(Vertex v, model->vertices()) copyModel.add_vertex( points[v] );
 	foreach(Face f, model->faces()){
@@ -263,18 +278,18 @@ QVector<ParameterCoord> Synthesizer::genRemeshCoords( Structure::Node * node )
 	remesher.doRemesh( REMESH_EDGE_LENGTH );
 	
 	// Position
-	Vector3VertexProperty new_points = copyModel.vertex_property<Vector3>(VPOINT);
+	Vector3VertexProperty new_points = copyModel.vertex_property<Vec3d>(VPOINT);
 	foreach(Vertex v, copyModel.vertices()) samplePoints.push_back( new_points[v] );
 	
 	// Normal
 	copyModel.update_face_normals();
 	copyModel.update_vertex_normals();
-	Vector3VertexProperty new_normals = copyModel.vertex_property<Vector3>(VNORMAL);
+	Vector3VertexProperty new_normals = copyModel.vertex_property<Vec3d>(VNORMAL);
 	foreach(Vertex v, copyModel.vertices()) sampleNormals.push_back( new_normals[v] );
 
 	// Maybe add face centers + edge centers ?
 	//foreach(Face f, copyModel.faces()){
-	//	Vec3d sum(0); int c = 0;
+	//	Vec3f sum(0); int c = 0;
 	//	Surface_mesh::Vertex_around_face_circulator vit = copyModel.vertices(f),vend=vit;
 	//	do{ sum += new_points[vit]; c++; } while(++vit != vend);
 	//	samplePoints.push_back( sum / c );
@@ -296,13 +311,16 @@ QVector<ParameterCoord> Synthesizer::genUniformTrisCoords( Structure::Node * nod
 	// Sample mesh surface
 	QVector<Vec3d> sample_normals;
 	QVector<Vec3d> sample_points = SimilarSampler::All( model, uniformTriCount, sample_normals );
-	std::vector<Vec3d> samplePoints = sample_points.toStdVector();
-	std::vector<Vec3d> sampleNormals = sample_normals.toStdVector();
+	
+	// Double to float...
+	std::vector<Vec3f> samplePointsF,sampleNormalsF;
+	foreach(Vec3d p, sample_points) samplePointsF.push_back(p);
+	foreach(Vec3d n, sample_normals) sampleNormalsF.push_back(n);
 
 	if(node->type() == Structure::CURVE)
-		return genPointCoordsCurve((Structure::Curve*)node, samplePoints, sampleNormals);
+		return genPointCoordsCurve((Structure::Curve*)node, samplePointsF, sampleNormalsF);
 	else
-		return genPointCoordsSheet((Structure::Sheet*)node, samplePoints, sampleNormals);
+		return genPointCoordsSheet((Structure::Sheet*)node, samplePointsF, sampleNormalsF);
 }
 
 // Generate rays depending on configuration of sampling types \s
@@ -334,21 +352,21 @@ QVector<ParameterCoord> Synthesizer::genSampleCoordsCurve( Structure::Curve * cu
 			ParameterCoord &sample = samples[i];
 
 			// adjust u, which is also t for curve
-			if (curveDirection == "positiveU");
+			//if (curveDirection == "positiveU");
 			if (curveDirection == "negativeU")	sample.u = 1 - sample.u;
 			if (curveDirection == "positiveV")	sample.u = sample.v;
 			if (curveDirection == "positiveV")	sample.u = 1 - sample.v;
 
 			// the corresponding frame on curve
 			int idx = sample.u * (rmf.count() - 1);
-			Vec3d X = rmf.U[idx].r;
-			Vec3d Y = rmf.U[idx].s;
-			Vec3d Z = rmf.U[idx].t;
+			Vec3f X = rmf.U[idx].r;
+			Vec3f Y = rmf.U[idx].s;
+			Vec3f Z = rmf.U[idx].t;
 
 			// encode the sample point in this frame
-			double theta, psi;
-			Vec3d delta = sample.origPoint - rmf.U[idx].center;
-			Vec3d raydirection = delta.normalized();
+			float theta, psi;
+			Vec3f delta = sample.origPoint - rmf.U[idx].center;
+			Vec3f raydirection = delta.normalized();
 			globalToLocalSpherical(X, Y, Z, theta, psi, raydirection);
 
 			// update
@@ -377,7 +395,7 @@ QVector<ParameterCoord> Synthesizer::genSampleCoordsSheet( Structure::Sheet * sh
 }
 
 // Compute offset and normal for each ray
-void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structure::Curve * curve, QVector<double> &offsets, QVector<Vec2d> &normals )
+void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structure::Curve * curve, QVector<float> &offsets, QVector<Vec2f> &normals )
 {
 	SurfaceMesh::Model * model = curve->property["mesh"].value<SurfaceMesh::Model*>();
 	model->update_face_normals();
@@ -397,7 +415,7 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 	RMF rmf = consistentFrame(curve,coords);
 	qDebug() << "Curve RMF count = " << rmf.U.size() << ", Samples = " << samples.size();
 
-	const std::vector<Vector3> curvePnts = curve->curve.mCtrlPoint;
+	const std::vector<Vec3d> curvePnts = curve->curve.mCtrlPoint;
 	int N = samples.size();
 
 	#pragma omp parallel for
@@ -408,19 +426,19 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 		ParameterCoord sample = samplesArray[i];
 		
 		int idx = sample.u * (rmf.count() - 1);
-		Vec3d X = rmf.U[idx].r.normalized();
-		Vec3d Y = rmf.U[idx].s.normalized();
-		Vec3d Z = rmf.U[idx].t.normalized();
+		Vec3f X = rmf.U[idx].r.normalized();
+		Vec3f Y = rmf.U[idx].s.normalized();
+		Vec3f Z = rmf.U[idx].t.normalized();
 
 		Vec4d coordinate(sample.u);
-		Vec3d rayPos = mycurve.GetPosition( coordinate[0] );
-		Vec3d rayDir = rotatedVec(Z, sample.theta, Y);
+		Vec3f rayPos = mycurve.GetPosition( coordinate[0] );
+		Vec3f rayDir = rotatedVec(Z, sample.theta, Y);
 		rayDir = rotatedVec(rayDir, sample.psi, Z);
 
 		Ray ray( rayPos, rayDir );
 		int faceIndex = 0;
 
-		Vec3d vn(1);
+		Vec3f vn(1);
 
 		if(curve == sample.origNode)
 		{
@@ -429,7 +447,7 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 		}
 		else
 		{
-			Vec3d isect = octree.closestIntersectionPoint(ray, &faceIndex);
+			Vec3f isect = octree.closestIntersectionPoint(ray, &faceIndex);
 
 			// Store the offset
 			offsets[ i ] = (isect - rayPos).norm();
@@ -438,14 +456,14 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 		}
 
 		// Code the normal relative to local frame
-		Vec2d normalCoord(0);
+		Vec2f normalCoord(0);
 		globalToLocalSpherical(X, Y, Z, normalCoord[0], normalCoord[1], vn);
 
 		normals[ i ] = normalCoord;
 	}
 }
 
-void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structure::Sheet * sheet, QVector<double> &offsets, QVector<Vec2d> &normals )
+void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structure::Sheet * sheet, QVector<float> &offsets, QVector<Vec2f> &normals )
 {
 	SurfaceMesh::Model * model = sheet->property["mesh"].value<SurfaceMesh::Model*>();
 	model->update_face_normals();
@@ -472,8 +490,8 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 
 		ParameterCoord sample = samplesArray[i];
 
-		Vector3 X(0), Y(0), Z(0);
-		Vector3 vDirection(0), rayPos(0);
+		Vec3d X(0), Y(0), Z(0);
+		Vec3d vDirection(0), rayPos(0);
 
 		r.GetFrame( sample.u, sample.v, rayPos, X, vDirection, Z );
 		Y = cross(Z, X);
@@ -494,14 +512,14 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 		else
 		{
 			// Store the offset
-			Vec3d isect = octree.closestIntersectionPoint(ray, &faceIndex);
+			Vec3f isect = octree.closestIntersectionPoint(ray, &faceIndex);
 			offsets[i] = (isect - rayPos).norm();
 
 			// Code the normal relative to local frame
 			vn = fnormals[SurfaceMesh::Model::Face(faceIndex)];
 		}
 
-		Vec2d normalCoord;
+		Vec2f normalCoord;
 		globalToLocalSpherical(X, Y, Z, normalCoord[0], normalCoord[1], vn);
 		normals[i] = normalCoord;
 	}
@@ -518,8 +536,8 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 	qDebug() << "Generating samples..";
 
 	QVector<ParameterCoord> samples;
-	QVector<double> offsets1, offsets2;
-	QVector<Vec2d> normals1, normals2;
+	QVector<float> offsets1, offsets2;
+	QVector<Vec2f> normals1, normals2;
 
 	// Sample two curves to get rays
 	{
@@ -564,9 +582,9 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 	qDebug() << "Generating samples..";
 
 	QVector<ParameterCoord> samples;
-	QVector<double> offsets1, offsets2;
-	QVector<Vec2d> normals1, normals2;
-	bool c1_isSampled = false, c2_isSampled = false;
+	QVector<float> offsets1, offsets2;
+	QVector<Vec2f> normals1, normals2;
+	//bool c1_isSampled = false, c2_isSampled = false;
 
 	// Sample two sheets
 	{
@@ -600,49 +618,49 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 
 
 /// BLENDING
-void Synthesizer::blendCurveBases( Structure::Curve * curve1, Structure::Curve * curve2, double alpha )
+void Synthesizer::blendCurveBases( Structure::Curve * curve1, Structure::Curve * curve2, float alpha )
 {
-	std::vector<Vector3> &ctrlPnts1 = curve1->curve.mCtrlPoint;
+	std::vector<Vec3d> &ctrlPnts1 = curve1->curve.mCtrlPoint;
 
 	for (int i = 0; i < (int) ctrlPnts1.size(); i++)
 	{
-		Vector3 cp1 = ctrlPnts1[i];
-		double time = double(i) / (ctrlPnts1.size() - 1);
-		Vector3 cp2 = curve2->curve.GetPosition(time);
+		Vec3f cp1 = ctrlPnts1[i];
+		float time = float(i) / (ctrlPnts1.size() - 1);
+		Vec3f cp2 = curve2->curve.GetPosition(time);
 
 		ctrlPnts1[i] = (1 - alpha) * cp1 + alpha * cp2;
 	}
 }
 
-void Synthesizer::blendSheetBases( Structure::Sheet * sheet1, Structure::Sheet * sheet2, double alpha )
+void Synthesizer::blendSheetBases( Structure::Sheet * sheet1, Structure::Sheet * sheet2, float alpha )
 {
     sheet1 = sheet1;
     sheet2 = sheet2;
     alpha = alpha;
 }
 
-void Synthesizer::blendGeometryCurves( Structure::Curve * curve1, Structure::Curve * curve2, double alpha, QVector<Vector3> &points, QVector<Vector3> &normals )
+void Synthesizer::blendGeometryCurves( Structure::Curve * curve1, Structure::Curve * curve2, float alpha, QVector<Vec3f> &points, QVector<Vec3f> &normals )
 {
 	if(!curve1->property.contains("samples") || !curve2->property.contains("samples")) return;
-	alpha = qMax(0.0, qMin(alpha, 1.0));
+	alpha = qMax(0.0f, qMin(alpha, 1.0f));
 
 	QVector<ParameterCoord> samples = curve1->property["samples"].value< QVector<ParameterCoord> >();
 
-	QVector<double> offsets1 = curve1->property["offsets"].value< QVector<double> >();
-	QVector<double> offsets2 = curve2->property["offsets"].value< QVector<double> >();
+	QVector<float> offsets1 = curve1->property["offsets"].value< QVector<float> >();
+	QVector<float> offsets2 = curve2->property["offsets"].value< QVector<float> >();
 
-	QVector<Vec2d> normals1 = curve1->property["normals"].value< QVector<Vec2d> >();
-	QVector<Vec2d> normals2 = curve2->property["normals"].value< QVector<Vec2d> >();
+	QVector<Vec2f> normals1 = curve1->property["normals"].value< QVector<Vec2f> >();
+	QVector<Vec2f> normals2 = curve2->property["normals"].value< QVector<Vec2f> >();
 
 	// Blend Geometries 
-	QVector<double> blended_offsets;
-	QVector<Vec2d> blended_normals;
+	QVector<float> blended_offsets;
+	QVector<Vec2f> blended_normals;
 	for( int i = 0; i < offsets1.size(); i++)
 	{
-		double off = ((1 - alpha) * offsets1[i]) + (alpha * offsets2[i]);
+		float off = ((1 - alpha) * offsets1[i]) + (alpha * offsets2[i]);
 		blended_offsets.push_back( off );
 
-		Vec2d n = ((1 - alpha) * normals1[i]) + (alpha * normals2[i]);
+		Vec2f n = ((1 - alpha) * normals1[i]) + (alpha * normals2[i]);
 		blended_normals.push_back( n );
 	}
 
@@ -650,27 +668,27 @@ void Synthesizer::blendGeometryCurves( Structure::Curve * curve1, Structure::Cur
 	reconstructGeometryCurve(curve1, samples, blended_offsets, blended_normals, points, normals);
 }
 
-void Synthesizer::blendGeometrySheets( Structure::Sheet * sheet1, Structure::Sheet * sheet2, double alpha, QVector<Vector3> &points, QVector<Vector3> &normals )
+void Synthesizer::blendGeometrySheets( Structure::Sheet * sheet1, Structure::Sheet * sheet2, float alpha, QVector<Vec3f> &points, QVector<Vec3f> &normals )
 {
 	if(!sheet1->property.contains("samples") || !sheet2->property.contains("samples")) return;
 
 	QVector<ParameterCoord> samples = sheet1->property["samples"].value< QVector<ParameterCoord> >();
 
-	QVector<double> offsets1 = sheet1->property["offsets"].value< QVector<double> >();
-	QVector<double> offsets2 = sheet2->property["offsets"].value< QVector<double> >();
+	QVector<float> offsets1 = sheet1->property["offsets"].value< QVector<float> >();
+	QVector<float> offsets2 = sheet2->property["offsets"].value< QVector<float> >();
 
-	QVector<Vec2d> normals1 = sheet1->property["normals"].value< QVector<Vec2d> >();
-	QVector<Vec2d> normals2 = sheet2->property["normals"].value< QVector<Vec2d> >();
+	QVector<Vec2f> normals1 = sheet1->property["normals"].value< QVector<Vec2f> >();
+	QVector<Vec2f> normals2 = sheet2->property["normals"].value< QVector<Vec2f> >();
 
 	// Blend Geometries 
-	QVector<double> blended_offsets;
-	QVector<Vec2d> blended_normals;
+	QVector<float> blended_offsets;
+	QVector<Vec2f> blended_normals;
 	for( int i = 0; i < offsets1.size(); i++)
 	{
-		double off = ((1 - alpha) * offsets1[i]) + (alpha * offsets2[i]);
+		float off = ((1 - alpha) * offsets1[i]) + (alpha * offsets2[i]);
 		blended_offsets.push_back( off );
 
-		Vec2d n = ((1 - alpha) * normals1[i]) + (alpha * normals2[i]);
+		Vec2f n = ((1 - alpha) * normals1[i]) + (alpha * normals2[i]);
 		blended_normals.push_back( n );
 	}
 	// Reconstruct geometry on the new base
@@ -678,8 +696,8 @@ void Synthesizer::blendGeometrySheets( Structure::Sheet * sheet1, Structure::She
 }
 
 /// RECONSTRUCTION
-void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVector<ParameterCoord> in_samples, QVector<double> &in_offsets,
-	QVector<Vec2d> &in_normals, QVector<Vector3> &out_points, QVector<Vector3> &out_normals )
+void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVector<ParameterCoord> in_samples, QVector<float> &in_offsets,
+	QVector<Vec2f> &in_normals, QVector<Vec3f> &out_points, QVector<Vec3f> &out_normals )
 {
 	// Clear
 	out_points.clear();
@@ -695,30 +713,30 @@ void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVect
 	{
 		ParameterCoord sample = in_samples[i];
 
-		Vec3d rayPos, rayDir;
+		Vec3f rayPos, rayDir;
 
 		int idx = sample.u * (rmf.count() - 1);
 
-		Vec3d X = rmf.U[idx].r.normalized();
-		Vec3d Y = rmf.U[idx].s.normalized();
-		Vec3d Z = rmf.U[idx].t.normalized();
+		Vec3f X = rmf.U[idx].r.normalized();
+		Vec3f Y = rmf.U[idx].s.normalized();
+		Vec3f Z = rmf.U[idx].t.normalized();
 
 		rayPos = base_curve->position(Vec4d(sample.u));
 
 		localSphericalToGlobal(X, Y, Z, sample.theta, sample.psi, rayDir);
 
 		// Reconstructed point
-		Vec3d isect = rayPos + (rayDir.normalized() * in_offsets[ i ]);
+		Vec3f isect = rayPos + (rayDir.normalized() * in_offsets[ i ]);
 		out_points[ i ] = isect;
 
 		// Reconstructed normal
-		Vec2d normalCoord = in_normals[ i ];
-		Vec3d normal(0);
+		Vec2f normalCoord = in_normals[ i ];
+		Vec3f normal(0);
 		localSphericalToGlobal(X, Y, Z, normalCoord[0], normalCoord[1], normal);
 
 		// Normal correction
 		{
-			double theta = acos(qRanged(-1.0,dot(normal.normalized(),rayDir.normalized()),1.0));
+			float theta = acos(qRanged(-1.0f,dot(normal.normalized(),rayDir.normalized()),1.0f));
 			if(theta > M_PI / 2.0) normal = rayDir;
 		}
 
@@ -726,8 +744,8 @@ void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVect
 	}
 }
 
-void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVector<ParameterCoord> in_samples, QVector<double> &in_offsets,
-	QVector<Vec2d> &in_normals, QVector<Vector3> &out_points, QVector<Vector3> &out_normals )
+void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVector<ParameterCoord> in_samples, QVector<float> &in_offsets,
+	QVector<Vec2f> &in_normals, QVector<Vec3f> &out_points, QVector<Vec3f> &out_normals )
 {
 	out_points.clear();
 	out_points.resize(in_samples.size());
@@ -739,33 +757,36 @@ void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVec
 
 	for(int i = 0; i < N; i++)
 	{
-		Vector3 X, Y, Z;
-		Vector3 vDirection, sheetPoint;
+		Vec3d _X, _Y, _Z;
+		Vec3d vDirection, sheetPoint;
 
-		Vec3d rayPos, rayDir;
+		Vec3f rayPos, rayDir;
 
 		ParameterCoord sample = in_samples[i];
 
-		base_sheet->surface.GetFrame( sample.u, sample.v, sheetPoint, X, vDirection, Z );
-		Y = cross(Z, X);
+		base_sheet->surface.GetFrame( sample.u, sample.v, sheetPoint, _X, vDirection, _Z );
+		_Y = cross(_Z, _X);
 
 		rayPos = base_sheet->position(Vec4d(sample.u, sample.v, 0, 0));
+
+		// double float
+		Vec3f X = _X, Y = _Y, Z = _Z;
 
 		localSphericalToGlobal(X, Y, Z, sample.theta, sample.psi, rayDir);
 		rayDir.normalize();
 
 		// Reconstructed point
-		Vec3d isect = rayPos + (rayDir * in_offsets[i]);
+		Vec3f isect = rayPos + (rayDir * in_offsets[i]);
 		out_points[i] = isect;
 
 		// Reconstructed normal
-		Vec2d normalCoord = in_normals[i];
-		Vec3d normal;
+		Vec2f normalCoord = in_normals[i];
+		Vec3f normal;
 		localSphericalToGlobal(X, Y, Z, normalCoord[0], normalCoord[1], normal);
 
 		// Normal correction
 		{
-			double theta = acos(qRanged(-1.0,dot(normal.normalized(),rayDir),1.0));
+			float theta = acos(qRanged(-1.0f,dot(normal.normalized(),rayDir),1.0f));
 			if(theta > M_PI / 2.0) normal = rayDir;
 		}
 
@@ -779,8 +800,8 @@ void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVec
 void Synthesizer::copySynthData( Structure::Node * fromNode, Structure::Node * toNode )
 {
 	toNode->property["samples"].setValue( fromNode->property["samples"].value< QVector<ParameterCoord> >() );
-	toNode->property["offsets"].setValue( fromNode->property["offsets"].value< QVector<double> >() );
-	toNode->property["normals"].setValue( fromNode->property["normals"].value< QVector<Vec2d> >() );
+	toNode->property["offsets"].setValue( fromNode->property["offsets"].value< QVector<float> >() );
+	toNode->property["normals"].setValue( fromNode->property["normals"].value< QVector<Vec2f> >() );
 }
 
 void Synthesizer::clearSynthData( Structure::Node * fromNode )
@@ -794,7 +815,7 @@ void Synthesizer::clearSynthData( Structure::Node * fromNode )
 	fromNode->property.remove("cached_normals");
 }
 
-void Synthesizer::writeXYZ( QString filename, std::vector<Vector3> points, std::vector<Vector3> normals )
+void Synthesizer::writeXYZ( QString filename, std::vector<Vec3f> points, std::vector<Vec3f> normals )
 {
 	QFile file(filename);
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
@@ -802,8 +823,8 @@ void Synthesizer::writeXYZ( QString filename, std::vector<Vector3> points, std::
 
 	for(int i = 0; i < (int) points.size(); i++)
 	{
-		Vec3d p = points[i];
-		Vec3d n = normals[i];
+		Vec3f p = points[i];
+		Vec3f n = normals[i];
 		out << QString("%1 %2 %3 %4 %5 %6\n").arg(p[0]).arg(p[1]).arg(p[2]).arg(n[0]).arg(n[1]).arg(n[2]);
 	}
 
@@ -815,8 +836,8 @@ void Synthesizer::saveSynthesisData( Structure::Node *node, QString prefix )
 	if(!node || !node->property.contains("samples")) return;
 
 	QVector<ParameterCoord> samples = node->property["samples"].value< QVector<ParameterCoord> >();
-	QVector<double> offsets = node->property["offsets"].value< QVector<double> >();
-	QVector<Vec2d> normals = node->property["normals"].value< QVector<Vec2d> >();
+	QVector<float> offsets = node->property["offsets"].value< QVector<float> >();
+	QVector<Vec2f> normals = node->property["normals"].value< QVector<Vec2f> >();
 
 	if(samples.empty())
 	{
@@ -851,8 +872,8 @@ void Synthesizer::loadSynthesisData( Structure::Node *node, QString prefix )
 	inF >> num;
 
 	QVector<ParameterCoord> samples(num);
-	QVector<double> offsets(num);
-	QVector<Vec2d> normals(num);
+	QVector<float> offsets(num);
+	QVector<Vec2f> normals(num);
 
 	for(int i = 0; i < num; i++)
 	{

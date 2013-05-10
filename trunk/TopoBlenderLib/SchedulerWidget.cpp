@@ -32,6 +32,11 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
 
 	scheduler->connect( ui->draftRenderButton, SIGNAL(clicked()), SLOT(doDraftRender()));
 
+
+	// Discretization
+	scheduler->connect( ui->gdResolution, SIGNAL(valueChanged(double)), SLOT(setGDResolution(double)));
+	scheduler->connect( ui->timeStep, SIGNAL(valueChanged(double)), SLOT(setTimeStep(double)));
+
 	// Render options
 	this->connect( ui->reconLevel, SIGNAL(valueChanged(int)), SLOT(changeReconLevel(int)));
 	scheduler->property["reconLevel"] = ui->reconLevel->value();
@@ -76,10 +81,7 @@ void SchedulerWidget::changeRenderCount(int value)
 
 void SchedulerWidget::cleanUp()
 {
-	for(int i = 0; i < (int)s->allGraphs.size(); i++)
-	{
-		s->allGraphs[i]->clearGeometryCache();
-	}
+	s->cleanUp();
 }
 
 void SchedulerWidget::loadSchedule()

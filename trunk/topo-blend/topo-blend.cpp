@@ -756,9 +756,9 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 			{
 				if(node->property.contains("cached_points"))
 				{
-					QVector<Vec3d> pnts = node->property["cached_points"].value< QVector<Vec3d> >();
+					QVector<Vec3f> pnts = node->property["cached_points"].value< QVector<Vec3f> >();
 					QVector<ParameterCoord> samples = node->property["samples"].value< QVector<ParameterCoord> >();
-					QVector<double> offsets = node->property["offsets"].value< QVector<double> >();
+					QVector<float> offsets = node->property["offsets"].value< QVector<float> >();
 
 					Vec3d delta = Vec3d(posX,0,0);
 					Vec3d q = p - delta;
@@ -1018,7 +1018,7 @@ void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 	// Debug:
 	if( blender )
 	{
-		if( true )
+		if( false )
 		{
 			if( !newActiveGraph->nodes.front()->property.contains("samples") )
 			{
@@ -1288,20 +1288,20 @@ void topoblend::renderGraph( Structure::Graph graph, QString filename, bool isOu
 		if( node->property["zeroGeometry"].toBool() || node->property["shrunk"].toBool() || 
 			!node->property.contains("cached_points")) continue;
 
-		QVector<Vec3d> points = node->property["cached_points"].value< QVector<Vec3d> >();
-		QVector<Vec3d> normals = node->property["cached_normals"].value< QVector<Vec3d> >();
+		QVector<Vec3f> points = node->property["cached_points"].value< QVector<Vec3f> >();
+		QVector<Vec3f> normals = node->property["cached_normals"].value< QVector<Vec3f> >();
 
 		if(!points.size()) continue;
-		std::vector<Vec3d> clean_points;
-		foreach(Vec3d p, points) clean_points.push_back(p);
+		std::vector<Vec3f> clean_points;
+		foreach(Vec3f p, points) clean_points.push_back(p);
 
-		std::vector< Vec3d > finalP, finalN;
+		std::vector< Vec3f > finalP, finalN;
 
 		/// Clean up duplicated points
 		if( false )
 		{
 			std::vector<size_t> xrefs;
-			weld(clean_points, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
+			weld(clean_points, xrefs, std::hash_Vec3d(), std::equal_to<Vec3f>());
 
 			std::set<int> uniqueIds;
 			for(int i = 0; i < (int)points.size(); i++)	uniqueIds.insert(xrefs[i]);
@@ -1359,8 +1359,7 @@ void topoblend::renderGraph( Structure::Graph graph, QString filename, bool isOu
 		PoissonRecon::makeFromCloud( pointCloudf(finalP), pointCloudf(finalN), node_filename, reconLevel );
 
 		// Clean up
-		node->property.remove("cached_points");
-		node->property.remove("cached_normals");
+		scheduler->cleanUp();
 	}
 
 	combineMeshes(generatedFiles, filename + ".obj");

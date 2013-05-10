@@ -401,7 +401,7 @@ void Graph::draw( QGLViewer * drawArea )
 	}
 
 	// Geometry of graph
-	QVector<Vec3d> points, normals;
+	QVector<Vec3f> points, normals;
 
 	// Compute blends if available
 	geometryMorph();
@@ -448,11 +448,11 @@ void Graph::draw( QGLViewer * drawArea )
 		{
 			if(n->property.contains("samples"))
 			{
-				QVector<Vec3d> n_points, n_normals;
+				QVector<Vec3f> n_points, n_normals;
 
 				QVector<ParameterCoord> samples = n->property["samples"].value< QVector<ParameterCoord> >();
-				QVector<double> offsets = n->property["offsets"].value< QVector<double> >();
-				QVector<Vec2d> in_normals = n->property["normals"].value< QVector<Vec2d> >();
+				QVector<float> offsets = n->property["offsets"].value< QVector<float> >();
+				QVector<Vec2f> in_normals = n->property["normals"].value< QVector<Vec2f> >();
 
 				if(!n->property.contains("cached_points"))
 				{
@@ -473,8 +473,8 @@ void Graph::draw( QGLViewer * drawArea )
 				}
 				else
 				{
-					n_points = n->property["cached_points"].value< QVector<Vec3d> >();
-					n_normals = n->property["cached_normals"].value< QVector<Vec3d> >();
+					n_points = n->property["cached_points"].value< QVector<Vec3f> >();
+					n_normals = n->property["cached_normals"].value< QVector<Vec3f> >();
 				}
 
 				if(n_points.size())
@@ -587,41 +587,43 @@ void Graph::draw( QGLViewer * drawArea )
 					fs.addFrame(f.r, f.s, f.t, n->bbox().center());
 					fs.draw();
 				}
-			}
 
-			// For edges
-			glDisable(GL_LIGHTING);
-			foreach(Structure::Link * l, edges)
-			{
-				if( l->property.contains("path") )
+
+				// For edges
+				glDisable(GL_LIGHTING);
+				foreach(Structure::Link * l, edges)
 				{
-					Array1D_Vector3 path;
-					if (!l->property.contains("CachedPath"))
+					if( l->property.contains("path") )
 					{
-						QVector< GraphDistance::PathPointPair > pathRelative = l->property["path"].value< QVector< GraphDistance::PathPointPair > >();
-						if(!pathRelative.size()) continue;
+						Array1D_Vector3 path;
+						if (!l->property.contains("CachedPath"))
+						{
+							QVector< GraphDistance::PathPointPair > pathRelative = l->property["path"].value< QVector< GraphDistance::PathPointPair > >();
+							if(!pathRelative.size()) continue;
 
-						path = GraphDistance::positionalPath(this, pathRelative);
-						l->property["CachedPath"].setValue(path);
-					}
-					else
-						path = l->property["CachedPath"].value<Array1D_Vector3>();
+							path = GraphDistance::positionalPath(this, pathRelative);
+							l->property["CachedPath"].setValue(path);
+						}
+						else
+							path = l->property["CachedPath"].value<Array1D_Vector3>();
 
-					PointSoup ps(10);
-					LineSegments ls;
-					Vec3d lastP = path.front();
-					foreach(Vector3 p, path)
-					{
-						ps.addPoint(p, Qt::green);
-						ls.addLine(lastP, p, QColor(255,255,255,100));
-						lastP = p;
+						PointSoup ps(10);
+						LineSegments ls;
+						Vec3d lastP = path.front();
+						foreach(Vector3 p, path)
+						{
+							ps.addPoint(p, Qt::green);
+							ls.addLine(lastP, p, QColor(255,255,255,100));
+							lastP = p;
+						}
+						ps.draw();
+						ls.draw();
 					}
-					ps.draw();
-					ls.draw();
 				}
-			}
 
-			glEnable(GL_LIGHTING);
+				glEnable(GL_LIGHTING);
+
+			}
 		}
 
 		// Default node draw
@@ -1917,7 +1919,7 @@ void Graph::geometryMorph()
 		{
 			double t = n->property["localT"].toDouble();
 
-			QVector<Vec3d> points, normals;
+			QVector<Vec3f> points, normals;
 
 			if(n->type() == Structure::CURVE)
 			{	

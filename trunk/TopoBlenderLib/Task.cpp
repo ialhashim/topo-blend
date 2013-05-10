@@ -716,11 +716,6 @@ void Task::executeMorphEdges( double t )
 {
 	Node * n = node();
 
-	if (t == 1)
-	{
-		int a  = 0;
-	}
-
 	QVector<Structure::Link*> edges = property["edges"].value< QVector<Structure::Link*> >();
 	foreach (Structure::Link* link, edges)
 	{

@@ -1,6 +1,6 @@
 #include "GlSplatRenderer.h"
 
-GlSplatRenderer::GlSplatRenderer(const QVector<Vec3d> &pts, const QVector<Vec3d> &ns, double radius, Vec4d color)
+GlSplatRenderer::GlSplatRenderer(const QVector<Vec3f> &pts, const QVector<Vec3f> &ns, double radius, Vec4d color)
 {
 	Q_INIT_RESOURCE(shaders);
 
