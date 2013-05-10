@@ -4,7 +4,7 @@
 #include <vector>
 typedef unsigned int uint;
 
-#define ZERO_NORM 1e-10
+#define ZERO_NORM 1e-7
 
 #include "qglviewer/quaternion.h"
 using namespace qglviewer;

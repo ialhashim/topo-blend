@@ -429,7 +429,7 @@ void Graph::draw( QGLViewer * drawArea )
 		if (n->property.contains("isReady") && !n->property["isReady"].toBool())
 			continue;
 
-		if ( n->property["shrunk"].toBool() )
+		if ( n->property["shrunk"].toBool() || n->property["zeroGeometry"].toBool() )
 			continue;
 
 		if (property["showCurveFrames"].toBool())
@@ -509,8 +509,8 @@ void Graph::draw( QGLViewer * drawArea )
 			}
 
 			glDisable(GL_LIGHTING);
-
-			if( n->property.contains("isActive") && n->property["isActive"].toBool() )
+			
+			if( n->property["isActive"].toBool() )
 			{
                 if( n->property.contains("consistentFrame") )
                 {
@@ -537,40 +537,40 @@ void Graph::draw( QGLViewer * drawArea )
 				}
 
 				glDisable(GL_LIGHTING);
-				if( n->property.contains("path") )
-				{
-					Array1D_Vector3 path = n->property["path"].value<Array1D_Vector3>();
+				//if( n->property.contains("path") )
+				//{
+				//	Array1D_Vector3 path = n->property["path"].value<Array1D_Vector3>();
 
-					PointSoup ps;
-					LineSegments ls;
-					Vec3d lastP = path.front();
-					foreach(Vector3 p, path)
-					{
-						ps.addPoint(p, Qt::green);
-						ls.addLine(lastP, p, QColor(255,255,255,100));
-						lastP = p;
-					}
-					ps.draw();
-					ls.draw();
-				}
+				//	PointSoup ps;
+				//	LineSegments ls;
+				//	Vec3d lastP = path.front();
+				//	foreach(Vector3 p, path)
+				//	{
+				//		ps.addPoint(p, Qt::green);
+				//		ls.addLine(lastP, p, QColor(255,255,255,100));
+				//		lastP = p;
+				//	}
+				//	ps.draw();
+				//	ls.draw();
+				//}
 
-				if( n->property.contains("path2") )
-				{
-					Array1D_Vector3 path = n->property["path2"].value<Array1D_Vector3>();
+				//if( n->property.contains("path2") )
+				//{
+				//	Array1D_Vector3 path = n->property["path2"].value<Array1D_Vector3>();
 
-					PointSoup ps;
-					LineSegments ls;
-					Vec3d lastP = path.front();
-					foreach(Vector3 p, path)
-					{
-						ps.addPoint(p, Qt::yellow);
-						ls.addLine(lastP, p, QColor(255,255,255,100));
-						lastP = p;
-					}
-					ps.draw();
-					ls.draw();
-				}
-				glEnable(GL_LIGHTING);
+				//	PointSoup ps;
+				//	LineSegments ls;
+				//	Vec3d lastP = path.front();
+				//	foreach(Vector3 p, path)
+				//	{
+				//		ps.addPoint(p, Qt::yellow);
+				//		ls.addLine(lastP, p, QColor(255,255,255,100));
+				//		lastP = p;
+				//	}
+				//	ps.draw();
+				//	ls.draw();
+				//}
+				//glEnable(GL_LIGHTING);
 				
 				if( n->property.contains("frame") )
 				{
@@ -595,10 +595,17 @@ void Graph::draw( QGLViewer * drawArea )
 			{
 				if( l->property.contains("path") )
 				{
-					QVector< GraphDistance::PathPointPair > pathRelative = l->property["path"].value< QVector< GraphDistance::PathPointPair > >();
-					if(!pathRelative.size()) continue;
+					Array1D_Vector3 path;
+					if (!l->property.contains("CachedPath"))
+					{
+						QVector< GraphDistance::PathPointPair > pathRelative = l->property["path"].value< QVector< GraphDistance::PathPointPair > >();
+						if(!pathRelative.size()) continue;
 
-					Array1D_Vector3 path = GraphDistance::positionalPath(this, pathRelative);
+						path = GraphDistance::positionalPath(this, pathRelative);
+						l->property["CachedPath"].setValue(path);
+					}
+					else
+						path = l->property["CachedPath"].value<Array1D_Vector3>();
 
 					PointSoup ps(10);
 					LineSegments ls;

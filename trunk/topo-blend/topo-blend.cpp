@@ -1260,12 +1260,15 @@ void topoblend::renderCurrent()
 	// Reconstruct
 	QString filename = "currentGraph";
 	Structure::Graph lastGraph = *currentGraph;
-	renderGraph(lastGraph, filename, true, reconLevel);
+	renderGraph(lastGraph, filename, false, reconLevel);
 
 	// Load and display as mesh in viewer
-	SurfaceMesh::SurfaceMeshModel * m = new SurfaceMesh::SurfaceMeshModel(filename+".obj", "reconMesh");
-	m->read(qPrintable(filename+".obj"));
-	currentGraph->property["reconMesh"].setValue( m );
+	if( false )
+	{
+		SurfaceMesh::SurfaceMeshModel * m = new SurfaceMesh::SurfaceMeshModel(filename+".obj", "reconMesh");
+		m->read(qPrintable(filename+".obj"));
+		currentGraph->property["reconMesh"].setValue( m );
+	}
 
 	updateDrawArea();
 
@@ -1282,7 +1285,7 @@ void topoblend::renderGraph( Structure::Graph graph, QString filename, bool isOu
 	foreach(Structure::Node * node, graph.nodes)
 	{
 		// Skip inactive nodes
-		if( node->property["inactive"].toBool() || node->property["shrunk"].toBool() || 
+		if( node->property["zeroGeometry"].toBool() || node->property["shrunk"].toBool() || 
 			!node->property.contains("cached_points")) continue;
 
 		QVector<Vec3d> points = node->property["cached_points"].value< QVector<Vec3d> >();
@@ -1354,6 +1357,10 @@ void topoblend::renderGraph( Structure::Graph graph, QString filename, bool isOu
 		QString node_filename = node->id + ".off";
 		generatedFiles << node_filename;
 		PoissonRecon::makeFromCloud( pointCloudf(finalP), pointCloudf(finalN), node_filename, reconLevel );
+
+		// Clean up
+		node->property.remove("cached_points");
+		node->property.remove("cached_normals");
 	}
 
 	combineMeshes(generatedFiles, filename + ".obj");
@@ -1426,20 +1433,6 @@ void topoblend::combineMeshesToOne()
 	if(out_filename.isEmpty()) return;
 
 	combineMeshes(fileNames, out_filename);
-}
-
-void topoblend::swapSourceAndTarget()
-{
-	if (graphs.size() >= 2)
-	{
-		Structure::Graph* sg = graphs[0];
-		graphs[0] = graphs[1];
-		graphs[1] = sg;
-
-		if (gcoor)	delete gcoor;
-	}
-
-	drawArea()->updateGL();
 }
 
 void topoblend::normalizeAllGraphs()

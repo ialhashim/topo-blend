@@ -356,7 +356,13 @@ void Scheduler::executeAll()
 	QVector<Task*> allTasks = tasksSortedByStart();
 	
 	// Relink once to place null nodes at initial positions:
-	QVector<QString> aTs; aTs.push_back( allTasks.front()->nodeID );
+	// Propagate from sheet node or the first node if there is no sheet node
+	// TODO: It seems we have to decide where to place the null nodes at the very beginning!?
+	QVector<QString> aTs; 
+	foreach (Task* task, allTasks){
+		if ( task->node()->type() == Structure::SHEET)	{aTs << task->nodeID; break;}
+	}
+	if (aTs.isEmpty()) aTs << allTasks.front()->nodeID;
 	activeGraph->property["activeTasks"].setValue( aTs );
 
 	Relink linker(this);
@@ -366,7 +372,7 @@ void Scheduler::executeAll()
 	
 
 	// Debug: 
-	allGraphs.push_back( new Structure::Graph( *activeGraph ) );
+	//allGraphs.push_back( new Structure::Graph( *activeGraph ) );
 
 
 	// Execute all tasks
@@ -419,7 +425,7 @@ void Scheduler::executeAll()
 		linker.execute( globalTime );
 
 		// Output current active graph:
-		allGraphs.push_back( new Structure::Graph( *activeGraph ) );
+		allGraphs.push_back(  new Structure::Graph( *activeGraph )  );
 
 		// DEBUG:
 		activeGraph->clearDebug();
@@ -611,7 +617,7 @@ void Scheduler::blendDeltas( double globalTime, double timeStep )
 {
 	if (globalTime >= 1.0) return;
 
-	//double alpha = timeStep / (1 - globalTime);
+	double alpha = timeStep / (1 - globalTime);
 
 	foreach(Structure::Link* l, activeGraph->edges)
 	{
@@ -619,24 +625,24 @@ void Scheduler::blendDeltas( double globalTime, double timeStep )
 		if (!tl) continue;
 
 		// Alpha value:
-		double alpha = 0;
-		{
-			Task * sTask1 = l->n1->property["task"].value<Task*>();
-			Task * sTask2 = l->n2->property["task"].value<Task*>();
-			
-			if(sTask1->isDone && sTask2->isDone) 
-			{
-				alpha = 1.0;
-			}
-			else if( sTask1->isDone )
-			{
-				alpha = sTask2->property["t"].toDouble();
-			}
-			else
-			{
-				alpha = sTask1->property["t"].toDouble();
-			}
-		}
+		//double alpha = 0;
+		//{
+		//	Task * sTask1 = l->n1->property["task"].value<Task*>();
+		//	Task * sTask2 = l->n2->property["task"].value<Task*>();
+		//	
+		//	if(sTask1->isDone && sTask2->isDone) 
+		//	{
+		//		alpha = 1.0;
+		//	}
+		//	else if( sTask1->isDone )
+		//	{
+		//		alpha = sTask2->property["t"].toDouble();
+		//	}
+		//	else
+		//	{
+		//		alpha = sTask1->property["t"].toDouble();
+		//	}
+		//}
 
 		Vec3d sDelta = l->delta();
 		Vec3d tDelta = tl->property["delta"].value<Vec3d>();

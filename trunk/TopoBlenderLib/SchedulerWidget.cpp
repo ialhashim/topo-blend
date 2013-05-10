@@ -43,6 +43,9 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
 	connect( ui->loadButton, SIGNAL(clicked()), SLOT(loadSchedule()) );
 	connect( ui->saveButton, SIGNAL(clicked()), SLOT(saveSchedule()) );
 
+	// Clean up
+	connect( ui->cleanUpButton, SIGNAL(clicked()), SLOT(cleanUp()) );
+	
 	ui->progressBar->setVisible(false);
 }
 
@@ -69,6 +72,14 @@ void SchedulerWidget::changeReconLevel(int value)
 void SchedulerWidget::changeRenderCount(int value)
 {
 	s->property["renderCount"] = value;
+}
+
+void SchedulerWidget::cleanUp()
+{
+	for(int i = 0; i < (int)s->allGraphs.size(); i++)
+	{
+		s->allGraphs[i]->clearGeometryCache();
+	}
 }
 
 void SchedulerWidget::loadSchedule()
