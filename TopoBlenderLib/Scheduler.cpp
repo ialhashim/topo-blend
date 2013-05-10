@@ -369,7 +369,7 @@ void Scheduler::executeAll()
 
 	Relink linker(this);
 	linker.checkRelinkability = false;
-	linker.execute( 0 );
+	linker.execute();
 	linker.checkRelinkability = true;
 	
 
@@ -424,7 +424,7 @@ void Scheduler::executeAll()
 		}
 
 		/// Apply relinking
-		linker.execute( globalTime );
+		linker.execute();
 
 		// Output current active graph:
 		allGraphs.push_back(  new Structure::Graph( *activeGraph )  );

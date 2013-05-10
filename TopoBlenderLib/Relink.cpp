@@ -10,7 +10,7 @@ Relink::Relink(Scheduler *scheduler)
 	checkRelinkability = true;
 }
 
-void Relink::execute(int globalTime)
+void Relink::execute()
 {
 	// initial
 	constraints.clear();
@@ -40,7 +40,7 @@ void Relink::execute(int globalTime)
 		Task* task = propagationQueue.dequeue();
 
 		// Fix task according to constraints
-		fixTask(task, globalTime);
+		fixTask(task);
 
 		// Propagate from task
 		propagateFrom(task);
@@ -60,7 +60,6 @@ void Relink::propagateFrom( Task* task )
 
 		// Skip un-relinkable tasks
 		if (!isRelinkable(otherTask)) continue;
-
 
 		// For first time (placing null nodes): 
 		// Do not propagate from null to real
@@ -89,7 +88,7 @@ void Relink::propagateFrom( Task* task )
 }
 
 
-void Relink::fixTask( Task* task, int globalTime )
+void Relink::fixTask( Task* task )
 {
 	task->property["relinked"] = true;
 

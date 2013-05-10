@@ -165,6 +165,8 @@ void topo_blend_widget::loadCorrespondenceModel()
 
 void topo_blend_widget::vizButtonClicked(QAbstractButton* b)
 {
+	Q_UNUSED(b)
+
 	tb->viz_params["showNodes"] = ui->showNodes->isChecked();
 	tb->viz_params["showEdges"] = ui->showEdges->isChecked();
 	tb->viz_params["showMeshes"] = ui->showMeshes->isChecked();
@@ -179,7 +181,7 @@ void topo_blend_widget::vizButtonClicked(QAbstractButton* b)
 
 void topo_blend_widget::splatSizeChanged(double newSize)
 {
-	tb->viz_params["splatSize"] = ui->splatSize->value();
+	tb->viz_params["splatSize"] = newSize;
 	tb->updateDrawArea();
 }
 

@@ -125,9 +125,9 @@ Q_DECLARE_METATYPE( RMF )
 Q_DECLARE_METATYPE( RMF::Frame )
 Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
 Q_DECLARE_METATYPE( CurveEncoding )
-Q_DECLARE_METATYPE( Eigen::Quaterniond )
 Q_DECLARE_METATYPE( QVector<QString> )
 Q_DECLARE_METATYPE( QVector<Structure::Link*> )
+Q_DECLARE_METATYPE( Eigen::Quaterniond )
 
 static inline double rad_to_deg(const double& _angle){ return 180.0*(_angle/M_PI); }
 

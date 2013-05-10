@@ -26,6 +26,6 @@ public:
     Structure::Sheet * targetSheet();
 
     // Special encoding for sheet growing
-    SheetEncoding encodeSheetAsCurve( Structure::Sheet * sheet, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z );
-    Array1D_Vector3 decodeSheetFromCurve( double t, SheetEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z );
+    SheetEncoding encodeSheetAsCurve( Structure::Sheet * sheet, Vector3 start, Vector3 end );
+    Array1D_Vector3 decodeSheetFromCurve( double t, SheetEncoding cpCoords, Vector3 start, Vector3 end  );
 };

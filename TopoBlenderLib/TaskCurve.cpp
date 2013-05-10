@@ -12,12 +12,6 @@ Curve * TaskCurve::targetCurve()
 
 void TaskCurve::prepareCurve()
 {
-	// Debug
-	if (nodeID.contains("MiddleLeftBar"))
-	{
-		int a = 0;
-	}
-
 	switch(type)
 	{
 	case GROW:
@@ -56,7 +50,7 @@ void TaskCurve::prepareShrinkCurveOneEdge( Link* l )
 
 void TaskCurve::prepareShrinkCurve()
 {
-	Node *n = node(), *tn = targetNode();
+    Node *n = node();
 	QVector<Link*> edges = filterEdges( n, active->getEdges(n->id) );
 	Curve* curve = ((Curve*)n);
 
@@ -127,7 +121,7 @@ void TaskCurve::prepareShrinkCurve()
 
 void TaskCurve::prepareGrowCurveOneEdge( Structure::Link * tlink )
 {
-	Node *n = node(), *tn = targetNode();
+    Node *tn = targetNode();
 	Structure::Curve * curve = (Structure::Curve *)tn;
 
 	// Get base
@@ -403,10 +397,8 @@ void TaskCurve::foldCurve( double t )
 		structure_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);
 
 	// Placement
-	Link * l = property["edges"].value< QVector<Link*> >().front();
-	Structure::Link* tl = target->getEdge(l->property["correspond"].toString());
+    Link * l = property["edges"].value< QVector<Link*> >().front();
 	Node * n = node();
-	Node * base = l->otherNode(n->id);
 
 	Vector3 posOnMe = l->position(n->id);
 	Vector3 posOnBase = l->positionOther(n->id);
@@ -422,7 +414,7 @@ void TaskCurve::foldCurve( double t )
 
 void TaskCurve::executeCrossingCurve( double t )
 {
-	Node *n = node(), *tn = targetNode();
+    Node *n = node();
 	QVector<Link*> edges = property["edges"].value< QVector<Link*> >();
 
 	if (property.contains("path"))
@@ -439,7 +431,7 @@ void TaskCurve::executeCrossingCurve( double t )
 		Vector3 oldPos = link->position(n->id);
 
 		// Blend Deltas, directions are the same as source
-		Structure::Link *slink = edges.front(), *slinkB = edges.back();
+        Structure::Link *slink = edges.front();
 		Vec3d sDelta = slink->property["delta"].value<Vec3d>();
 		if (type == Task::GROW) sDelta = Vec3d(0);
 
@@ -549,7 +541,7 @@ void TaskCurve::executeCrossingCurve( double t )
 
 void TaskCurve::executeMorphCurve( double t )
 {
-	Node *n = node(), *tn = targetNode();
+    Node *n = node();
 
 	// Blend controlling "line segment"
 	Vector3 pointA = AlphaBlend(t, property["sourceA"].value<Vector3>(), property["targetA"].value<Vector3>());

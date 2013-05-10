@@ -112,7 +112,7 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
 
 	Vector3 X = rmf.U.back().r, Y = rmf.U.back().s, Z = rmf.U.back().t;
 
-    SheetEncoding cpCoords = encodeSheetAsCurve((Structure::Sheet*)tn, tlinkA->position(tn->id), tlinkB->position(tn->id), X,Y,Z);
+    SheetEncoding cpCoords = encodeSheetAsCurve((Structure::Sheet*)tn, tlinkA->position(tn->id), tlinkB->position(tn->id));
 	property["cpCoords"].setValue( cpCoords );
 
     // DEBUG
@@ -289,13 +289,13 @@ void TaskSheet::executeMorphSheet( double t )
     sheet->setControlPoints( blendedPnts );
 }
 
-SheetEncoding TaskSheet::encodeSheetAsCurve( Structure::Sheet * sheet, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
+SheetEncoding TaskSheet::encodeSheetAsCurve( Structure::Sheet * sheet, Vector3 start, Vector3 end)
 {
     Array1D_Vector3 controlPoints = sheet->controlPoints();
     return Structure::Curve::encodeCurve(controlPoints,start,end);
 }
 
-Array1D_Vector3 TaskSheet::decodeSheetFromCurve( double t, SheetEncoding cpCoords, Vector3 start, Vector3 end, Vector3 X, Vector3 Y, Vector3 Z )
+Array1D_Vector3 TaskSheet::decodeSheetFromCurve( double t, SheetEncoding cpCoords, Vector3 start, Vector3 end)
 {
     return Structure::Curve::decodeCurve(cpCoords,start,end,t);
 }
