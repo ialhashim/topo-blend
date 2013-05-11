@@ -328,7 +328,7 @@ QVector<ParameterCoord> Synthesizer::genSampleCoordsCurve( Structure::Curve * cu
 {
 	QVector<ParameterCoord> samples;
 
-	if (!curve->property.contains("originalSheet"))
+	if (!curve->property.contains("original_sheet"))
 	{
 		if (s & Synthesizer::Features)	samples += genFeatureCoords(curve);
 		if (s & Synthesizer::Edges)		samples += genEdgeCoords(curve);
@@ -339,6 +339,7 @@ QVector<ParameterCoord> Synthesizer::genSampleCoordsCurve( Structure::Curve * cu
 	}
 	else
 	{
+		return samples;
 		// get samples using the original sheet
 		Structure::Sheet* originalSheet  = curve->property["original_sheet"].value<Structure::Sheet*>();
 		samples = genSampleCoordsSheet(originalSheet, s);
@@ -544,8 +545,27 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 		if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
 		if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
 
-		samples  = genSampleCoordsCurve(curve1, s);
-		samples += genSampleCoordsCurve(curve2, s);
+
+		if (curve1->property.contains("original_sheet"))
+		{
+			int old_uniformTriCount = uniformTriCount;
+			uniformTriCount *= 10;
+			samples = genSampleCoordsCurve(curve2, s);
+			uniformTriCount = old_uniformTriCount;
+		}
+		else if (curve2->property.contains("original_sheet"))
+		{
+			int old_uniformTriCount = uniformTriCount;
+			uniformTriCount *= 10;
+			samples  = genSampleCoordsCurve(curve1, s);
+			uniformTriCount = old_uniformTriCount;
+		}
+		else
+		{
+			samples  = genSampleCoordsCurve(curve1, s);
+			samples += genSampleCoordsCurve(curve2, s);
+		}
+		
 
 		// Why need sorting? -HH
 		// Sort samples by 'u'
@@ -556,14 +576,12 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 
 	qDebug() << "Re-sampling mesh..";
 
-	// Comptute offset and normal for each ray
+	// Compute offset and normal for each ray
 	{
 		sampleGeometryCurve(samples, curve1, offsets1, normals1);
 		curve1->property["samples"].setValue(samples);
 		curve1->property["offsets"].setValue(offsets1);
 		curve1->property["normals"].setValue(normals1);
-
-
 
 		sampleGeometryCurve(samples, curve2, offsets2, normals2);
 		curve2->property["samples"].setValue(samples);
@@ -592,7 +610,7 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 		if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
 
 		samples  = genSampleCoordsSheet(sheet1, s);
-		samples += genSampleCoordsSheet(sheet2, s);
+		if(sheet1 != sheet2) samples += genSampleCoordsSheet(sheet2, s);
 	}
 
 	qDebug() << QString("Samples Time [ %1 ms ]").arg(timer.elapsed());timer.restart();
@@ -606,10 +624,13 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 		sheet1->property["offsets"].setValue(offsets1);
 		sheet1->property["normals"].setValue(normals1);
 
-		sampleGeometrySheet(samples, sheet2, offsets2, normals2);
-		sheet2->property["samples"].setValue(samples);
-		sheet2->property["offsets"].setValue(offsets2);
-		sheet2->property["normals"].setValue(normals2);
+		if(sheet1 != sheet2) 
+		{
+			sampleGeometrySheet(samples, sheet2, offsets2, normals2);
+			sheet2->property["samples"].setValue(samples);
+			sheet2->property["offsets"].setValue(offsets2);
+			sheet2->property["normals"].setValue(normals2);
+		}
 	}
 
 	qDebug() << QString("Resampling Time [ %1 ms ]\n==\n").arg(timer.elapsed());

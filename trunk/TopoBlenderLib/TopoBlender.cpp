@@ -686,14 +686,6 @@ void TopoBlender::generateSuperGraphs()
 	correspondSuperEdges();
 	
 	postprocessSuperEdges();
-
-	// Zero the geometry for null nodes
-	foreach(Structure::Node * snode, super_sg->nodes)
-	{
-		if (!snode->id.contains("null")) continue;
-		snode->setControlPoints( Array1D_Vector3(snode->numCtrlPnts(), Vector3(0)) );
-		snode->property["zeroGeometry"] = true;
-	}
 }
 
 void TopoBlender::postprocessSuperEdges()
@@ -846,9 +838,13 @@ void TopoBlender::equalizeSuperNodeTypes()
 			// try to convert
 			bool converted;
 			if (snode->type() == Structure::SHEET)
+			{
 				converted = convertSheetToCurve(snodeID, tnodeID, super_sg, super_tg);
+			}
 			else
+			{
 				converted = convertSheetToCurve(tnodeID, snodeID, super_tg, super_sg);
+			}
 
 			// check if success
 			if (converted)  diffPairs.remove(snodeID);
