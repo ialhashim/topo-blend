@@ -65,7 +65,7 @@ public:
 	float scoreThreshold;
 	void computePartToPartCorrespondences();
 	void saveCorrespondences(QString filename);
-	void LoadCorrespondences(QString filename);
+	void loadCorrespondences( QString filename );
 
 	// Point to Point 
 	void correspondAllNodes();
@@ -84,4 +84,5 @@ public:
 public slots:
 	void visualizePart2PartDistance(int sourceID);
 	void computeCorrespondences();
+
 };

@@ -1008,15 +1008,64 @@ std::vector<QString> GraphCorresponder::nonCorresTarget()
 
 void GraphCorresponder::saveCorrespondences( QString filename )
 {
-	std::ofstream outF("correspondences_one2one.txt", std::ios::out);
+	QFile file(filename);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+	QTextStream outF(&file);
 
-    outF << "Source shape: " << qPrintable(sg->property["name"].toString()) << '\n';
-    outF << "Target shape: " << qPrintable(tg->property["name"].toString()) << "\n\n\n";
+	outF << correspondences.size() << "\n\n";
+
+	foreach (PART_LANDMARK vector2vector, correspondences)
+	{
+		outF << vector2vector.first.size() << '\t';;
+		foreach (QString strID, vector2vector.first)
+			outF << strID << '\t';
+		outF << '\n';
+
+		outF << vector2vector.second.size() << '\t';
+		foreach (QString strID, vector2vector.second)
+			outF << strID << '\t';
+		outF << "\n\n";
+	}
+
+	file.close();	
 }
 
-void GraphCorresponder::LoadCorrespondences( QString filename )
+void GraphCorresponder::loadCorrespondences( QString filename )
 {
+	QFile file(filename);
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+	QTextStream inF(&file);
 
+	correspondences.clear();
+
+	int nbCorr;
+	inF >> nbCorr;
+
+	for (int i = 0; i < nbCorr; i++)
+	{
+		int n;
+		QString strID;
+		QVector<QString> sParts, tParts;
+
+		inF >> n;
+		for (int j = 0; j < n; j++)
+		{
+			inF >> strID;
+			sParts.push_back(strID);
+		}
+
+		inF >> n;
+		for (int j = 0; j < n; j++)
+		{
+			inF >> strID;
+			tParts.push_back(strID);
+		}
+
+		// Store correspondence
+		correspondences.push_back(std::make_pair(sParts, tParts));
+	}
+
+	file.close();
 }
 
 void GraphCorresponder::visualizePart2PartDistance( int sourceID )
