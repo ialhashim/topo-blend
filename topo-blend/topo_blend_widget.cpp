@@ -128,11 +128,13 @@ void topo_blend_widget::loadJob()
 	tb->updateDrawArea();
 
 	// Load correspondence
-	tb->corresponder(); // create a new one
+	tb->corresponder();
 	tb->corresponder()->loadCorrespondences( correspondenceFileName );
 
 	// Create TopoBlender
+	tb->corresponder()->isReady = true;  // temporally block computing correspondences
 	tb->doBlend();
+	tb->corresponder()->isReady = false;
 
 	// Load schedule
 	tb->scheduler->loadSchedule( scheduleFileName );
