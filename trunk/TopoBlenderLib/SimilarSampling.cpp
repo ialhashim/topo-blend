@@ -105,7 +105,10 @@ QVector<Vector3> SimilarSampler::FaceSamples(SurfaceMeshModel * m, int sampleNum
                     samplesNormals.push_back( fnormals[f] );
 
 					if(avgSpacing && j > 1 && samples.size() > 1)
-						*avgSpacing = (samples.back() - samples[samples.size()-2]).norm();
+					{
+						double dist = (samples.back() - samples[samples.size()-2]).norm();
+						if(dist != 0.0)	*avgSpacing = dist;
+					}
                 }
             }
         }
@@ -146,6 +149,11 @@ QVector<Vector3> SimilarSampler::EdgeUniformFixed( SurfaceMeshModel * m, QVector
 	ScalarEdgeProperty elength = m->edge_property<Scalar>(ELENGTH);
 	
 	Scalar rest = 0;
+
+	// This is a check for zero "sampleLen".. better solution is to fix it up in Face sampling
+	Scalar sumEdgeLengths = 0;
+	foreach(Edge ei, m->edges()) sumEdgeLengths += elength[ei];
+	if(sampleLen == 0.0) sampleLen = (sumEdgeLengths / m->n_edges()) / 3;
 
 	foreach(Edge ei, m->edges()){
 		Scalar len = elength[ei];
