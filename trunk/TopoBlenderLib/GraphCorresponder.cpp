@@ -25,6 +25,8 @@ GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph
 
 	sIsLandmark.resize(sg->nodes.size(), false);
 	tIsLandmark.resize(tg->nodes.size(), false);
+
+	isReady = false;
 }
 
 // Helper function
@@ -301,6 +303,58 @@ void GraphCorresponder::addLandmarks( QVector<QString> sParts, QVector<QString> 
 
 	// Store correspondence
 	landmarks.push_back(std::make_pair(sParts, tParts));
+}
+
+void GraphCorresponder::addCorrespondences( QVector<QString> sParts, QVector<QString> tParts )
+{
+	// Check if those parts are available
+	foreach(QString strID, sParts)
+	{
+		Structure::Node * node = sg->getNode(strID);
+		if (!node)
+		{
+			qDebug() << "Add landmarks: " << strID << " doesn't exist in the source graph.";
+			return;
+		}
+		int idx = node->property["index"].toInt();
+		if (sIsCorresponded[idx])
+		{
+			qDebug() << "Add landmarks: " << strID << " in the source graph has already been corresponded.";
+			return;
+		}
+	}
+
+	foreach(QString strID, tParts)
+	{
+		Structure::Node * node = tg->getNode(strID);
+		if (!node)
+		{
+			qDebug() << "Add landmarks: " << strID << " doesn't exist in the target graph.";
+			return;
+		}
+		int idx = node->property["index"].toInt();
+		if (tIsCorresponded[idx])
+		{
+			qDebug() << "Add landmarks: " << strID << " in the target graph has already been corresponded.";
+			return;
+		}
+	}
+
+	// Mark those parts
+	foreach(QString strID, sParts)
+	{
+		int idx = sg->getNode(strID)->property["index"].toInt();
+		sIsCorresponded[idx] = true;
+	}
+
+	foreach(QString strID, tParts)
+	{
+		int idx = tg->getNode(strID)->property["index"].toInt();
+		tIsCorresponded[idx] = true;
+	}
+
+	// Store correspondence
+	correspondences.push_back(std::make_pair(sParts, tParts));
 }
 
 void GraphCorresponder::removeLandmarks( int pos, int n )
@@ -947,6 +1001,8 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 // Main access
 void GraphCorresponder::computeCorrespondences()
 {
+	if (isReady) return;
+
 	// Prepare
 	prepareAllMatrices();
 
@@ -1037,6 +1093,10 @@ void GraphCorresponder::loadCorrespondences( QString filename )
 	QTextStream inF(&file);
 
 	correspondences.clear();
+	sIsCorresponded.clear();
+	tIsCorresponded.clear();
+	sIsCorresponded.resize(sg->nodes.size(), false);
+	tIsCorresponded.resize(tg->nodes.size(), false);
 
 	int nbCorr;
 	inF >> nbCorr;
@@ -1062,7 +1122,7 @@ void GraphCorresponder::loadCorrespondences( QString filename )
 		}
 
 		// Store correspondence
-		correspondences.push_back(std::make_pair(sParts, tParts));
+		addCorrespondences(sParts, tParts);
 	}
 
 	file.close();

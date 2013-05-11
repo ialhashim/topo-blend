@@ -64,6 +64,9 @@ public:
 	// Part to Part
 	float scoreThreshold;
 	void computePartToPartCorrespondences();
+
+	// I/O
+	void addCorrespondences( QVector<QString> sParts, QVector<QString> tParts );
 	void saveCorrespondences(QString filename);
 	void loadCorrespondences( QString filename );
 
@@ -77,6 +80,7 @@ public:
 	std::vector<QString> nonCorresTarget(); // to grow
 
 	// Results
+	bool isReady;
 	std::vector<bool> sIsCorresponded, tIsCorresponded;
 	std::vector<PART_LANDMARK> correspondences;
 	std::vector<std::vector<float> > corrScores;
@@ -84,5 +88,4 @@ public:
 public slots:
 	void visualizePart2PartDistance(int sourceID);
 	void computeCorrespondences();
-
 };
