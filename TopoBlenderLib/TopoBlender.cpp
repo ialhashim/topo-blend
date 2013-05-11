@@ -61,20 +61,22 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2,
 	qApp->restoreOverrideCursor();
 
 	/// Visualize super graphs
-	DynamicGraph sdg(scheduler->activeGraph);
-	DynamicGraph tdg(scheduler->targetGraph);
-
-	toGraphviz(sdg, "_sourceGraph", true, QString("V = %1, E = %2").arg(sdg.nodes.size()).arg(sdg.edges.size()), "super source graph");
-	toGraphviz(tdg, "_targetGraph", true, QString("V = %1, E = %2").arg(tdg.nodes.size()).arg(tdg.edges.size()), "super target graph");
-	QImage img1("_sourceGraph.png"), img2("_targetGraph.png");
-	QImage bothImg(img1.width() + img2.width(), qMax(img1.height(), img2.height()), QImage::Format_RGB32);
-	bothImg.fill(Qt::white);
-	QPainter paint;
-	paint.begin(&bothImg);
-	paint.drawImage(0,0,img1);
-	paint.drawImage(img1.width(),0,img2);
-	paint.end();
-	bothImg.save("_zGraphs.png");
+	if(false)
+	{
+		DynamicGraph sdg(scheduler->activeGraph);
+		DynamicGraph tdg(scheduler->targetGraph);
+		toGraphviz(sdg, "_sourceGraph", true, QString("V = %1, E = %2").arg(sdg.nodes.size()).arg(sdg.edges.size()), "super source graph");
+		toGraphviz(tdg, "_targetGraph", true, QString("V = %1, E = %2").arg(tdg.nodes.size()).arg(tdg.edges.size()), "super target graph");
+		QImage img1("_sourceGraph.png"), img2("_targetGraph.png");
+		QImage bothImg(img1.width() + img2.width(), qMax(img1.height(), img2.height()), QImage::Format_RGB32);
+		bothImg.fill(Qt::white);
+		QPainter paint;
+		paint.begin(&bothImg);
+		paint.drawImage(0,0,img1);
+		paint.drawImage(img1.width(),0,img2);
+		paint.end();
+		bothImg.save("_zGraphs.png");
+	}
 	// END VIZ
 
 	// Show the scheduler window:

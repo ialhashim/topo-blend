@@ -112,6 +112,8 @@ void topo_blend_widget::loadJob()
 	double gdResolution, timeStep;
 	int reconLevel, renderCount;
 
+	QString curPath = jobFileInfo.absolutePath() + "/";
+
 	sgFileName = in.readLine();
 	tgFileName = in.readLine();
 	correspondenceFileName = in.readLine();
@@ -122,14 +124,14 @@ void topo_blend_widget::loadJob()
 	in >> reconLevel >> renderCount;
 
 	// Load graphs
-	tb->graphs.push_back( new Structure::Graph ( sgFileName ) );
-	tb->graphs.push_back( new Structure::Graph ( tgFileName ) );
+	tb->graphs.push_back( new Structure::Graph ( curPath + sgFileName ) );
+	tb->graphs.push_back( new Structure::Graph ( curPath + tgFileName ) );
 	tb->setSceneBounds();
 	tb->updateDrawArea();
 
 	// Load correspondence
 	tb->corresponder();
-	tb->corresponder()->loadCorrespondences( correspondenceFileName );
+	tb->corresponder()->loadCorrespondences( curPath + correspondenceFileName );
 
 	// Create TopoBlender
 	tb->corresponder()->isReady = true;  // temporally block computing correspondences
@@ -137,7 +139,7 @@ void topo_blend_widget::loadJob()
 	tb->corresponder()->isReady = false;
 
 	// Load schedule
-	tb->scheduler->loadSchedule( scheduleFileName );
+	tb->scheduler->loadSchedule( curPath + scheduleFileName );
 
 	// Set parameters
 	ui->synthesisSamplesCount->setValue( samplesCount );
@@ -172,25 +174,29 @@ void topo_blend_widget::saveJob()
 	jobDir.mkdir( tDir );
 
 	// Save source and target graphs
-	QString sgFileName = sDir + "/" + sGraphName + ".xml";
+	QString sRelative = "Source/" + sGraphName + ".xml";
+	QString sgFileName = jobDir.path() + sRelative;
 	tb->blender->sg->saveToFile( sgFileName );
 
-	QString tgFileName = tDir + "/" + tGraphName + ".xml";
+	QString tRelative = "Target/" + tGraphName + ".xml";
+	QString tgFileName = jobDir.path() + tRelative;
 	tb->blender->tg->saveToFile( tgFileName );
 
 	// Save correspondence file
-	QString correspondenceFileName = jobDir.path() + "/" + "correspondence.txt";
+	QString correspondRelative = "correspondence.txt";
+	QString correspondenceFileName = jobDir.path() + "/" + correspondRelative;
 	tb->corresponder()->saveCorrespondences( correspondenceFileName );
 
 	// Save the scheduler
-	QString scheduleFileName = jobDir.path() + "/" + "schedule.txt";
+	QString scheduleRelative = "schedule.txt";
+	QString scheduleFileName = jobDir.path() + "/" + scheduleRelative;
 	tb->scheduler->saveSchedule( scheduleFileName );
 
 	// Save paths & parameters
-	out << sgFileName << "\n";
-	out << tgFileName << "\n";
-	out << correspondenceFileName << "\n";
-	out << scheduleFileName << "\n";
+	out << sRelative << "\n";
+	out << tRelative << "\n";
+	out << correspondRelative << "\n";
+	out << scheduleRelative << "\n";
 
 	// Synthesis
 	out << ui->synthesisSamplesCount->value() << "\t";
