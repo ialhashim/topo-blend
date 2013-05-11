@@ -1203,7 +1203,7 @@ void topoblend::doRenderAll()
 
 	int reconLevel = 7;
 	if(scheduler->property.contains("reconLevel")){
-		scheduler->property["reconLevel"].toInt();
+		reconLevel = scheduler->property["reconLevel"].toInt();
 	}
 
 	int startPercentage = scheduler->property["renderStartPercentage"].toInt();
@@ -1218,7 +1218,10 @@ void topoblend::doRenderAll()
 		int progress = (double(i) / (N-1)) * 100;
 		qDebug() << QString("Rendering sequence [%1 %]").arg(progress);
 
-		renderGraph( currentGraph, QString("output_%1").arg(progress), false, reconLevel );
+		if (progress < 10)
+			renderGraph( currentGraph, QString("output_0%1").arg(progress), false, reconLevel );
+		else
+			renderGraph( currentGraph, QString("output_%1").arg(progress), false, reconLevel );
 	}
 
 	qDebug() << QString("Sequence rendered [%1 ms]").arg(timer.elapsed());
