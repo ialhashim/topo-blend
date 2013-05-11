@@ -314,8 +314,14 @@ QVector<ParameterCoord> Synthesizer::genUniformTrisCoords( Structure::Node * nod
 	
 	// Double to float...
 	std::vector<Vec3f> samplePointsF,sampleNormalsF;
-	foreach(Vec3d p, sample_points) samplePointsF.push_back(p);
-	foreach(Vec3d n, sample_normals) sampleNormalsF.push_back(n);
+	foreach(Vec3d p, sample_points) 
+	{
+		samplePointsF.push_back(p);
+	}
+	foreach(Vec3d n, sample_normals) 
+	{
+		sampleNormalsF.push_back(n);
+	}
 
 	if(node->type() == Structure::CURVE)
 		return genPointCoordsCurve((Structure::Curve*)node, samplePointsF, sampleNormalsF);

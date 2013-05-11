@@ -77,9 +77,10 @@ void TaskCurve::prepareShrinkCurve()
 		Vec3d pointA = linkA->position( n->id );
 		Vec3d pointB = linkB->position( n->id );
 
-		// Geodesic distance between two link positions on the active graph excluding the running tasks
+		// Geodesic distance between two link positions on the active graph excluding the running tasks and ungrown tasks
 		QVector< GraphDistance::PathPointPair > path;
 		QVector<QString> exclude = active->property["activeTasks"].value< QVector<QString> >();
+		foreach(Node* node, active->nodes){ if (ungrownNode(node->id)) exclude.push_back(node->id);}
 		GraphDistance gd( active, exclude );
 		gd.computeDistances( pointA, DIST_RESOLUTION );
 		gd.smoothPathCoordTo(pointB, path);
