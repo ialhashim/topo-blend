@@ -328,7 +328,8 @@ QVector<ParameterCoord> Synthesizer::genSampleCoordsCurve( Structure::Curve * cu
 {
 	QVector<ParameterCoord> samples;
 
-	if (!curve->property.contains("original_sheet"))
+//	if (!curve->property.contains("original_sheet"))
+	if (true)
 	{
 		if (s & Synthesizer::Features)	samples += genFeatureCoords(curve);
 		if (s & Synthesizer::Edges)		samples += genEdgeCoords(curve);
@@ -339,7 +340,6 @@ QVector<ParameterCoord> Synthesizer::genSampleCoordsCurve( Structure::Curve * cu
 	}
 	else
 	{
-		return samples;
 		// get samples using the original sheet
 		Structure::Sheet* originalSheet  = curve->property["original_sheet"].value<Structure::Sheet*>();
 		samples = genSampleCoordsSheet(originalSheet, s);
@@ -546,21 +546,21 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 		if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
 
 
-		if (curve1->property.contains("original_sheet"))
-		{
-			int old_uniformTriCount = uniformTriCount;
-			uniformTriCount *= 10;
-			samples = genSampleCoordsCurve(curve2, s);
-			uniformTriCount = old_uniformTriCount;
-		}
-		else if (curve2->property.contains("original_sheet"))
-		{
-			int old_uniformTriCount = uniformTriCount;
-			uniformTriCount *= 10;
-			samples  = genSampleCoordsCurve(curve1, s);
-			uniformTriCount = old_uniformTriCount;
-		}
-		else
+		//if (curve1->property.contains("original_sheet"))
+		//{
+		//	int old_uniformTriCount = uniformTriCount;
+		//	uniformTriCount *= 10;
+		//	samples = genSampleCoordsCurve(curve2, s);
+		//	uniformTriCount = old_uniformTriCount;
+		//}
+		//else if (curve2->property.contains("original_sheet"))
+		//{
+		//	int old_uniformTriCount = uniformTriCount;
+		//	uniformTriCount *= 10;
+		//	samples  = genSampleCoordsCurve(curve1, s);
+		//	uniformTriCount = old_uniformTriCount;
+		//}
+		//else
 		{
 			samples  = genSampleCoordsCurve(curve1, s);
 			samples += genSampleCoordsCurve(curve2, s);
