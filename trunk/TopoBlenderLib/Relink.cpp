@@ -147,6 +147,8 @@ void Relink::fixTask( Task* task )
 			checkRelinkability = false;
 		}
 
+
+
 		// Translate future tasks if only one constraint
 		if( N == 1)
 		{
@@ -183,8 +185,15 @@ void Relink::fixTask( Task* task )
 			Vector3 deltaB = getToDelta(linkB, n->id);
 			Vector3 newPosB = linkPosOtherB + deltaB;
 
+			// In case two handles or two new positions are two close
+			double handleDiff = (handleA - handleB).norm();
+			double newPosDiff = (newPosA - newPosB).norm();
+			if (handleDiff < 0.1 || newPosDiff < 0.05)
+				n->moveBy( (newPosA - linkPosOtherA + newPosB - linkPosOtherB) / 2);
+
 			// Deform two handles
-			n->deformTwoHandles(handleA, newPosA, handleB, newPosB);
+			else 
+				n->deformTwoHandles(handleA, newPosA, handleB, newPosB);
 
 			// Visualization
 			activeGraph->vs2.addVector( linkPosOtherA, deltaA );
