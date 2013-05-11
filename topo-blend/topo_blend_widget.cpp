@@ -168,18 +168,18 @@ void topo_blend_widget::saveJob()
 	// Create folders
 	QDir jobDir( jobFileInfo.absolutePath() );
 
-	QString sDir = jobDir.path() + "/Source";
-	QString tDir = jobDir.path() + "/Target";
+	QString sDir = jobDir.path() + "/Source/";
+	QString tDir = jobDir.path() + "/Target/";
 	jobDir.mkdir( sDir ); 
 	jobDir.mkdir( tDir );
 
 	// Save source and target graphs
 	QString sRelative = "Source/" + sGraphName + ".xml";
-	QString sgFileName = jobDir.path() + sRelative;
+	QString sgFileName = jobDir.path() + "/" + sRelative;
 	tb->blender->sg->saveToFile( sgFileName );
 
 	QString tRelative = "Target/" + tGraphName + ".xml";
-	QString tgFileName = jobDir.path() + tRelative;
+	QString tgFileName = jobDir.path() + "/"  + tRelative;
 	tb->blender->tg->saveToFile( tgFileName );
 
 	// Save correspondence file
