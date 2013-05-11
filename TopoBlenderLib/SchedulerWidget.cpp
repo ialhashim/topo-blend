@@ -44,6 +44,9 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
 	this->connect( ui->renderCount, SIGNAL(valueChanged(int)), SLOT(changeRenderCount(int)));
 	scheduler->property["renderCount"] = ui->renderCount->value();
 
+	this->connect( ui->startPercentage, SIGNAL(valueChanged(int)), SLOT(changeRenderStartPercentage(int)));
+	scheduler->property["renderStartPercentage"] = ui->startPercentage->value();
+
 	// Loading / saving
 	connect( ui->loadButton, SIGNAL(clicked()), SLOT(loadSchedule()) );
 	connect( ui->saveButton, SIGNAL(clicked()), SLOT(saveSchedule()) );
@@ -77,6 +80,11 @@ void SchedulerWidget::changeReconLevel(int value)
 void SchedulerWidget::changeRenderCount(int value)
 {
 	s->property["renderCount"] = value;
+}
+
+void SchedulerWidget::changeRenderStartPercentage(int value)
+{
+	s->property["renderStartPercentage"] = value;
 }
 
 void SchedulerWidget::cleanUp()
@@ -120,4 +128,8 @@ void SchedulerWidget::setParams( double gdRes, double tStep, int rLevel, int rCo
 	ui->timeStep->setValue( tStep );
 	ui->reconLevel->setValue( rLevel );
 	ui->renderCount->setValue( rCount );
+
+	s->property["reconLevel"] = ui->reconLevel->value();
+	s->property["renderCount"] = ui->renderCount->value();
+	s->property["renderStartPercentage"] = ui->startPercentage->value();
 }

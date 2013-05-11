@@ -32,6 +32,7 @@ public slots:
 	void progressDone();
 	void changeReconLevel(int value);
 	void changeRenderCount(int value);
+	void changeRenderStartPercentage(int value);
 
 	void loadSchedule();
 	void saveSchedule();
