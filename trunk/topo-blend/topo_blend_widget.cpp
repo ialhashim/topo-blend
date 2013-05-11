@@ -128,11 +128,13 @@ void topo_blend_widget::loadJob()
 	tb->updateDrawArea();
 
 	// Load correspondence
-	tb->corresponder()->scoreThreshold = -1; // Only trust whats in file
-	tb->corresponder()->loadLandmarks( correspondenceFileName );
+	tb->corresponder(); // create a new one
+	tb->corresponder()->loadCorrespondences( correspondenceFileName );
+
+	// Create TopoBlender
+	tb->doBlend();
 
 	// Load schedule
-	tb->doBlend();
 	tb->scheduler->loadSchedule( scheduleFileName );
 
 	// Set parameters
@@ -140,7 +142,7 @@ void topo_blend_widget::loadJob()
 	tb->scheduler->widget->setParams( gdResolution, timeStep, reconLevel, renderCount );
 
 	// Sample meshes
-	//tb->generateSynthesisData();
+	tb->generateSynthesisData();
 }
 
 void topo_blend_widget::saveJob()
@@ -176,8 +178,7 @@ void topo_blend_widget::saveJob()
 
 	// Save correspondence file
 	QString correspondenceFileName = jobDir.path() + "/" + "correspondence.txt";
-	tb->corresponder()->computeCorrespondences();
-	tb->corresponder()->saveLandmarks( correspondenceFileName );
+	tb->corresponder()->saveCorrespondences( correspondenceFileName );
 
 	// Save the scheduler
 	QString scheduleFileName = jobDir.path() + "/" + "schedule.txt";

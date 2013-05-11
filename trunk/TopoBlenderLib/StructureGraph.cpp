@@ -924,7 +924,6 @@ void Graph::saveToFile( QString fileName ) const
 		// Type and ID
 		out << QString("\t<id>%1</id>\n").arg(n->id);
 		out << QString("\t<type>%1</type>\n").arg(n->type());
-		out << QString("\t<mesh>%1</mesh>\n\n").arg(n->property["mesh_filename"].toString()); // relative
 
 		if(n->property.contains("mesh_filename"))
 		{
@@ -935,12 +934,16 @@ void Graph::saveToFile( QString fileName ) const
 			QString mesh_filename = n->property["mesh_filename"].toString();
 			QFileInfo meshFileInfo( mesh_filename );
 
-			// Save modified mesh
+			QString relativeFileName = meshesFolder + "/" + meshFileInfo.baseName() + ".obj";
+
+			// Save mesh from memory
 			SurfaceMesh::Model * mesh = n->property["mesh"].value<SurfaceMesh::Model*>();
 			if(mesh_filename.size() && mesh)
 			{
-				saveOBJ( mesh, graphDir.path() + "/" + meshesFolder + "/" + meshFileInfo.baseName() + ".obj" );
+				saveOBJ( mesh, graphDir.path() + "/" + relativeFileName );
 			}
+
+			out << QString("\t<mesh>%1</mesh>\n\n").arg( relativeFileName ); // relative
 		}
 
 		// Control count
@@ -1079,14 +1082,14 @@ void Graph::loadFromFile( QString fileName )
 
 		// Mesh file path
 		new_node->property["mesh_filename"].setValue( mesh_filename );
-		QDir::setCurrent( fileInfo.dir().path() );
-		QFile mfile(mesh_filename);
+		QString fullMeshPath = fileInfo.dir().path() + "/" + mesh_filename;
+		QFile mfile( fullMeshPath );
 
 		// Load node's mesh and make it ready
 		if (mfile.exists())
 		{
             SurfaceMesh::Model * nodeMesh = new SurfaceMesh::Model(mesh_filename, id);
-			nodeMesh->read( qPrintable(mesh_filename) );
+			nodeMesh->read( qPrintable(fullMeshPath) );
 			nodeMesh->update_face_normals();
 			nodeMesh->update_vertex_normals();
 			nodeMesh->updateBoundingBox();

@@ -34,11 +34,10 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2,
 	scheduler = useScheduler;
 
 	// Check for existing landmark file
-	QFileInfo landMarkFile(QString("%1_%2.txt").arg(graph1->name()).arg(graph2->name()));
-	if(landMarkFile.exists()) 
+	QFileInfo coordFile(QString("%1_%2.txt").arg(graph1->name()).arg(graph2->name()));
+	if(coordFile.exists()) 
 	{
-		useCorresponder->scoreThreshold = -1; // Only trust whats in file
-		useCorresponder->loadLandmarks(landMarkFile.fileName());
+		useCorresponder->loadCorrespondences(coordFile.fileName());
 	}
 
 	/// STEP 1) Compute correspondences and align mis-aligned nodes
