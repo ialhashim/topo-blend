@@ -856,6 +856,7 @@ void topoblend::doBlend()
 	QElapsedTimer timer; timer.start();
 
 	scheduler = new Scheduler();
+
     blender = new TopoBlender( source, target, corresponder(), scheduler );
 
 	qDebug() << QString("Created TopoBlender and tasks in [ %1 ms ]").arg(timer.elapsed()  );
@@ -1054,50 +1055,41 @@ void topoblend::genSynData()
 	uniformTriCount = widget->synthesisSamplesCount();
 
 	// Generate synthesis data for each corresponding node
-	foreach(Structure::Node * node, scheduler->activeGraph->nodes)
+	foreach(Structure::Node * snode, scheduler->activeGraph->nodes)
 	{
-		if(node->property.contains("correspond"))
+		Structure::Node * tnode = scheduler->targetGraph->getNode( snode->property["correspond"].toString() );
+
+		//int sampling_method = Synthesizer::Random | Synthesizer::Features;
+		int sampling_method = Synthesizer::TriUniform | Synthesizer::Features;
+		//int sampling_method = Synthesizer::Features;
+		//int sampling_method = Synthesizer::Uniform;
+		//int sampling_method = Synthesizer::Remeshing;
+		//int sampling_method = Synthesizer::Random | Synthesizer::Features | Synthesizer::TriUniform;
+
+		if(snode->type() == Structure::CURVE)
 		{
-			QString nodeID = node->id;
-			QString tnodeID = node->property["correspond"].toString();
-			Structure::Node * tgNode = scheduler->targetGraph->getNode(tnodeID);
-
-			//int sampling_method = Synthesizer::Random | Synthesizer::Features;
-			int sampling_method = Synthesizer::TriUniform | Synthesizer::Features;
-			//int sampling_method = Synthesizer::Features;
-			//int sampling_method = Synthesizer::Uniform;
-			//int sampling_method = Synthesizer::Remeshing;
-			//int sampling_method = Synthesizer::Random | Synthesizer::Features | Synthesizer::TriUniform;
-
-			if(node->type() == Structure::CURVE)
-			{
-				Synthesizer::prepareSynthesizeCurve((Structure::Curve*)node, (Structure::Curve*)tgNode, sampling_method);
-			}
-
-			if(node->type() == Structure::SHEET)
-			{
-				Synthesizer::prepareSynthesizeSheet((Structure::Sheet*)node, (Structure::Sheet*)tgNode, sampling_method);
-			}
+			Synthesizer::prepareSynthesizeCurve((Structure::Curve*)snode, (Structure::Curve*)tnode, sampling_method);
 		}
-
-		// Show results on current source [front] and target [back] graphs
+			
+		if(snode->type() == Structure::SHEET)
 		{
-			QString nodeID = node->id;
-			QString tnodeID = node->property["correspond"].toString();
-			Structure::Node * tnode = scheduler->targetGraph->getNode(tnodeID);
-
-			if(!nodeID.contains("_null")) Synthesizer::copySynthData(node, graphs.front()->getNode(nodeID.split("_").at(0)));
-			if(!tnodeID.contains("_null")) Synthesizer::copySynthData(tnode, graphs.back()->getNode(tnodeID.split("_").at(0)));
+			Synthesizer::prepareSynthesizeSheet((Structure::Sheet*)snode, (Structure::Sheet*)tnode, sampling_method);
 		}
-		
+				
 		int percent = (double(n) / (numNodes-1) * 100);
 		emit( statusBarMessage(QString("Generating data.. [ %1 % ]").arg(percent)) );
 		n++;
 	}
 
+	// Copy to current displayed graphs
+	//foreach(Node* n, scheduler->activeGraph->nodes) Synthesizer::copySynthData( n, graphs.front()->getNode(n->id.split("_").at(0)) );
+	//foreach(Node* n, scheduler->targetGraph->nodes) Synthesizer::copySynthData( n, graphs.back()->getNode(n->id.split("_").at(0)) );
+
 	QString timingString = QString("Synthesis data [ %1 ms ]").arg(timer.elapsed());
 	qDebug() << timingString;
 	emit( statusBarMessage(timingString) );
+
+	scheduler->property["synthDataReady"] = true;
 
 	qApp->restoreOverrideCursor();
 }

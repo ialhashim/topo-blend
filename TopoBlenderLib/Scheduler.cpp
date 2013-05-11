@@ -356,26 +356,36 @@ void Scheduler::executeAll()
 	int totalTime = totalExecutionTime();
 
 	QVector<Task*> allTasks = tasksSortedByStart();
-	
-	// Relink once to place null nodes at initial positions:
-	// Propagate from sheet node or the first node if there is no sheet node
-	// TODO: It seems we have to decide where to place the null nodes at the very beginning!?
-	QVector<QString> aTs; 
-	foreach (Task* task, allTasks){
-		if ( task->node()->type() == Structure::SHEET)	{aTs << task->nodeID; break;}
-	}
-	if (aTs.isEmpty()) aTs << allTasks.front()->nodeID;
-	activeGraph->property["activeTasks"].setValue( aTs );
 
 	Relink linker(this);
-	linker.checkRelinkability = false;
-	linker.execute();
-	linker.checkRelinkability = true;
-	
 
-	// Debug: 
-	//allGraphs.push_back( new Structure::Graph( *activeGraph ) );
+	// Initial setup
+	{
+		// Zero the geometry for null nodes
+		foreach(Structure::Node * snode, activeGraph->nodes)
+		{
+			if (!snode->id.contains("null")) continue;
+			snode->setControlPoints( Array1D_Vector3(snode->numCtrlPnts(), Vector3(0)) );
+			snode->property["zeroGeometry"] = true;
+		}
 
+		// Relink once to place null nodes at initial positions:
+		// Propagate from sheet node or the first node if there is no sheet node
+		// TODO: It seems we have to decide where to place the null nodes at the very beginning!?
+		QVector<QString> aTs; 
+		foreach (Task* task, allTasks){
+			if ( task->node()->type() == Structure::SHEET)	{aTs << task->nodeID; break;}
+		}
+		if (aTs.isEmpty()) aTs << allTasks.front()->nodeID;
+		activeGraph->property["activeTasks"].setValue( aTs );
+
+		linker.checkRelinkability = false;
+		linker.execute();
+		linker.checkRelinkability = true;
+
+		// Debug: 
+		//allGraphs.push_back( new Structure::Graph( *activeGraph ) );
+	}
 
 	// Execute all tasks
 	for(double globalTime = 0; globalTime <= (1.0 + timeStep); globalTime += timeStep)
