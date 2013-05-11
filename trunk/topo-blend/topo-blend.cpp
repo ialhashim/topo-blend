@@ -1206,7 +1206,10 @@ void topoblend::doRenderAll()
 		scheduler->property["reconLevel"].toInt();
 	}
 
-	for(int i = 0; i < N; i += stepSize)
+	int startPercentage = scheduler->property["renderStartPercentage"].toInt();
+	int startID = N * ( (double) startPercentage / 100);
+
+	for(int i = startID; i < N; i += stepSize)
 	{
 		Structure::Graph currentGraph = *(scheduler->allGraphs[i]);
 

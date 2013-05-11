@@ -420,7 +420,7 @@
            </property>
           </spacer>
          </item>
-         <item row="0" column="10">
+         <item row="0" column="13">
           <spacer name="horizontalSpacer_3">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -432,13 +432,6 @@
             </size>
            </property>
           </spacer>
-         </item>
-         <item row="0" column="9">
-          <widget class="QPushButton" name="renderAllButton">
-           <property name="text">
-            <string>Render all..</string>
-           </property>
-          </widget>
          </item>
          <item row="0" column="8">
           <widget class="QSpinBox" name="renderCount">
@@ -477,6 +470,27 @@
           <widget class="QPushButton" name="cleanUpButton">
            <property name="text">
             <string>Clean up</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="12">
+          <widget class="QPushButton" name="renderAllButton">
+           <property name="text">
+            <string>Render all..</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="10">
+          <widget class="QLabel" name="label_5">
+           <property name="text">
+            <string>Starting(%)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="11">
+          <widget class="QSpinBox" name="startPercentage">
+           <property name="singleStep">
+            <number>10</number>
            </property>
           </widget>
          </item>
