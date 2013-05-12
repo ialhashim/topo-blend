@@ -351,9 +351,12 @@ static inline T sumvec( const std::vector<T> & V ){
 static void saveOBJ(SurfaceMesh::Model * mesh, QString filename)
 {
 	QFile file(filename);
-	QFileInfo fileInfo(file.fileName());
-	QDir d; d.mkpath(fileInfo.absolutePath());
 
+	// Create folder
+	QFileInfo fileInfo(file.fileName());
+	QDir d(""); d.mkpath(fileInfo.absolutePath());
+
+	// Open for writing
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
 	
 	QTextStream out(&file);
@@ -404,7 +407,5 @@ static void combineMeshes( QStringList filenames, QString outputFilename )
 		v_offset += m->n_vertices();
 
 		out << "# End of mesh " << fileInfo.baseName() ;
-
-		QFileInfo info(filename);
 	}
 }

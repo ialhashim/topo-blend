@@ -232,7 +232,9 @@ void TopoBlender::correspondSuperNodes()
 		Structure::Node * tnode = super_tg->getNode(tNodes.front());
 
 		// 1-to-1
-		if (sN == 1 && tN == 1)	superNodeCorr[snode->id] = tnode->id;
+		if (sN == 1 && tN == 1){
+			superNodeCorr[snode->id] = tnode->id;
+		}
 
 		// N-to-1
 		if (sN > 1)	{

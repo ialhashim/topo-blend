@@ -222,6 +222,60 @@ void ShowUsage(char* ex)
 	printf( "\t\t If this flag is enabled, the progress of the reconstructor will be output to STDOUT.\n" );
 }
 
+void writeTriMesh(CoredMeshData* mesh, std::vector< std::vector< float > > & vertices, std::vector< std::vector< int > > & faces)
+{
+	int nr_vertices = int(mesh->outOfCorePointCount()+mesh->inCorePoints.size());
+	int nr_faces = mesh->polygonCount();
+
+	mesh->resetIterator();
+
+	int i = 0;
+
+	vertices.reserve(nr_vertices);
+	faces.reserve(nr_faces);
+
+	// write vertices
+	Point3D< float > p;
+	for( i=0 ; i<int( mesh->inCorePoints.size() ) ; i++ )
+	{
+		p = mesh->inCorePoints[i];
+
+		std::vector< float > v(3, 0.0f);
+		v[0] = p[0]; v[1] = p[1]; v[2] = p[2];
+		vertices.push_back( v );
+	}
+	for( i=0; i<mesh->outOfCorePointCount() ; i++ )
+	{
+		mesh->nextOutOfCorePoint(p);
+		std::vector< float > v(3, 0.0f);
+		v[0] = p[0]; v[1] = p[1]; v[2] = p[2];
+		vertices.push_back( v );
+	}
+
+	// write faces
+	std::vector< CoredVertexIndex > polygon;
+	for( i=0 ; i<nr_faces ; i++ )
+	{
+		mesh->nextPolygon( polygon );
+
+		std::vector<int> face_verts;
+
+		for( int i=0 ; i<int(polygon.size()) ; i++ )
+		{
+			int vidx = 0;
+
+			if( polygon[i].inCore ) 
+				vidx = polygon[i].idx;
+			else                    
+				vidx = polygon[i].idx + int( mesh->inCorePoints.size() );
+
+			face_verts.push_back(vidx);
+		}
+
+		faces.push_back( face_verts );
+	}
+}
+
 void writeOFF(char* fileName, CoredMeshData* mesh)
 {
 	int nr_vertices = int(mesh->outOfCorePointCount()+mesh->inCorePoints.size());
@@ -438,7 +492,8 @@ int Execute( int argc , char* argv[] )
 }
 
 template< int Degree >
-int ExecuteMemory( int argc , char* argv[], std::vector< std::vector< float > > & positions, std::vector< std::vector< float > > & normals )
+int ExecuteMemory( int argc , char* argv[], std::vector< std::vector< float > > & positions, std::vector< std::vector< float > > & normals, 
+	std::vector< std::vector< float > > & vertices, std::vector< std::vector< int > > & faces )
 {
 	int i;
 	int paramNum = sizeof(params)/sizeof(cmdLineReadable*);
@@ -590,7 +645,10 @@ int ExecuteMemory( int argc , char* argv[], std::vector< std::vector< float > > 
 			//}
 
 			// Output OFF file
-			writeOFF(Out.value, &mesh);
+			//writeOFF(Out.value, &mesh);
+
+			// Write to memory
+			writeTriMesh(&mesh, vertices, faces);
 		}
 
 		return 1;
@@ -616,7 +674,11 @@ int recon_main( int argc , char* argv[] )
 	{
 		std::vector< std::vector< float > > positions;
 		std::vector< std::vector< float > > normals;
-		ExecuteMemory< 2 > (argc, argv, positions, normals);
+
+		std::vector< std::vector< float > > mesh_verts;
+		std::vector< std::vector< int > > mesh_faces;
+
+		ExecuteMemory< 2 > (argc, argv, positions, normals, mesh_verts, mesh_faces);
 	}
 
 #ifdef _WIN32
