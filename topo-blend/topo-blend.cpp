@@ -17,6 +17,7 @@ using namespace NURBS;
 
 // Graph manipulations
 #include "DynamicGraph.h"
+#include "ExportDynamicGraph.h"
 #include "GraphDistance.h"
 #include "TopoBlender.h"
 #include "Scheduler.h"
@@ -827,6 +828,41 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		foreach(Vector3 p, samples)	ps->addPoint(p);
 		drawArea()->addRenderObject(ps);
 
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_G)
+	{
+		if(scheduler && blender)
+		{
+			QDir dir("");
+			dir.setCurrent(QFileDialog::getExistingDirectory());
+
+			QString sGraphName = corresponder()->sgName();
+			QString tGraphName = corresponder()->tgName();
+
+			// Export source and target
+			DynamicGraphs::DynamicGraph sdg(blender->sg);
+			DynamicGraphs::DynamicGraph tdg(blender->tg);
+			toGraphviz(sdg, sGraphName, true, QString("V = %1, E = %2").arg(sdg.nodes.size()).arg(sdg.edges.size()), "original source");
+			toGraphviz(tdg, tGraphName, true, QString("V = %1, E = %2").arg(tdg.nodes.size()).arg(tdg.edges.size()), "original target");
+
+			// Export supers
+			DynamicGraphs::DynamicGraph sdg_super(scheduler->activeGraph);
+			DynamicGraphs::DynamicGraph tdg_super(scheduler->targetGraph);
+			toGraphviz(sdg_super, sGraphName + "_super", true, QString("V = %1, E = %2").arg(sdg_super.nodes.size()).arg(sdg_super.edges.size()), "super source");
+			toGraphviz(tdg_super, tGraphName + "_super", true, QString("V = %1, E = %2").arg(tdg_super.nodes.size()).arg(tdg_super.edges.size()), "super target");
+
+			QImage img1(sGraphName + "_super"), img2(tGraphName + "_super");
+			QImage bothImg(img1.width() + img2.width(), qMax(img1.height(), img2.height()), QImage::Format_RGB32);
+			bothImg.fill(Qt::white);
+			QPainter paint;
+			paint.begin(&bothImg);
+			paint.drawImage(0,0,img1);
+			paint.drawImage(img1.width(),0,img2);
+			paint.end();
+			bothImg.save("All_Graphs.png");
+		}
 		used = true;
 	}
 
