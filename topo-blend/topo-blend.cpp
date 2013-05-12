@@ -21,6 +21,8 @@ using namespace NURBS;
 #include "GraphDistance.h"
 #include "TopoBlender.h"
 #include "Scheduler.h"
+#include "Task.h"
+Q_DECLARE_METATYPE( Task* )
 
 // Graph Correspondence
 #include "GraphCorresponder.h"
@@ -34,13 +36,6 @@ using namespace NURBS;
 #include "poissonrecon.h"
 
 VectorSoup vs1,vs2;
-
-Q_DECLARE_METATYPE(Vec3d)
-
-#include "RMF.h"
-Q_DECLARE_METATYPE(RMF)
-Q_DECLARE_METATYPE(RMF::Frame)
-Q_DECLARE_METATYPE(std::vector<RMF::Frame>)
 
 double boundX = -DBL_MAX;
 
@@ -1278,16 +1273,19 @@ void topoblend::renderCurrent()
 
 	Structure::Graph * currentGraph = this->graphs.back();
 
+	QDir dir("");
+	dir.setCurrent(QFileDialog::getExistingDirectory());
+
 	// Reconstruct
 	QString filename = "currentGraph";
 	Structure::Graph lastGraph = *currentGraph;
-	renderGraph(lastGraph, filename, false, reconLevel);
+	renderGraph(lastGraph, filename, false, reconLevel, true);
 
 	// Load and display as mesh in viewer
 	if( false )
 	{
-		SurfaceMesh::SurfaceMeshModel * m = new SurfaceMesh::SurfaceMeshModel(filename+".obj", "reconMesh");
-		m->read(qPrintable(filename+".obj"));
+		SurfaceMesh::SurfaceMeshModel * m = new SurfaceMesh::SurfaceMeshModel(filename + ".obj", "reconMesh");
+		m->read( qPrintable(filename+".obj") );
 		currentGraph->property["reconMesh"].setValue( m );
 	}
 
@@ -1296,7 +1294,7 @@ void topoblend::renderCurrent()
 	mainWindow()->setStatusBarMessage(QString("Current graph rendered [%1 ms]").arg(timer.elapsed()));
 }
 
-void topoblend::renderGraph( Structure::Graph graph, QString filename, bool isOutPointCloud, int reconLevel )
+void topoblend::renderGraph( Structure::Graph graph, QString filename, bool isOutPointCloud, int reconLevel, bool isOutGraph )
 {
 	graph.clearGeometryCache();
 	graph.geometryMorph();
@@ -1375,9 +1373,24 @@ void topoblend::renderGraph( Structure::Graph graph, QString filename, bool isOu
 			Synthesizer::writeXYZ( xyz_filename, finalP, finalN );
 		}
 
-		QString node_filename = node->id + ".off";
+		QString node_filename = node->id + ".obj";
 		generatedFiles << node_filename;
 		PoissonRecon::makeFromCloud( pointCloudf(finalP), pointCloudf(finalN), node_filename, reconLevel );
+
+		// Replace with reconstructed geometries
+		if( isOutGraph )
+		{
+			QFileInfo reconFile( node_filename );
+
+			if( reconFile.exists() )
+			{
+				SurfaceMesh::Model* nodeMesh = new SurfaceMesh::Model;
+				nodeMesh->read( qPrintable(node_filename) );
+
+				node->property["mesh"].setValue( nodeMesh );
+				node->property["mesh_filename"].setValue( "meshes/" + node_filename );
+			}
+		}
 
 		// Clean up
 		scheduler->cleanUp();
@@ -1385,11 +1398,43 @@ void topoblend::renderGraph( Structure::Graph graph, QString filename, bool isOu
 
 	combineMeshes(generatedFiles, filename + ".obj");
 
+	if( isOutGraph )
+	{
+		// Find any removable nodes
+		QStringList removableNodes;
+		foreach(Node * n, graph.nodes)
+		{
+			int taskType = n->property["taskType"].toInt();
+			bool taskReady = n->property["taskIsReady"].toBool();
+			bool taskDone = n->property["taskIsDone"].toBool();
+			double t = n->property["t"].toDouble();
+
+			// To-do: cut nodes cases
+			{
+				// Not yet grown
+				if( taskType == Task::GROW && !taskReady && t > 0.0 )
+					removableNodes << n->id;
+
+				// Shrunk nodes
+				if( taskType == Task::SHRINK && taskDone )
+					removableNodes << n->id;
+			}
+		}
+
+		// Remove
+		foreach(QString nodeID, removableNodes)
+		{
+			graph.removeNode( nodeID );
+		}
+
+		graph.saveToFile( filename + ".xml" );
+	}
+
 	// Clean up
 	if(!isOutPointCloud)
 	{
 		foreach(QString filename, generatedFiles)
-			QFile::remove(filename);
+			QFile::remove( filename );
 	}
 }
 

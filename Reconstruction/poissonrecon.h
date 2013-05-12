@@ -13,6 +13,8 @@ public:
 
     static void makeFromCloudFile(QString filename, QString out_filename, int depth = 7);
 	static void makeFromCloud( std::vector< std::vector<float> > p, std::vector< std::vector<float> > n, QString out_filename, int depth = 7);
+
+	static void writeOBJ(QString out_filename, std::vector< std::vector<float> > & mesh_verts, std::vector< std::vector<int> > & mesh_faces);
 };
 
 // Helper functions

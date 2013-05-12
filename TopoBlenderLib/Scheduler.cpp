@@ -10,6 +10,8 @@
 
 #include "TaskGroups.h"
 
+Q_DECLARE_METATYPE( QSet<int> ) // for tags
+
 Scheduler::Scheduler()
 {
 	rulerHeight = 25;
@@ -35,6 +37,17 @@ void Scheduler::drawBackground( QPainter * painter, const QRectF & rect )
 	// Draw current time indicator
 	int ctime = slider->currentTime();
 	painter->fillRect(ctime, 0, 1, screenBottom, QColor(0,0,0,128));
+
+	// Draw tags for interesting topology changes
+	{
+		int tagWidth = 5;
+		QSet<int> timeTags = property["timeTags"].value< QSet<int> >();
+
+		foreach(int tagTime, timeTags)
+		{
+			painter->fillRect(tagTime - (0.5 * tagWidth), 0, tagWidth, screenBottom, QColor(100,100,100,128));
+		}
+	}
 }
 
 void Scheduler::drawForeground( QPainter * painter, const QRectF & rect )
@@ -356,6 +369,19 @@ void Scheduler::executeAll()
 	int totalTime = totalExecutionTime();
 
 	QVector<Task*> allTasks = tasksSortedByStart();
+
+
+	// Tag interesting topology changes
+	{
+		QSet<int> tags;
+		foreach(Task * task, allTasks)
+		{
+			int time = task->start + (0.5 * task->length);
+			tags.insert( time );
+		}
+		property["timeTags"].setValue( tags );
+	}
+
 
 	Relink linker(this);
 

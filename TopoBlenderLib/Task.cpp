@@ -338,6 +338,7 @@ void Task::prepare()
 
 	this->isReady = true;
 	node()->property["isReady"] = true;
+	node()->property["taskIsReady"] = true;
 }
 
 QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Structure::Link*> allEdges )
@@ -509,6 +510,7 @@ void Task::execute( double t )
 
 	// Record current time
 	property["t"] = t;
+	node()->property["t"] = t;
 }
 
 QVector< GraphDistance::PathPointPair > Task::smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
@@ -622,8 +624,17 @@ void Task::setNode( QString node_ID )
 {
 	property["nodeID"] = node_ID;
 	this->nodeID = node_ID;
-	node()->property["taskType"] = type;
+
 	node()->property["task"].setValue( this );
+	node()->property["taskType"] = type;
+	node()->property["taskIsDone"] = false;
+	node()->property["taskIsReady"] = false;
+
+	// Override default colors for split and merge
+	QString snID = node()->id, tnID = targetNode()->id;
+
+	if( snID.contains("_") && !snID.contains("null") ) mycolor = TaskColors[Task::SPLIT];
+	if( tnID.contains("_") && !tnID.contains("null") ) mycolor = TaskColors[Task::MERGE];
 }
 
 std::vector<RMF::Frame> Task::smoothRotateFrame( RMF::Frame sframe, Eigen::Quaterniond & rotation, int steps )

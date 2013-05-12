@@ -146,7 +146,7 @@ void topo_blend_widget::loadJob()
 	tb->scheduler->widget->setParams( gdResolution, timeStep, reconLevel, renderCount );
 
 	// Sample meshes
-	tb->generateSynthesisData();
+	//tb->generateSynthesisData();
 }
 
 void topo_blend_widget::saveJob()
