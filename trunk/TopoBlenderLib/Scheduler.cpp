@@ -396,18 +396,12 @@ void Scheduler::executeAll()
 		}
 
 		// Relink once to place null nodes at initial positions:
-		// Propagate from sheet node or the first node if there is no sheet node
-		// TODO: It seems we have to decide where to place the null nodes at the very beginning!?
 		QVector<QString> aTs; 
-		foreach (Task* task, allTasks){
-			if ( task->node()->type() == Structure::SHEET)	{aTs << task->nodeID; break;}
-		}
+		foreach (Task* task, allTasks) {if ( task->type != Task::GROW)	aTs << task->nodeID;}
 		if (aTs.isEmpty()) aTs << allTasks.front()->nodeID;
 		activeGraph->property["activeTasks"].setValue( aTs );
 
-		linker.checkRelinkability = false;
 		linker.execute();
-		linker.checkRelinkability = true;
 
 		// Debug: 
 		//allGraphs.push_back( new Structure::Graph( *activeGraph ) );
@@ -655,32 +649,32 @@ void Scheduler::blendDeltas( double globalTime, double timeStep )
 {
 	if (globalTime >= 1.0) return;
 
-	double alpha = timeStep / (1 - globalTime);
+	//double alpha = timeStep / (1 - globalTime);
 
 	foreach(Structure::Link* l, activeGraph->edges)
 	{
 		Structure::Link* tl = targetGraph->getEdge(l->property["correspond"].toString());
 		if (!tl) continue;
 
-		// Alpha value:
-		//double alpha = 0;
-		//{
-		//	Task * sTask1 = l->n1->property["task"].value<Task*>();
-		//	Task * sTask2 = l->n2->property["task"].value<Task*>();
-		//	
-		//	if(sTask1->isDone && sTask2->isDone) 
-		//	{
-		//		alpha = 1.0;
-		//	}
-		//	else if( sTask1->isDone )
-		//	{
-		//		alpha = sTask2->property["t"].toDouble();
-		//	}
-		//	else
-		//	{
-		//		alpha = sTask1->property["t"].toDouble();
-		//	}
-		//}
+		//Alpha value:
+		double alpha = 0;
+		{
+			Task * sTask1 = l->n1->property["task"].value<Task*>();
+			Task * sTask2 = l->n2->property["task"].value<Task*>();
+
+			if(sTask1->isDone && sTask2->isDone) 
+			{
+				alpha = 1.0;
+			}
+			else if( sTask1->isDone )
+			{
+				alpha = sTask2->property["t"].toDouble();
+			}
+			else
+			{
+				alpha = sTask1->property["t"].toDouble();
+			}
+		}
 
 		Vec3d sDelta = l->delta();
 		Vec3d tDelta = tl->property["delta"].value<Vec3d>();

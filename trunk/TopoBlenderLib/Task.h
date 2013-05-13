@@ -39,6 +39,7 @@ public:
 	bool isActive(double t);
 	bool isCrossing();
 	bool isCutting();
+	bool isCuttingReal();
 
 	bool ungrownNode(QString nid);
 

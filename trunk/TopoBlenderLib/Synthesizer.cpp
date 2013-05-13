@@ -551,27 +551,21 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 		if (s & Synthesizer::All)	s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random | Synthesizer::Uniform;
 		if (s & Synthesizer::AllNonUniform) s = Synthesizer::Features | Synthesizer::Edges | Synthesizer::Random;
 
-
-		//if (curve1->property.contains("original_sheet"))
-		//{
-		//	int old_uniformTriCount = uniformTriCount;
-		//	uniformTriCount *= 10;
-		//	samples = genSampleCoordsCurve(curve2, s);
-		//	uniformTriCount = old_uniformTriCount;
-		//}
-		//else if (curve2->property.contains("original_sheet"))
-		//{
-		//	int old_uniformTriCount = uniformTriCount;
-		//	uniformTriCount *= 10;
-		//	samples  = genSampleCoordsCurve(curve1, s);
-		//	uniformTriCount = old_uniformTriCount;
-		//}
-		//else
+		int old_uniformTriCount = uniformTriCount;
+		if (curve1->property.contains("original_sheet") || curve2->property.contains("original_sheet"))
 		{
-			samples  = genSampleCoordsCurve(curve1, s);
-			samples += genSampleCoordsCurve(curve2, s);
+			// Super sample converted parts
+			uniformTriCount *= 10;
 		}
-		
+
+		samples  = genSampleCoordsCurve(curve1, s);
+		samples += genSampleCoordsCurve(curve2, s);
+
+		if (curve1->property.contains("original_sheet") || curve2->property.contains("original_sheet"))
+		{
+			// Reset the sampling rate
+			uniformTriCount = old_uniformTriCount;
+		}
 
 		// Why need sorting? -HH
 		// Sort samples by 'u'

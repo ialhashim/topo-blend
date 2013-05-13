@@ -30,5 +30,5 @@ struct Relink
 
 	// Helpers
 	Vector3 getToDelta( Structure::Link * link, QString otherID );
-	bool isRelinkable( Task* task );
+	bool doesPropagate( Task* task );
 };

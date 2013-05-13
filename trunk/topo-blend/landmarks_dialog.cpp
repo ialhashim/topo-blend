@@ -213,24 +213,9 @@ void LandmarksDialog::addLandmark()
 
 void LandmarksDialog::removeLandmark()
 {
-	QModelIndexList selectedIDs = ui->landmarksTable->selectionModel()->selectedRows();
-	int n = selectedIDs.size();
-	if (n == 0) return;
-
-	int pos = selectedIDs.size();
-	int displace = 0;
-	foreach (QModelIndex modeID, selectedIDs)
-	{
-		int row = modeID.row();
-
-		if (row < pos)	pos = row;
-
-		ui->landmarksTable->removeRow(row - displace);
-
-		displace++;
-	}
+	int selectedID = ui->landmarksTable->currentRow();
 	
-	gcorr->removeLandmarks(pos, n);
+	gcorr->removeLandmark(selectedID);
 
 	updateLandmarksTab();
 }

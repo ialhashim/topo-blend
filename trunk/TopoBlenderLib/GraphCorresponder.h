@@ -42,7 +42,7 @@ public:
 	QVector<PART_LANDMARK> landmarks;
 	std::vector<bool> sIsLandmark, tIsLandmark;
 	void addLandmarks(QVector<QString> sParts, QVector<QString> tParts);
-	void removeLandmarks(int pos, int n);
+	void removeLandmark(int id);
 	void saveLandmarks(QString filename);
 	void loadLandmarks(QString filename);
 

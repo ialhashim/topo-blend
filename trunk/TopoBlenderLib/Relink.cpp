@@ -22,12 +22,13 @@ void Relink::execute()
 	}
 
 	// Set up starting nodes
+	// Skip all crossing nodes
 	QVector<QString> activeNodeIDs = activeGraph->property["activeTasks"].value< QVector<QString> >();
 	foreach (QString nID, activeNodeIDs)
 	{
 		Task* task = s->getTaskFromNodeID(nID);
 
-		if (isRelinkable(task))
+		if (doesPropagate(task))
 		{
 			propagationQueue.enqueue(task);
 			task->property["propagated"] = true;
@@ -53,26 +54,18 @@ void Relink::propagateFrom( Task* task )
 	Structure::Node * n = task->node();
 	QVector<Structure::Link*> edges = activeGraph->getEdges(n->id);
 
+
+	// Virtual cut node
+	bool virtualCutting =  task->isCutting() && !task->isCuttingReal();
+
 	foreach(Structure::Link* link, edges)
 	{
 		Structure::Node * other = link->otherNode(n->id);
 		Task * otherTask = s->getTaskFromNodeID(other->id);
 
-		// Skip un-relinkable tasks
-		if (!isRelinkable(otherTask)) continue;
-
-		// For first time (placing null nodes): 
-		// Do not propagate from null to real
-		if (checkRelinkability == false)
-		{
-			checkRelinkability = true;
-			if (isRelinkable(otherTask)) 
-			{
-				checkRelinkability = false;
-				continue;
-			}
-			checkRelinkability = false;
-		}
+		// Virtual cut node
+		// Don't propagate to its real neighbours
+		if (virtualCutting && !task->ungrownNode(otherTask->nodeID)) continue;
 
 		// Add to queue
 		if (!otherTask->property["propagated"].toBool())
@@ -139,16 +132,8 @@ void Relink::fixTask( Task* task )
 	else 
 	{
 		// Special case to relink null nodes
-		if (checkRelinkability == false)
-		{
-			checkRelinkability = true;
-			if (!isRelinkable(task)) 
-				N = 1;
-			checkRelinkability = false;
-		}
-
-
-
+		if (task->ungrownNode(task->nodeID)) N = 1;
+		
 		// Translate future tasks if only one constraint
 		if( N == 1)
 		{
@@ -221,28 +206,11 @@ Vector3 Relink::getToDelta( Structure::Link * link, QString toOtherID )
 }
 
 
-bool Relink::isRelinkable(Task* task)
+bool Relink::doesPropagate(Task* task)
 {
-	// Relink all
-	if (!checkRelinkability) return true;
-
-	// Cut node: ALWAYS YES
-	if (task->property["isCutNode"].toBool()) return true;
-
-	// Shrink node: Yes ---> start  --> No 
-	if (task->type == Task::SHRINK) return !task->isReady;
-
-	// Grow: NO --> done --> YES
-	if (task->type == Task::GROW) return task->isDone;
+	if (task->isCutting()) return true;
 	
-	// Morph: YES, but NO if crossing
-	if (task->type == Task::MORPH)
-	{
-		if (task->property["isCrossing"].toBool() && !task->isDone) 
-			return false;
-		else
-			return true;
-	}
+	if (task->type == Task::MORPH && !task->isCrossing()) return true;
 
-	return true;
+	return false;
 }

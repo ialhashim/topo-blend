@@ -355,32 +355,36 @@ void GraphCorresponder::addCorrespondences( QVector<QString> sParts, QVector<QSt
 
 	// Store correspondence
 	correspondences.push_back(std::make_pair(sParts, tParts));
+
+
+	// Make fake scores
+	int N = qMax(sParts.size(), tParts.size());
+	corrScores.push_back( std::vector<float>(N, -1) );
 }
 
-void GraphCorresponder::removeLandmarks( int pos, int n )
+void GraphCorresponder::removeLandmark( int id )
 {
-	if (pos + n > (int)landmarks.size()) return;
+	if (id > (int)landmarks.size()) return;
 
-	for (int i = pos; i < pos + n; i++)
+
+	PART_LANDMARK vector2vector = landmarks[id];
+
+	// Update isLandmark
+	foreach(QString strID, vector2vector.first)
 	{
-		PART_LANDMARK vector2vector = landmarks[i];
-
-		// Update isLandmark
-		foreach(QString strID, vector2vector.first)
-		{
-			int idx = sg->getNode(strID)->property["index"].toInt();
-			sIsLandmark[idx] = false;
-		}
-
-		foreach(QString strID, vector2vector.second)
-		{
-			int idx = tg->getNode(strID)->property["index"].toInt();
-			tIsLandmark[idx] = false;
-		}
+		int idx = sg->getNode(strID)->property["index"].toInt();
+		sIsLandmark[idx] = false;
 	}
 
+	foreach(QString strID, vector2vector.second)
+	{
+		int idx = tg->getNode(strID)->property["index"].toInt();
+		tIsLandmark[idx] = false;
+	}
+
+
 	// Erase
-	landmarks.erase(landmarks.begin() + pos, landmarks.begin() + pos + n);
+	landmarks.erase(landmarks.begin() + id);
 }
 
 void GraphCorresponder::computeValidationMatrix()
