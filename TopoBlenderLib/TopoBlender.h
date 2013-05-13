@@ -51,8 +51,6 @@ public:
 	void correspondTwoEdges( Structure::Link *slink, Structure::Link *tlink, bool isFlip, Structure::Graph* source );
 	QString correspondingNode( Structure::Link *link, int i );
 	void removeMissingEdges( Structure::Graph * sgraph );
-	void removeUncorrespondedEdges( Structure::Graph * graph );
-	void remainingUncorrespondedEdges( Structure::Graph * source, Structure::Graph * target );
 	void removeRedundantEdges( Structure::Graph * source );
 	void postprocessSuperEdges();
 
@@ -61,6 +59,9 @@ public:
 	void correspondSimilarType( Structure::Graph * source, Structure::Graph * target );
 	void connectNullNodes( Structure::Graph * source, Structure::Graph * target );
 	void correspondChangedEnds( Structure::Graph * source, Structure::Graph * target );
+	void correspondRemainingOfNull( Structure::Graph * source, Structure::Graph * target );
+	void connectFloatingRealNodes(Structure::Graph * source, Structure::Graph * target);
+	void removeUncorrespondedEdges( Structure::Graph * graph );
 
 	// Query
 	bool isExtraNode(Structure::Node *node);

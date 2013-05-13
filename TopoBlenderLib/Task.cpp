@@ -497,6 +497,15 @@ void Task::execute( double t )
 		{
 			n->property["shrunk"] = true;
 			node()->property["zeroGeometry"] = true;
+
+			// remove all edges for non cutting node after shrunk
+			if (!isCutting())
+			{
+				foreach(Link* link, active->getEdges(nodeID))
+				{
+					active->removeEdge(link->n1, link->n2);
+				}
+			}
 		}
 
 		// Clean up:
@@ -751,10 +760,6 @@ bool Task::isCrossing()
 	{
 		Structure::Node* other = l->otherNode(n->id);
 
-		// Skip shrunk and non-grown nodes
-		if (other->property["shrunk"].toBool()) continue;
-		//if (other->property["taskType"].toInt() == Task::GROW && !other->property["taskIsDone"].toBool()) continue;
-
 		// check if my neighbor will change
 		Structure::Link* tl = target->getEdge(l->property["correspond"].toString());
 		Structure::Node* sNb = l->otherNode(n->id);
@@ -779,17 +784,6 @@ bool Task::isCutting()
 	 
 	foreach(QString nid, active->property["activeTasks"].value< QVector<QString> >())
 		 excludeNodes.insert(nid);
-
-	foreach (Node* n, active->nodes)
-	{
-		Task * task = n->property["task"].value<Task*>();
-
-		// Shrunk node 
-		if (task->type == SHRINK && task->isReady) excludeNodes.insert(n->id);
-
-		// Not fully grown
-		if(task->type == GROW && !task->isDone) excludeNodes.insert(n->id);
-	}
 	
 	// Keep myself in graph for checking
 	excludeNodes.remove(nodeID);
@@ -797,6 +791,29 @@ bool Task::isCutting()
 	
 	return copyActive.isCutNode(nodeID);
 }
+
+
+bool Task::isCuttingReal()
+{
+	Structure::Graph copyActive(*active);
+
+	// Exclude nodes that is active and non-existing
+	QSet<QString>excludeNodes;
+
+	foreach(QString nid, active->property["activeTasks"].value< QVector<QString> >())
+		excludeNodes.insert(nid);
+
+	// Skip ungrown nodes
+	foreach(Node* n, active->nodes)
+		if (ungrownNode(n->id)) excludeNodes.insert(n->id);
+
+	// Keep myself in graph for checking
+	excludeNodes.remove(nodeID);
+	foreach (QString nid, excludeNodes)	copyActive.removeNode(nid);
+
+	return copyActive.isCutNode(nodeID);
+}
+
 
 bool Task::ungrownNode( QString nid )
 {

@@ -295,6 +295,7 @@ void TopoBlender::correspondSuperEdges()
 	bool CASE_4 = true;
 	bool CASE_5 = true;
 	bool CASE_6 = true;
+	bool CASE_7 = true;
 
 	/// Correspond trivial edges, i.e. both nodes exist on both graphs
 	if( CASE_1 )
@@ -324,15 +325,22 @@ void TopoBlender::correspondSuperEdges()
 		correspondChangedEnds( super_tg, super_sg );
 	}
 
-	/// Do remaining edges
+	/// Do remaining edges of null nodes
 	if( CASE_5 )
 	{
-		remainingUncorrespondedEdges( super_sg, super_tg );
-		remainingUncorrespondedEdges( super_tg, super_sg );
+		correspondRemainingOfNull( super_sg, super_tg );
+		correspondRemainingOfNull( super_tg, super_sg );
+	}
+
+	/// Link flying real nodes
+	if (CASE_6)
+	{
+		connectFloatingRealNodes(super_sg, super_tg);
+		connectFloatingRealNodes(super_tg, super_sg);
 	}
 
 	/// Remove excess edges (edges of core nodes still uncorresponded)
-	if( CASE_6 )
+	if( CASE_7 )
 
 	{
 		removeRedundantEdges( super_sg );
@@ -346,37 +354,6 @@ void TopoBlender::correspondSuperEdges()
 		Link* tlink = super_tg->getEdge(slink->property["correspond"].toString());
 		if(!tlink) continue;
 		slink->property["uid"] = tlink->property["uid"] = uid++;
-	}
-}
-
-void TopoBlender::removeRedundantEdges( Structure::Graph * source )
-{
-	foreach(Structure::Node * snode, source->nodes)
-	{
-		if (snode->id.contains("null")) continue;
-
-		foreach(Link* link, edgesNotContain( source->getEdges(snode->id), "correspond" ))
-			source->removeEdge(link->n1, link->n2);
-	}
-}
-
-void TopoBlender::remainingUncorrespondedEdges( Structure::Graph * source, Structure::Graph * target )
-{
-	foreach(Structure::Node * snode, source->nodes)
-	{
-		if (!snode->id.contains("null")) continue;
-		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
-
-		// Get uncorresponded of target
-		QVector<Structure::Link*> tedges = edgesNotContain( target->getEdges(tnode->id), "correspond" );
-		if(tedges.isEmpty()) continue;
-
-		foreach(Link * tlink, tedges)
-		{
-			Link * slink = addMissingLink( source, tlink );
-
-			correspondTwoEdges(slink, tlink, false, source);
-		}
 	}
 }
 
@@ -493,7 +470,8 @@ void TopoBlender::correspondChangedEnds( Structure::Graph * source, Structure::G
 			QVector<Structure::Link*> sedges = edgesNotContain( source->getEdges(snode->id), "correspond" );
 			QVector<Structure::Link*> tedges = edgesNotContain( target->getEdges(tnode->id), "correspond" );
 
-
+			// Only deal with cases that are for sure (equal number of edges)
+			// This will leave some nodes flying that will be deal with by later case
 			if( sedges.size() == tedges.size() && !sedges.isEmpty())
 			{
 				for( int i = 0; i < (int)sedges.size(); i++)
@@ -513,6 +491,71 @@ void TopoBlender::correspondChangedEnds( Structure::Graph * source, Structure::G
 		}
 	} while (isRunning);
 }
+
+void TopoBlender::correspondRemainingOfNull( Structure::Graph * source, Structure::Graph * target )
+{
+	foreach(Structure::Node * snode, source->nodes)
+	{
+		if (!snode->id.contains("null")) continue;
+		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
+
+		// Get un-corresponded of target
+		QVector<Structure::Link*> tedges = edgesNotContain( target->getEdges(tnode->id), "correspond" );
+		if(tedges.isEmpty()) continue;
+
+		foreach(Link * tlink, tedges)
+		{
+			Link * slink = addMissingLink( source, tlink );
+
+			correspondTwoEdges(slink, tlink, false, source);
+		}
+	}
+}
+
+void TopoBlender::connectFloatingRealNodes( Structure::Graph * source, Structure::Graph * target )
+{
+	foreach(Structure::Node * snode, source->nodes)
+	{
+		if (snode->id.contains("null")) continue;
+
+		QVector<Link*> alledges = source->getEdges(snode->id);
+		QVector<Link*> sedges = edgesNotContain(alledges, "correspond");
+
+		// No edges are corresponded yet
+		if (sedges.size() == alledges.size())
+		{
+			Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
+			QVector<Structure::Link*> tedges = edgesNotContain( target->getEdges(tnode->id), "correspond" );
+
+			int N = qMin(sedges.size(), tedges.size());
+			for(int i = 0; i < N; i++)
+			{
+				Link* slink = sedges[i], *tlink = tedges[i];
+
+				bool sFromMe = ( slink->n1->id == snode->id );
+				bool tFromMe = ( tlink->n1->id == tnode->id );
+
+				bool isFlip = (sFromMe != tFromMe);
+
+				correspondTwoEdges(slink, tlink, isFlip, source);
+			}
+		}
+	}
+}
+
+void TopoBlender::removeRedundantEdges( Structure::Graph * source )
+{
+	foreach(Structure::Node * snode, source->nodes)
+	{
+		if (snode->id.contains("null")) continue;
+
+		foreach(Link* link, edgesNotContain( source->getEdges(snode->id), "correspond" ))
+			source->removeEdge(link->n1, link->n2);
+	}
+}
+
+
+
 
 void TopoBlender::removeUncorrespondedEdges( Structure::Graph * graph )
 {
@@ -706,7 +749,7 @@ void TopoBlender::postprocessSuperEdges()
 		if (n->id.contains("null")){
 			foreach(Link* sl, super_sg->getEdges( n->id )) {
 				Link* tl = super_tg->getEdge(sl->property["correspond"].toString());
-				sl->property["delta"].setValue( tl->delta() );
+				sl->property["delta"].setValue( Vec3d(0) );
 			}
 		}
 	}

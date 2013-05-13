@@ -107,10 +107,6 @@ void TaskCurve::prepareShrinkCurve()
 		// Encode curve
 		property["cpCoords"].setValue( Curve::encodeCurve(curve, linkA->position(n->id), linkB->position(n->id)) );
 
-		//// Reset deltas
-		//linkA->property["blendedDelta"].setValue(Vec3d(0));
-		//linkB->property["blendedDelta"].setValue(Vec3d(0));
-
 		linkA->property["path"].setValue( pathA );
 		linkB->property["path"].setValue( pathB );
 
@@ -146,10 +142,6 @@ void TaskCurve::prepareGrowCurveOneEdge( Structure::Link * tlink )
 	// Growing instructions
 	property["deltas"].setValue( deltas );
 	property["orgCtrlPoints"].setValue( curve->curve.mCtrlPoint );
-
-	// Rewrite the blended delta
-	Link* slink = active->getEdge(tlink->property["correspond"].toString());
-	slink->property["blendedDelta"].setValue(slink->property["delta"].value<Vec3d>());
 }
 
 void TaskCurve::prepareGrowCurve()
@@ -170,7 +162,6 @@ void TaskCurve::prepareGrowCurve()
 		// Skip not grown others
 		if( ungrownNode(other->id) )	continue;
 
-
 		tedges.push_back(edge);		
 	}
 
@@ -187,21 +178,21 @@ void TaskCurve::prepareGrowCurve()
 	if (tedges.size() == 1)
 	{
 		prepareGrowCurveOneEdge( tedges.front() );
+		return;
 	}
 
-	else if (isCutting())
+	if (isCutting())
 	{
 		property["isCutNode"] = true;
-		prepareGrowCurveOneEdge( tedges.front() );
 
-		// reset blended delta to the correct one
-		foreach(Link* link, active->getEdges(nodeID))
+		if (isCuttingReal())
 		{
-			link->property["blendedDelta"].setValue(Vec3d(0));
+			prepareGrowCurveOneEdge( tedges.front() );
+			return;
 		}
 	}
 
-	else if (tedges.size() > 1)
+	if (tedges.size() > 1)
 	{
 		// Links, nodes and positions on the TARGET
 		Link *tlinkA = tedges.front();
@@ -266,6 +257,8 @@ void TaskCurve::prepareGrowCurve()
 		// Visualization
 		n->property["path"].setValue( GraphDistance::positionalPath(active, pathA) );
 		n->property["path2"].setValue( GraphDistance::positionalPath(active, pathB) );
+
+		return;
 	}
 }
 
@@ -318,8 +311,6 @@ void TaskCurve::prepareCrossingMorphCurve()
 		// Save links paths
 		path.back() = GraphDistance::PathPointPair( PathPoint(futureNodeCord.first, futureNodeCord.second)  );
 		link->property["path"].setValue( path );
-
-		link->property["blendedDelta"].setValue(Vec3d(0));
 	}
 
 	if( edges.size() == 2 )
@@ -443,9 +434,6 @@ void TaskCurve::executeCrossingCurve( double t )
 
 		Vec3d delta = AlphaBlend(t, sDelta, tDelta);
 
-		// Rewrite blended delta
-		slink->property["blendedDelta"].setValue( delta );
-
 		// Deltas to myself
 		if (slink->n1->id == n->id) delta *= -1;
 
@@ -495,10 +483,6 @@ void TaskCurve::executeCrossingCurve( double t )
 
 		Vec3d deltaA = AlphaBlend(t, sDeltaA, tDeltaA);
 		Vec3d deltaB = AlphaBlend(t, sDeltaB, tDeltaB);
-
-		// Rewrite blended delta
-		slinkA->property["blendedDelta"].setValue(deltaA);
-		slinkB->property["blendedDelta"].setValue(deltaB);
 
 		// Deltas to myself
 		if (slinkA->n1->id == n->id) deltaA *= -1;
