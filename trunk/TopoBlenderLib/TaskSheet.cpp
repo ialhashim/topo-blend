@@ -42,7 +42,7 @@ void TaskSheet::executeSheet(double t)
 
 void TaskSheet::prepareSheetOneEdge( Structure::Link * l )
 {
-    Structure::Node * n = node();
+    Structure::Node * n = node(), *tn = targetNode();
     Structure::Node * base = l->otherNode(n->id);
     Structure::Sheet* structure_sheet = ((Structure::Sheet*)n);
 
@@ -50,7 +50,8 @@ void TaskSheet::prepareSheetOneEdge( Structure::Link * l )
     structure_sheet->moveBy( l->position( base->id ) - l->position( n->id ) );
 
     // Sheet folding:
-    Array2D_Vector3 deltas = structure_sheet->foldTo( l->getCoord(n->id), (this->type == GROW) );
+	Structure::Sheet targetCopy (*((Structure::Sheet*)tn));
+    Array2D_Vector3 deltas = targetCopy.foldTo( l->getCoord(n->id), (this->type == GROW) );
     if (this->type != GROW) deltas = inverseVectors3(deltas);
 
     // Growing / shrinking instructions
