@@ -311,7 +311,7 @@ void TopoBlender::correspondSuperEdges()
 		correspondSimilarType( super_tg, super_sg );
 	}
 	
-	/// Creating one edge for floating null nodes
+	/// Creating one edge for floating null nodes [has heuristic]
 	if (CASE_3)
 	{
 		connectNullNodes( super_sg, super_tg );
@@ -332,7 +332,7 @@ void TopoBlender::correspondSuperEdges()
 		correspondRemainingOfNull( super_tg, super_sg );
 	}
 
-	/// Link flying real nodes
+	/// Link flying real nodes [same as case 4 but for cores]
 	if (CASE_6)
 	{
 		connectFloatingRealNodes(super_sg, super_tg);
