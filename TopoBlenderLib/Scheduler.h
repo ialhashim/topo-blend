@@ -81,6 +81,7 @@ public slots:
 
 	void startAllSameTime();
 	void startDiffTime();
+	void defaultSchedule();
 
 	void doRenderAll() { emit( renderAll() ); } 
 	void doRenderCurrent() { emit( renderCurrent() ); }

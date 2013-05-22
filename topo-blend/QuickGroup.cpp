@@ -6,12 +6,14 @@ QuickGroup::QuickGroup(Structure::Graph * graph, QWidget *parent) : QDialog(pare
     ui->setupUi(this);
     this->g = graph;
 
-    // Populate list
+    // Populate lists
     foreach(Structure::Node * n, g->nodes) ui->list->addItem(new QListWidgetItem(n->id));
+	updateCurrentGroups();
 
     // Connections
     this->connect(ui->list, SIGNAL(itemSelectionChanged()), SLOT(visualizeSelections()));
 	this->connect(ui->groupButton, SIGNAL(clicked()), SLOT(doGrouping()));
+	this->connect(ui->ungroupButton, SIGNAL(clicked()), SLOT(doUnGrouping()));
 }
 
 QuickGroup::~QuickGroup()
@@ -29,8 +31,29 @@ void QuickGroup::doGrouping()
 		nodes.push_back( item->text() );
 
 	g->addGroup(nodes);
-	 
-    emit( updateView() );
+
+	updateCurrentGroups();
+}
+
+void QuickGroup::doUnGrouping()
+{
+	g->removeGroup( currentSelectedIndex() );
+
+	updateCurrentGroups();
+}
+
+int QuickGroup::currentSelectedIndex()
+{
+	QModelIndexList indexes = ui->curList->selectionModel()->selectedIndexes();
+	QVector<int> indexList;
+	foreach(QModelIndex index, indexes){
+		indexList.push_back(index.row());
+	}
+
+	if(indexList.isEmpty())
+		return -1;
+	else
+		return indexList.front();
 }
 
 void QuickGroup::visualizeSelections()
@@ -49,4 +72,22 @@ void QuickGroup::visualizeSelections()
         g->getNode(item->text())->vis_property["color"] = Qt::red;
 
     emit( updateView() );
+}
+
+void QuickGroup::updateCurrentGroups()
+{
+	int c = 0;
+
+	// Display current groups
+	ui->curList->clear();
+	NodeGroups groups = g->property["groups"].value<NodeGroups>();
+	foreach(QVector<QString> group, groups)
+	{
+		QStringList nlist;
+		foreach(QString nodeId, group) nlist << nodeId;
+		QString groupID = QString("G%1").arg(c++);
+		ui->curList->addItem(new QListWidgetItem(groupID + ": " + nlist.join(", ")));
+	}
+
+	emit( updateView() );
 }

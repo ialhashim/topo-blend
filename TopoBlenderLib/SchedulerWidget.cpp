@@ -26,12 +26,12 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
 	scheduler->connect( ui->stopButton, SIGNAL(clicked()), SLOT(stopExecution()) );
 	scheduler->connect( ui->sameTimeButton, SIGNAL(clicked()), SLOT(startAllSameTime()) );
 	scheduler->connect( ui->diffTimeButton, SIGNAL(clicked()), SLOT(startDiffTime()) );
+	scheduler->connect( ui->defaultScheduleButton, SIGNAL(clicked()), SLOT(defaultSchedule()) );
 
 	scheduler->connect( ui->renderCurrentButton, SIGNAL(clicked()), SLOT(doRenderCurrent()) );
 	scheduler->connect( ui->renderAllButton, SIGNAL(clicked()), SLOT(doRenderAll()) );
 
 	scheduler->connect( ui->draftRenderButton, SIGNAL(clicked()), SLOT(doDraftRender()));
-
 
 	// Discretization
 	scheduler->connect( ui->gdResolution, SIGNAL(valueChanged(double)), SLOT(setGDResolution(double)));

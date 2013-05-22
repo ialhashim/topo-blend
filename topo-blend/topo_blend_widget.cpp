@@ -212,6 +212,8 @@ void topo_blend_widget::saveJob()
 
 void topo_blend_widget::showGroupingDialog()
 {
+	if(tb->graphs.isEmpty()) return;
+
 	QuickGroup groupingDialog(tb->graphs.front());
 	tb->connect(&groupingDialog, SIGNAL(updateView()), SLOT(updateDrawArea()));
 	groupingDialog.exec();
