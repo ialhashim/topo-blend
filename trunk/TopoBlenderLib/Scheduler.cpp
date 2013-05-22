@@ -538,16 +538,48 @@ void Scheduler::stopExecution()
 
 void Scheduler::startAllSameTime()
 {
-	foreach(Task * t, tasks)
-		t->setX(0);
+	if(selectedItems().isEmpty())
+	{
+		foreach(Task * t, tasks)
+			t->setX(0);
+	}
+	else
+	{
+		// Get minimum start
+		int minStart = INT_MAX;
+		foreach(Task * t, tasks){
+			if(t->isSelected())
+				minStart = qMin( minStart, t->start );
+		}
+
+		foreach(Task * t, tasks){
+			if(t->isSelected())
+				t->setX( minStart );
+		}
+	}
 }
 
 void Scheduler::startDiffTime()
 {
-	for(int i = 0; i < (int)tasks.size(); i++){
-		int startTime = 0;
-		if(i > 0) startTime = tasks[i - 1]->endTime();
-		tasks[i]->setX( startTime );
+	if(selectedItems().isEmpty())
+	{
+		for(int i = 0; i < (int)tasks.size(); i++){
+			int startTime = 0;
+			if(i > 0) startTime = tasks[i - 1]->endTime();
+			tasks[i]->setX( startTime );
+		}
+	}
+	else
+	{
+		int startTime = -1;
+		foreach(Task * t, tasks){
+			if(t->isSelected())
+			{
+				if(startTime < 0) startTime = t->start;
+				t->setX( startTime );
+				startTime += t->length;
+			}
+		}
 	}
 }
 
@@ -649,6 +681,7 @@ void Scheduler::blendDeltas( double globalTime, double timeStep )
 {
 	if (globalTime >= 1.0) return;
 
+	Q_UNUSED( timeStep );
 	//double alpha = timeStep / (1 - globalTime);
 
 	foreach(Structure::Link* l, activeGraph->edges)
@@ -750,3 +783,7 @@ void Scheduler::saveSchedule(QString filename)
 	file.close();
 }
 
+void Scheduler::defaultSchedule()
+{
+	this->order();
+}

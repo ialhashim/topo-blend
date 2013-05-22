@@ -1837,6 +1837,8 @@ void Graph::addGroup(QVector<QString> newGroup)
 
 void Graph::removeGroup(int groupIDX)
 {
+	if(groupIDX < 0) return;
+
     NodeGroups groups;
 
     if(property.contains("groups"))

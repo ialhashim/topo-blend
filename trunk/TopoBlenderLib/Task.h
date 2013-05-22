@@ -1,5 +1,6 @@
 #pragma once
 #include <QGraphicsObject>
+#include <QGraphicsDropShadowEffect>
 #include "TopoBlender.h"
 #include "RMF.h"
 
@@ -67,7 +68,7 @@ public:
 	QVector<Structure::Link*> filterEdges( Structure::Node * n, QVector<Structure::Link*> all_edges );
 	Structure::Link * preferredEnd(Structure::Node * n, QVector<Structure::Link*> edges, Structure::Graph * g);
 
-    // Preperation and execution based on type
+    // Preparation and execution based on type
     virtual void prepareCurve(){}
     virtual void executeCurve(double t){ Q_UNUSED(t) }
 

@@ -37,6 +37,9 @@ Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, Task
 	width = length;
 	height = 17;
 	setFlags( ItemIsMovable | ItemIsSelectable | ItemSendsGeometryChanges );
+
+	// Task glow when selected
+
 }
 
 QRectF Task::boundingRect() const
@@ -70,6 +73,18 @@ void Task::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWid
 
 QVariant Task::itemChange( GraphicsItemChange change, const QVariant & value )
 {
+	// Glow when selected
+	if(this->isSelected())
+	{
+		QGraphicsDropShadowEffect * taskGlow = new QGraphicsDropShadowEffect;
+		taskGlow->setColor(QColor(255,255,255,255));
+		taskGlow->setBlurRadius(20);
+		taskGlow->setOffset(0);
+		this->setGraphicsEffect(taskGlow);
+	}
+	else
+		this->setGraphicsEffect(0);
+
 	if (scene() && change == ItemPositionChange && !isResizing) 
 	{
 		QPointF newPos = value.toPointF();
@@ -758,8 +773,6 @@ bool Task::isCrossing()
 	bool isCross = false;
 	foreach(Link * l, active->getEdges(n->id))
 	{
-		Structure::Node* other = l->otherNode(n->id);
-
 		// check if my neighbor will change
 		Structure::Link* tl = target->getEdge(l->property["correspond"].toString());
 		Structure::Node* sNb = l->otherNode(n->id);
@@ -773,7 +786,6 @@ bool Task::isCrossing()
 	property["isCrossing"] = isCross;
 	return isCross;
 }
-
 
 bool Task::isCutting()
 {

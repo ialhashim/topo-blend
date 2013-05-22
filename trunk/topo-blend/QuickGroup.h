@@ -21,7 +21,10 @@ private:
 
 public slots:
     void doGrouping();
+	void doUnGrouping();
     void visualizeSelections();
+	void updateCurrentGroups();
+	int currentSelectedIndex();
 
 signals:
     void updateView();

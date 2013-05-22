@@ -748,7 +748,7 @@ void TopoBlender::postprocessSuperEdges()
 	foreach (Node* n, super_sg->nodes){
 		if (n->id.contains("null")){
 			foreach(Link* sl, super_sg->getEdges( n->id )) {
-				Link* tl = super_tg->getEdge(sl->property["correspond"].toString());
+				//Link* tl = super_tg->getEdge(sl->property["correspond"].toString());
 				sl->property["delta"].setValue( Vec3d(0) );
 			}
 		}
