@@ -130,13 +130,11 @@ void topo_blend_widget::loadJob()
 	tb->updateDrawArea();
 
 	// Load correspondence
-	tb->corresponder();
-	tb->corresponder()->loadCorrespondences( curPath + correspondenceFileName );
+	tb->gcoor = tb->makeCorresponder();
+	tb->gcoor->loadCorrespondences( curPath + correspondenceFileName );
 
 	// Create TopoBlender
-	tb->corresponder()->isReady = true;  // temporally block computing correspondences
 	tb->doBlend();
-	tb->corresponder()->isReady = false;
 
 	// Load schedule
 	tb->scheduler->loadSchedule( curPath + scheduleFileName );
@@ -153,8 +151,8 @@ void topo_blend_widget::saveJob()
 {
 	if(!tb->scheduler) return;
 
-	QString sGraphName = tb->corresponder()->sgName();
-	QString tGraphName = tb->corresponder()->tgName();
+	QString sGraphName = tb->gcoor->sgName();
+	QString tGraphName = tb->gcoor->tgName();
 
 	QString graph_names = ( sGraphName + "_" + tGraphName ) + ".job";
 
@@ -185,7 +183,7 @@ void topo_blend_widget::saveJob()
 	// Save correspondence file
 	QString correspondRelative = "correspondence.txt";
 	QString correspondenceFileName = jobDir.path() + "/" + correspondRelative;
-	tb->corresponder()->saveCorrespondences( correspondenceFileName );
+	tb->gcoor->saveCorrespondences( correspondenceFileName );
 
 	// Save the scheduler
 	QString scheduleRelative = "schedule.txt";
@@ -278,7 +276,7 @@ void topo_blend_widget::loadAnimationModel()
 
 void topo_blend_widget::loadCorrespondenceModel()
 {
-	if (tb->corresponder())
+	if (tb->gcoor)
 	{
 		LandmarksDialog dialog(tb);
 		dialog.exec();

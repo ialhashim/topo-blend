@@ -57,7 +57,7 @@ public:
 
 	// Corresponder
 	GraphCorresponder *gcoor;
-	GraphCorresponder* corresponder();
+	GraphCorresponder* makeCorresponder();
 	Structure::Graph * getGraph(int id);
 
 public slots:
@@ -109,4 +109,5 @@ public slots:
 	void setStatusBarMessage(QString);
 signals:
 	void statusBarMessage(QString);
+
 };

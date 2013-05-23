@@ -1134,6 +1134,8 @@ void GraphCorresponder::loadCorrespondences( QString filename )
 		addCorrespondences(sParts, tParts);
 	}
 
+	isReady = true;  // block automatic computing correspondences
+
 	file.close();
 }
 

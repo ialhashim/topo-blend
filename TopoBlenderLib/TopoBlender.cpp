@@ -26,16 +26,14 @@ typedef std::pair<QString, QString> PairQString;
 Q_DECLARE_METATYPE( Structure::Sheet* )
 Q_DECLARE_METATYPE( QSet<Structure::Node*> )
 
-TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2, 
-	GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent ) : QObject(parent)
+TopoBlender::TopoBlender(GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent ) : QObject(parent)
 {
-    sg = graph1;
-    tg = graph2;
 	scheduler = useScheduler;
 
-	/// STEP 1) Compute correspondences and align mis-aligned nodes
+	/// STEP 1) Use a corresponder, automatic or user assisted
 	this->gcoor = useCorresponder;
-	this->gcoor->computeCorrespondences();
+	this->sg = useCorresponder->sg;
+	this->tg = useCorresponder->tg;
 
 	/// STEP 2) Generate super graphs
 	generateSuperGraphs();
@@ -48,13 +46,10 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2,
 	scheduler->activeGraph = active;
 	scheduler->sourceGraph = super_sg;
 	scheduler->targetGraph = super_tg;
-
-	qApp->setOverrideCursor(Qt::WaitCursor);
 	scheduler->schedule();
-	qApp->restoreOverrideCursor();
 
 	/// Visualize super graphs
-	if(false)
+	if( false )
 	{
 		DynamicGraph sdg(scheduler->activeGraph);
 		DynamicGraph tdg(scheduler->targetGraph);
@@ -72,13 +67,16 @@ TopoBlender::TopoBlender( Structure::Graph * graph1, Structure::Graph * graph2,
 	}
 	// END VIZ
 
-	// Show the scheduler window:
-	scheduler->widget = new SchedulerWidget( scheduler );
-	QDockWidget *dock = new QDockWidget("Scheduler");
-	dock->setWidget( scheduler->widget );
-	QMainWindow * win = (QMainWindow *) qApp->activeWindow();
-	win->addDockWidget(Qt::BottomDockWidgetArea, dock);
+	/// Show the scheduler window:
+	{
+		scheduler->widget = new SchedulerWidget( scheduler );
+		scheduler->dock = new QDockWidget("Scheduler");
+		scheduler->dock->setWidget( scheduler->widget );
+		QMainWindow * win = (QMainWindow *) qApp->activeWindow();
+		win->addDockWidget(Qt::BottomDockWidgetArea, scheduler->dock);
+	}
 
+	/// Connect execute button
 	this->connect( scheduler, SIGNAL(startBlend()), SLOT(executeBlend()) );
 }
 
