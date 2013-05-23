@@ -10,7 +10,7 @@ namespace Structure{
 struct Curve : public Node
 {
     // Constructors
-    Curve(const NURBS::NURBSCurved & newCurve, QString newID, QColor color = qRandomColor());
+    Curve(const NURBS::NURBSCurved & newCurve, QString newID, QColor color = qRandomColor2());
 	Node * clone();
 
     // Underlaying structure

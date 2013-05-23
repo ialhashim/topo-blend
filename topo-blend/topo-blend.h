@@ -32,12 +32,15 @@ public:
 	void postSelection(const QPoint& p);
 
 	bool keyPressEvent( QKeyEvent* event );
+	bool mouseReleaseEvent( QMouseEvent * event );
 
 	TopoBlender * blender;
 	Scheduler * scheduler;
 
 	QMap<QString, QVariant> params;
 	QMap<QString, QVariant> viz_params;
+
+	QMap<QString, QVariant> property;
 
 public:
     topo_blend_widget * widget;

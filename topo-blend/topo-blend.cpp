@@ -123,9 +123,6 @@ void topoblend::decorate()
 
 	glEnable(GL_LIGHTING);
 
-	glColor3d(1,1,1);
-	drawArea()->renderText(40,40, "TopoBlend mode.");
-
 	if(blender) blender->drawDebug();
 
 	// 3D visualization
@@ -157,12 +154,42 @@ void topoblend::decorate()
 
 		posX += deltaX;
 	}
+
+	// Textual information
+	glColor4d(1,1,1,0.25);
+	drawArea()->renderText(40,40, "[TopoBlend]");
+	if(property["correspondenceMode"].toBool()) 
+	{
+		glColor4d(1,1,1,1);
+		drawArea()->renderText(40,80, "Correspondence Mode");
+	}
 }
 
 void topoblend::drawWithNames()
 {
 	float deltaX = layout ? drawArea()->sceneRadius() : 0;
 	float posX = - deltaX * (graphs.size() - 1) / 2;
+
+	if(property["correspondenceMode"].toBool())
+	{
+		int offset = 0;
+
+		for(int gID = 0; gID < (int) graphs.size(); gID++)
+		{
+			Structure::Graph *g = graphs[gID];
+
+			glPushMatrix();
+			glTranslatef(posX, 0, 0);
+
+			g->drawNodeMeshNames( offset );
+
+			glPopMatrix();
+
+			posX += deltaX;
+		}
+		
+		return;
+	}
 
 	// Select control points
 	for(int gID = 0; gID < (int) graphs.size(); gID++)
@@ -184,17 +211,45 @@ void topoblend::drawWithNames()
 	}
 }
 
-
 void topoblend::endSelection( const QPoint& p )
 {
 	drawArea()->defaultEndSelection(p);
 }
 
-
 void topoblend::postSelection( const QPoint& point )
 {
     Q_UNUSED(point);
 	int selectedID = drawArea()->selectedName();
+
+	if(property["correspondenceMode"].toBool())
+	{
+		// mesh visualization - set to solid gray
+		foreach(Graph * g, graphs){
+			foreach(Node * n, g->nodes){
+				int nodeID = n->property["meshSelectID"].toInt();
+
+				if(n->property["is_corresponded"].toBool())
+					continue;
+
+				if( selectedID == nodeID )
+				{
+					if( n->property["nodeSelected"].toBool() )
+					{
+						n->property["nodeSelected"] = false;
+						n->vis_property["meshColor"].setValue( QColor(180,180,180) );
+					}
+					else
+					{
+						n->property["nodeSelected"] = true;
+						n->vis_property["meshColor"].setValue( QColor(50,70,255) );
+					}
+				}
+			}
+		}
+
+		return;
+	}
+
 	if (selectedID == -1) return;
 
 	int gID, nID, pID;
@@ -638,13 +693,118 @@ void topoblend::quickAlign()
     alignmentDialog.exec();
 }
 
+bool topoblend::mouseReleaseEvent( QMouseEvent * event )
+{
+	bool used = false;
+
+	if( property["correspondenceMode"].toBool() ) 
+	{ 
+		if( event->button() == Qt::RightButton )
+		{
+			Graph * sourceGraph = graphs.front();
+			Graph * targetGraph = graphs.back();
+
+			QVector<QString> sParts, tParts;
+
+			QColor curColor = qRandomColor3(0, 0.25);
+
+			// Source
+			foreach(Node * n, sourceGraph->nodes){
+				if( n->property["nodeSelected"].toBool() ){
+					sParts << n->id;
+					n->property["nodeSelected"] = false;
+					n->vis_property["meshColor"].setValue( curColor );
+				}
+			}
+
+			// Target
+			foreach(Node * n, targetGraph->nodes){
+				if( n->property["nodeSelected"].toBool() ){
+					tParts << n->id;
+					n->property["nodeSelected"] = false;
+					n->vis_property["meshColor"].setValue( curColor );
+				}
+			}
+			
+			// Correspondence specified
+			if(sParts.size() > 0 && tParts.size() > 0)
+			{
+				corresponder()->addLandmarks(sParts, tParts);
+
+				// Assign colors
+				foreach(QString nodeID, sParts)	
+				{
+					sourceGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
+					sourceGraph->getNode( nodeID )->property["is_corresponded"] = true;
+				}
+				foreach(QString nodeID, tParts)	
+				{
+					targetGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
+					targetGraph->getNode( nodeID )->property["is_corresponded"] = true;
+				}
+			}
+		}
+	}
+
+	return used;
+}
+
 bool topoblend::keyPressEvent( QKeyEvent* event )
 {
 	bool used = false;
 
 	QElapsedTimer timer; timer.start();
 
+	if(event->key() == Qt::Key_C)
+	{
+		foreach(Graph * g, graphs){
+			foreach(Node * n, g->nodes){
+				n->vis_property["meshColor"].setValue( QColor(180,180,180) );
+				n->property["is_corresponded"] = false;
+			}
+		}
+
+		corresponder()->clear();
+
+		used = true;
+	}
+
 	if(event->key() == Qt::Key_Space)
+	{
+		// Enter / exit correspondence mode
+		property["correspondenceMode"] = !property["correspondenceMode"].toBool();
+		if(!property["correspondenceMode"].toBool()) 
+		{ 
+			drawArea()->setMouseBinding(Qt::LeftButton, QGLViewer::CAMERA, QGLViewer::ROTATE);
+			drawArea()->setMouseBinding(Qt::SHIFT | Qt::LeftButton, QGLViewer::SELECT);
+
+			// Reset mesh visualization
+			foreach(Graph * g, graphs){
+				foreach(Node * n, g->nodes){
+					n->vis_property["meshSolid"] = false;
+					n->vis_property["meshColor"].setValue( QColor(200,200,200,8) );
+				}
+			}
+
+			drawArea()->updateGL(); 
+			return used; 
+		}
+
+		drawArea()->setMouseBinding(Qt::LeftButton, QGLViewer::SELECT);
+		drawArea()->setMouseBinding(Qt::SHIFT | Qt::LeftButton, QGLViewer::CAMERA, QGLViewer::ROTATE);
+
+		// mesh visualization - set to solid gray
+		foreach(Graph * g, graphs){
+			foreach(Node * n, g->nodes){
+				n->vis_property["meshSolid"] = true;
+				n->vis_property["meshColor"].setValue( QColor(180,180,180) );
+			}
+		}
+
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_Space && (event->modifiers() & Qt::ShiftModifier))
 	{
 		for(int g = 0; g < (int) graphs.size(); g++)
 		{

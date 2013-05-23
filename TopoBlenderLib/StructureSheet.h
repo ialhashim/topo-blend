@@ -11,7 +11,7 @@ namespace Structure{
 struct Sheet : public Node
 {
     // Constructors
-    Sheet(const NURBS::NURBSRectangled & sheet, QString sheetID, QColor color = qRandomColor());
+    Sheet(const NURBS::NURBSRectangled & sheet, QString sheetID, QColor color = qRandomColor2());
 	Node * clone();
 
     // Underlaying structure
