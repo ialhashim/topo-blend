@@ -2,6 +2,7 @@
 
 #include "StructureGraph.h"
 #include <QGraphicsScene>
+#include <QDockWidget>
 #include "TimelineSlider.h"
 
 class Task;
@@ -23,6 +24,7 @@ public:
 	Structure::Graph * targetGraph;
 
 	SchedulerWidget * widget;
+	QDockWidget * dock;
 
     void prepareSynthesis();
 

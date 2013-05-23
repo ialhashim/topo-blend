@@ -39,6 +39,8 @@ VectorSoup vs1,vs2;
 
 double boundX = -DBL_MAX;
 
+Structure::Graph *orgSource = NULL, *orgTarget = NULL;
+
 topoblend::topoblend()
 {
 	widget = NULL;
@@ -729,7 +731,7 @@ bool topoblend::mouseReleaseEvent( QMouseEvent * event )
 			// Correspondence specified
 			if(sParts.size() > 0 && tParts.size() > 0)
 			{
-				corresponder()->addLandmarks(sParts, tParts);
+				gcoor->addLandmarks(sParts, tParts);
 
 				// Assign colors
 				foreach(QString nodeID, sParts)	
@@ -764,7 +766,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 			}
 		}
 
-		corresponder()->clear();
+		gcoor->clear();
 
 		used = true;
 	}
@@ -993,8 +995,8 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 			QDir dir("");
 			dir.setCurrent(QFileDialog::getExistingDirectory());
 
-			QString sGraphName = corresponder()->sgName();
-			QString tGraphName = corresponder()->tgName();
+			QString sGraphName = gcoor->sgName();
+			QString tGraphName = gcoor->tgName();
 
 			// Export source and target
 			DynamicGraphs::DynamicGraph sdg(blender->sg);
@@ -1033,44 +1035,78 @@ void topoblend::experimentSlot()
 
 void topoblend::doBlend()
 {
-	if (graphs.size() < 2)
+	if ( graphs.size() < 2 && !orgSource )
 	{
 		qDebug() << "Please load at least two graphs.";
 		return;
 	}
 
-	Structure::Graph * source = graphs.front();
-	Structure::Graph * target = graphs.back();
+	// Visualization
+	foreach(Graph * g, graphs){
+		foreach(Node * n, g->nodes){
+			n->vis_property["meshSolid"] = false;
+			n->vis_property["meshColor"].setValue( QColor(200,200,200,8) );
+		}
+	}
 
-	if(scheduler) scheduler->disconnect(this);
+	// Assign newly loaded source and target
+	if( graphs.size() == 2 && !orgSource && !orgTarget )
+	{
+		orgSource = new Graph(*graphs.front());
+		orgTarget = new Graph(*graphs.back());
+	}
 
 	QElapsedTimer timer; timer.start();
 
+	// Reload previous source and target if any
+	if( graphs.size() < 2 )
+	{
+		// Use previously loaded 
+		this->graphs.clear();
+		this->graphs.push_back( new Graph(*orgSource) );
+		this->graphs.push_back( new Graph(*orgTarget) );
+	}
+
+	if(scheduler) 
+	{
+		// Old signals
+		scheduler->disconnect(this);
+		this->disconnect(scheduler);
+		
+		scheduler->dock->close();
+
+		scheduler = NULL;
+	}
+
+	Structure::Graph * source = graphs.front();
+	Structure::Graph * target = graphs.back();
+
+	if( !gcoor )
+	{
+		gcoor = makeCorresponder();
+		gcoor->computeCorrespondences();
+	}
+
 	scheduler = new Scheduler();
+    blender = new TopoBlender( gcoor, scheduler );
 
-    blender = new TopoBlender( source, target, corresponder(), scheduler );
-
-	qDebug() << QString("Created TopoBlender and tasks in [ %1 ms ]").arg(timer.elapsed()  );
-
+	// Update active graph
 	this->connect(scheduler, SIGNAL(activeGraphChanged( Structure::Graph* )), SLOT(updateActiveGraph( Structure::Graph* )));
-	
+
+	// Render connections
 	this->connect(scheduler, SIGNAL(renderAll()), SLOT(renderAll()), Qt::UniqueConnection);
 	this->connect(scheduler, SIGNAL(renderCurrent()), SLOT(renderCurrent()), Qt::UniqueConnection);
 	this->connect(scheduler, SIGNAL(draftRender()), SLOT(draftRender()), Qt::UniqueConnection);
+
+	setStatusBarMessage( QString("Created TopoBlender and tasks in [ %1 ms ]").arg( timer.elapsed() ) );
 
 	//this->graphs.clear();
 	//this->graphs.push_back(scheduler->activeGraph);
 	//this->graphs.push_back(scheduler->targetGraph);
 
-	//graphs.push_back( blender->active );
-
-	//Structure::Graph * blendedGraph = blender->blend();
-
-	// Set options
-	//blender->materializeInBetween( blendedGraph, 0, source );
-	//graphs.push_back( blendedGraph );
-
 	setSceneBounds();
+
+	updateDrawArea();
 }
 
 void topoblend::experiment1()
@@ -1080,18 +1116,31 @@ void topoblend::experiment1()
 
 void topoblend::clearGraphs()
 {
-	qDeleteAll(graphs);
-	graphs.clear();
+	drawArea()->updateGL();
+
+	if(scheduler) 
+	{
+		scheduler->cleanUp();
+
+		// Old signals
+		scheduler->disconnect(this);
+		this->disconnect(scheduler);
+
+		scheduler->dock->close();
+	}
+	scheduler = NULL;
 
 	blender = NULL;
-
-	drawArea()->updateGL();
 
 	delete gcoor;
 	gcoor = NULL;
 
-	debugPoints.clear();
-	debugPoints2.clear();
+	orgSource = orgTarget = NULL;
+
+	debugPoints.clear(); debugPoints2.clear();	
+	
+	qDeleteAll(graphs);
+	graphs.clear();
 }
 
 void topoblend::currentExperiment()
@@ -1104,84 +1153,24 @@ void topoblend::updateDrawArea()
 	drawArea()->updateGL();
 }
 
-GraphCorresponder* topoblend::corresponder()
+GraphCorresponder* topoblend::makeCorresponder()
 {
-	if (!gcoor)
+	if (graphs.size() < 2)
 	{
-		if (graphs.size() < 2)
-		{
-			qDebug() << "Please load at least two graphs.";
-			return NULL;
-		}
-
-		Structure::Graph *sg = graphs[0];
-		Structure::Graph *tg = graphs[1];
-
-		gcoor = new GraphCorresponder(sg, tg);
+		qDebug() << "Please load at least two graphs.";
+		return NULL;
 	}
+
+	Structure::Graph *sg = graphs[0];
+	Structure::Graph *tg = graphs[1];
+
+	gcoor = new GraphCorresponder(sg, tg);
 
 	return gcoor;
 }
 
-
 void topoblend::testPoint2PointCorrespondences()
 {
-	// Create graphs
-	Structure::Graph *sg = new Structure::Graph();
-	Structure::Graph *tg = new Structure::Graph();
-	Structure::Graph *newG = new Structure::Graph();
-
-	graphs.push_back(sg);
-	graphs.push_back(tg);
-	graphs.push_back(newG);
-
-	// Create one sheet for each graph
-    NURBSRectangled sheet1 = NURBSRectangled::createSheet(2,1, Vector3(0,0,0), Vector3(1,0,0), Vector3(0,1,0));
-	Structure::Sheet *sSheet = new Structure::Sheet(sheet1, "sheet");
-	sg->addNode(sSheet);
-
-    NURBSRectangled sheet2 = NURBSRectangled::createSheet(2,1.5, Vector3(0,0,0), Vector3(-1,0,0), Vector3(0,-1,0));
-	Structure::Sheet *tSheet = new Structure::Sheet(sheet2, "sheet");
-	tg->addNode(tSheet);
-
-	Structure::Sheet *newSheet = new Structure::Sheet(*tSheet);
-	newG->addNode(newSheet);
-
-    NURBSCurved curve = NURBSCurved::createCurve(Vector3(0.3, 0.4, 0), Vector3(0.3, 0.6, 1));
-	sg->addNode(new Structure::Curve(curve, "curve"));
-	sg->addEdge("sheet", "curve");
-	tg->addNode(new Structure::Curve(curve, "curve"));
-	tg->addEdge("sheet", "curve");
-	newG->addNode(new Structure::Curve(curve, "curve"));
-	newG->addEdge("sheet", "curve");
-
-	// Realign two sheets
-	if (corresponder())
-		corresponder()->correspondTwoSheets(sSheet, tSheet, tg);
-
-	//// Create one curve for each graph
-    //NURBSCurved curve1 = NURBSCurved::createCurve(Vector3(0,-1,0), Vector3(0,1,0));
-	//Structure::Curve *sCurve = new Structure::Curve(curve1, "curve");
-	//sg->addNode(sCurve);
-
-    //NURBSCurved curve2 = NURBSCurved::createCurve(Vector3(0, 1, 0), Vector3(0, -1, 0));
-	//Structure::Curve *tCurve = new Structure::Curve(curve2, "curve");
-	//tg->addNode(tCurve);
-
-	//Structure::Curve *newCurve = new Structure::Curve(*tCurve);
-	//newG->addNode(newCurve);
-
-    //NURBSCurved Curve = NURBSCurved::createCurve(Vector3(-0.1, 0.7, 0), Vector3(0.5, 0.7, 0));
-	//sg->addNode(new Structure::Curve(Curve, "hcurve"));
-	//sg->addEdge("curve", "hcurve");
-	//tg->addNode(new Structure::Curve(Curve, "hcurve"));
-	//tg->addEdge("curve", "hcurve");
-	//newG->addNode(new Structure::Curve(Curve, "hcurve"));
-	//newG->addEdge("curve", "hcurve");
-
-	//if (corresponder())
-	//	corresponder()->correspondTwoCurves(sCurve, tCurve);
-
 	drawArea()->updateGL();
 }
 

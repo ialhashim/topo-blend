@@ -8,7 +8,7 @@
 LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QDialog(parent), ui(new Ui::LandmarksDialog)
 {
 	tb = topo_blender;
-	gcorr = tb->corresponder();
+	gcorr = tb->makeCorresponder();
     ui->setupUi(this);
 	
 	// Set up the table widgets
@@ -412,7 +412,7 @@ void LandmarksDialog::updateAll()
 
 void LandmarksDialog::reload()
 {
-	gcorr = tb->corresponder();
+	gcorr = tb->makeCorresponder();
 	if (!gcorr)
 	{
 		this->done(0);

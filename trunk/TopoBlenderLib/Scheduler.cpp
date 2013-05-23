@@ -382,6 +382,7 @@ void Scheduler::executeAll()
 		property["timeTags"].setValue( tags );
 	}
 
+	allGraphs.clear();
 
 	Relink linker(this);
 
