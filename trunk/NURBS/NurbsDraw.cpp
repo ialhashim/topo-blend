@@ -43,7 +43,7 @@ void CurveDraw::draw( NURBSCurved * nc, QColor curve_color, bool drawControl)
     }
 
     // Draw start indicator (thick portion)
-    glLineWidth (8.0f);
+    glLineWidth (5.0f);
     glBegin(GL_LINE_STRIP);
     for(int i = 0; i <= nSteps; i++){
         double u = double(i) / nSteps;
@@ -53,7 +53,7 @@ void CurveDraw::draw( NURBSCurved * nc, QColor curve_color, bool drawControl)
     }
     glEnd();
 
-    glLineWidth (4.0f);
+    glLineWidth (2.0f);
     glBegin(GL_LINE_STRIP);
     foreach(Vec3d p, points) glVertex3d(p.x(), p.y(), p.z());
     glEnd();
@@ -169,7 +169,7 @@ void SurfaceDraw::draw( NURBSRectangled * nc, QColor sheet_color, bool drawContr
     {
         SurfaceQuad quad = nc->quads.front();
 
-        glLineWidth(4);
+        glLineWidth(3);
 
         glColor3d(1,0,0);
         glBegin(GL_LINES);

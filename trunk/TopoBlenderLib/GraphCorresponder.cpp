@@ -448,17 +448,22 @@ void GraphCorresponder::saveLandmarks(QString filename)
 	file.close();
 }
 
+void GraphCorresponder::clear()
+{
+	landmarks.clear();
+	sIsLandmark.clear();
+	tIsLandmark.clear();
+	sIsLandmark.resize(sg->nodes.size(), false);
+	tIsLandmark.resize(tg->nodes.size(), false);
+}
+
 void GraphCorresponder::loadLandmarks(QString filename)
 {
 	QFile file(filename);
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
 	QTextStream inF(&file);
 
-	landmarks.clear();
-	sIsLandmark.clear();
-	tIsLandmark.clear();
-	sIsLandmark.resize(sg->nodes.size(), false);
-	tIsLandmark.resize(tg->nodes.size(), false);
+	clear();
 
 	int nbCorr;
 	inF >> nbCorr;

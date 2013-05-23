@@ -490,7 +490,20 @@ void Graph::draw( QGLViewer * drawArea )
 				{
 					if(n->property.contains("mesh"))
 					{
-						QuickMeshDraw::drawMeshWireFrame( n->property["mesh"].value<SurfaceMesh::Model*>() );
+						SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
+						//QuickMeshDraw::drawMeshWireFrame( nodeMesh );
+
+						QColor meshColor(255,255,255,8);
+						if(!n->vis_property.contains("meshColor"))
+							n->vis_property["meshColor"] = meshColor;
+						else
+							meshColor = n->vis_property["meshColor"].value<QColor>();
+
+						bool meshSolid = n->vis_property["meshSolid"].toBool();
+
+						if(!meshSolid) glDisable(GL_DEPTH_TEST);
+						QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
+						glEnable(GL_DEPTH_TEST);
 					}
 				}
 			}
@@ -776,7 +789,6 @@ void Graph::draw( QGLViewer * drawArea )
 	if (property["showAABB"].toBool()) drawAABB();
 }
 
-
 void Graph::drawAABB()
 {
 	if (!property.contains("AABB"))
@@ -824,8 +836,6 @@ void Graph::drawAABB()
 	glEnable(GL_LIGHTING);
 
 }
-
-
 
 void Graph::draw2D(int width, int height)
 {
@@ -902,6 +912,19 @@ void Graph::draw2D(int width, int height)
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_LIGHTING);
+}
+
+void Graph::drawNodeMeshNames( int & offSet )
+{
+	foreach(Node * n, nodes){
+		if(!n->property.contains("mesh")) continue;
+		SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
+		n->property["meshSelectID"] = offSet;
+
+		QuickMeshDraw::drawMeshName( nodeMesh, offSet );
+
+		offSet++;
+	}
 }
 
 void Graph::saveToFile( QString fileName ) const
@@ -1143,7 +1166,7 @@ void Graph::loadFromFile( QString fileName )
         for(int c = 0; c < (int)elements_list.size(); c++)
             elements_ids.push_back( elements_list.at(c).toElement().text() );
 
-		QColor groupColor = qRandomColor();
+		QColor groupColor = qRandomColor2();
 
         QVector<QString> element_nodes;
         foreach(QString nid, elements_ids){

@@ -673,3 +673,32 @@ static QColor qRandomColor()
     std::vector<double> c = randomColor();
     return QColor::fromRgbF( c[0], c[1], c[2], c[3] );
 }
+
+static QColor qRandomColor2(double saturation = 0.5, double val = 0.95)
+{
+	double golden_ratio_conjugate = 0.618033988749895;
+	double h = ((double)rand() / RAND_MAX);
+	h += golden_ratio_conjugate;
+	h = fmod(h, 1.0);
+	return QColor::fromHsvF(h, saturation, val);
+}
+
+// Helper functions
+double inline uniformRand(double a = 0.0, double b = 1.0){
+	double len = b - a;
+	return ((double)rand()/RAND_MAX) * len + a;
+}
+
+// for mid = 0, colors are centered around Red
+static QColor qRandomColor3(double mid = 0, double range = 0.5, double saturation = 1.0, double val = 1.0)
+{
+	// Bound checks
+	mid = qMax(0.0, qMin(1.0, mid));
+	range = qMin(0.5, range);
+
+	double h = uniformRand( -range + mid, range + mid );
+
+	h = fmod(1.0 + h, 1.0);
+
+	return QColor::fromHsvF(h, saturation, val);
+}

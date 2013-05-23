@@ -46,6 +46,8 @@ public:
 	void saveLandmarks(QString filename);
 	void loadLandmarks(QString filename);
 
+	void clear();
+
 	// Distance matrices
 	std::vector< std::vector<bool> > validM;
 	MATRIX spatialM, sizeM, orientationM, structuralM;

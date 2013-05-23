@@ -101,6 +101,7 @@ struct Graph
     void draw( QGLViewer * drawArea );
 	void drawAABB();
     void draw2D(int width, int height);
+	void drawNodeMeshNames( int & offSet );
 	QImage fontImage;
 
 	// Synthesis

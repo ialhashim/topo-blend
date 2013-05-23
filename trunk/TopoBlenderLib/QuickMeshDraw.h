@@ -5,7 +5,7 @@
 
 struct QuickMeshDraw{
 
-	static void drawMeshSolid( SurfaceMeshModel * mesh )
+	static void drawMeshSolid( SurfaceMeshModel * mesh, QColor c = QColor(255,255,255,255) )
 	{
 		if(!mesh) return;
 
@@ -22,7 +22,7 @@ struct QuickMeshDraw{
 		glEnable(GL_LIGHTING);
 		glDisable(GL_CULL_FACE);
 
-		glColor4d(1,1,1,1);
+		glColorQt(c);
 
 		Surface_mesh::Vertex_property<Vector3> points = mesh->vertex_property<Vector3>("v:point");
 		Surface_mesh::Face_property<Vector3> fnormals = mesh->face_property<Vector3>("f:normal");
@@ -67,5 +67,23 @@ struct QuickMeshDraw{
 		glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
 		glDisable(GL_CULL_FACE);
+	}
+
+	static void drawMeshName( SurfaceMeshModel * mesh, int name = 0 )
+	{
+		glPushName( name );
+
+		Surface_mesh::Vertex_property<Vector3> points = mesh->vertex_property<Vector3>("v:point");
+		Surface_mesh::Face_iterator fit, fend = mesh->faces_end();
+		Surface_mesh::Vertex_around_face_circulator fvit, fvend;
+
+		glBegin(GL_TRIANGLES);
+		for (fit=mesh->faces_begin(); fit!=fend; ++fit){
+			fvit = fvend = mesh->vertices(fit);
+			do{ glVector3( points[fvit] ); } while (++fvit != fvend);
+		}
+		glEnd();
+
+		glPopName();
 	}
 };
