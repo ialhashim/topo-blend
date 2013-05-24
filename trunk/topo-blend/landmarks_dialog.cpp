@@ -432,6 +432,7 @@ void LandmarksDialog::visualizePart2PartDistance( int id)
 
 void LandmarksDialog::computeCorrespondences()
 {
+	gcorr->isReady = true;
 	gcorr->computeCorrespondences();
 	updateCorrTab();
 }
