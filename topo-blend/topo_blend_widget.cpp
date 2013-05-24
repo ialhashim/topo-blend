@@ -132,6 +132,7 @@ void topo_blend_widget::loadJob()
 	// Load correspondence
 	tb->gcoor = tb->makeCorresponder();
 	tb->gcoor->loadCorrespondences( curPath + correspondenceFileName );
+	tb->gcoor->isReady = true;
 
 	// Create TopoBlender
 	tb->doBlend();
@@ -276,11 +277,10 @@ void topo_blend_widget::loadAnimationModel()
 
 void topo_blend_widget::loadCorrespondenceModel()
 {
-	if (tb->gcoor)
-	{
-		LandmarksDialog dialog(tb);
-		dialog.exec();
-	}
+	if (!tb->gcoor) tb->gcoor = tb->makeCorresponder();
+	
+	LandmarksDialog dialog(tb);
+	dialog.exec();
 }
 
 void topo_blend_widget::vizButtonClicked(QAbstractButton* b)

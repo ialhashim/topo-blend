@@ -708,14 +708,12 @@ bool topoblend::mouseReleaseEvent( QMouseEvent * event )
 
 			QVector<QString> sParts, tParts;
 
-			QColor curColor = qRandomColor3(0, 0.25);
-
 			// Source
 			foreach(Node * n, sourceGraph->nodes){
 				if( n->property["nodeSelected"].toBool() ){
 					sParts << n->id;
 					n->property["nodeSelected"] = false;
-					n->vis_property["meshColor"].setValue( curColor );
+					n->vis_property["meshColor"].setValue( QColor(180,180,180) );
 				}
 			}
 
@@ -724,14 +722,18 @@ bool topoblend::mouseReleaseEvent( QMouseEvent * event )
 				if( n->property["nodeSelected"].toBool() ){
 					tParts << n->id;
 					n->property["nodeSelected"] = false;
-					n->vis_property["meshColor"].setValue( curColor );
+					n->vis_property["meshColor"].setValue( QColor(180,180,180) );
 				}
 			}
 			
 			// Correspondence specified
 			if(sParts.size() > 0 && tParts.size() > 0)
 			{
+				if(!gcoor) gcoor = makeCorresponder();
+
 				gcoor->addLandmarks(sParts, tParts);
+
+				QColor curColor = qRandomColor3(0, 0.25);
 
 				// Assign colors
 				foreach(QString nodeID, sParts)	
@@ -744,6 +746,8 @@ bool topoblend::mouseReleaseEvent( QMouseEvent * event )
 					targetGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
 					targetGraph->getNode( nodeID )->property["is_corresponded"] = true;
 				}
+
+				gcoor->isReady = false;
 			}
 		}
 	}
@@ -1078,12 +1082,13 @@ void topoblend::doBlend()
 		scheduler = NULL;
 	}
 
-	Structure::Graph * source = graphs.front();
-	Structure::Graph * target = graphs.back();
-
 	if( !gcoor )
 	{
 		gcoor = makeCorresponder();
+	}
+
+	if( !gcoor->isReady )
+	{
 		gcoor->computeCorrespondences();
 	}
 
