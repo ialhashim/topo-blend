@@ -247,7 +247,14 @@ SurfaceMesh::Vector3 Curve::center()
 
 void Curve::draw(bool isShowCtrlPts)
 {
-    NURBS::CurveDraw::draw( &curve, vis_property["color"].value<QColor>(), isShowCtrlPts );
+	if(vis_property["glow"].toBool())
+	{
+		NURBS::CurveDraw::draw( &curve, Qt::yellow, isShowCtrlPts, 2.5 );
+	}
+	else
+	{
+		NURBS::CurveDraw::draw( &curve, vis_property["color"].value<QColor>(), isShowCtrlPts );
+	}
 
 	glPointSize(10);
 	glColor3d(1,0,1);
@@ -276,8 +283,6 @@ void Curve::draw(bool isShowCtrlPts)
 
 	gluDeleteQuadric(quadObj);
 }
-
-
 
 void Curve::drawWithNames( int nID, int pointIDRange )
 {

@@ -12,11 +12,11 @@ namespace NURBS
 {
     class CurveDraw{
     public:
-        static void draw( NURBSCurved * nc, QColor curve_color = QColor(0,255,255), bool drawControl = false);
+        static void draw( NURBSCurved * nc, QColor curve_color = QColor(0,255,255), bool drawControl = false, double scaling = 1.0);
     };
 
     class SurfaceDraw{
     public:
-        static void draw( NURBSRectangled * nc, QColor sheet_color = QColor(0,255,255), bool drawControl = false );
+        static void draw( NURBSRectangled * nc, QColor sheet_color = QColor(0,255,255), bool drawControl = false, double scaling = 1.0, QColor wireframe_color = QColor(0,0,0));
     };
 }
