@@ -78,9 +78,23 @@ QVariant Task::itemChange( GraphicsItemChange change, const QVariant & value )
 		taskGlow->setBlurRadius(20);
 		taskGlow->setOffset(0);
 		this->setGraphicsEffect(taskGlow);
+		
+		if(node() && targetNode())
+		{
+			node()->vis_property["glow"] = true;
+			targetNode()->vis_property["glow"] = true;
+		}
 	}
 	else
+	{
 		this->setGraphicsEffect(0);
+
+		if(node() && targetNode())
+		{
+			node()->vis_property["glow"] = false;
+			targetNode()->vis_property["glow"] = false;
+		}
+	}
 
 	if (scene() && change == ItemPositionChange && !isResizing) 
 	{

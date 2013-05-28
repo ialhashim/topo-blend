@@ -76,6 +76,8 @@ protected:
 	void drawBackground ( QPainter * painter, const QRectF & rect );
 	void drawForeground ( QPainter * painter, const QRectF & rect );
 
+	void mouseReleaseEvent( QGraphicsSceneMouseEvent * event );
+
 public slots:
 	void timeChanged(int newTime);
 	void doBlend();
@@ -108,4 +110,6 @@ signals:
 	void renderAll();
 	void renderCurrent();
 	void draftRender();
+
+	void updateExternalViewer();
 };

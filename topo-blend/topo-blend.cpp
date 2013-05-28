@@ -133,7 +133,6 @@ void topoblend::decorate()
 	double deltaX = boundX;
 	double posX = -(deltaX / 2) * (graphs.size() / 2);
 
-
 	for(int g = 0; g < (int) graphs.size(); g++)
 	{
 		// Apply visualization options
@@ -152,15 +151,29 @@ void topoblend::decorate()
 		glPushMatrix();
 		glTranslatef(posX, 0, 0);
         graphs[g]->draw( drawArea() );
+		graphs[g]->property["posX"] = posX;
 		glPopMatrix();
 
 		posX += deltaX;
 	}
 
+	if( scheduler && graphs.size() == 2 )
+	{
+		double posX = graphs.front()->property["posX"].toDouble();
+
+		// Source
+		foreach(Node * n, scheduler->activeGraph->nodes){
+			glPushMatrix();
+			glTranslatef(posX,0,0);
+			if(n->vis_property["glow"].toBool()) n->draw();
+			glPopMatrix();
+		}
+	}
+
 	// Textual information
 	glColor4d(1,1,1,0.25);
 	drawArea()->renderText(40,40, "[TopoBlend]");
-	if(property["correspondenceMode"].toBool()) 
+	if( property["correspondenceMode"].toBool() ) 
 	{
 		glColor4d(1,1,1,1);
 		drawArea()->renderText(40,80, "Correspondence Mode");
@@ -1106,6 +1119,9 @@ void topoblend::doBlend()
 	this->connect(scheduler, SIGNAL(renderAll()), SLOT(renderAll()), Qt::UniqueConnection);
 	this->connect(scheduler, SIGNAL(renderCurrent()), SLOT(renderCurrent()), Qt::UniqueConnection);
 	this->connect(scheduler, SIGNAL(draftRender()), SLOT(draftRender()), Qt::UniqueConnection);
+
+	// Other connections
+	this->connect(scheduler, SIGNAL(updateExternalViewer()), SLOT(updateDrawArea()));
 
 	setStatusBarMessage( QString("Created TopoBlender and tasks in [ %1 ms ]").arg( timer.elapsed() ) );
 

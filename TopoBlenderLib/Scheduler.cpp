@@ -788,3 +788,9 @@ void Scheduler::defaultSchedule()
 {
 	this->order();
 }
+
+void Scheduler::mouseReleaseEvent( QGraphicsSceneMouseEvent * event )
+{
+	emit( updateExternalViewer() );
+	QGraphicsScene::mouseReleaseEvent(event);
+}
