@@ -638,6 +638,18 @@ void topoblend::loadModel()
 	setSceneBounds();
 }
 
+QString topoblend::loadJobFileName()
+{
+	QString job_filename = QFileDialog::getOpenFileName(0, tr("Load Job"), mainWindow()->settings()->getString("lastUsedDirectory"), tr("Job Files (*.job)"));
+	if(job_filename.isEmpty()) return "";
+
+	// Keep folder active
+	QFileInfo fileInfo(job_filename);
+	mainWindow()->settings()->set( "lastUsedDirectory", fileInfo.absolutePath() );
+
+	return job_filename;
+}
+
 void topoblend::saveModel()
 {
 	if (graphs.size() < 1){
@@ -967,31 +979,6 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		used = true;
 	}
 
-	if(event->key() == Qt::Key_F)
-	{  
-		SurfaceMeshHelper h(mesh());
-		Vector3VertexProperty points = h.getVector3VertexProperty(VPOINT);
-
-		Vertex vert = SurfaceMesh::Vertex(3);
-
-		Vec3d center(0);
-		foreach(Halfedge he, mesh()->onering_hedges(vert)){
-			center += points[mesh()->to_vertex(he)];
-		}
-		center /= mesh()->valence(vert);
-
-		points[vert] = AlphaBlend(0.1, points[vert], center);
-
-		QVector<Vector3> samples = SimilarSampler::FaceSamples(mesh());
-
-		PointSoup * ps = new PointSoup;
-		drawArea()->deleteAllRenderObjects();
-		foreach(Vector3 p, samples)	ps->addPoint(p);
-		drawArea()->addRenderObject(ps);
-
-		used = true;
-	}
-
 	if(event->key() == Qt::Key_G)
 	{
 		if(scheduler && blender)
@@ -1024,6 +1011,23 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 			paint.end();
 			bothImg.save("All_Graphs.png");
 		}
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_F)
+	{
+		QString graphFilename = "tempGraph_"+QString::number(QDateTime::currentMSecsSinceEpoch());
+		visualizeStructureGraph(graphs.back(), graphFilename, "Current graph");
+
+		QImage img(graphFilename+".png");
+
+		QMessageBox* msgBox = new QMessageBox;
+		msgBox->setAttribute( Qt::WA_DeleteOnClose );
+		msgBox->setIconPixmap( QPixmap::fromImage(img) );
+		msgBox->setModal( false );
+		msgBox->setMinimumSize(img.width(), img.height());
+		msgBox->open();
+
 		used = true;
 	}
 

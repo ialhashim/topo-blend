@@ -37,9 +37,6 @@ Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, Task
 	width = length;
 	height = 17;
 	setFlags( ItemIsMovable | ItemIsSelectable | ItemSendsGeometryChanges );
-
-	// Task glow when selected
-
 }
 
 QRectF Task::boundingRect() const

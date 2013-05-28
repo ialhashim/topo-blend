@@ -360,7 +360,7 @@ void TaskCurve::executeCurve(double t)
 	case SHRINK:
 		{
 			// DEBUG:
-			if(type==GROW)active->spheres.addSphere(this->node()->bbox().center(), 0.03, QColor(255,0,0,100));
+			//if(type==GROW)active->spheres.addSphere(this->node()->bbox().center(), 0.03, QColor(255,0,0,100));
 
 			if ( property.contains("deltas") )	foldCurve(t);
 			else executeCrossingCurve(t);

@@ -74,6 +74,7 @@ public slots:
     void modifyModel();
     void quickAlign();
 	void normalizeAllGraphs();
+	QString loadJobFileName();
 
 	void experiment1();
 	void currentExperiment();
