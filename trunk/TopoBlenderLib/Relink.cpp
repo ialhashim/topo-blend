@@ -22,13 +22,13 @@ void Relink::execute()
 	}
 
 	// Set up starting nodes
-	// Skip all crossing nodes
 	QVector<QString> activeNodeIDs = activeGraph->property["activeTasks"].value< QVector<QString> >();
 	foreach (QString nID, activeNodeIDs)
 	{
 		Task* task = s->getTaskFromNodeID(nID);
 
-		if (doesPropagate(task))
+		// Skip all crossing nodes
+		if ( doesPropagate(task) )
 		{
 			propagationQueue.enqueue(task);
 			task->property["propagated"] = true;
@@ -36,50 +36,17 @@ void Relink::execute()
 	}
 
 	// propagating
-	while(!propagationQueue.isEmpty())
+	while( !propagationQueue.isEmpty() )
 	{
 		Task* task = propagationQueue.dequeue();
 
-		// Fix task according to constraints
+		// Fix current task according to constraints
 		fixTask(task);
 
 		// Propagate from task
 		propagateFrom(task);
 	}
 }
-
-
-void Relink::propagateFrom( Task* task )
-{
-	Structure::Node * n = task->node();
-	QVector<Structure::Link*> edges = activeGraph->getEdges(n->id);
-
-
-	// Virtual cut node
-	bool virtualCutting =  task->isCutting() && !task->isCuttingReal();
-
-	foreach(Structure::Link* link, edges)
-	{
-		Structure::Node * other = link->otherNode(n->id);
-		Task * otherTask = s->getTaskFromNodeID(other->id);
-
-		// Virtual cut node
-		// Don't propagate to its real neighbours
-		if (virtualCutting && !task->ungrownNode(otherTask->nodeID)) continue;
-
-		// Add to queue
-		if (!otherTask->property["propagated"].toBool())
-		{
-			propagationQueue.enqueue(otherTask);
-			otherTask->property["propagated"] = true;
-		}
-
-		// generate constrains to unfixed task
-		if (!otherTask->property["relinked"].toBool())
-			constraints[ otherTask ].push_back( LinkConstraint(link, task, otherTask) );
-	}
-}
-
 
 void Relink::fixTask( Task* task )
 {
@@ -88,9 +55,10 @@ void Relink::fixTask( Task* task )
 	Structure::Node * n = task->node();
 
 	QVector<LinkConstraint> consts;
-	if (constraints.contains(task)) consts = constraints[task];
-
+	if ( constraints.contains(task) ) consts = constraints[task];
 	int N = consts.size();
+
+	// No constraints for task
 	if (N == 0) return;
 
 	// Crossing node is still fixable 
@@ -100,8 +68,7 @@ void Relink::fixTask( Task* task )
 	if (task->type == Task::MORPH && task->isDone && !task->property["isCrossing"].toBool())
 		fixedSize = true;
 
-
-	if (fixedSize && N > 0 )
+	if ( fixedSize && N > 0 )
 	{
 		// Use all constraints
 		Vec3d translation(0);
@@ -116,7 +83,7 @@ void Relink::fixTask( Task* task )
 
 			translation += newPos - oldPos;
 		}
-		n->moveBy(translation / N);
+		n->moveBy( translation / N );
 		
 		// Visualization
 		foreach(LinkConstraint c, consts)
@@ -127,7 +94,6 @@ void Relink::fixTask( Task* task )
 
 			activeGraph->vs2.addVector( linkPosOther, delta );
 		}
-
 	}
 	else 
 	{
@@ -135,7 +101,7 @@ void Relink::fixTask( Task* task )
 		if (task->ungrownNode(task->nodeID)) N = 1;
 		
 		// Translate future tasks if only one constraint
-		if( N == 1)
+		if( N == 1 )
 		{
 			LinkConstraint constraint = consts.front();
 			Structure::Link * link = constraint.link;
@@ -152,7 +118,7 @@ void Relink::fixTask( Task* task )
 			activeGraph->vs2.addVector( linkPosOther, delta );
 		}
 		// Deform future tasks by two handles if multiple constrains exist
-		else if (N > 1)
+		else if ( N > 1 )
 		{
 			// Pickup two constrains to deform the node
 			LinkConstraint cA = consts.front();
@@ -174,15 +140,26 @@ void Relink::fixTask( Task* task )
 			double handleDiff = (handleA - handleB).norm();
 			double newPosDiff = (newPosA - newPosB).norm();
 			if (handleDiff < 0.1 || newPosDiff < 0.05)
-				n->moveBy( (newPosA - linkPosOtherA + newPosB - linkPosOtherB) / 2);
+			{
+				// Pick first one only
+				Vec3d oldPos = linkA->position(n->id);
+				Vec3d linkPosOther = linkA->positionOther(n->id);
+				Vec3d delta = getToDelta(linkA, n->id);
+				Vector3 newPos = linkPosOther + delta;
 
+				// Translate
+				n->moveBy(newPos - oldPos);
+				activeGraph->vs2.addVector( linkPosOther, delta );
+			}
 			// Deform two handles
 			else 
+			{
 				n->deformTwoHandles(handleA, newPosA, handleB, newPosB);
 
-			// Visualization
-			activeGraph->vs2.addVector( linkPosOtherA, deltaA );
-			activeGraph->vs2.addVector( linkPosOtherB, deltaB );
+				// Visualization
+				activeGraph->vs2.addVector( linkPosOtherA, deltaA );
+				activeGraph->vs2.addVector( linkPosOtherB, deltaB );
+			}
 		}
 	}
 
@@ -197,6 +174,36 @@ void Relink::fixTask( Task* task )
 	}
 }
 
+void Relink::propagateFrom( Task* task )
+{
+	Structure::Node * n = task->node();
+	QVector<Structure::Link*> edges = activeGraph->getEdges(n->id);
+
+	// Virtual cut node
+	bool virtualCutting =  task->isCutting() && !task->isCuttingReal();
+
+	foreach(Structure::Link* link, edges)
+	{
+		Structure::Node * other = link->otherNode(n->id);
+		Task * otherTask = s->getTaskFromNodeID(other->id);
+
+		// Virtual cut node
+		// Don't propagate to its real neighbours
+		if (virtualCutting && !task->ungrownNode(otherTask->nodeID)) continue;
+
+		// Add to queue
+		if ( !otherTask->property["propagated"].toBool() )
+		{
+			propagationQueue.enqueue(otherTask);
+			otherTask->property["propagated"] = true;
+		}
+
+		// generate constrains to unfixed task
+		if ( !otherTask->property["relinked"].toBool() )
+			constraints[ otherTask ].push_back( LinkConstraint(link, task, otherTask) );
+	}
+}
+
 Vector3 Relink::getToDelta( Structure::Link * link, QString toOtherID )
 {
 	// by default delta = n2 - n1
@@ -205,12 +212,9 @@ Vector3 Relink::getToDelta( Structure::Link * link, QString toOtherID )
 	return delta;
 }
 
-
 bool Relink::doesPropagate(Task* task)
 {
 	if (task->isCutting()) return true;
-	
 	if (task->type == Task::MORPH && !task->isCrossing()) return true;
-
 	return false;
 }

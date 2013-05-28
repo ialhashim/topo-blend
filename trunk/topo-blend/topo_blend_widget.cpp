@@ -101,7 +101,8 @@ void topo_blend_widget::doBlend()
 
 void topo_blend_widget::loadJob()
 {
-	QFile job_file( QFileDialog::getOpenFileName(0, tr("Load Job"), "", tr("Job Files (*.job)")) );
+	QFile job_file( tb->loadJobFileName() );
+
 	if (!job_file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
 	QFileInfo jobFileInfo(job_file.fileName());
 	QTextStream in(&job_file);
