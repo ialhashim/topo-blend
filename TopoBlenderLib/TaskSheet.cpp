@@ -269,11 +269,11 @@ void TaskSheet::executeMorphSheet( double t )
         eye = Eigen::Quaterniond::Identity();
 
     // Source sheet
-    Eigen::Vector3d R = V2E(sframe.r), S = V2E(sframe.s), T = V2E(sframe.t);
+    Eigen::Vector3d R = (sframe.r), S = (sframe.s), T = (sframe.t);
     R = eye.slerp(t, rotation) * R;
     S = eye.slerp(t, rotation) * S;
     T = eye.slerp(t, rotation) * T;
-    RMF::Frame curFrame (E2V(R),E2V(S),E2V(T));
+    RMF::Frame curFrame ((R),(S),(T));
 
     curFrame.center = tframe.center = AlphaBlend(t, sframe.center, tframe.center);
 

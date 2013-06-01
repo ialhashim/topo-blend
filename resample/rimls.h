@@ -252,7 +252,7 @@ public:
 		mCachedQueryPointIsOK = false;
 	}
 
-	const QBox3D& boundingBox() const { return mAABB; }
+	const Eigen::AlignedBox3d& boundingBox() const { return mAABB; }
 
 	void computeVertexRaddi(const int nbNeighbors = 16)
 	{
@@ -512,7 +512,7 @@ protected:
 protected:
 
 	SurfaceMeshModel * mesh;
-	QBox3D mAABB;
+	AlignedBox3d mAABB;
 	int mGradientHint;
 	int mHessianHint;
 

@@ -17,7 +17,7 @@ public:
         std::vector<Vec3d> samples, centers, rndSamples;
 
         // Centers of packed spheres
-        centers = spheres(r, m->bbox().minimum(), m->bbox().maximum(), density);
+        centers = spheres(r, m->bbox().min(), m->bbox().max(), density);
 
 		// Get a lot of random samples
 		foreach(SamplePoint sp, Sampler(m).getSamples(randomSampleCount)){

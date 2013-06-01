@@ -23,7 +23,7 @@ public:
 
 	Surface_mesh * mesh;
 	double width, length, height;
-	Vec3d center;
+	Eigen::Vector3d center;
 	Vec3i resolution;
     Surface_mesh::Vertex_property<Vec3d> mesh_points;
 	Surface_mesh temp_mesh;

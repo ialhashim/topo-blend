@@ -21,7 +21,7 @@ public:
         std::vector<Vec3d> rndSamples = getRandomSamples(m, randomSampleCount, rndNormals);
 
         // Centers of packed spheres
-        centers = spheres(r, m->bbox().minimum(), m->bbox().maximum(), density);
+        centers = spheres(r, m->bbox().min(), m->bbox().max(), density);
 
 		// Initialize KD-tree
 		NanoKdTree tree;

@@ -18,7 +18,7 @@ void voxel_resampler::applyFilter(RichParameterSet *pars)
 {
 	// Voxel size
 	double vox_scale = pars->getFloat("voxel_scale");
-	double voxel_size = vox_scale * mesh()->bbox().size().length();
+	double voxel_size = vox_scale * mesh()->bbox().diagonal().norm();
 
 	// Voxelize the mesh
 	VoxelerLibrary::Voxeler voxeler(mesh(), voxel_size, true);

@@ -5,8 +5,8 @@
 #include <Eigen/Eigenvalues>
 using namespace Eigen;
 
-#define V2E(vec) (Eigen::Vector3d(vec[0], vec[1], vec[2]))
-#define E2V(vec) (Vec3d(vec[0], vec[1], vec[2]))
+#define (vec) (Eigen::Vector3d(vec[0], vec[1], vec[2]))
+#define (vec) (Vec3d(vec[0], vec[1], vec[2]))
 
 class PCA3
 {
@@ -50,7 +50,7 @@ public:
 
 	Vec3d eigenvalues()
 	{
-		return E2V(e_values);
+		return (e_values);
 	}
 
 	std::vector<Vec3d> eigenvectors()
@@ -59,7 +59,7 @@ public:
 		for (int i = 2;i >= 0;i--)
 		{
 			// Descending order
-			vectors.push_back(E2V(e_vectors.col(i)));
+			vectors.push_back((e_vectors.col(i)));
 		}
 
 		return vectors;

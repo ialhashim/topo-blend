@@ -37,18 +37,21 @@ QString Sheet::type()
     return SHEET;
 }
 
-QBox3D Sheet::bbox(double scaling)
+Eigen::AlignedBox3d Sheet::bbox(double scaling)
 {
-    QBox3D box;
+    Eigen::AlignedBox3d box;
 
     foreach(std::vector<Vec3d> cps, surface.mCtrlPoint)
         foreach(Vec3d cp, cps)
-            box.unite(cp);
+            box = box.merged( Eigen::AlignedBox3d(cp, cp) );
 
 	// Scaling
-	QVector3D diagonal = box.size() * 0.5;
-	box.unite(box.center() + (diagonal * scaling));
-	box.unite(box.center() - (diagonal * scaling));
+	Eigen::Vector3d diagonal = box.diagonal() * 0.5;
+	Eigen::Vector3d a = box.center() + (diagonal * scaling);
+	Eigen::Vector3d b = box.center() - (diagonal * scaling);
+
+	box = box.merged( Eigen::AlignedBox3d(a,a) );
+	box = box.merged( Eigen::AlignedBox3d(b,b) );
 
     return box;
 }

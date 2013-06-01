@@ -11,6 +11,7 @@
 #include <QFileDialog>
 #include <QDir>
 #include <QListWidgetItem>
+#include <QMatrix4x4>
 
 #include "topo-blend.h"
 #include "GraphCorresponder.h"

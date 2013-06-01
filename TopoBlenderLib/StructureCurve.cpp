@@ -14,8 +14,6 @@ bool IsNumber(double x) {return (x == x); }
 bool IsFiniteNumber(double x) {return (x <= DBL_MAX && x >= -DBL_MAX); } 
 
 #include <Eigen/Geometry>
-#define V2E(vec) ((Eigen::Vector3d(vec[0], vec[1], vec[2])))
-#define E2V(vec) ((Vec3d(vec[0], vec[1], vec[2])))
 
 Curve::Curve(const NURBS::NURBSCurved & newCurve, QString newID, QColor color)
 {
@@ -38,17 +36,21 @@ QString Curve::type()
     return CURVE;
 }
 
-QBox3D Curve::bbox(double scaling)
+Eigen::AlignedBox3d Curve::bbox(double scaling)
 {
-    QBox3D box;
+    Eigen::AlignedBox3d box;
 
     foreach(Vec3d cp, curve.getControlPoints())
-        box.unite(cp);
+        box = box.merged( Eigen::AlignedBox3d(cp, cp) );
 
 	// Scaling
-	QVector3D diagonal = box.size() * 0.5;
-	box.unite(box.center() + (diagonal * scaling));
-	box.unite(box.center() - (diagonal * scaling));
+	Eigen::Vector3d diagonal = box.diagonal() * 0.5;
+
+	Eigen::Vector3d a = box.center() + (diagonal * scaling);
+	Eigen::Vector3d b = box.center() - (diagonal * scaling);
+
+	box = box.merged( Eigen::AlignedBox3d(a,a) );
+	box = box.merged( Eigen::AlignedBox3d(b,b) );
 
     return box;
 }
@@ -439,7 +441,7 @@ void Curve::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
 		return;
 	}
 
-	Vector3 otherEnd = position( otherEndCoord );
+	Eigen::Vector3d otherEnd = position( otherEndCoord );
 
 	// Find new scale
 	double d = (p - otherEnd).norm();
@@ -448,22 +450,26 @@ void Curve::deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid )
 	double scale = (to - otherEnd).norm() / d;
 
 	// Find minimum rotation
-	Vector3 dirFrom = (p - otherEnd).normalized();
-	Vector3 dirTo = (to - otherEnd).normalized();
-	Eigen::Quaterniond rotation = Eigen::Quaterniond::FromTwoVectors(V2E(dirFrom), V2E(dirTo)).normalized();
+	Eigen::Vector3d dirFrom (p - otherEnd);
+	Eigen::Vector3d dirTo (to - otherEnd);
+
+	dirFrom.normalize();
+	dirTo.normalize();
+
+	Eigen::Quaterniond rotation = Eigen::Quaterniond::FromTwoVectors(dirFrom, dirTo).normalized();
 
 	Array1D_Vector3 ctrlPnts = controlPoints();
 
 	// Compute deltas and apply transformations
 	for(int i = 0; i < (int)ctrlPnts.size(); i++)
 	{
-		Vector3 delta = (ctrlPnts[i] - otherEnd);
+		Eigen::Vector3d delta = (ctrlPnts[i] - otherEnd);
 		double length = delta.norm() * scale;
 		delta.normalize();
 
-		Vector3 rotated = E2V( (rotation * V2E(delta)) );
+		Eigen::Vector3d rotated = rotation * delta;
 
-		ctrlPnts[i] = (rotated * length) + otherEnd;
+		ctrlPnts[i] = Vector3( (rotated * length) + otherEnd );
 	}
 
 	setControlPoints( ctrlPnts );

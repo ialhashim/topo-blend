@@ -7,14 +7,11 @@
 #include <Eigen/Geometry>
 #include <Eigen/Eigenvalues>
 
-#define V2E(vec) ((Eigen::Vector3d(vec[0], vec[1], vec[2])))
-#define E2V(vec) ((Vec3d(vec[0], vec[1], vec[2])))
-
 struct AbsoluteOrientation{
 
-	static void compute( Vec3d Xa,Vec3d Ya,Vec3d Za, Vec3d Xb,Vec3d Yb,Vec3d Zb, Eigen::Quaterniond &result );
-	static void compute( std::vector<Vec3d> &left, std::vector<Vec3d> &right, Eigen::Quaterniond &result );
+	static void compute( Eigen::Vector3d Xa,Eigen::Vector3d Ya,Eigen::Vector3d Za, Eigen::Vector3d Xb,Eigen::Vector3d Yb,Eigen::Vector3d Zb, Eigen::Quaterniond &result );
+	static void compute( std::vector<Eigen::Vector3d> &left, std::vector<Eigen::Vector3d> &right, Eigen::Quaterniond &result );
 
 	// Experiments
-	static void minOnT( std::vector<Vec3d> &frameA, std::vector<Vec3d> &frameB, Eigen::Quaterniond &result );
+	static void minOnT( std::vector<Eigen::Vector3d> &frameA, std::vector<Eigen::Vector3d> &frameB, Eigen::Quaterniond &result );
 };

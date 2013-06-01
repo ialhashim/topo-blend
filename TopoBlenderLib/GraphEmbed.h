@@ -16,7 +16,7 @@ struct GraphEmbed
         std::vector<Vector3> centers;
         foreach(Node * n, graph->nodes){
             nmap[nmap.size()] = n;
-            centers.push_back( n->bbox().center() );
+            centers.push_back( Vector3(n->bbox().center()) );
         }
         int N = centers.size();
 

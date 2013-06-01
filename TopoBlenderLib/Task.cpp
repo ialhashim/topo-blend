@@ -682,12 +682,12 @@ std::vector<RMF::Frame> Task::smoothRotateFrame( RMF::Frame sframe, Eigen::Quate
 
 	for(double alpha = 0; alpha <= 1.0; alpha += stepSize)
 	{
-		Eigen::Vector3d r = V2E(sframe.r), s = V2E(sframe.s), t = V2E(sframe.t);
+		Eigen::Vector3d r = sframe.r, s = sframe.s, t = sframe.t;
 		r = eye.slerp(alpha, rotation) * r;
 		s = eye.slerp(alpha, rotation) * s;
 		t = eye.slerp(alpha, rotation) * t;
 
-		RMF::Frame curFrame = RMF::Frame(E2V(r),E2V(s),E2V(t));
+		RMF::Frame curFrame = RMF::Frame((r),(s),(t));
 		curFrame.center = sframe.center;
 		frames.push_back(curFrame);
 	}
