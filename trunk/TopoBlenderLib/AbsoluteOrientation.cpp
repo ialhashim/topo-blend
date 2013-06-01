@@ -1,21 +1,21 @@
 #include "AbsoluteOrientation.h"
 
-void AbsoluteOrientation::compute( Vec3d Xa,Vec3d Ya,Vec3d Za, Vec3d Xb,Vec3d Yb,Vec3d Zb, Eigen::Quaterniond &result )
+void AbsoluteOrientation::compute( Eigen::Vector3d Xa,Eigen::Vector3d Ya,Eigen::Vector3d Za, Eigen::Vector3d Xb,Eigen::Vector3d Yb,Eigen::Vector3d Zb, Eigen::Quaterniond &result )
 {
-	std::vector<Vec3d> A,B;
+	std::vector<Eigen::Vector3d> A,B;
 	A.push_back(Xa); A.push_back(Ya); A.push_back(Za);
 	B.push_back(Xb); B.push_back(Yb); B.push_back(Zb);
 	compute(A,B,result);
 }
 
-void AbsoluteOrientation::compute( std::vector<Vec3d> &left, std::vector<Vec3d> &right, Eigen::Quaterniond &result )
+void AbsoluteOrientation::compute( std::vector<Eigen::Vector3d> &left, std::vector<Eigen::Vector3d> &right, Eigen::Quaterniond &result )
 {
 	int i, pairNum = left.size();
 
 	Eigen::MatrixXd muLmuR = Eigen::MatrixXd::Zero(3,3), M = Eigen::MatrixXd::Zero(3,3), 
 		curMat = Eigen::MatrixXd::Zero(3,3), N = Eigen::MatrixXd::Zero(4,4);
 
-	Vec3d meanFirst(0), meanSecond(0); //assume points set to zero by constructor
+	Eigen::Vector3d meanFirst(0), meanSecond(0); //assume points set to zero by constructor
 
 	//compute the mean of both point sets
 	for (i=0; i<pairNum; i++) {
@@ -38,8 +38,8 @@ void AbsoluteOrientation::compute( std::vector<Vec3d> &left, std::vector<Vec3d> 
 
 	//compute the matrix M
 	for (i=0; i<pairNum; i++) {
-		Vec3d &leftPoint = left[i];
-		Vec3d &rightPoint = right[i];
+		Eigen::Vector3d &leftPoint = left[i];
+		Eigen::Vector3d &rightPoint = right[i];
 		curMat(0,0) = leftPoint[0]*rightPoint[0];		
 		curMat(0,1) = leftPoint[0]*rightPoint[1];		
 		curMat(0,2) = leftPoint[0]*rightPoint[2];
@@ -87,16 +87,16 @@ void AbsoluteOrientation::compute( std::vector<Vec3d> &left, std::vector<Vec3d> 
 	result = Eigen::Quaterniond( V(0,3),V(1,3),V(2,3),V(3,3) ).normalized();
 }
 
-void AbsoluteOrientation::minOnT( std::vector<Vec3d> &frameA, std::vector<Vec3d> &frameB, Eigen::Quaterniond &result )
+void AbsoluteOrientation::minOnT( std::vector<Eigen::Vector3d> &frameA, std::vector<Eigen::Vector3d> &frameB, Eigen::Quaterniond &result )
 {
 	// Find minimum rotation for T
-	result = Eigen::Quaterniond::FromTwoVectors( V2E(frameA[2]), V2E(frameB[2]) );
+	result = Eigen::Quaterniond::FromTwoVectors( frameA[2], frameB[2] );
 
 	// Apply to frame A
 	for(int i = 0;i < (int)frameA.size(); i++)
-		frameA[i] = E2V((result * V2E(frameA[i])));
+		frameA[i] = result * frameA[i];
 
-	std::vector<Vec3d> left, right;
+	std::vector<Eigen::Vector3d> left, right;
 
 	for(int i = 0;i < (int)frameA.size(); i++)
 	{

@@ -23,7 +23,7 @@ private:
 		Plane() { center = Vector3(0); normal = Normal(0); };
 
 		// Object functor: return the bounding-box enclosing a given plane
-		inline void GetBBox(QBox3D	&bb) { bb = QBox3D(center, center); };
+		inline void GetBBox(Eigen::AlignedBox3d	&bb) { bb = Eigen::AlignedBox3d(center, center); };
 
 		Vector3	center;
 		Normal	normal;
@@ -81,9 +81,12 @@ public:
 		Vector3VertexProperty points = mesh->get_vertex_property<Vector3>(VPOINT);
 		Vector3VertexProperty normals = mesh->vertex_property<Vector3>(VNORMAL, Normal(0));
 
-		QBox3D dataset_bb;
-		foreach(Vertex v, mesh->vertices())	dataset_bb.unite(points[v]);
-		Scalar max_distance = dataset_bb.size().length();
+		Eigen::AlignedBox3d dataset_bb;
+		foreach(Vertex v, mesh->vertices())	
+		{
+			dataset_bb = dataset_bb.merged( Eigen::AlignedBox3d( Eigen::Vector3d(points[v]) ) );
+		}
+		Scalar max_distance = dataset_bb.diagonal().norm();
 
 		// Step 1: identify the tangent planes used to locally approximate the surface
 		int vertex_count = mesh->n_vertices();
@@ -128,11 +131,12 @@ public:
 		}
 		
 		// Step 2: build the Riemannian graph, i.e. the graph where each point is connected to the k-nearest neighbors.
-		dataset_bb.setToNull();
+		dataset_bb.setNull();
 		PlaneIterator ePlane = tangent_planes.end();
 		for (PlaneIterator iPlane = tangent_planes.begin(); iPlane != ePlane; iPlane++)
-			dataset_bb.unite(iPlane->center);
-		max_distance = dataset_bb.size().length();
+			dataset_bb = dataset_bb.merged( Eigen::AlignedBox3d( Eigen::Vector3d( iPlane->center ) ) );
+
+		max_distance = dataset_bb.diagonal().norm();
 
 		// KD-tree for finding local planes
 		NanoKdTree kdtree_for_plane;
@@ -266,8 +270,8 @@ public:
 		// Assume no boundary, try to guess correct orientation looking from a corner
 		if(orientation == Guess)
 		{
-			Vector3 direction = mesh->bbox().maximum() - mesh->bbox().center();
-			Vector3 position = mesh->bbox().maximum() + direction * 10.0;
+			Vector3 direction = mesh->bbox().max() - mesh->bbox().center();
+			Vector3 position = mesh->bbox().max() + Eigen::Vector3d(direction) * 10.0;
 
 			// closet point on mesh
 			KDResults match;
@@ -286,9 +290,12 @@ public:
 		Vector3VertexProperty points = mesh->get_vertex_property<Vector3>(VPOINT);
 		Vector3VertexProperty normals = mesh->vertex_property<Vector3>(VNORMAL, Normal(0));
 
-		QBox3D dataset_bb;
-		foreach(Vertex v, mesh->vertices())	dataset_bb.unite(points[v]);
-		//Scalar max_distance = dataset_bb.size().length();
+		Eigen::AlignedBox3d dataset_bb;
+		foreach(Vertex v, mesh->vertices())	
+		{
+			dataset_bb = dataset_bb.merged( Eigen::AlignedBox3d(points[v],points[v]) );
+		}
+		//Scalar max_distance = dataset_bb.diagonal().length();
 
 		// Step 1: identify the tangent planes used to locally approximate the surface
 		int vertex_count 	= mesh->n_vertices();

@@ -18,17 +18,17 @@ void FFD::init( Surface_mesh * src_mesh, FFD_FitType fit_type, Vec3i res )
 	if(!mesh) return;
 
 	// Mesh dimensions
-	QBox3D box;
+	Eigen::AlignedBox3d box;
 
 	mesh_points = mesh->vertex_property<Vec3d>("v:point");
 	Surface_mesh::Vertex_iterator vit, vend = mesh->vertices_end();
 
 	for (vit = mesh->vertices_begin(); vit != vend; ++vit)
-		box.unite(mesh_points[vit]);
+		box = box.merged( Eigen::AlignedBox3d(mesh_points[vit], mesh_points[vit])  );
 
-	width = box.maximum().x() - box.minimum().x();
-	length = box.maximum().y() - box.minimum().y();
-	height = box.maximum().z() - box.minimum().z();
+	width = box.max().x() - box.min().x();
+	length = box.max().y() - box.min().y();
+	height = box.max().z() - box.min().z();
 
 	// Deal with thin / flat cases
 	double nonZero = 0;
@@ -41,10 +41,10 @@ void FFD::init( Surface_mesh * src_mesh, FFD_FitType fit_type, Vec3i res )
 	if(length == 0) length = nonZero;
 	if(height == 0) height = nonZero;
 
-	center = 0.5 * (box.maximum() + box.minimum());
+	center = (box.max() + box.min()) * 0.5;
 
 	// Expand a bit so all the vertices are in (0,1)
-	double radius = 0.5 * box.size().length();
+	double radius = 0.5 * box.diagonal().norm();
 	width += radius * 0.05;
 	length += radius * 0.05;
 	height += radius * 0.05;

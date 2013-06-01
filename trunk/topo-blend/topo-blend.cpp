@@ -610,17 +610,18 @@ void topoblend::setSceneBounds()
 	// Set scene bounds
 	boundX = -DBL_MAX;
 
-	QBox3D bigbox = graphs.front()->bbox();
+	Eigen::AlignedBox3d bigbox = graphs.front()->bbox();
 	for(int i = 0; i < (int)graphs.size(); i++)
 	{
-		bigbox.unite( graphs[i]->bbox() );
-		boundX = qMax(boundX, graphs[i]->bbox().size().x());
+		bigbox = bigbox.merged( Eigen::AlignedBox3d(graphs[i]->bbox()) );
+		boundX = qMax(boundX, graphs[i]->bbox().diagonal().x());
 	}
 
-	bigbox.transform(QMatrix4x4() * 3);
+	// Scale up by 3
+	//bigbox.transform(QMatrix4x4() * 3);
 
-	Vector3 a = bigbox.minimum();
-	Vector3 b = bigbox.maximum();
+	Vector3 a = bigbox.min();
+	Vector3 b = bigbox.max();
 
 	qglviewer::Vec vecA(a.x(), a.y(), a.z());
 	qglviewer::Vec vecB(b.x(), b.y(), b.z());
@@ -879,7 +880,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		std::vector<Vector3> starts;
 		starts.push_back(Vector3(1,-0.5,2.5));
 		starts.push_back(Vector3(-1,-0.5,2.5));
-		gd->computeDistances(starts, g->bbox().size().length() * 0.01);
+		gd->computeDistances(starts, g->bbox().diagonal().norm() * 0.01);
 
 		g->misc["distance"] = gd;
 

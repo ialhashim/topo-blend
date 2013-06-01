@@ -1,11 +1,11 @@
 #pragma once
 
 #include <QString>
-#include <QVector3D>
 #include <QFile>
 #include <QTextStream>
 #include <qgl.h>
 #include <float.h>
+#include <QVector3D>
 
 class QuickMesh : public QObject{
 	Q_OBJECT
@@ -36,7 +36,7 @@ public:
 			foreach(const QVector<int> tri, tris){
 				if(tri[0] < 0 || tri[1] < 0 || tri[2] < 0) continue;
 
-				QVector3D v1 = verts[tri[0]], v2 =verts[tri[1]], v3 = verts[tri[2]];
+				QVector3D v1 = verts[tri[0]], v2 = verts[tri[1]], v3 = verts[tri[2]];
 				QVector3D n = QVector3D::crossProduct((v2-v1).normalized(), (v3-v1).normalized()).normalized();
 
 				glNormal3d(n.x(), n.y(), n.z());

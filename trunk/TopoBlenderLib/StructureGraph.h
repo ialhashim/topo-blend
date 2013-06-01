@@ -28,7 +28,7 @@ struct Graph
 	// Properties
     QVector<Node*> nodes;
     QVector<Link*> edges;
-    QBox3D bbox();
+    Eigen::AlignedBox3d bbox();
     QMap< QString, QVariant > property;
 	Eigen::MatrixXd adjacency;
 	QMap< QString, void* > misc;

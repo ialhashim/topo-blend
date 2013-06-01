@@ -118,7 +118,7 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * she
 {
 	QVector<ParameterCoord> samples(points.size());
 
-	float resolution = sheet->bbox().size().length() * SHEET_FRAME_RESOLUTION;
+	float resolution = sheet->bbox().diagonal().norm() * SHEET_FRAME_RESOLUTION;
 
 	Array2D_Vec4d sheetCoords = sheet->discretizedPoints(resolution);
 	Array1D_Vec4d allCoords;
@@ -442,7 +442,10 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 		Vec3f rayDir = rotatedVec(Z, sample.theta, Y);
 		rayDir = rotatedVec(rayDir, sample.psi, Z);
 
-		Ray ray( rayPos, rayDir );
+		Eigen::Vector3d rayPosition(rayPos.x(), rayPos.y(), rayPos.z());
+		Eigen::Vector3d rayDirection(rayDir.x(), rayDir.y(), rayDir.z());
+
+		Ray ray( rayPosition, rayDirection );
 		int faceIndex = 0;
 
 		Vec3f vn(1);
@@ -454,7 +457,7 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 		}
 		else
 		{
-			Vec3f isect = octree.closestIntersectionPoint(ray, &faceIndex);
+			Vector3 isect = octree.closestIntersectionPoint(ray, &faceIndex);
 
 			// Store the offset
 			offsets[ i ] = (isect - rayPos).norm();
@@ -519,7 +522,7 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 		else
 		{
 			// Store the offset
-			Vec3f isect = octree.closestIntersectionPoint(ray, &faceIndex);
+			Vector3 isect = octree.closestIntersectionPoint(ray, &faceIndex);
 			offsets[i] = (isect - rayPos).norm();
 
 			// Code the normal relative to local frame

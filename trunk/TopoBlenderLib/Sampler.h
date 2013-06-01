@@ -7,13 +7,13 @@ using namespace SurfaceMesh;
 
 // Helper structures
 struct SamplePoint{
-	Vec3d pos, n;
+	Eigen::Vector3d pos, n;
 	double weight;
 	double u,v;
 	int findex; // index of sampled face
 	int flag;
 
-	SamplePoint(const Vec3d& position = Vec3d(), const Vec3d& normal = Vec3d(), 
+	SamplePoint(const Eigen::Vector3d& position = Eigen::Vector3d(), const Eigen::Vector3d& normal = Eigen::Vector3d(), 
 		double Weight = 0.0, int face_index = -1.0, double U = 0.0, double V = 0.0, int flags = 0)
 	{
 		pos = position;

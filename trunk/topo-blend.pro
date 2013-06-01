@@ -22,4 +22,5 @@ SUBDIRS += topo-blend  # Main UI for topo-blending
 # Dependecy map
 nurbs_plugin.depends = NURBS
 dynamic_voxel.depends = DynamicVoxel
-topo-blend.depends = GlSplatRendererLib NURBS DynamicVoxel TopoBlenderLib MorpherLib 
+TopoBlenderLib.depends = GlSplatRendererLib
+topo-blend.depends = GlSplatRendererLib NURBS DynamicVoxel TopoBlenderLib 

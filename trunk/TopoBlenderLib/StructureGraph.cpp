@@ -7,6 +7,7 @@ GlSplatRenderer * splat_renderer = NULL;
 #include <QElapsedTimer>
 #include <QDomElement>
 #include <QStack>
+#include <QMatrix4x4>
 
 #include "StructureGraph.h"
 using namespace Structure;
@@ -25,6 +26,7 @@ Q_DECLARE_METATYPE( Vec3d )
 Q_DECLARE_METATYPE( RMF )
 Q_DECLARE_METATYPE( RMF::Frame )
 Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
+Q_DECLARE_METATYPE( Eigen::AlignedBox3d )
 
 Graph::Graph()
 {
@@ -96,13 +98,12 @@ Graph::~Graph()
     //nodes.clear();
 }
 
-QBox3D Graph::bbox()
+Eigen::AlignedBox3d Graph::bbox()
 {
-    QBox3D box;
+    Eigen::AlignedBox3d box;
 
     foreach(Node * n, nodes){
-        box.unite( n->bbox().minimum() );
-        box.unite( n->bbox().maximum() );
+        box = box.merged( n->bbox() );
     }
 
 	//box.transform(QMatrix4x4() * 1.25);
@@ -142,7 +143,7 @@ Link * Graph::addEdge(Node *n1, Node *n2)
 	if(n1->type() == SHEET && n2->type() == SHEET)
 	{
 		Sheet *s1 = (Sheet*) n1, *s2 = (Sheet*) n2;
-		double length = qMin(s1->bbox().size().length(), s2->bbox().size().length());
+		double length = qMin(s1->bbox().diagonal().norm(), s2->bbox().diagonal().norm());
 		std::vector<Vec3d> pnts = s1->surface.intersect(s2->surface, 0.005 * length, c1, c2);
 		
 		// DEBUG:
@@ -589,7 +590,7 @@ void Graph::draw( QGLViewer * drawArea )
 				{
 					RMF::Frame f = n->property["frame"].value<RMF::Frame>();
 					FrameSoup fs(0.01f);
-					fs.addFrame(f.r, f.s, f.t, n->bbox().center());
+					fs.addFrame(f.r, f.s, f.t, Vector3(n->bbox().center()) );
 					fs.draw();
 				}
 
@@ -597,7 +598,7 @@ void Graph::draw( QGLViewer * drawArea )
 				{
 					RMF::Frame f = n->property["frame2"].value<RMF::Frame>();
 					FrameSoup fs(0.01f);
-					fs.addFrame(f.r, f.s, f.t, n->bbox().center());
+					fs.addFrame(f.r, f.s, f.t, Vector3(n->bbox().center()) );
 					fs.draw();
 				}
 
@@ -792,10 +793,11 @@ void Graph::draw( QGLViewer * drawArea )
 void Graph::drawAABB()
 {
 	if (!property.contains("AABB"))
-		property["AABB"].setValue(bbox());
-	QBox3D aabb = property["AABB"].value<QBox3D>();
-	QVector3D qc = aabb.center();
-	QVector3D diagonal = aabb.maximum() - aabb.minimum();
+		property["AABB"].setValue( bbox() );
+
+	Eigen::AlignedBox3d aabb = property["AABB"].value<Eigen::AlignedBox3d>();
+	Eigen::Vector3d qc (aabb.center());
+	Eigen::Vector3d diagonal (aabb.max() - aabb.min());
 
 	double width = diagonal.x()/2;
 	double length = diagonal.y()/2;
@@ -852,14 +854,16 @@ void Graph::draw2D(int width, int height)
 	}
 
 	// Find 2D bounds
-	QBox3D bound2D;
+	Eigen::AlignedBox3d bound2D;
 	foreach(Node * n, nodes){
 		QVector3D center = n->vis_property[NODE_CENTER].value<QVector3D>();
-		bound2D.unite(center);
+		Eigen::Vector3d c(center.x(),center.y(),center.z());
+		bound2D = bound2D.merged( Eigen::AlignedBox3d(c) );
 	}
-	Scalar boundRadius = 0.5 * bound2D.size().length();
+	Scalar boundRadius = 0.5 * bound2D.diagonal().norm();
 
-	QVector3D minBound = bound2D.minimum();
+	Eigen::Vector3d b2dmin = bound2D.min();
+	QVector3D minBound(b2dmin.x(),b2dmin.y(),b2dmin.z());
 	QVector3D corner = QVector3D(qMin(0.0, minBound.x()), qMin(0.0, minBound.y()), qMin(0.0, minBound.z()));
 	QVector3D graph_center = 0.5 * QVector3D(width, height,0);
 	QVector3D scaling = QVector3D(width, height, 0) / boundRadius;
@@ -1188,8 +1192,8 @@ void Graph::materialize( SurfaceMesh::Model * m, Scalar voxel_scaling )
 
 	cached_mesh.clear();
 
-	QBox3D box = bbox();
-	QVector3D b = bbox().size();
+	Eigen::AlignedBox3d box = bbox();
+	Eigen::Vector3d b = bbox().diagonal();
 	Scalar avg = (b.x() + b.y() + b.z()) / 3.0;
 	Scalar voxel_size = (avg / 70) * voxel_scaling;
 
@@ -1220,9 +1224,13 @@ void Graph::materialize( SurfaceMesh::Model * m, Scalar voxel_scaling )
 		{
 			foreach(std::vector<Vector3> segment, parts)
 			{
-				QBox3D triBox;
-				foreach(Vector3 p, segment) triBox.unite(p + half_voxel);
-				vox.addBox( triBox.minimum(), triBox.maximum() );
+				Eigen::AlignedBox3d triBox;
+				foreach(Vector3 p, segment) 
+				{
+					Vector3 pnt = p + half_voxel;
+					triBox = triBox.merged( Eigen::AlignedBox3d(pnt,pnt) );
+				}
+				vox.addBox( triBox.min(), triBox.max() );
 			}
 		}
 
@@ -1244,7 +1252,7 @@ Node *Graph::rootBySize()
 	Scalar maxArea = 0;
 
 	for(int i = 0; i < nodes.size(); i++){
-		Vector3 diagonal = nodes[i]->bbox().size();
+		Vector3 diagonal = nodes[i]->bbox().diagonal();
 
 		double area = (diagonal[0] == 0 ? 1 : diagonal[0]) * 
 					  (diagonal[1] == 0 ? 1 : diagonal[1]) * 
@@ -1279,8 +1287,8 @@ Node *Graph::rootByValence()
 
 SurfaceMesh::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 {
-	double s1 = n1->bbox().size().length();
-	double s2 = n2->bbox().size().length();
+	double s1 = n1->bbox().diagonal().norm();
+	double s2 = n2->bbox().diagonal().norm();
 
 	Scalar r = 0.04 * qMin(s1, s2);
 
@@ -1786,8 +1794,8 @@ void Graph::transform( QMatrix4x4 mat )
 
 void Graph::moveBottomCenterToOrigin()
 {
-	QBox3D aabb = bbox();
-	double height = aabb.maximum().z() - aabb.minimum().z();
+	Eigen::AlignedBox3d aabb = bbox();
+	double height = aabb.max().z() - aabb.min().z();
 	Vec3d bottom_center(aabb.center().x(), aabb.center().y(), aabb.center().z() - height/2);
 
 	translate( -bottom_center );
@@ -1799,11 +1807,11 @@ void Graph::moveBottomCenterToOrigin()
 void Graph::normalize()
 {
 	// Normalize the height to be 1
-	QBox3D aabb = bbox();
-	double height = aabb.maximum().z() - aabb.minimum().z();
+	Eigen::AlignedBox3d aabb = bbox();
+	double height = aabb.max().z() - aabb.min().z();
 
 	if(height == 0.0) 
-		height = aabb.maximum().x() - aabb.minimum().x();
+		height = aabb.max().x() - aabb.min().x();
 
 	double scaleFactor = 1.0 / height;
 

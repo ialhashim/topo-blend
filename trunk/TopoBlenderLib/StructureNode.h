@@ -16,7 +16,7 @@ struct Node
 	QString id;
 	QMap< QString, QVariant > property;
     virtual QString type() = 0;
-    virtual QBox3D bbox(double scaling = 1.0) = 0;
+    virtual Eigen::AlignedBox3d bbox(double scaling = 1.0) = 0;
 
 	bool hasProperty(QString propertyName) { return property.contains(propertyName); }
 

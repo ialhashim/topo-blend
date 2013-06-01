@@ -17,7 +17,7 @@ void traverseOctree( Octree & octree, CubeSoup & cs )
 {
 	if( octree.children.empty() && !octree.triangleData.empty() )
 	{
-		cs.addCube( octree.boundingBox.Center(), octree.boundingBox.yExtent * 2 );
+		cs.addCube( Vector3( octree.boundingBox.Center() ), octree.boundingBox.yExtent * 2 );
 		return;
 	}
 
@@ -143,9 +143,10 @@ void visiblity_resampler::applyFilter(RichParameterSet *pars)
 
 		for(int r = 0; r < rayCount; r++)
 		{
-			const Vec3d & d = sphere[r];
+			const Eigen::Vector3d & d = sphere[r];
 
-			Ray ray( sp.pos + (d * surfaceOffset), d );
+			Eigen::Vector3d rayStart = sp.pos + (d * surfaceOffset);
+			Ray ray( rayStart, d );
 			
 			if(octree.intersectRay(ray,0,true).empty())
 			{

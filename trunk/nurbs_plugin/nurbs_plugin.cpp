@@ -424,7 +424,7 @@ void nurbs_plugin::prepareSkeletonize()
 		FilterPlugin * remeshPlugin = pluginManager()->getFilter("Isotropic Remesher");
 		RichParameterSet * remesh_params = new RichParameterSet;
 		remeshPlugin->initParameters( remesh_params );
-		remesh_params->setValue("edgelength_TH", float(widget->remeshParamter() * m->bbox().size().length()));
+		remesh_params->setValue("edgelength_TH", float(widget->remeshParamter() * m->bbox().diagonal().norm()));
 		remeshPlugin->applyFilter( remesh_params );
 	}
 
@@ -665,7 +665,7 @@ NURBS::NURBSCurved nurbs_plugin::curveFit( SurfaceMeshModel * part )
 
 	Vector3VertexProperty partPoints = part->vertex_property<Vector3>("v:point");
 
-	double r = 0.025 * part->bbox().size().length();
+	double r = 0.025 * part->bbox().diagonal().norm();
 
 	GenericGraphs::Graph<int,double> g;
 	SurfaceMeshHelper h(part);

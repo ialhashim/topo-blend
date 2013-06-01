@@ -18,7 +18,7 @@ struct Curve : public Node
 
     // Properties
     QString type();
-    QBox3D bbox(double scaling = 1.0);
+    Eigen::AlignedBox3d bbox(double scaling = 1.0);
 
 	std::vector<int> controlCount();
 	std::vector<Vector3> controlPoints();

@@ -24,7 +24,7 @@ void myresample::doResample()
 
     int millions = 3e5;
     double s = 0.01;
-	double r = mesh()->bbox().size().length() * s;
+	double r = mesh()->bbox().diagonal().norm() * s;
 
     PointSoup * ps = new PointSoup;
     PlaneSoup * ls = new PlaneSoup(r);
@@ -112,7 +112,7 @@ void myresample::doParameterize()
 	//	Vec2d uv1 = mapper.tex_coord[vface[1]];
 	//	Vec2d uv2 = mapper.tex_coord[vface[2]];
 
-	//	QVector<QVector3D> pts;
+	//	QVector<Eigen::Vector3d> pts;
 	//	pts.push_back( Vec3d(uv0[0],uv0[1],0) );
 	//	pts.push_back( Vec3d(uv1[0],uv1[1],0) );
 	//	pts.push_back( Vec3d(uv2[0],uv2[1],0) );

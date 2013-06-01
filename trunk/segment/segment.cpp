@@ -72,7 +72,7 @@ void segment::applyFilter(RichParameterSet* pars)
 	bool visualize = pars->getBool("visualize");
 	bool extract = pars->getBool("extract");
 
-	double minRadius = minRadiusScale * mesh()->bbox().size().length();
+	double minRadius = minRadiusScale * mesh()->bbox().diagonal().norm();
 
 	// Perform segmentation
 	performCurveSheetSegmentation(theta, minRadius, k, extract, visualize);
@@ -123,12 +123,15 @@ void segment::performCurveSheetSegmentation(double theta, double minRadius, int 
 		GrowRegions();
 		foreach(Region r, sheet_regions)
 		{
-			QBox3D region_bbox;
+			Eigen::AlignedBox3d region_bbox;
 
 			foreach(Face f, r)
-				region_bbox.unite( center(f) );
+			{
+				Eigen::Vector3d center_f = center(f);
+				region_bbox = region_bbox.merged( Eigen::AlignedBox3d(center_f,center_f) );
+			}
 
-			if(region_bbox.size().length() < minRadius)
+			if(region_bbox.diagonal().norm() < minRadius)
 				invertRegion(r);
 		}
 	}
@@ -173,8 +176,8 @@ void segment::performCurveSheetSegmentation(double theta, double minRadius, int 
 
 	// Debug
 	if(isVisualize){
-		double e = mesh()->bbox().size().length() * 0.05 * 1;
-		QVector3D shift(e,e,e);
+		double e = mesh()->bbox().diagonal().norm() * 0.05 * 1;
+		Eigen::Vector3d shift(e,e,e);
 		static std::vector< std::vector<double> > rclr = randomColors(curve_regions.size());
 		
 		// Draw curves
@@ -182,9 +185,9 @@ void segment::performCurveSheetSegmentation(double theta, double minRadius, int 
 			foreach(Face f, curve_regions[r]){
 				QVector<QVector3D> p;
 				VertFaceIter vit = mesh()->vertices(f), vend = vit;
-				do{ p.push_back(shift + points[vit]); } while(++vit != vend);
+				do{ p.push_back( Vector3(points[vit] + shift)  ); } while(++vit != vend);
 				for(int i = 0; i < p.size(); i++)
-					lines->addLine(p[i],p[(i+1) % p.size()], QColor::fromRgbF(rclr[r][0], rclr[r][1], rclr[r][2]));
+					lines->addLine(p[i], p[(i+1) % p.size()], QColor::fromRgbF(rclr[r][0], rclr[r][1], rclr[r][2]));
 			}
 		}
 		// Draw sheets
@@ -192,7 +195,7 @@ void segment::performCurveSheetSegmentation(double theta, double minRadius, int 
 			foreach(Face f, region){
 				QVector<QVector3D> p;
 				VertFaceIter vit = mesh()->vertices(f), vend = vit;
-				do{ p.push_back(-shift + points[vit]); } while(++vit != vend);
+				do{ p.push_back( Vector3(points[vit] - shift) ); } while(++vit != vend);
 				poly_soup->addPoly(p);
 			}
 		}
@@ -609,7 +612,7 @@ void segment::splitCurveRegion(Region & r)
 		int i = branchID[v];
 
 		CurveskelTypes::Vector3 pnt = skel.get_vertex_property<CurveskelTypes::Vector3>(CurveskelTypes::VPOINT)[v];
-		QVector3D p (pnt.x(), pnt.y(), pnt.z());
+		Eigen::Vector3d p (pnt.x(), pnt.y(), pnt.z());
 		
 		QColor color = QColor::fromRgbF(rc[i][0],rc[i][1],rc[i][2]);
 		drawArea()->drawPoint(p,10, color);
@@ -623,7 +626,7 @@ void segment::splitCurveRegion(Region & r)
 	foreach(CurveskelTypes::Vertex v, s->junctions())
 	{
 		CurveskelTypes::Vector3 pnt = skel.get_vertex_property<CurveskelTypes::Vector3>(CurveskelTypes::VPOINT)[v];
-		QVector3D p (pnt.x(), pnt.y(), pnt.z());
+		Eigen::Vector3d p (pnt.x(), pnt.y(), pnt.z());
 		drawArea()->drawPoint(p,10);
 	}
 
