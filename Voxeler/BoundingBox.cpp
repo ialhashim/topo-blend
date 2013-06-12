@@ -2,14 +2,14 @@
 
 BoundingBox::BoundingBox()
 {
-	this->center = Vec3d(0,0,0);
+	this->center = Vector3d(0,0,0);
 
 	this->xExtent = 0;
 	this->yExtent = 0;
 	this->zExtent = 0;
 }
 
-BoundingBox::BoundingBox( const Vec3d& c, double x, double y, double z )
+BoundingBox::BoundingBox( const Vector3d& c, double x, double y, double z )
 {
 	this->center = c;
 
@@ -17,7 +17,7 @@ BoundingBox::BoundingBox( const Vec3d& c, double x, double y, double z )
 	this->yExtent = y;
 	this->zExtent = z;
 
-	Vec3d corner(x/2, y/2, z/2);
+	Vector3d corner(x/2, y/2, z/2);
 
 	vmin = center - corner;
 	vmax = center + corner;
@@ -39,8 +39,8 @@ BoundingBox& BoundingBox::operator=( const BoundingBox& other )
 
 /*void BoundingBox::computeFromTris( const StdVector<BaseTriangle*>& tris )
 {
-	vmin = Vec3d(DBL_MAX, DBL_MAX, DBL_MAX);
-	vmax = Vec3d(-DBL_MAX, -DBL_MAX, -DBL_MAX);
+	vmin = Vector3d(DBL_MAX, DBL_MAX, DBL_MAX);
+	vmax = Vector3d(-DBL_MAX, -DBL_MAX, -DBL_MAX);
 
 	double minx = 0, miny = 0, minz = 0;
 	double maxx = 0, maxy = 0, maxz = 0;
@@ -53,7 +53,7 @@ BoundingBox& BoundingBox::operator=( const BoundingBox& other )
 	{
 		for(int v = 0; v < 3; v++)
 		{
-			Vec3d vec = tris[i]->vec(v);
+			Vector3d vec = tris[i]->vec(v);
 
 			if (vec.x() < minx) minx = vec.x();
 			if (vec.x() > maxx) maxx = vec.x();
@@ -64,8 +64,8 @@ BoundingBox& BoundingBox::operator=( const BoundingBox& other )
 		}
 	}
 
-	vmax = Vec3d(maxx, maxy, maxz);
-	vmin = Vec3d(minx, miny, minz);
+	vmax = Vector3d(maxx, maxy, maxz);
+	vmin = Vector3d(minx, miny, minz);
 
 	this->center = (vmin + vmax) / 2.0;
 
@@ -83,12 +83,12 @@ BoundingBox& BoundingBox::operator=( const BoundingBox& other )
     double fADdU[3];
     double fAWxDdU[3];
 
-    Vec3d UNIT_X(1.0, 0.0, 0.0);
-    Vec3d UNIT_Y(0.0, 1.0, 0.0);
-    Vec3d UNIT_Z(0.0, 0.0, 1.0);
+    Vector3d UNIT_X(1.0, 0.0, 0.0);
+    Vector3d UNIT_Y(0.0, 1.0, 0.0);
+    Vector3d UNIT_Z(0.0, 0.0, 1.0);
 
-    Vec3d diff = ray.origin - center;
-    Vec3d wCrossD = cross(ray.direction , diff);
+    Vector3d diff = ray.origin - center;
+    Vector3d wCrossD = cross(ray.direction , diff);
 
     fWdU[0] = dot(ray.direction , UNIT_X);
     fAWdU[0] = abs(fWdU[0]);
@@ -123,7 +123,7 @@ BoundingBox& BoundingBox::operator=( const BoundingBox& other )
     return true;
 }*/
 
-BoundingBox::BoundingBox( const Vec3d& fromMin, const Vec3d& toMax )
+BoundingBox::BoundingBox( const Vector3d& fromMin, const Vector3d& toMax )
 {
 	vmin = fromMin;
 	vmax = toMax;
@@ -135,15 +135,15 @@ BoundingBox::BoundingBox( const Vec3d& fromMin, const Vec3d& toMax )
 	this->zExtent = abs(vmax.z() - center.z());
 }
 
-std::vector<Vec3d> BoundingBox::getCorners()
+std::vector<Vector3d> BoundingBox::getCorners()
 {
-    std::vector<Vec3d> corners;
+    std::vector<Vector3d> corners;
 
-	Vec3d x = (Vec3d(1,0,0) * xExtent);
-	Vec3d y = (Vec3d(0,1,0) * yExtent);
-	Vec3d z = (Vec3d(0,0,1) * zExtent);
+	Vector3d x = (Vector3d(1,0,0) * xExtent);
+	Vector3d y = (Vector3d(0,1,0) * yExtent);
+	Vector3d z = (Vector3d(0,0,1) * zExtent);
 
-	Vec3d c = center + x + y + z;
+	Vector3d c = center + x + y + z;
 
 	corners.push_back(c);
 	corners.push_back(c - (x*2));
@@ -160,10 +160,10 @@ std::vector<Vec3d> BoundingBox::getCorners()
 
 /* AABB-triangle overlap test code                      */
 /* by Tomas Akenine-Möller                              */
-bool BoundingBox::containsTriangle( const Vec3d& tv0, const Vec3d& tv1, const Vec3d& tv2 ) const
+bool BoundingBox::containsTriangle( const Vector3d& tv0, const Vector3d& tv1, const Vector3d& tv2 ) const
 {
-	Vec3d boxcenter(center);
-	Vec3d boxhalfsize(xExtent, yExtent, zExtent);
+	Vector3d boxcenter(center);
+	Vector3d boxhalfsize(xExtent, yExtent, zExtent);
 
 	int X = 0, Y = 1, Z = 2;
 
@@ -174,9 +174,9 @@ bool BoundingBox::containsTriangle( const Vec3d& tv0, const Vec3d& tv1, const Ve
 	/*    2) normal of the triangle */
 	/*    3) crossproduct(edge from tri, {x,y,z}-directin) */
 	/*       this gives 3x3=9 more tests */
-	Vec3d v0,v1,v2;
+	Vector3d v0,v1,v2;
 	double min,max,p0,p1,p2,rad,fex,fey,fez;
-	Vec3d normal,e0,e1,e2;
+	Vector3d normal,e0,e1,e2;
 
 	/* This is the fastest branch on Sun */
 	/* move everything so that the box center is in (0,0,0) */
@@ -246,7 +246,7 @@ bool BoundingBox::intersectsBoundingBox( const BoundingBox& bb ) const
 		return true;
 }
 
-bool BoundingBox::intersectsSphere( const Vec3d& sphere_center, double radius )
+bool BoundingBox::intersectsSphere( const Vector3d& sphere_center, double radius )
 {
 	if (abs(center.x() - sphere_center.x()) < radius + xExtent
 		&& abs(center.y() - sphere_center.y()) < radius + yExtent
@@ -256,24 +256,24 @@ bool BoundingBox::intersectsSphere( const Vec3d& sphere_center, double radius )
 	return false;
 }
 
-bool BoundingBox::contains( const Vec3d& point ) const
+bool BoundingBox::contains( const Vector3d& point ) const
 {
 	return abs(center.x() - point.x()) < xExtent
 		&& abs(center.y() - point.y()) < yExtent
 		&& abs(center.z() - point.z()) < zExtent;
 }
 
-Vec3d BoundingBox::Center()
+Vector3d BoundingBox::Center()
 {
 	return center;
 }
 
 void BoundingBox::Offset( double s )
 {
-	Offset( Vec3d(s,s,s));
+	Offset( Vector3d(s,s,s));
 }
 
-void BoundingBox::Offset( Vec3d delta )
+void BoundingBox::Offset( Vector3d delta )
 {
 	*this = BoundingBox(vmin - delta, vmax + delta);
 }

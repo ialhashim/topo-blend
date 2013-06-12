@@ -28,29 +28,29 @@ struct Node
 	virtual int numCtrlPnts() = 0;
 
 	// Modifiers
-	virtual void moveBy( const Vec3d & delta ) = 0;
+	virtual void moveBy( const Vector3d & delta ) = 0;
 	virtual void scale( Scalar scaleFactor ) = 0;
 	virtual void rotate( double angle, Vector3 axis ) = 0;
 	virtual void refineControlPoints(int nU, int nV = 0) = 0;
 	virtual void equalizeControlPoints( Structure::Node * other ) = 0;
-	virtual void deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid ) = 0;
-	virtual void deformTwoHandles( Vec4d handleA, Vector3 newPosA, Vec4d handleB, Vector3 newPosB ) = 0;
+	virtual void deformTo( const Vector4d & handle, const Vector3 & to, bool isRigid ) = 0;
+	virtual void deformTwoHandles( Vector4d& handleA, Vector3 newPosA, Vector4d& handleB, Vector3 newPosB ) = 0;
 
 	// Coordinates
-    virtual void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame ) = 0;
-	virtual Vector3 position( const Vec4d& coordinates ) = 0;
-	virtual Vec4d approxCoordinates( const Vector3 & pos ) = 0;
+    virtual void get( const Vector4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame ) = 0;
+	virtual Vector3 position( const Vector4d& coordinates ) = 0;
+	virtual Vector4d approxCoordinates( const Vector3 & pos ) = 0;
 	virtual Vector3 approxProjection( const Vector3 & point ) = 0;
 	virtual Vector3 center() = 0;
 
 	// Special coordinates [todo: check type of node]
-	inline Vec4d minCoord(){ return Vec4d(0.0); }
-	inline Vec4d maxCoord(){ return Vec4d(1.0); }
+	inline Vector4d minCoord(){ return Vector4d(0.0); }
+	inline Vector4d maxCoord(){ return Vector4d(1.0); }
 
-	virtual std::vector< std::vector<Vector3> > discretized(Scalar resolution) = 0;
-	virtual std::vector< std::vector<Vec4d> > discretizedPoints(Scalar resolution) = 0;
-	std::vector< std::vector<Vector3> > getPoints( const std::vector< std::vector<Vec4d> > & coords ){
-		std::vector< std::vector<Vector3> > pnts(coords.size(), std::vector<Vector3>(coords.front().size(), Vector3(0)));
+	virtual Array2D_Vector3 discretized(Scalar resolution) = 0;
+	virtual Array2D_Vector4d discretizedPoints(Scalar resolution) = 0;
+	Array2D_Vector3 getPoints( const Array2D_Vector4d & coords ){
+		Array2D_Vector3 pnts(coords.size(), std::vector<Vector3>(coords.front().size(), Vector3(0,0,0)));
 		for(int i = 0; i < (int)coords.size(); i++)
 			for(int j = 0; j < (int)coords.front().size(); j++)
 				pnts[i][j] = position( coords[i][j] );

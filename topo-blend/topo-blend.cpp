@@ -916,7 +916,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 	if(event->key() == Qt::Key_T)
 	{
 		qglviewer::Vec q = drawArea()->camera()->revolveAroundPoint();
-		Vec3d p(q[0],q[1],q[2]);
+		Vector3d p(q[0],q[1],q[2]);
 
 		double minDist = DBL_MAX;
 		QString sample_details = "";
@@ -933,16 +933,16 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 			{
 				if(node->property.contains("cached_points"))
 				{
-					QVector<Vec3f> pnts = node->property["cached_points"].value< QVector<Vec3f> >();
+					QVector<Eigen::Vector3f> pnts = node->property["cached_points"].value< QVector<Eigen::Vector3f> >();
 					QVector<ParameterCoord> samples = node->property["samples"].value< QVector<ParameterCoord> >();
 					QVector<float> offsets = node->property["offsets"].value< QVector<float> >();
 
-					Vec3d delta = Vec3d(posX,0,0);
-					Vec3d q = p - delta;
+					Vector3f delta = Vector3f(posX,0,0);
+					Vector3f q = p.cast<float>() - delta;
 
 					for(int i = 0; i < (int)pnts.size(); i++)
 					{
-						double dist = (pnts[i] - q).norm();
+						double dist = Vector3f(pnts[i] - q).norm();
 						if(dist < minDist && dist < 0.01){
 							ParameterCoord s = samples[i];
 							sample_details = QString("[%5] u= %1  v= %2  theta= %3  psi= %4 offset = %6").arg(s.u
@@ -1482,20 +1482,20 @@ void topoblend::renderGraph( Structure::Graph graph, QString filename, bool isOu
 		if( node->property["zeroGeometry"].toBool() || node->property["shrunk"].toBool() || 
 			!node->property.contains("cached_points")) continue;
 
-		QVector<Vec3f> points = node->property["cached_points"].value< QVector<Vec3f> >();
-		QVector<Vec3f> normals = node->property["cached_normals"].value< QVector<Vec3f> >();
+		QVector<Eigen::Vector3f> points = node->property["cached_points"].value< QVector<Eigen::Vector3f> >();
+		QVector<Eigen::Vector3f> normals = node->property["cached_normals"].value< QVector<Eigen::Vector3f> >();
 
 		if(!points.size()) continue;
-		std::vector<Vec3f> clean_points;
-		foreach(Vec3f p, points) clean_points.push_back(p);
+		std::vector<Eigen::Vector3f> clean_points;
+		foreach(Eigen::Vector3f p, points) clean_points.push_back(p);
 
-		std::vector< Vec3f > finalP, finalN;
+		std::vector< Eigen::Matrix<float,3,1,Eigen::DontAlign> > finalP, finalN;
 
 		/// Clean up duplicated points
 		if( false )
 		{
 			std::vector<size_t> xrefs;
-			weld(clean_points, xrefs, std::hash_Vec3d(), std::equal_to<Vec3f>());
+			weld(clean_points, xrefs, std::hash_Vector3f(), std::equal_to<Eigen::Vector3f>());
 
 			std::set<int> uniqueIds;
 			for(int i = 0; i < (int)points.size(); i++)	uniqueIds.insert(xrefs[i]);
@@ -1508,8 +1508,8 @@ void topoblend::renderGraph( Structure::Graph graph, QString filename, bool isOu
 		}
 		else
 		{
-			foreach(Vec3d p, points) finalP.push_back(p);
-			foreach(Vec3d n, normals) finalN.push_back(n);
+			foreach(Vector3f p, points) finalP.push_back(p);
+			foreach(Vector3f n, normals) finalN.push_back(n);
 		}
 
 		/// Better Estimate Normals
@@ -1522,30 +1522,30 @@ void topoblend::renderGraph( Structure::Graph graph, QString filename, bool isOu
 		if( true )
 		{
 			NanoKdTree tree;
-			foreach(Vector3 p, finalP) tree.addPoint(p);
+			foreach(Vector3f p, finalP) tree.addPoint(p.cast<double>());
 			tree.build();
 
 			for(int i = 0; i < (int)finalP.size(); i++)
 			{
-				Vec3d newNormal(0);
+				Vector3d newNormal(0,0,0);
 
 				int k = 12;
 
 				KDResults matches;
-				tree.k_closest(finalP[i], k, matches);
-				foreach(KDResultPair match, matches) newNormal += finalN[match.first];
+				tree.k_closest(finalP[i].cast<double>(), k, matches);
+				foreach(KDResultPair match, matches) newNormal += finalN[match.first].cast<double>();
 				newNormal /= 12.0;
 
-				finalN[i] = newNormal;
+				finalN[i] = newNormal.cast<float>();
 			}
 		}
 
 		/// Send for reconstruction:
 		if(isOutPointCloud)
 		{
-			QString xyz_filename = node->id + "_" + filename + ".xyz";
-			tempFiles << xyz_filename;
-			Synthesizer::writeXYZ( xyz_filename, finalP, finalN );
+			//QString xyz_filename = node->id + "_" + filename + ".xyz";
+			//tempFiles << xyz_filename;
+			//Synthesizer::writeXYZ( xyz_filename, finalP, finalN );
 		}
 
 		QString node_filename = node->id + ".obj";

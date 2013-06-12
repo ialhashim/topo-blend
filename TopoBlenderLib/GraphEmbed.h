@@ -21,14 +21,14 @@ struct GraphEmbed
         int N = centers.size();
 
         // PCA
-        Vector3 plane_center(0), plane_normal(0); Scalar plane_d = 0;
+        Vector3 plane_center(0,0,0), plane_normal(0,0,0); Scalar plane_d = 0;
         planePCA(centers, plane_center, plane_normal, plane_d);
 
         // Project to PCA plane, to XY plane and assign back to node
         for(int i = 0; i < N; i++)
 		{
             Vector3 p = pointOnPlane( centers[i], plane_normal, plane_d );
-			nmap[i]->vis_property[NODE_CENTER] = QVector3D( RotateFromTo(plane_normal, Vector3(0,0,1), p, plane_center) );
+			nmap[i]->vis_property[NODE_CENTER] = QVector3D( QVector3(RotateFromTo(plane_normal, Vector3(0,0,1), p, plane_center)) );
 		}
             
         graph->property["embeded2D"] = true;
@@ -52,14 +52,14 @@ struct GraphEmbed
 		int N = centers.size();
 
 		// PCA
-		Vector3 plane_center(0), plane_normal(0); Scalar plane_d = 0;
+		Vector3 plane_center(0,0,0), plane_normal(0,0,0); Scalar plane_d = 0;
 		planePCA(centers, plane_center, plane_normal, plane_d);
 
 		// Project to PCA plane, to XY plane and assign back to node
 		for(int i = 0; i < N; i++)
 		{
 			Vector3 p = pointOnPlane( centers[i], plane_normal, plane_d );
-			nmap[i]->vis_property[NODE_CENTER] = QVector3D( RotateFromTo(plane_normal, Vector3(0,0,1), p, plane_center) );
+			nmap[i]->vis_property[NODE_CENTER] = QVector3D( QVector3(RotateFromTo(plane_normal, Vector3(0,0,1), p, plane_center)) );
 		}
 
 		graph->property["embeded2D"] = true;
@@ -93,7 +93,7 @@ struct GraphEmbed
             sumX2(0), sumY2(0), sumZ2(0),
             sumXY(0), sumXZ(0), sumYZ(0);
 
-        Vector3 mean(0);
+        Vector3 mean(0,0,0);
 
         foreach(Vector3 p, points){
             x = p.x();	y = p.y();	z = p.z();
@@ -133,10 +133,10 @@ struct GraphEmbed
         return q - t * pn;
     }
 
-    static Vector3 RotateFromTo(Vector3 from, Vector3 to, Vector3 & point, Vector3 pivot = Vector3(0))
+    static Vector3 RotateFromTo(Vector3 from, Vector3 to, Vector3 & point, Vector3 pivot = Vector3(0,0,0))
     {
 		Vector3 axis = cross(from, to).normalized();
-		double theta = acos( qRanged(-1.0, dot(from.normalize(), to.normalize()), 1.0) );
+		double theta = acos( qRanged(-1.0, dot(from.normalized(), to.normalized()), 1.0) );
 
 		point -= pivot;
 		point = (point * cos(theta) + cross(axis, point) * sin(theta) + axis * dot(axis, point) * (1 - cos(theta)));

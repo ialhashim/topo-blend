@@ -57,7 +57,7 @@ public:
         int vDegree, bool uLoop, bool vLoop, Real* uKnot, Real* vKnot);
 
     static NURBSRectangle<Real> createSheet(Scalar width, Scalar length, Vector3 center, Vector3 dU, Vector3 dV, int nU = 5, int nV = 5);
-    static NURBSRectangle<Real> createSheet(Vec3d corner1, Vec3d corner2, int stepsU = 5, int stepsV = 5);
+    static NURBSRectangle<Real> createSheet(Vector3d corner1, Vector3d corner2, int stepsU = 5, int stepsV = 5);
 	static NURBSRectangle<Real> createSheetFromPoints( Array2D_Vector3 ctrlPoint );
 
     int GetNumCtrlPoints (int dim) const;
@@ -120,7 +120,7 @@ public:
     void uniformCoordinates(std::vector<Real> &valU, std::vector<Real> &valV, double resolution, int u = 0, int v = 0);
 
     void generateSurfacePoints(Scalar stepSize, std::vector<std::vector<Vector3> > &points, std::vector<Real> &valU, std::vector<Real> &valV);
-    void generateSurfacePointsCoords(Scalar stepSize, std::vector<std::vector<Vec4d> > &points);
+    void generateSurfacePointsCoords(Scalar stepSize, std::vector< Array1D_Vector4d > &points);
 
     std::vector<Vector3> GetControlPointsU(int uIndex);
 	std::vector<Vector3> GetControlPointsV(int vIndex);
@@ -128,15 +128,15 @@ public:
 	std::vector<Scalar> GetControlWeightsU(int uIndex);
 	std::vector<Scalar> GetControlWeightsV(int vIndex);
 
-    std::vector<Vec3d> intersect(NURBSRectangle<Real> &other, double resolution, std::vector<Vec4d> &coordMe, std::vector<Vec4d> &coordOther);
+    std::vector<Vector3d> intersect(NURBSRectangle<Real> &other, double resolution, Array1D_Vector4d &coordMe, Array1D_Vector4d &coordOther);
 
-    Vec4d timeAt(const Vector3 &pos);
-    Vec4d timeAt(const Vector3 &pos, Vec4d &bestUV, Vec4d &minRange, Vec4d &maxRange, Real currentDist, Real threshold = 1e-4 );
-    std::vector<Vec4d> timeAt(const std::vector<Vector3> &positions, Real threshold);
+    Vector4d timeAt(const Vector3 &pos);
+    Vector4d timeAt(const Vector3 &pos, Vector4d &bestUV, Vector4d &minRange, Vector4d &maxRange, Real currentDist, Real threshold = 1e-4 );
+    Array1D_Vector4d timeAt(const std::vector<Vector3> &positions, Real threshold);
 
     Vector3 projectOnControl(Real u, Real v);
 
-    void translate(const Vec3d &delta);
+    void translate(const Vector3d &delta);
     void scale(Scalar scaleFactor);
 
 public:

@@ -245,7 +245,7 @@ QVector< GraphDistance::PathPointPair > Task::weldPath( QVector< GraphDistance::
 	QVector< GraphDistance::PathPointPair > cleanPath;
 
 	// Find spatial position
-	std::vector<Vec3d> spatialPath;
+	std::vector<Vector3d> spatialPath;
 	QSet<int> allPath;
 	foreach(GraphDistance::PathPointPair nc, oldPath) 
 	{
@@ -254,7 +254,7 @@ QVector< GraphDistance::PathPointPair > Task::weldPath( QVector< GraphDistance::
 	}
 
 	std::vector<size_t> xrefs;
-	weld(spatialPath, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
+	weld(spatialPath, xrefs, std::hash_Vector3d(), std::equal_to<Vector3d>());
 
 	QSet<int> goodPath; 
     for(int i = 0; i < (int)xrefs.size(); i++)
@@ -284,7 +284,7 @@ NodeCoord Task::futureOtherNodeCoord( Structure::Link *link )
 	Structure::Node * tfutureOther = tlink->otherNode(tn->id);
 	QString futureOtherID = tfutureOther->property["correspond"].toString();
 
-	Vec4d futureOtherCoord = tlink->getCoordOther(tn->id).front();
+	Vector4d futureOtherCoord = tlink->getCoordOther(tn->id).front();
 
 	return qMakePair(futureOtherID, futureOtherCoord);
 }
@@ -320,12 +320,12 @@ void Task::copyTargetEdge( Structure::Link *tlink )
 	Structure::Node *n = node();
 	Structure::Node *tn = targetNode();
 
-	std::vector<Vec4d> coord = tlink->getCoord(tn->id);
+	Array1D_Vector4d coord = tlink->getCoord(tn->id);
 
 	Structure::Node *tOther = tlink->otherNode(tn->id);
 	QString otherID = tOther->property["correspond"].toString();
 	Structure::Node *nOther = active->getNode(otherID);
-	std::vector<Vec4d> coordOther = tlink->getCoordOther(tn->id);
+	Array1D_Vector4d coordOther = tlink->getCoordOther(tn->id);
 
 	active->addEdge(n, nOther, coord, coordOther);
 }
@@ -407,7 +407,7 @@ QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Struct
 	// Bin edges by their coordinates into 4 locations (2 for curves)
 	QMap< int, QVector<Structure::Link*> > bin;
 	foreach(Structure::Link * l, edges){
-		Vec4d coord = l->getCoord(n->id).front();
+		Vector4d coord = l->getCoord(n->id).front();
 		int idx = coord[0] > 0.5 ? (coord[1] > 0.5 ? 3 : 1) : (coord[1] > 0.5 ? 2 : 0);
 		bin[idx].push_back(l);
 	}
@@ -454,10 +454,10 @@ Structure::Link * Task::preferredEnd(Structure::Node * n, QVector<Structure::Lin
 
 RMF::Frame Task::sheetFrame( Structure::Sheet * sheet )
 {
-	Vector3 corner = sheet->position(Vec4d(0));
-	Vector3 A = sheet->position(Vec4d(0,1,0,0));
-	Vector3 B = sheet->position(Vec4d(1,0,0,0));
-	Vector3 C = sheet->position(Vec4d(1));
+	Vector3 corner = sheet->position(Vector4d(0,0,0,0));
+	Vector3 A = sheet->position(Vector4d(0,1,0,0));
+	Vector3 B = sheet->position(Vector4d(1,0,0,0));
+	Vector3 C = sheet->position(Vector4d(1,1,1,1));
 
 	Vector3 X = (A - corner).normalized();
 	Vector3 Y = (B - corner).normalized();
@@ -480,12 +480,12 @@ Array1D_Vector3 Task::sheetDeltas( Structure::Sheet * sheet )
 
 RMF::Frame Task::curveFrame( Structure::Curve * curve, bool isFlip )
 {
-	Vec4d zero(0);
-	Vec4d one(1.0);
+	Vector4d zero(0,0,0,0);
+	Vector4d one(1,1,1,1);
 	if(isFlip) std::swap(zero,one);
-	Vec3d origin = curve->position(zero);
-	Vec3d X = (curve->position(one) - origin).normalized();
-	Vec3d Y = orthogonalVector(X);
+	Vector3d origin = curve->position(zero);
+	Vector3d X = (curve->position(one) - origin).normalized();
+	Vector3d Y = orthogonalVector(X);
 	RMF::Frame frame = RMF::Frame::fromRS(X,Y);
 	frame.center = origin; 
 	return frame;
@@ -548,7 +548,7 @@ void Task::execute( double t )
 	node()->property["t"] = t;
 }
 
-QVector< GraphDistance::PathPointPair > Task::smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
+QVector< GraphDistance::PathPointPair > Task::smoothStart( Structure::Node * n, Vector4d& startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
 {
 	if(!oldPath.size()) return oldPath;
 	QVector< GraphDistance::PathPointPair > prefix_path;
@@ -572,7 +572,7 @@ QVector< GraphDistance::PathPointPair > Task::smoothStart( Structure::Node * n, 
 	return prefix_path + oldPath;
 }
 
-QVector< GraphDistance::PathPointPair > Task::smoothEnd( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
+QVector< GraphDistance::PathPointPair > Task::smoothEnd( Structure::Node * n, Vector4d& startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
 {
 	if(!oldPath.size()) return oldPath;
 	QVector< GraphDistance::PathPointPair > postfix_path;
@@ -612,7 +612,7 @@ Structure::Link * Task::getCoorespondingEdge( Structure::Link * link, Structure:
 	return otherGraph->getEdge(correspondID);
 }
 
-Structure::Node * Task::addAuxNode(Vec3d position, Structure::Graph * g)
+Structure::Node * Task::addAuxNode(Vector3d position, Structure::Graph * g)
 {
 	Structure::Node * aux = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, position ) ), 
 		"auxA_" + QString::number(g->aux_nodes.size()));
@@ -624,9 +624,9 @@ Structure::Node * Task::prepareEnd( Structure::Node * n, Structure::Link * slink
 {
 	Structure::Node * tn = target->getNode(n->property["correspond"].toString());
 	Structure::Link * tlink = target->getEdge(slink->property["correspond"].toString());
-	Vec3d endDelta = tlink->position(tn->id) - tlink->positionOther(tn->id);
+	Vector3d endDelta = tlink->position(tn->id) - tlink->positionOther(tn->id);
 	QString corrBaseNodeID = tlink->otherNode(tn->id)->property["correspond"].toString();
-	Vec3d posOther = active->getNode(corrBaseNodeID)->position(tlink->getCoordOther(tn->id).front());
+	Vector3d posOther = active->getNode(corrBaseNodeID)->position(tlink->getCoordOther(tn->id).front());
 	Structure::Node * aux = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, posOther + endDelta ) ), "auxA_" + n->id);
 	active->aux_nodes.push_back( aux );
 	return aux;
@@ -638,14 +638,14 @@ QPair<Structure::Node*,Structure::Node*> Task::prepareEnd2( Structure::Node * n,
 	Structure::Link * tlinkA = target->getEdge(linkA->property["correspond"].toString());
 	Structure::Link * tlinkB = target->getEdge(linkB->property["correspond"].toString());
 
-	Vec3d endDeltaA = tlinkA->position(tn->id) - tlinkA->positionOther(tn->id);
-	Vec3d endDeltaB = tlinkB->position(tn->id) - tlinkB->positionOther(tn->id);
+	Vector3d endDeltaA = tlinkA->position(tn->id) - tlinkA->positionOther(tn->id);
+	Vector3d endDeltaB = tlinkB->position(tn->id) - tlinkB->positionOther(tn->id);
 
-	//Vec3d fromOtherA = linkA->otherNode(n->id)->position(tlinkA->getCoordOther(tn->id).front());
-	//Vec3d fromOtherB = linkB->otherNode(n->id)->position(tlinkB->getCoordOther(tn->id).front());
+	//Vector3d fromOtherA = linkA->otherNode(n->id)->position(tlinkA->getCoordOther(tn->id).front());
+	//Vector3d fromOtherB = linkB->otherNode(n->id)->position(tlinkB->getCoordOther(tn->id).front());
 
-	Vec3d fromOtherA = tlinkA->position(tn->id) - endDeltaA;
-	Vec3d fromOtherB = tlinkB->position(tn->id) - endDeltaB;
+	Vector3d fromOtherA = tlinkA->position(tn->id) - endDeltaA;
+	Vector3d fromOtherB = tlinkB->position(tn->id) - endDeltaB;
 
 	Node * auxA = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, fromOtherA + endDeltaA ) ), "auxA_" + n->id);
 	Node * auxB = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, fromOtherB + endDeltaB ) ), "auxB_" + n->id);
@@ -715,8 +715,8 @@ void Task::prepareMorphEdges()
 		edges.push_back(l);
 
 		// Make sure local link coordinates are consistent from source to target
-		//Vec4d scoord = l->getCoord(n->id).front();
-		//Vec4d tcoord = target->getEdge(l->property["correspond"].toString())->getCoord(tn->id).front();
+		//Vector4d scoord = l->getCoord(n->id).front();
+		//Vector4d tcoord = target->getEdge(l->property["correspond"].toString())->getCoord(tn->id).front();
 		//bool isWithinThreshold = (abs(scoord[0]-tcoord[0]) < 0.5);
 		//if(isSameHalf(scoord,tcoord) || isWithinThreshold ) continue;
 		//l->invertCoords(n->id);
@@ -726,9 +726,9 @@ void Task::prepareMorphEdges()
 	// Compute paths for all edges
 	foreach(Link * link, edges)
 	{
-		Vec3d start = link->positionOther(n->id);
+		Vector3d start = link->positionOther(n->id);
 		NodeCoord futureNodeCord = futureOtherNodeCoord(link);
-		Vec3d end = active->position(futureNodeCord.first, futureNodeCord.second);
+		Vector3d end = active->position(futureNodeCord.first, futureNodeCord.second);
 
 		// Geodesic distances on the active graph excluding the running tasks
 		QVector< GraphDistance::PathPointPair > path;
@@ -773,7 +773,7 @@ void Task::executeMorphEdges( double t )
 		Structure::Node *otherOld = link->otherNode(n->id);
 		Structure::Node *otherNew = active->getNode(cur.a.first);
 
-		link->replace( otherOld->id, otherNew, std::vector<Vec4d>(1,cur.a.second) );
+		link->replace( otherOld->id, otherNew, Array1D_Vector4d(1,cur.a.second) );
 	}
 }
 

@@ -276,7 +276,7 @@ Structure::Graph * DynamicGraph::toStructureGraph()
 
 		Structure::Node *n1 = graph->getNode(id1), *n2 = graph->getNode(id2);
 
-		graph->addEdge( n1, n2, std::vector<Vec4d>(1, Vec4d(0)), std::vector<Vec4d>(1, Vec4d(0)), graph->linkName(n1, n2) );
+		graph->addEdge( n1, n2, Array1D_Vector4d(1, Vector4d(0,0,0,0)), Array1D_Vector4d(1, Vector4d(0,0,0,0)), graph->linkName(n1, n2) );
 
 		// Copy edge coordinates
 		Structure::Link *toEdge = graph->getEdge(id1, id2);
@@ -552,14 +552,14 @@ QVector< QPairInt > DynamicGraph::correspondence( DynamicGraph & other, double &
 
 		QString n1_id = nodes[nodeID].str("original");
 		Structure::Node * n1 = this->mGraph->getNode( n1_id );
-        Vector3 center1(0); n1->get(Vec4d(0.5), center1, nf);
+        Vector3 center1(0,0,0); n1->get(Vector4d(0.5,0.5,0.5,0.5), center1, nf);
 
 		// Test against possible corresponding nodes
 		foreach( int curID, vset[ valence ] )
 		{
 			QString n2_id = other.nodes[curID].str("original");
 			Structure::Node * n2 = other.mGraph->getNode( n2_id );
-            Vector3 center2(0); n2->get(Vec4d(0.5), center2, nf);
+            Vector3 center2(0,0,0); n2->get(Vector4d(0.5,0.5,0.5,0.5), center2, nf);
 
 			double currScore = (center1 - center2).norm();
 
@@ -631,9 +631,9 @@ bool DynamicGraph::hasEdge( int n1_index, int n2_index )
 	return edges.values().contains(SimpleEdge(n1_index,n2_index));
 }
 
-std::vector<Vec4d> DynamicGraph::firstSpecialCoord( int node_index )
+Array1D_Vector4d DynamicGraph::firstSpecialCoord( int node_index )
 {
-	typedef QMap< int, std::vector<Vec4d> > NodeCoord;
+	typedef QMap< int, Array1D_Vector4d > NodeCoord;
 
 	foreach(NodeCoord nodeCoord, specialCoords.values())
 	{
@@ -641,7 +641,7 @@ std::vector<Vec4d> DynamicGraph::firstSpecialCoord( int node_index )
 			return nodeCoord[node_index];
 	}
 
-	return std::vector<Vec4d>(1, Vec4d(0));
+	return Array1D_Vector4d(1, Vector4d(0,0,0,0));
 }
 
 /*

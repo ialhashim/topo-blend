@@ -17,7 +17,7 @@ void traverseOctree( Octree & octree, CubeSoup & cs )
 {
 	if( octree.children.empty() && !octree.triangleData.empty() )
 	{
-		cs.addCube( Vector3( octree.boundingBox.Center() ), octree.boundingBox.yExtent * 2 );
+		cs.addCube( QVector3( octree.boundingBox.Center() ), octree.boundingBox.yExtent * 2 );
 		return;
 	}
 
@@ -36,12 +36,12 @@ void visiblity_resampler::initParameters(RichParameterSet *pars)
 	pars->addParam(new RichInt("randSamples",1e4,"Number of random samples"));
 }
 
-std::vector<Vec3d> randomSampleSphere( int numSamples, bool isRegular )
+std::vector<Vector3d> randomSampleSphere( int numSamples, bool isRegular )
 {
 	double theta,rho,phi;
 	double x,y,z;
 
-	std::vector<Vec3d> samples;
+	std::vector<Vector3d> samples;
 
 	int iAQuantize = 200;
 	int iBQuantize = 50;
@@ -74,17 +74,17 @@ std::vector<Vec3d> randomSampleSphere( int numSamples, bool isRegular )
 		y = cos(phi);
 		z = sin(phi) * sin(theta);
 
-		samples.push_back(Vec3d(x,y,z));
+		samples.push_back(Vector3d(x,y,z));
 	}
 
 	return samples;
 }
 
-std::vector<Vec3d> uniformSampleSphere( int numSamples = 5 )
+std::vector<Vector3d> uniformSampleSphere( int numSamples = 5 )
 {
 	double x,y,z;
 
-	std::vector<Vec3d> samples;
+	std::vector<Vector3d> samples;
 
 	double d_theta = (M_PI) / numSamples;
 	double d_psi = (M_PI) / numSamples;
@@ -97,7 +97,7 @@ std::vector<Vec3d> uniformSampleSphere( int numSamples = 5 )
 			y = sin(theta) * sin(psi);
 			z = cos(theta);
 
-			samples.push_back(Vec3d(x,y,z));
+			samples.push_back(Vector3d(x,y,z));
 		}
 	}
 
@@ -113,7 +113,7 @@ void visiblity_resampler::applyFilter(RichParameterSet *pars)
 
     Octree octree(mesh());
 
-	std::vector<Vec3d> sphere = uniformSampleSphere( 5 );
+	std::vector<Vector3d> sphere = uniformSampleSphere( 5 );
 	int rayCount = sphere.size();
 
 	std::vector<SamplePoint> all_samples;
@@ -121,7 +121,7 @@ void visiblity_resampler::applyFilter(RichParameterSet *pars)
 	if( pars->getBool("uniformSampling") )
 	{
 		// Similar sampling
-		QVector<Vec3d> points, normals;
+		QVector<Vector3d> points, normals;
 		points = SimilarSampler::All(mesh(),pars->getInt("randSamples"),normals);
 		for(int i = 0; i < (int)points.size(); i++)
 			all_samples.push_back(SamplePoint(points[i],normals[i]));
@@ -176,7 +176,7 @@ void visiblity_resampler::applyFilter(RichParameterSet *pars)
 	}
 
 	std::vector<SamplePoint> used_samples;
-	std::vector<Vec3d> used_samples_points;
+	std::vector<Vector3d> used_samples_points;
 
 	for(int i = 0; i < N; i++){
 		if(isUse[i]) 
@@ -187,7 +187,7 @@ void visiblity_resampler::applyFilter(RichParameterSet *pars)
 	}
 
 	std::vector<size_t> corner_xrefs;
-	weld(used_samples_points, corner_xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
+	weld(used_samples_points, corner_xrefs, std::hash_Vector3d(), std::equal_to<Vector3d>());
 
 
 	for(int j = 0; j < (int)used_samples.size(); j++)
@@ -196,13 +196,13 @@ void visiblity_resampler::applyFilter(RichParameterSet *pars)
 
 		const SamplePoint& sp = used_samples[i];
 
-		if(pars->getBool("viz")) ps->addPointNormal( Vec3d(sp.pos), Vec3d(sp.n) );
+		if(pars->getBool("viz")) ps->addPointNormal( Vector3d(sp.pos), Vector3d(sp.n) );
 		if(pars->getBool("addModel")) m->add_vertex( sp.pos );
 
 		if(pars->getBool("saveFileXYZ"))
 		{
-			Vec3d p = sp.pos;
-			Vec3d n = sp.n;
+			Vector3d p = sp.pos;
+			Vector3d n = sp.n;
 			(*out) << QString("%1 %2 %3 %4 %5 %6\n").arg(p[0]).arg(p[1]).arg(p[2]).arg(n[0]).arg(n[1]).arg(n[2]);
 		}
 

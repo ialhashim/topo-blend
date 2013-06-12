@@ -4,16 +4,17 @@
 #include "SurfaceMeshHelper.h"
 
 using namespace SurfaceMesh;
+using namespace Eigen;
 
 // Helper structures
 struct SamplePoint{
-	Vec3d pos, n;
+	Vector3d pos, n;
 	double weight;
 	double u,v;
 	int findex; // index of sampled face
 	int flag;
 
-	SamplePoint(const Vec3d& position = Vec3d(), const Vec3d& normal = Vec3d(), 
+	SamplePoint(const Vector3d& position = Vector3d(), const Vector3d& normal = Vector3d(), 
 		double Weight = 0.0, int face_index = -1.0, double U = 0.0, double V = 0.0, int flags = 0)
 	{
 		pos = position;

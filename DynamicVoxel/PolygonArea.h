@@ -123,7 +123,7 @@ static inline double signedArea(const std::vector<Vector3>& points, const Vector
 	for(int i = 0; i < N; i++)
 	{
 		int j = NEXT(i, N);
-		sumVec += cross((points[i]-center),(points[j]-center));
+		sumVec += cross(Vector3(points[i]-center),Vector3(points[j]-center));
 	}
 
 	return dot(sumVec, n);

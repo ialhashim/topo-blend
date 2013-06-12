@@ -1,5 +1,7 @@
 #pragma once
 #include <qgl.h>
+#include <Eigen/Core>
+using namespace Eigen;
 
 namespace DynamicVoxelLib{
 
@@ -9,11 +11,12 @@ struct Voxel{
 
     Voxel(){ x = y = z = flag = 0; }
     Voxel(int X, int Y, int Z = 0) : x(X), y(Y), z(Z){ flag = 1; }
-    Voxel(const Vec3i & p) { x = p.x(); y = p.y(); z = p.z(); }
+    Voxel(const Vector3i & p) { x = p.x(); y = p.y(); z = p.z(); }
+	Voxel(const Vector3d & p) { x = p.x(); y = p.y(); z = p.z(); }
 
     // Operators
-    operator const Vec3d() const{ return Vec3d(x,y,z); }
-    inline Vec3d toVec3d() const{ return Vec3d(x,y,z); }
+    operator const Vector3d() const{ return Vector3d(x,y,z); }
+    inline Vector3d toVector3d() const{ return Vector3d(x,y,z); }
 
 	const Voxel & operator =(const Voxel & v) { 
 		x = v.x; y = v.y; z = v.z; return *this; 
@@ -45,12 +48,12 @@ struct Voxel{
         return Voxel(*this) -= other;
     }
 
-    Vec3d operator/(const double & val) const{
-        return Vec3d(x / val, y / val, z / val);
+    Vector3d operator/(const double & val) const{
+        return Vector3d(x / val, y / val, z / val);
     }
 
-	Vec3d operator*(const double & val) const{
-		return Vec3d(x * val, y * val, z * val);
+	Vector3d operator*(const double & val) const{
+		return Vector3d(x * val, y * val, z * val);
 	}
 
     // Useful for bounds
@@ -66,20 +69,20 @@ static inline QDebug operator<< (QDebug d, const Voxel &v) {
 static Voxel cornerVoxels[] = { Voxel(0,0,0), Voxel(1,0,0), Voxel(0,1,0), Voxel(1,1,0),
                                 Voxel(0,0,1), Voxel(1,0,1), Voxel(0,1,1), Voxel(1,1,1)};
 
-static Vec3d faceCenters[] = { Vec3d(0.5,0.5,0),
-                               Vec3d(0.5,0,0.5), Vec3d(0,0.5,0.5), Vec3d(1,0.5,0.5), Vec3d(0.5,1,0.5),
-                               Vec3d(0.5,0.5,1)};
+static Vector3d faceCenters[] = { Vector3d(0.5,0.5,0),
+                               Vector3d(0.5,0,0.5), Vector3d(0,0.5,0.5), Vector3d(1,0.5,0.5), Vector3d(0.5,1,0.5),
+                               Vector3d(0.5,0.5,1)};
 
 static Voxel faceCentersVoxel[] = { Voxel(0,0,-1),
 									Voxel(0,-1,0), Voxel(-1,0,0), Voxel(1,0,0), Voxel(0,1,0),
 									Voxel(0,0,1)};
 
-static Vec3d faceCorners[6][4] = { { Vec3d(0,0,0), Vec3d(0,1,0), Vec3d(1,1,0), Vec3d(1,0,0) },
-                                   { Vec3d(0,0,0), Vec3d(1,0,0), Vec3d(1,0,1), Vec3d(0,0,1) },
-                                   { Vec3d(0,0,0), Vec3d(0,0,1), Vec3d(0,1,1), Vec3d(0,1,0) },
-                                   { Vec3d(1,0,0), Vec3d(1,1,0), Vec3d(1,1,1), Vec3d(1,0,1) },
-                                   { Vec3d(0,1,0), Vec3d(0,1,1), Vec3d(1,1,1), Vec3d(1,1,0) },
-                                   { Vec3d(0,0,1), Vec3d(1,0,1), Vec3d(1,1,1), Vec3d(0,1,1) }};
+static Vector3d faceCorners[6][4] = { { Vector3d(0,0,0), Vector3d(0,1,0), Vector3d(1,1,0), Vector3d(1,0,0) },
+                                   { Vector3d(0,0,0), Vector3d(1,0,0), Vector3d(1,0,1), Vector3d(0,0,1) },
+                                   { Vector3d(0,0,0), Vector3d(0,0,1), Vector3d(0,1,1), Vector3d(0,1,0) },
+                                   { Vector3d(1,0,0), Vector3d(1,1,0), Vector3d(1,1,1), Vector3d(1,0,1) },
+                                   { Vector3d(0,1,0), Vector3d(0,1,1), Vector3d(1,1,1), Vector3d(1,1,0) },
+                                   { Vector3d(0,0,1), Vector3d(1,0,1), Vector3d(1,1,1), Vector3d(0,1,1) }};
 
 static Voxel faceCornersVoxel[6][4] = { { Voxel(0,0,0), Voxel(0,1,0), Voxel(1,1,0), Voxel(1,0,0) },
 										{ Voxel(0,0,0), Voxel(1,0,0), Voxel(1,0,1), Voxel(0,0,1) },
@@ -149,15 +152,15 @@ static void drawCube(double x, double y, double z, double scale = 1.0){
 }
 
 namespace std {
-    struct hashv_Vec3d {
-        size_t operator()(Vec3d v) {
+    struct hashv_Vector3d {
+        size_t operator()(Vector3d v) {
             const unsigned int * h = (const unsigned int *)(&v);
             unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0
             return (f>>22)^(f>>12)^(f);
         }
     };
-    struct hashv_Vec3f {
-        size_t operator()(Vec3f v) {
+    struct hashv_Vector3f {
+        size_t operator()(Eigen::Vector3f v) {
             const unsigned int * h = (const unsigned int *)(&v);
             unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0
             return (f>>22)^(f>>12)^(f);

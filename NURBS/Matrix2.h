@@ -1,6 +1,6 @@
 #pragma once
 
-typedef Vector<Scalar,2> Vector2;
+typedef Eigen::Vector2d Vector2;
 
 // Rotation matrices are of the form
 //   R = cos(t) -sin(t)

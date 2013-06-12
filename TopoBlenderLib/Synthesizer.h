@@ -13,8 +13,8 @@ struct ParameterCoord{
 	float theta, psi;
 
 	float origOffset;
-	Vec3f origPoint;
-	Vec3f origNormal;
+	Eigen::Vector3f origPoint;
+	Eigen::Vector3f origNormal;
 	Structure::Node * origNode;
 
 	ParameterCoord(){ u = v = -1; theta = psi = 0; origOffset = 0; origNode = NULL; }
@@ -41,8 +41,8 @@ static inline QDebug operator<<(QDebug dbg, const ParameterCoord &c){
 struct Synthesizer{
 
 	// Generate sample points in the parameter domain
-	static QVector<ParameterCoord> genPointCoordsCurve( Structure::Curve * curve, const std::vector<Vec3f> & points, const std::vector<Vec3f> & normals );
-	static QVector<ParameterCoord> genPointCoordsSheet( Structure::Sheet * sheet, const std::vector<Vec3f> & points, const std::vector<Vec3f> & normals );
+	static QVector<ParameterCoord> genPointCoordsCurve( Structure::Curve * curve, const std::vector<Eigen::Vector3f> & points, const std::vector<Eigen::Vector3f> & normals );
+	static QVector<ParameterCoord> genPointCoordsSheet( Structure::Sheet * sheet, const std::vector<Eigen::Vector3f> & points, const std::vector<Eigen::Vector3f> & normals );
 
 	static QVector<ParameterCoord> genFeatureCoords( Structure::Node * node );
 	static QVector<ParameterCoord> genEdgeCoords( Structure::Node * node );
@@ -64,9 +64,9 @@ struct Synthesizer{
 
 	// Reconstruction on given base skeleton
 	static void reconstructGeometryCurve( Structure::Curve * base_curve, QVector<ParameterCoord> in_samples, QVector<float> &in_offsets, 
-											QVector<Vec2f> &in_normals, QVector<Vec3f> &out_points, QVector<Vec3f> &out_normals);
+											QVector<Vec2f> &in_normals, QVector<Eigen::Vector3f> &out_points, QVector<Eigen::Vector3f> &out_normals);
 	static void reconstructGeometrySheet( Structure::Sheet * base_sheet, QVector<ParameterCoord> in_samples, QVector<float> &in_offsets, 
-											QVector<Vec2f> &in_normals, QVector<Vec3f> &out_points, QVector<Vec3f> &out_normals);
+											QVector<Vec2f> &in_normals, QVector<Eigen::Vector3f> &out_points, QVector<Eigen::Vector3f> &out_normals);
 	// Preparation
 	enum SamplingType{ Features = 1, Edges = 2, Random = 4, Uniform = 8, All = 16, AllNonUniform = 32, Remeshing = 64, TriUniform = 128 };
 
@@ -74,23 +74,23 @@ struct Synthesizer{
 	static void prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2, int samplingType = Features | Random );
 	
 	// Blend geometries
-	static void blendGeometryCurves( Structure::Curve * curve1, Structure::Curve * curve2, float alpha, QVector<Vec3f> &points, QVector<Vec3f> &normals);
-	static void blendGeometrySheets( Structure::Sheet * sheet1, Structure::Sheet * sheet2, float alpha, QVector<Vec3f> &points, QVector<Vec3f> &normals);
+	static void blendGeometryCurves( Structure::Curve * curve1, Structure::Curve * curve2, float alpha, QVector<Eigen::Vector3f> &points, QVector<Eigen::Vector3f> &normals);
+	static void blendGeometrySheets( Structure::Sheet * sheet1, Structure::Sheet * sheet2, float alpha, QVector<Eigen::Vector3f> &points, QVector<Eigen::Vector3f> &normals);
 
 	// Helper functions
-	static RMF consistentFrame( Structure::Curve * curve, Array1D_Vec4d & coords );
+	static RMF consistentFrame( Structure::Curve * curve, Array1D_Vector4d & coords );
 
 	// IO
 	static void saveSynthesisData(Structure::Node *node, QString prefix = "");
 	static void loadSynthesisData(Structure::Node *node, QString prefix = "");
-	static void writeXYZ( QString filename, std::vector<Vec3f> points, std::vector<Vec3f> normals );
+	static void writeXYZ( QString filename, std::vector<Eigen::Vector3f> points, std::vector<Eigen::Vector3f> normals );
 
 	static void copySynthData( Structure::Node * fromNode, Structure::Node * toNode );
 	static void clearSynthData( Structure::Node * fromNode );
 };
 
-Q_DECLARE_METATYPE(Vec3f)
+Q_DECLARE_METATYPE(Eigen::Vector3f)
 Q_DECLARE_METATYPE(QVector<float>)
 Q_DECLARE_METATYPE(QVector<Vec2f>)
-Q_DECLARE_METATYPE(QVector<Vec3f>)
+Q_DECLARE_METATYPE(QVector<Eigen::Vector3f>)
 Q_DECLARE_METATYPE(QVector<ParameterCoord>)

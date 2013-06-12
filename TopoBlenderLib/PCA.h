@@ -12,9 +12,9 @@ using namespace Eigen;
 struct PCA{
     static Vec3d mainAxis( const std::vector<Vec3d> & points)
     {
-        Vec3d first = Vec3d(0);
-        Vec3d second = Vec3d(0);
-        Vec3d third = Vec3d(0) ;
+        Vec3d first = Vec3d(0,0,0);
+        Vec3d second = Vec3d(0,0,0);
+        Vec3d third = Vec3d(0,0,0) ;
 
         return mainAxis(points, first, second, third);
     }
@@ -28,7 +28,7 @@ struct PCA{
 			sumX2(0.0), sumY2(0.0), sumZ2(0.0),
 			sumXY(0.0), sumXZ(0.0), sumYZ(0.0);
 
-		Vec3d mean = Vec3d(0);
+		Vec3d mean = Vec3d(0,0,0);
 
         foreach(SurfaceMesh::Point p, points){
 			mean += p;

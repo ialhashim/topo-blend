@@ -4,7 +4,7 @@
 
 #include "NanoKdTree.h"
 
-#define glv glVertex3dv
+#define glv(v) glVertex3dv(v.data())
 #define gln glNormal3d
 
 namespace VoxelerLibrary{
@@ -50,8 +50,8 @@ public:
 	std::vector< std::vector<int> > cornerIndices;
 	std::vector< int > cornerCorrespond;
 	std::vector< Point > getCorners(int vid);
-	int getClosestVoxel(Vec3d point);
-	int getEnclosingVoxel( Vec3d point );
+	int getClosestVoxel(Vector3d point);
+	int getEnclosingVoxel( Vector3d point );
 
 	std::vector< Point > getVoxelCenters();
 

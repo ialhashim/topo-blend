@@ -2,6 +2,7 @@
 #include <float.h>
 #include "SurfaceMeshModel.h"
 using namespace SurfaceMesh;
+using namespace Eigen;
 
 namespace VoxelerLibrary{
 

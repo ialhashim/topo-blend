@@ -69,7 +69,7 @@ void Line::ClosestPoint(Point c, double &t, Point &d)
 {
 	Vector3 ab = b - a;
 	// Project c onto ab, computing parameterized position d(t) = a + t*(b ?a)
-	t = dot(c - a, ab) / dot(ab, ab);
+	t = dot(Vector3(c - a), ab) / dot(ab, ab);
 	// If outside segment, clamp t (and therefore d) to the closest endpoint
 	if (t < 0.0) t = 0.0;
 	if (t > 1.0) t = 1.0;
@@ -85,7 +85,7 @@ Vector3 Line::midPoint()
 Vector3 Line::project( const Vector3& point )
 {
 	double time;
-	Vec3d pos;
+	Vector3d pos;
 	ClosestPoint(point, time, pos);
 	return pos;
 }
@@ -98,7 +98,7 @@ Vector3 Line::pointAt( double time ) const
 
 double Line::timeAt( const Vector3& point )
 {
-	return dot((point - a), direction().normalized()) / length;
+	return dot(Vector3(point - a), direction().normalized()) / length;
 }
 
 Pairdouble Line::lengthsAt( const Vector3& point )
@@ -192,9 +192,9 @@ void Line::intersectLine( const Line& S2, Vector3 & pa, Vector3 & pb, double Eps
 	pb = S2.pointAt(tc);
 }
 
-std::vector<Vector3> Line::uniformSample( int numSamples )
+std::vector< Eigen::Matrix<double,3,1,Eigen::DontAlign> > Line::uniformSample( int numSamples )
 {
-    std::vector<Vector3> result;
+    std::vector< Eigen::Matrix<double,3,1,Eigen::DontAlign> > result;
 
 	double deltaLength = length / (numSamples - 1);
     Vector3 delta = deltaLength * direction().normalized();
@@ -207,7 +207,7 @@ std::vector<Vector3> Line::uniformSample( int numSamples )
 	return result;
 }
 
-Line::operator const std::vector<Vector3>()
+Line::operator const std::vector< Eigen::Matrix<double,3,1,Eigen::DontAlign> >()
 {
 	return uniformSample(2);
 }

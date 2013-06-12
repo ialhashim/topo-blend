@@ -2,14 +2,31 @@
 
 #include <float.h>
 #include <qgl.h>
+#include <QVector3D>
 #include "RenderObject.h"
+
+#include "SurfaceMeshModel.h"
+using namespace SurfaceMesh;
+using namespace Eigen;
 
 #define glVertQt(v) glVertex3d(v.x(), v.y(), v.z())
 #define glColorQt(c) glColor4d(c.redF(), c.greenF(), c.blueF(), c.alphaF())
+#define glv(v) glVertex3dv(v.data())
+
+// Custom QVector3D
+class QVector3: public QVector3D{
+public:
+	QVector3(){ setX(0);setY(0);setZ(0); }
+	QVector3(double x, double y, double z){ this->setX(x);this->setY(y);this->setZ(z); }
+	QVector3 (const QVector3D& v){ this->setX(v.x());this->setY(v.y());this->setZ(v.z()); }
+	QVector3 (const Vector3d& v){ this->setX(v.x());this->setY(v.y());this->setZ(v.z()); }
+	operator const Vector3d() { return Vector3d(x(),y(),z()); }
+	operator const QVector3D() { return *this; }
+};
 
 class PolygonSoup : public RenderObject::Base{
-	QVector< QVector<QVector3D> > polys;
-	QVector< QVector3D > polys_normals;
+	QVector< QVector<QVector3> > polys;
+	QVector< QVector3 > polys_normals;
 	QVector< QColor > polys_colors;
 
 public:
@@ -37,7 +54,7 @@ public:
 		glLineWidth(2.0f);
 		glColor4d(0,0,0,1);
 		glBegin(GL_LINES);
-		foreach(QVector<QVector3D> poly, polys){
+		foreach(QVector<QVector3> poly, polys){
 			for(int i = 0; i < (int) poly.size(); i++){
 				glVertQt(poly[i]);
 				glVertQt(poly[(i+1) % poly.size()]);
@@ -47,7 +64,7 @@ public:
 
 		glPointSize(3.0f);
 		glBegin(GL_POINTS);
-		foreach(QVector<QVector3D> poly, polys){
+		foreach(QVector<QVector3> poly, polys){
 			for(int i = 0; i < (int) poly.size(); i++)
 				glVertQt(poly[i]);
 		}
@@ -83,7 +100,7 @@ public:
 		glEnd();
 	}
 
-	void addPoly(const QVector<QVector3D>& points, const QColor& c = Qt::red){
+	void addPoly(const QVector<QVector3>& points, const QColor& c = Qt::red){
 		if(points.size() < 3) return;
 		else
 			polys.push_back(points);
@@ -95,7 +112,7 @@ public:
 };
 
 class LineSegments : public RenderObject::Base{
-	QVector< QPair<QVector3D,QVector3D> > lines;
+	QVector< QPair<QVector3,QVector3> > lines;
 	QVector< QColor > lines_colors;
 public:
 	LineSegments():RenderObject::Base(1, Qt::black){}
@@ -125,7 +142,7 @@ public:
 		glEnable(GL_LIGHTING);
 	}
 
-	void addLine(const QVector3D& p1, const QVector3D& p2, const QColor& c = Qt::blue){
+	void addLine(const QVector3& p1, const QVector3& p2, const QColor& c = Qt::blue){
 		lines.push_back( qMakePair(p1,p2) );
 		lines_colors.push_back(c);
 	}
@@ -137,8 +154,8 @@ public:
 };
 
 class PointSoup : public RenderObject::Base{
-	QVector< QVector3D > points;
-	QVector< QVector3D > normals;
+	QVector< QVector3 > points;
+	QVector< QVector3 > normals;
 	QVector< QColor > points_colors;
 public:
 	PointSoup(float size = 6.0f):RenderObject::Base(size, Qt::black){}
@@ -166,12 +183,12 @@ public:
 		glEnable(GL_LIGHTING);
 	}
 
-	void addPointNormal(const QVector3D& p, const QVector3D& n, const QColor& c = Qt::blue){
+	void addPointNormal(const QVector3& p, const QVector3& n, const QColor& c = Qt::blue){
 		addPoint(p,c);
 		normals.push_back(n);
 	}
 
-	void addPoint(const QVector3D& p, const QColor& c = Qt::blue){
+	void addPoint(const QVector3& p, const QColor& c = Qt::blue){
 		points.push_back(p);
 		points_colors.push_back(c);
 	}
@@ -182,7 +199,7 @@ public:
 };
 
 class VectorSoup : public RenderObject::Base{
-    QVector< QPair<QVector3D,QVector3D> > vectors;
+    QVector< QPair<QVector3,QVector3> > vectors;
     QVector< double > vectorLengths;
     double maxLen;
 public:
@@ -194,7 +211,7 @@ public:
 		maxLen = -DBL_MAX;
 	}
 
-    void addVector(const QVector3D& start, const QVector3D& direction){
+    void addVector(const QVector3& start, const QVector3& direction){
         vectors.push_back( qMakePair(start,direction) );
         double l = direction.length();
         vectorLengths.push_back(l);
@@ -237,13 +254,13 @@ public:
 
 
 class PlaneSoup : public RenderObject::Base{
-	QVector< QPair<QVector3D,QVector3D> > planes;
+	QVector< QPair<QVector3,QVector3> > planes;
 	double scale;
 public:
 	PlaneSoup(double s = 1.0, const QColor& c = Qt::green):RenderObject::Base(1, c)
 	{ scale = s; }
 
-	void addPlane(const QVector3D& center, const QVector3D& normal){
+	void addPlane(const QVector3& center, const QVector3& normal){
 		planes.push_back( qMakePair(center, normal) );
 	}
 
@@ -264,16 +281,16 @@ public:
 
 		// Bake geometry
 		int c = planes.size();
-		std::vector<Vec3d> n(c),u(c),v(c),p1(c),p2(c),p3(c),p4(c);
+		std::vector<QVector3> n(c),u(c),v(c),p1(c),p2(c),p3(c),p4(c);
 		for(int i = 0; i < c; i++){
 			n[i] = planes[i].second;
 			u[i] = scale * orthogonalVector(n[i]).normalized();
-			v[i] = scale * cross(n[i], u[i]).normalized();
+			v[i] = scale * QVector3D::crossProduct(n[i], u[i]).normalized();
 
-			p1[i] = planes[i].first + (u[i] + v[i]);
-			p2[i] = planes[i].first + (-u[i] + v[i]);
-			p3[i] = planes[i].first + (-v[i] + u[i]);
-			p4[i] = planes[i].first + (-v[i] + -u[i]);
+			p1[i] = QVector3(planes[i].first + (u[i] + v[i]));
+			p2[i] = QVector3(planes[i].first + (-u[i] + v[i]));
+			p3[i] = QVector3(planes[i].first + (-v[i] + u[i]));
+			p4[i] = QVector3(planes[i].first + (-v[i] + -u[i]));
 		}
 
 		// Draw Borders
@@ -283,10 +300,10 @@ public:
 		glBegin(GL_QUADS);
 		for(int i = 0; i < c; i++)
 		{
-			glVertex3dv(p1[i]);
-			glVertex3dv(p2[i]);
-			glVertex3dv(p4[i]);
-			glVertex3dv(p3[i]);
+			glVertQt(p1[i]);
+			glVertQt(p2[i]);
+			glVertQt(p4[i]);
+			glVertQt(p3[i]);
 		}
 		glEnd();
 
@@ -294,21 +311,21 @@ public:
 		glColor3f(color[0], color[1], color[2]);
 		glPointSize(4.0);
 		glBegin(GL_POINTS);
-		for(int i = 0; i < c; i++) glVertex3dv(Vec3d(planes[i].first));
+		for(int i = 0; i < c; i++) glVertQt(planes[i].first);
 		glEnd();
 		glPointSize(8.0);
 		glColor4f(1, 1, 1, 0.5);
 		glBegin(GL_POINTS);
-		for(int i = 0; i < c; i++) glVertex3dv(Vec3d(planes[i].first));
+		for(int i = 0; i < c; i++) glVertQt(planes[i].first);
 		glEnd();
 
 		// Draw Normal
 		glBegin(GL_LINES);
 		for(int i = 0; i < c; i++)
 		{
-			Vec3d center = Vec3d(planes[i].first);
-			glVertex3dv(center);
-			glVertex3dv(center + (n[i] * 0.2 * scale));
+			Vector3d center = planes[i].first;
+			glv(center);
+			glv(Vector3(center + ((Vector3d)n[i] * 0.2 * scale)));
 		}
 		glEnd();
 
@@ -318,10 +335,10 @@ public:
 		glBegin(GL_QUADS);
 		for(int i = 0; i < c; i++)
 		{
-			glVertex3dv(p1[i]);
-			glVertex3dv(p2[i]);
-			glVertex3dv(p4[i]);
-			glVertex3dv(p3[i]);
+			glVertQt(p1[i]);
+			glVertQt(p2[i]);
+			glVertQt(p4[i]);
+			glVertQt(p3[i]);
 		}
 		glEnd();
 
@@ -329,17 +346,17 @@ public:
 		glEnable(GL_LIGHTING);
 	}
 
-	static Vec3d orthogonalVector(const Vec3d& n) {
+	static QVector3 orthogonalVector(const QVector3& n) {
 		if ((abs(n.y()) >= 0.9 * abs(n.x())) &&
-			abs(n.z()) >= 0.9 * abs(n.x())) return Vec3d(0.0, -n.z(), n.y());
+			abs(n.z()) >= 0.9 * abs(n.x())) return QVector3(0.0, -n.z(), n.y());
 		else if ( abs(n.x()) >= 0.9 * abs(n.y()) &&
-			abs(n.z()) >= 0.9 * abs(n.y()) ) return Vec3d(-n.z(), 0.0, n.x());
-		else return Vec3d(-n.y(), n.x(), 0.0);
+			abs(n.z()) >= 0.9 * abs(n.y()) ) return QVector3(-n.z(), 0.0, n.x());
+		else return QVector3(-n.y(), n.x(), 0.0);
 	}
 };
 
 class FrameSoup : public RenderObject::Base{
-	QVector< QVector<QVector3D> > frames;
+	QVector< QVector<QVector3> > frames;
 	bool isFlip;
 
 public:
@@ -348,8 +365,8 @@ public:
 		this->isFlip = flip;
 	}
 
-	void addFrame(const QVector3D& X, const QVector3D& Y, const QVector3D& Z, const QVector3D& position){
-		QVector<QVector3D> frame;
+	void addFrame(const QVector3& X, const QVector3& Y, const QVector3& Z, const QVector3& position){
+		QVector<QVector3> frame;
 		if(isFlip)
 		{
 			frame.push_back(Z);
@@ -382,8 +399,8 @@ public:
 		glLineWidth(1);
 		glBegin(GL_LINES);
 		for(int i = 0; i < (int) frames.size(); i++){
-			QVector3D X=frames[i][0],Y=frames[i][1],Z=frames[i][2];
-			QVector3D pos=frames[i][3];
+			QVector3 X=frames[i][0],Y=frames[i][1],Z=frames[i][2];
+			QVector3 pos=frames[i][3];
 			glColorQt(frameColors[(ci+0)%3]); glVertQt(pos); glVertQt((pos + X * _size));
 			glColorQt(frameColors[(ci+1)%3]); glVertQt(pos); glVertQt((pos + Y * _size));
 			glColorQt(frameColors[(ci+2)%3]); glVertQt(pos); glVertQt((pos + Z * _size));
@@ -393,8 +410,8 @@ public:
 		glPointSize(3);
 		glBegin(GL_POINTS);
 		for(int i = 0; i < (int) frames.size(); i++){
-			QVector3D X=frames[i][0],Y=frames[i][1],Z=frames[i][2];
-			QVector3D pos=frames[i][3];
+			QVector3 X=frames[i][0],Y=frames[i][1],Z=frames[i][2];
+			QVector3 pos=frames[i][3];
 			glColorQt(frameColors[(ci+0)%3]); glVertQt((pos + X * _size));
 			glColorQt(frameColors[(ci+1)%3]); glVertQt((pos + Y * _size));
 			glColorQt(frameColors[(ci+2)%3]); glVertQt((pos + Z * _size));
@@ -482,7 +499,7 @@ static void renderSphere(float cx, float cy, float cz, float r)
 }
 
 class SphereSoup : public RenderObject::Base{
-	QVector< QVector3D > centers;
+	QVector< QVector3 > centers;
 	QVector< float > radii;
 	QVector< QColor > colors;
 public:
@@ -499,19 +516,19 @@ public:
 	void draw(){
 		glEnable(GL_LIGHTING);
 		for(int i = 0; i < (int) centers.size(); i++){
-			Vec3d c = centers[i];
+			Vector3d c = centers[i];
 			glColorQt(colors[i]);
 			renderSphere(c[0],c[1],c[2],radii[i]);
 		}
 	}
 
-	void addSphere(const QVector3D& center, float radius = 0.1f){
+	void addSphere(const QVector3& center, float radius = 0.1f){
 		centers.push_back(center);
 		radii.push_back(radius);
 		colors.push_back(_color);
 	}
 
-	void addSphere(const QVector3D& center, float radius, const QColor& c){
+	void addSphere(const QVector3& center, float radius, const QColor& c){
 		centers.push_back(center);
 		radii.push_back(radius);
 		colors.push_back(c);
@@ -519,7 +536,7 @@ public:
 };
 
 class CubeSoup : public RenderObject::Base{
-	QVector< QVector3D > centers;
+	QVector< QVector3 > centers;
 	QVector< float > lengths;
 	QVector< QColor > colors;
 	bool isWireframe;
@@ -534,7 +551,7 @@ public:
 		colors.clear();
 	}
 
-	void drawCube(QVector3D center, double length = 1.0)
+	void drawCube(QVector3 center, double length = 1.0)
 	{
 		static GLdouble n[6][3] =
 		{{-1.0, 0.0, 0.0},
@@ -599,7 +616,7 @@ public:
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 
-	void addCube(const QVector3D& center, float length = 1, const QColor& c = Qt::yellow){
+	void addCube(const QVector3& center, float length = 1, const QColor& c = Qt::yellow){
 		centers.push_back(center);
 		lengths.push_back(length * _size);
 		colors.push_back(c);

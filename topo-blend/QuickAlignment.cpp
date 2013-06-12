@@ -68,14 +68,14 @@ void QuickAlignment::doPartAlignment()
 
 	// Rotation
 	boxA = na->bbox(); boxB = nb->bbox();
-	Vec3d va = Vec3d(boxA.center().x(), boxA.center().y(), 0).normalized();
-	Vec3d vb = Vec3d(boxB.center().x(), boxB.center().y(), 0).normalized();
+	Vector3d va = Vector3d(boxA.center().x(), boxA.center().y(), 0).normalized();
+	Vector3d vb = Vector3d(boxB.center().x(), boxB.center().y(), 0).normalized();
 	int qa = quadrant(va);
 	int qb = quadrant(vb);
 	int diff = qb - qa;
 
 	mat.setToIdentity();
-	mat.rotate( RADIANS_TO_DEGREES(diff * M_PI_4), Vector3(0,0,1) );
+	mat.rotate( RADIANS_TO_DEGREES(diff * M_PI_4), QVector3(0,0,1) );
 	ga->transform( mat );
 
 	// Translation

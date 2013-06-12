@@ -20,8 +20,8 @@ BoundaryFitting::BoundaryFitting( SurfaceMeshModel * mesh, int numSegments, int 
 	boundaryCurv = part->vertex_property<Scalar>("v:vivo", 0);
 	dists = part->vertex_property<Scalar>("v:bf_dists", 0);
 
-	fgradient = part->face_property<Vector3> ("f:fitting_gradient", Vector3(0));
-	vgradient = part->vertex_property<Vector3> ("v:fitting_gradient", Vector3(0));
+	fgradient = part->face_property<Vector3> ("f:fitting_gradient", Vector3(0,0,0));
+	vgradient = part->vertex_property<Vector3> ("v:fitting_gradient", Vector3(0,0,0));
 
 	part->update_face_normals();
 	part->update_vertex_normals();
@@ -88,8 +88,8 @@ void BoundaryFitting::doFit()
 
 	// Cluster boundary
 	{
-		vdirection = part->vertex_property<Vector3>("v:direction",Vector3(0));
-		Vector3VertexProperty vnew = part->vertex_property<Vector3>("v:directionNew",Vector3(0));
+		vdirection = part->vertex_property<Vector3>("v:direction",Vector3(0,0,0));
+		Vector3VertexProperty vnew = part->vertex_property<Vector3>("v:directionNew",Vector3(0,0,0));
 
 		// Assign directions from adjacent faces
 		foreach( Vertex v, part->vertices() ){
@@ -100,7 +100,7 @@ void BoundaryFitting::doFit()
 				adjF.push_back(f);
 			}
 
-			Vector3 sum(0);
+			Vector3 sum(0,0,0);
 			foreach(Face f, adjF) sum += fgradient[f];
 			vdirection[v] = sum / adjF.size();
 		}
@@ -126,9 +126,9 @@ void BoundaryFitting::doFit()
 			Vertex v = boundry[i];
 			if(boundaryCurv[v] > 0.8) continue;
 
-			Vec3d edge = (points[boundry[(i+1)%boundry.size()]] - points[v]).normalized();
+			Vector3d edge = (points[boundry[(i+1)%boundry.size()]] - points[v]).normalized();
 
-			Vec3d prev = vdirection[v];
+			Vector3d prev = vdirection[v];
 			vdirection[v] = prev.norm() * cross(normals[v], edge);
 		}
 
@@ -143,7 +143,7 @@ void BoundaryFitting::doFit()
 		}
 
 		// Get a reasonable axis
-		std::vector<Vec3d> allPoints;
+		std::vector<Vector3d> allPoints;
 		foreach(Vertex v, part->vertices()) allPoints.push_back(points[v]);
 		Vector3 first, second, third;
 		PCA::mainAxis(allPoints,first,second,third);
@@ -220,7 +220,7 @@ void BoundaryFitting::doFit()
 				QVector<int> items = grp[id];
 
 				// Compute average
-				Vector3 avg(0);
+				Vector3 avg(0,0,0);
 				foreach(int vidx, items) avg += vdirection[Vertex(vidx)];
 				avg /= items.size();
 
@@ -268,7 +268,7 @@ void BoundaryFitting::doFit()
 		{
 			QVector<int> items = newGrp[gid];
 
-			std::vector<Vec3d> edgePoints;
+			std::vector<Vector3d> edgePoints;
 
 			foreach(int vidx, items) 
 			{
@@ -337,14 +337,14 @@ void BoundaryFitting::doFit()
 			//// Extract fitted surface
 			//if( false )
 			{
-				std::vector<Vec3d> startPath, endPath;
+				std::vector<Vector3d> startPath, endPath;
 				foreach(Vector3 p, geodesicPath(points[ v1 ], points[ v2 ]))	startPath.push_back(p);
 				foreach(Vector3 p, geodesicPath(points[ v4 ], points[ v3 ]))	endPath.push_back(p);
 
 				if(segmentsV < 0) segmentsV = segments;
 
-				std::vector< std::vector<Vec3d> > paths = geodesicPaths(startPath, endPath, segments);
-				foreach(std::vector<Vec3d> path, paths)
+				std::vector< std::vector<Vector3d> > paths = geodesicPaths(startPath, endPath, segments);
+				foreach(std::vector<Vector3d> path, paths)
 				{
 					lines.push_back( equidistLine(path, segmentsV) );
 				}
@@ -393,9 +393,9 @@ void BoundaryFitting::doFit()
 	}
 }
 
-std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Vec3d> fromPoints, std::vector<Vec3d> toPoints, int segments )
+std::vector< std::vector<Vector3d> > BoundaryFitting::geodesicPaths( std::vector<Vector3d> fromPoints, std::vector<Vector3d> toPoints, int segments )
 {
-	std::vector< std::vector<Vec3d> > paths;
+	std::vector< std::vector<Vector3d> > paths;
 
 	SurfaceMeshHelper helper(part);
 	Vector3FaceProperty fcenter = helper.computeFaceBarycenters();
@@ -406,7 +406,7 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 	// for geodesic computation
 	QVector<Vertex> vertVector;
 	QSet<Vertex> vertSet; 
-	foreach(Vec3d p, toPoints) vertVector.push_back(Vertex(tree.closest(p)));
+	foreach(Vector3d p, toPoints) vertVector.push_back(Vertex(tree.closest(p)));
 	foreach(Vertex v, vertVector) vertSet.insert(v);
 
 	// for actual segments
@@ -418,7 +418,7 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 
 	for(int sid = 0; sid < (int)fromPoints.size(); sid++)
 	{
-		std::vector<Vec3d> path;
+		std::vector<Vector3d> path;
 
 		Vertex endVertex( tree.closest(toPoints[sid]) );
 
@@ -453,7 +453,7 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 
 		// Constant flow toward end of path
         //bool isConstant = false;
-        //Vector3 constantDirection(0);
+        //Vector3 constantDirection(0,0,0);
 
 		while( true )
 		{
@@ -521,7 +521,7 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 			Vector3 ipoint = edgeSegment.pointAt( qRanged(0.001, bestTime, 0.999 ) );
 
 			// Make sure its on triangle
-			std::vector<Vec3d> vp = trianglePoints(f);
+			std::vector<Vector3d> vp = trianglePoints(f);
 			ClosestPointTriangle(ipoint,vp[0],vp[1],vp[2],ipoint);
 
 			path.push_back( ipoint );
@@ -543,15 +543,15 @@ std::vector< std::vector<Vec3d> > BoundaryFitting::geodesicPaths( std::vector<Ve
 	return paths;
 }
 
-std::vector<Vec3d> BoundaryFitting::geodesicPath(Vec3d fromPoint, Vec3d toPoint)
+std::vector<Vector3d> BoundaryFitting::geodesicPath(Vector3d fromPoint, Vector3d toPoint)
 {
-	return geodesicPaths(std::vector<Vec3d>(1,fromPoint),std::vector<Vec3d>(1,toPoint)).front();
+	return geodesicPaths(std::vector<Vector3d>(1,fromPoint),std::vector<Vector3d>(1,toPoint)).front();
 }
 
-SurfaceMesh::Face BoundaryFitting::getBestFace( Vec3d & point, Vertex guess )
+SurfaceMesh::Face BoundaryFitting::getBestFace( Vector3d & point, Vertex guess )
 {
 	Face best_face;
-	Vector3 isect(0), bestPoint(0);
+	Vector3 isect(0,0,0), bestPoint(0,0,0);
 	double minDist = DBL_MAX;
 
 	// Find closest face to point
@@ -562,7 +562,7 @@ SurfaceMesh::Face BoundaryFitting::getBestFace( Vec3d & point, Vertex guess )
 			Face f = part->face(h);
 			if(!f.is_valid()) continue;
 
-			std::vector<Vec3d> vp = trianglePoints( f );
+			std::vector<Vector3d> vp = trianglePoints( f );
 			double dist = ClosestPointTriangle(point, vp[0], vp[1], vp[2], isect);
 
 			if(dist < minDist)
@@ -575,15 +575,15 @@ SurfaceMesh::Face BoundaryFitting::getBestFace( Vec3d & point, Vertex guess )
 	}
 
 	// Shrink to make sure we are inside face not on edges
-	std::vector<Vec3d> vp = trianglePoints( best_face );
-	Vec3d faceCenter = (vp[0] + vp[1] + vp[2]) / 3.0;
-	Vec3d delta = point - faceCenter;
+	std::vector<Vector3d> vp = trianglePoints( best_face );
+	Vector3d faceCenter = (vp[0] + vp[1] + vp[2]) / 3.0;
+	Vector3d delta = point - faceCenter;
 	point = faceCenter + (delta * 0.99);
 
 	return best_face;
 }
 
-SurfaceMesh::Halfedge BoundaryFitting::getBestEdge(Vec3d prevPoint, Vec3d direction, Face f, double & bestTime)
+SurfaceMesh::Halfedge BoundaryFitting::getBestEdge(Vector3d prevPoint, Vector3d direction, Face f, double & bestTime)
 {
 	QMap<double,Halfedge> projections;
 	QMap<double,double> projectionsTime;
@@ -624,7 +624,7 @@ SurfaceMesh::Halfedge BoundaryFitting::getBestEdge(Vec3d prevPoint, Vec3d direct
 	return projections.values().front();
 }
 
-std::vector<Vec3d> BoundaryFitting::trianglePoints( Face f )
+std::vector<Vector3d> BoundaryFitting::trianglePoints( Face f )
 {
 	std::vector<Vector3> f_vec; 
 	Surface_mesh::Vertex_around_face_circulator vit = part->vertices(f),vend=vit;
@@ -739,7 +739,7 @@ void BoundaryFitting::gradientFaces( ScalarVertexProperty & functionVal, bool is
 
 	// Compute gradient on faces
 	foreach(Face f, part->faces()){
-		Vector3 vsum(0);
+		Vector3 vsum(0,0,0);
 
 		Surface_mesh::Halfedge_around_face_circulator h(part, f), hend = h;
 		do{
@@ -759,8 +759,8 @@ void BoundaryFitting::gradientFaces( ScalarVertexProperty & functionVal, bool is
 		// Smooth gradient
 		for(int itr = 0; itr < 10; itr++)
 		{
-			std::vector<Vec3d> newGrad(part->n_faces(),Vector3(0));
-			std::vector<Vec3d> avgNormal(part->n_faces(),Vector3(0));
+			std::vector<Vector3d> newGrad(part->n_faces(),Vector3(0,0,0));
+			std::vector<Vector3d> avgNormal(part->n_faces(),Vector3(0,0,0));
 
 			foreach(Face f, part->faces())
 			{
@@ -809,7 +809,7 @@ void BoundaryFitting::gradientFaces( ScalarVertexProperty & functionVal, bool is
 			if(!part->is_valid(f)) continue;
 			adjF.push_back(f);
 		}
-		Vector3 sum(0);
+		Vector3 sum(0,0,0);
 		foreach(Face f, adjF) sum += fgradient[f];
 		vgradient[v] = sum / adjF.size();
 	}

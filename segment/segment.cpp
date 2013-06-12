@@ -183,9 +183,9 @@ void segment::performCurveSheetSegmentation(double theta, double minRadius, int 
 		// Draw curves
 		for(int r = 0; r < (int)curve_regions.size(); r++){
 			foreach(Face f, curve_regions[r]){
-				QVector<QVector3D> p;
+				QVector<QVector3> p;
 				VertFaceIter vit = mesh()->vertices(f), vend = vit;
-				do{ p.push_back( Vector3(points[vit] + shift)  ); } while(++vit != vend);
+				do{ p.push_back( QVector3(points[vit] + shift)  ); } while(++vit != vend);
 				for(int i = 0; i < p.size(); i++)
 					lines->addLine(p[i], p[(i+1) % p.size()], QColor::fromRgbF(rclr[r][0], rclr[r][1], rclr[r][2]));
 			}
@@ -193,9 +193,9 @@ void segment::performCurveSheetSegmentation(double theta, double minRadius, int 
 		// Draw sheets
 		foreach(Region region, sheet_regions){
 			foreach(Face f, region){
-				QVector<QVector3D> p;
+				QVector<QVector3> p;
 				VertFaceIter vit = mesh()->vertices(f), vend = vit;
-				do{ p.push_back( Vector3(points[vit] - shift) ); } while(++vit != vend);
+				do{ p.push_back( QVector3(points[vit] - shift) ); } while(++vit != vend);
 				poly_soup->addPoly(p);
 			}
 		}

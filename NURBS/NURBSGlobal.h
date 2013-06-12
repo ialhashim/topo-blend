@@ -5,6 +5,7 @@
 
 #include "SurfaceMeshModel.h"
 using namespace SurfaceMesh;
+using namespace Eigen;
 
 #include "weld.h"
 
@@ -13,19 +14,21 @@ typedef Scalar Real;
 #define MAX_REAL std::numeric_limits<SurfaceMesh::Scalar>::max()
 #define REAL_ZERO_TOLERANCE 1e-6
 
-typedef std::vector< Vector3 > Array1D_Vector3;
-typedef std::vector< std::vector<Vector3> > Array2D_Vector3;
-typedef std::vector< Vec4d > Array1D_Vec4d;
-typedef std::vector< std::vector<Vec4d> > Array2D_Vec4d;
+typedef std::vector< Vector3d > Array1D_Vector3;
+typedef std::vector< Array1D_Vector3 > Array2D_Vector3;
 typedef std::vector< Scalar > Array1D_Real;
 typedef std::vector< Array1D_Real > Array2D_Real;
 
+//typedef std::vector< Vector4d > Array1D_Vector4d;
+typedef std::vector<Vector4d, Eigen::aligned_allocator<Vector4d> > Array1D_Vector4d;
+typedef std::vector< Array1D_Vector4d > Array2D_Vector4d;
+
 Q_DECLARE_METATYPE(Array1D_Vector3)
 Q_DECLARE_METATYPE(Array2D_Vector3)
-Q_DECLARE_METATYPE(Array1D_Vec4d)
-Q_DECLARE_METATYPE(Array2D_Vec4d)
+Q_DECLARE_METATYPE(Array1D_Vector4d)
+Q_DECLARE_METATYPE(Array2D_Vector4d)
 
-#define Vector3_ZERO Vector3(0)
+#define Vector3_ZERO Vector3(0,0,0)
 
 #define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )
 
@@ -35,68 +38,68 @@ struct SurfaceQuad{	Vector3 p[4]; Normal n[4]; };
 inline double ClosestPointTriangle(Vector3 p, Vector3 a, Vector3 b, Vector3 c, Vector3 & closest)
 {
     // Check if P in vertex region outside A
-    Vec3d ab = b - a;
-    Vec3d ac = c - a;
-    Vec3d ap = p - a;
+    Vector3d ab = b - a;
+    Vector3d ac = c - a;
+    Vector3d ap = p - a;
     double d1 = dot(ab, ap);
     double d2 = dot(ac, ap);
     if (d1 <= 0 && d2 <= 0)
     {
         closest = a;
-        return (p-closest).sqrnorm(); // barycentric coordinates (1,0,0)
+        return (p-closest).squaredNorm(); // barycentric coordinates (1,0,0)
     }
     // Check if P in vertex region outside B
-    Vec3d bp = p - b;
+    Vector3d bp = p - b;
     double d3 = dot(ab, bp);
     double d4 = dot(ac, bp);
     if (d3 >= 0 && d4 <= d3)
     {
         closest = b;
-        return (p-closest).sqrnorm(); // barycentric coordinates (0,1,0)
+        return (p-closest).squaredNorm(); // barycentric coordinates (0,1,0)
     }
     // Check if P in edge region of AB, if so return projection of P onto AB
     double vc = d1*d4 - d3*d2;
     if (vc <= 0 && d1 >= 0 && d3 <= 0) {
         double v = d1 / (d1 - d3);
         closest = a + v * ab;
-        return (p - closest).sqrnorm(); // barycentric coordinates (1-v,v,0)
+        return (p - closest).squaredNorm(); // barycentric coordinates (1-v,v,0)
     }
     // Check if P in vertex region outside C
-    Vec3d cp = p - c;
+    Vector3d cp = p - c;
     double d5 = dot(ab, cp);
     double d6 = dot(ac, cp);
     if (d6 >= 0 && d5 <= d6)
     {
         closest = c;
-        return (p-closest).sqrnorm(); // barycentric coordinates (0,0,1)
+        return (p-closest).squaredNorm(); // barycentric coordinates (0,0,1)
     }
     // Check if P in edge region of AC, if so return projection of P onto AC
     double vb = d5*d2 - d1*d6;
     if (vb <= 0 && d2 >= 0 && d6 <= 0) {
         double w = d2 / (d2 - d6);
         closest = a + w * ac;
-        return (p - closest).sqrnorm(); // barycentric coordinates (1-w,0,w)
+        return (p - closest).squaredNorm(); // barycentric coordinates (1-w,0,w)
     }
     // Check if P in edge region of BC, if so return projection of P onto BC
     double va = d3*d6 - d5*d4;
     if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) {
         double w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
         closest = b + w * (c - b);
-        return (p - closest).sqrnorm(); // barycentric coordinates (0,1-w,w)
+        return (p - closest).squaredNorm(); // barycentric coordinates (0,1-w,w)
     }
     // P inside face region. Compute Q through its barycentric coordinates (u,v,w)
     double denom = 1.0 / (va + vb + vc);
     double v = vb * denom;
     double w = vc * denom;
     closest = a + ab * v + ac * w;
-    return (p - closest).sqrnorm(); // = u*a + v*b + w*c, u = va * denom = 1 - v - w
+    return (p - closest).squaredNorm(); // = u*a + v*b + w*c, u = va * denom = 1 - v - w
 }
 
 inline double ClosestPointSegment(Vector3 p, Vector3 a, Vector3 b, double &t, Point &d)
 {
     Vector3 ab = b - a;
     // Project c onto ab, but deferring divide by Dot(ab, ab)
-    t = dot(p - a, ab);
+    t = dot(Vector3(p - a), ab);
     if (t <= 0.0) {
         // c projects outside the [a,b] interval, on the a side; clamp to a
         t = 0.0;
@@ -113,7 +116,7 @@ inline double ClosestPointSegment(Vector3 p, Vector3 a, Vector3 b, double &t, Po
             d = a + t * ab;
         }
     }
-    return (p - d).sqrnorm();
+    return (p - d).squaredNorm();
 }
 
 // Clamp n to lie within the range [min, max]
@@ -191,7 +194,7 @@ inline double ClosestSegmentTriangle(Vector3 p, Vector3 q, Vector3 a, Vector3 b,
     int numCases = 5;
     std::vector<double> dists(numCases, 0.0);
     std::vector<double> s(numCases, 0.0), t(numCases, 0.0);
-    std::vector<Vector3> c1 (numCases, Vector3(0)), c2 (numCases, Vector3(0));
+    std::vector<Vector3> c1 (numCases, Vector3(0,0,0)), c2 (numCases, Vector3(0,0,0));
 
     // segment PQ and triangle edge AB,
     dists[0] = ClosestPointSegments(p,q, a,b, s[0], t[0], c1[0], c2[0]);
@@ -213,7 +216,7 @@ inline double ClosestSegmentTriangle(Vector3 p, Vector3 q, Vector3 a, Vector3 b,
 
     for(int i = 0; i < numCases; i++)
     {
-        double dist = (c1[i] - c2[i]).sqrnorm();
+        double dist = (c1[i] - c2[i]).squaredNorm();
 
         if(dist < minDist)
         {
@@ -258,28 +261,28 @@ inline Vector3 TriTriIntersect(	Vector3 a, Vector3 b, Vector3 c,
     return (p + q) / 2.0;
 }
 
-inline static bool sphereTest(Vec3d & p1, Vec3d & p2, double r1, double r2)
+inline static bool sphereTest(Vector3d & p1, Vector3d & p2, double r1, double r2)
 {
     double minDist = r1 + r2;
-    Vec3d relPos = p1 - p2;
+    Vector3d relPos = p1 - p2;
     double dist = relPos.x() * relPos.x() + relPos.y() * relPos.y() + relPos.z() * relPos.z();
     return dist <= minDist * minDist;
 }
 
-inline static bool intersectRayTri(const std::vector<Vec3d> & tri, const Vec3d & rayOrigin,
-    const Vec3d & rayDirection, Vec3d & intersectionPoint)
+inline static bool intersectRayTri(const std::vector<Vector3d> & tri, const Vector3d & rayOrigin,
+    const Vector3d & rayDirection, Vector3d & intersectionPoint)
 {
     double u, v, t;
-    Vec3d edge1 = tri[1] - tri[0];
-    Vec3d edge2 = tri[2] - tri[0];
-    Vec3d pvec = cross(rayDirection, edge2);
+    Vector3d edge1 = tri[1] - tri[0];
+    Vector3d edge2 = tri[2] - tri[0];
+    Vector3d pvec = cross(rayDirection, edge2);
     double det = dot(edge1, pvec);
     if (det == 0) return false;
     double invDet = 1 / det;
-    Vec3d tvec = rayOrigin - tri[0];
+    Vector3d tvec = rayOrigin - tri[0];
     u = dot(tvec, pvec) * invDet;
     if (u < 0 || u > 1) return false;
-    Vec3d qvec = cross(tvec, edge1);
+    Vector3d qvec = cross(tvec, edge1);
     v = dot(rayDirection, qvec) * invDet;
     if (v < 0 || u + v > 1) return false;
     t = dot(edge2, qvec) * invDet;
@@ -294,7 +297,7 @@ inline static bool TestSphereTriangle(Point sphereCenter, double sphereRadius, P
 
 	// Sphere and triangle intersect if the (squared) distance from sphere
 	// center to point p is less than the (squared) sphere radius
-	Vec3d v = p - sphereCenter;
+	Vector3d v = p - sphereCenter;
 	return dot(v, v) <= sphereRadius * sphereRadius;
 }
 

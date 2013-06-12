@@ -3,6 +3,7 @@
 
 #include "SurfaceMeshModel.h"
 using namespace SurfaceMesh;
+using namespace Eigen;
 
 /**
 * BoundingBox defines an axis-aligned cube that defines a
@@ -15,29 +16,29 @@ class BoundingBox
 {
 
 public:
-	Vec3d center;
-	Vec3d vmax, vmin;
+	Vector3d center;
+	Vector3d vmax, vmin;
 	double xExtent, yExtent, zExtent;
 
 	BoundingBox();
-	BoundingBox(const Vec3d& c, double x, double y, double z);
-	BoundingBox(const Vec3d& fromMin, const Vec3d& toMax);
+	BoundingBox(const Vector3d& c, double x, double y, double z);
+	BoundingBox(const Vector3d& fromMin, const Vector3d& toMax);
 	BoundingBox& operator= (const BoundingBox& other);
 
     /*void computeFromTris(const std::vector<BaseTriangle*>& tris);*/
     /*bool intersects(const Ray& ray) const;*/
 
-	bool contains(const Vec3d& point) const;
+	bool contains(const Vector3d& point) const;
 
-	bool containsTriangle(const Vec3d& tv1, const Vec3d& tv2, const Vec3d& tv3) const;
+	bool containsTriangle(const Vector3d& tv1, const Vector3d& tv2, const Vector3d& tv3) const;
 	bool intersectsBoundingBox(const BoundingBox& bb) const;
-	bool intersectsSphere(const Vec3d& sphere_center, double radius);
+	bool intersectsSphere(const Vector3d& sphere_center, double radius);
 
-    std::vector<Vec3d> getCorners();
+    std::vector<Vector3d> getCorners();
 
-	Vec3d Center();
+	Vector3d Center();
 	void Offset( double s );
-	void Offset( Vec3d delta );
+	void Offset( Vector3d delta );
 	double Diag();
 };
 
@@ -54,9 +55,9 @@ public:
 	if(x2<min) min=x2;\
 	if(x2>max) max=x2;
 
-static inline int planeBoxOverlap(const Vec3d& normal, const Vec3d& vert, const Vec3d& maxbox)
+static inline int planeBoxOverlap(const Vector3d& normal, const Vector3d& vert, const Vector3d& maxbox)
 {
-	Vec3d vmin,vmax;
+	Vector3d vmin,vmax;
 
 	for(int q=X; q<=Z; q++)
 	{

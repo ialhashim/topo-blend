@@ -51,9 +51,9 @@ void GraphDistance::prepareNodes( Scalar resolution, const std::vector<Vector3> 
 		samplePoints[node] = std::vector<Vector3>();
 
 		std::vector<Vector3> pointList;
-		std::vector<Vec4d> coordList;
+		Array1D_Vector4d coordList;
 
-		Array2D_Vec4d coords = node->discretizedPoints( resolution );
+		Array2D_Vector4d coords = node->discretizedPoints( resolution );
 
 		// Zero area?
 		//if (coords.empty()) 
@@ -61,7 +61,7 @@ void GraphDistance::prepareNodes( Scalar resolution, const std::vector<Vector3> 
 		//	excludeNodes.push_back(node->id);
 		//	continue;
 		//}
-		if (coords.empty()) coords.push_back( Array1D_Vec4d(1, Vec4d(0)) );
+		if (coords.empty()) coords.push_back( Array1D_Vector4d(1, Vector4d(0,0,0,0)) );
 
 		Array2D_Vector3 discretization = node->getPoints( coords );
 		nodeCount[node] = std::make_pair(discretization.size(), discretization.front().size());
@@ -78,7 +78,7 @@ void GraphDistance::prepareNodes( Scalar resolution, const std::vector<Vector3> 
 		for(int i = 0; i < (int)pointList.size(); i++)
 		{
 			Vector3 p = pointList[i];
-			Vec4d c = coordList[i];
+			Vector4d c = coordList[i];
 
 			// Check if its close to a start
 			for(int s = 0; s < (int)startingPoints.size(); s++)
@@ -198,7 +198,7 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 		int gid2 = nodesMap[e->n2].front().gid;
 
 		// Get positions
-		Vector3 pos1(0), pos2(0);
+		Vector3 pos1(0,0,0), pos2(0,0,0);
 
 		for(int c = 0; c < (int)e->coord[0].size(); c++)
 		{
@@ -234,8 +234,8 @@ void GraphDistance::computeDistances( std::vector<Vector3> startingPoints, doubl
 	// Create and connect starting points to rest of graph
 	int start_point = globalID;
 	adjacency_list.push_back(std::vector<neighbor>());
-	allPoints.push_back(Vector3(0));
-	allCoords.push_back( qMakePair(QString("NULL)"), Vec4d(0)) );
+	allPoints.push_back(Vector3(0,0,0));
+	allCoords.push_back( qMakePair(QString("NULL)"), Vector4d(0,0,0,0)) );
 	correspond.push_back(NULL);
 
 	// Last element's adjacency list contains links to all starting points
@@ -298,7 +298,7 @@ double GraphDistance::pathTo( Vector3 point, std::vector<Vector3> & path )
 	return dists[closest];
 }
 
-double GraphDistance::pathCoordTo( NodeCoord relativePoint, QVector< QPair<QString, Vec4d> > & path )
+double GraphDistance::pathCoordTo( NodeCoord& relativePoint, QVector< QPair<QString, Vector4d> > & path )
 {
 	// Check if relative point is in an excluded node
 	if( excludeNodes.contains( relativePoint.first ) ) return DBL_MAX;
@@ -324,7 +324,7 @@ double GraphDistance::pathCoordTo( NodeCoord relativePoint, QVector< QPair<QStri
 	return pathCoordTo( allPoints[closest], path );
 }
 
-double GraphDistance::pathCoordTo( Vector3 point, QVector< QPair<QString, Vec4d> > & path )
+double GraphDistance::pathCoordTo( Vector3 point, QVector< QPair<QString, Vector4d> > & path )
 {
 	// Find closest destination point
 	int closest = 0;
@@ -339,7 +339,7 @@ double GraphDistance::pathCoordTo( Vector3 point, QVector< QPair<QString, Vec4d>
 		}
 	}
 
-	//Vec3d closestPoint = allPoints[closest];
+	//Vector3d closestPoint = allPoints[closest];
 
 	// Retrieve path 
 	std::list<vertex_t> shortestPath = DijkstraGetShortestPathTo(closest, previous);
@@ -434,9 +434,9 @@ Structure::Node * GraphDistance::closestNeighbourNode( Vector3 to, double resolu
 	return closestNode;
 }
 
-double GraphDistance::smoothPathCoordTo( NodeCoord relativePoint, QVector< PathPointPair > & smooth_path )
+double GraphDistance::smoothPathCoordTo( NodeCoord& relativePoint, QVector< PathPointPair > & smooth_path )
 {
-	QVector< QPair<QString, Vec4d> > path;
+	QVector< QPair<QString, Vector4d> > path;
 	double dist = this->pathCoordTo( relativePoint, path );
 	smoothPath( path, smooth_path );
 	return dist;
@@ -444,13 +444,13 @@ double GraphDistance::smoothPathCoordTo( NodeCoord relativePoint, QVector< PathP
 
 double GraphDistance::smoothPathCoordTo( Vector3 point, QVector< PathPointPair > & smooth_path )
 {
-	QVector< QPair<QString, Vec4d> > path;
+	QVector< QPair<QString, Vector4d> > path;
 	double dist = this->pathCoordTo( point, path );
 	smoothPath( path, smooth_path );
 	return dist;
 }
 
-void GraphDistance::smoothPath( QVector< QPair<QString, Vec4d> > path, QVector< PathPointPair > & smooth_path )
+void GraphDistance::smoothPath( QVector< QPair<QString, Vector4d> > path, QVector< PathPointPair > & smooth_path )
 {
 	for(int i = 0; i < (int)path.size(); i++){
 		if(i < 1){
@@ -494,7 +494,7 @@ Array1D_Vector3 GraphDistance::positionalPath( Structure::Graph * graph, QVector
 
 	// To ensure unique points
 	std::vector<size_t> xrefs;
-	weld(pnts, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
+	weld(pnts, xrefs, std::hash_Vector3d(), std::equal_to<Vector3d>());
 
 	return smoothPolyline(pnts, smoothingIters);
 }

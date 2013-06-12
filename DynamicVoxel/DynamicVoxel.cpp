@@ -23,8 +23,8 @@ DynamicVoxel::DynamicVoxel(double voxelSize){
 
     this->voxel_size = voxelSize;
 
-    this->maxVoxel = Voxel(-INT_MAX);
-    this->minVoxel = Voxel(INT_MAX);
+    this->maxVoxel = Voxel(-INT_MAX, -INT_MAX, -INT_MAX);
+    this->minVoxel = Voxel(INT_MAX, INT_MAX, INT_MAX);
 }
 
 void DynamicVoxel::draw(){
@@ -134,31 +134,31 @@ std::vector<Voxel> DynamicVoxel::voxelCircle(double radius)
     return circle;
 }
 
-std::vector<Voxel> DynamicVoxel::orientedVoxelCircle(double radius, const Vec3d &direction)
+std::vector<Voxel> DynamicVoxel::orientedVoxelCircle(double radius, const Vector3d &direction)
 {
     std::vector<Voxel> result;
     std::vector<Voxel> sphere = voxelSphere(radius*2);
 
     foreach(Voxel voxel, sphere){
-        Vec3d v(voxel.x, voxel.y, voxel.z);
+        Vector3d v(voxel.x, voxel.y, voxel.z);
         v /= 2.0;
 
         if(abs(dot(direction, v.normalized())) < voxel_size)
-            result.push_back(Voxel(v));
+            result.push_back(Voxel(v.x(), v.y(), v.z()));
     }
 
     return result;
 }
 
-std::vector<Voxel> DynamicVoxel::voxelLine(const Vec3d &p1, const Vec3d &p2, bool thick)
+std::vector<Voxel> DynamicVoxel::voxelLine(const Vector3d &p1, const Vector3d &p2, bool thick)
 {
     std::vector<Voxel> line;
 
-    Vec3d d = (p2 - p1) / voxel_size;
+    Vector3d d = (p2 - p1) / voxel_size;
     double N = qMax( abs(d.x()), qMax(abs(d.y()), abs(d.z())) );
-    Voxel s = Voxel(d / N);
+    Voxel s = Voxel(Vector3d(d / N));
 
-    Voxel p = Voxel(p1 / voxel_size);
+    Voxel p = Voxel(Vector3d(p1 / voxel_size));
 
     line.push_back( p );
 
@@ -181,7 +181,7 @@ std::vector<Voxel> DynamicVoxel::voxelLine(const Vec3d &p1, const Vec3d &p2, boo
     return line;
 }
 
-void DynamicVoxel::addLine(const Vec3d &p1, const Vec3d &p2)
+void DynamicVoxel::addLine(const Vector3d &p1, const Vector3d &p2)
 {
     std::vector<Voxel> line = voxelLine(p1, p2);
 
@@ -189,34 +189,34 @@ void DynamicVoxel::addLine(const Vec3d &p1, const Vec3d &p2)
         setVoxel( v.x, v.y, v.z );
 }
 
-void DynamicVoxel::addCircle(const Vec3d &center, double radius, const Vec3d &direction)
+void DynamicVoxel::addCircle(const Vector3d &center, double radius, const Vector3d &direction)
 {
     std::vector<Voxel> circle3D = orientedVoxelCircle(radius, direction);
 
     foreach(Voxel voxel, circle3D){
-        Vec3d v(voxel.x, voxel.y, voxel.z);
+        Vector3d v(voxel.x, voxel.y, voxel.z);
         v += center / voxel_size;
         setVoxel( v.x(), v.y(), v.z() );
     }
 }
 
-void DynamicVoxel::addSphere(const Vec3d &center, double radius)
+void DynamicVoxel::addSphere(const Vector3d &center, double radius)
 {
     // Recenter
     foreach(Voxel voxel, voxelSphere(radius)){
-        Vec3i v(voxel.x, voxel.y, voxel.z);
-        v += center / voxel_size;
+        Vector3d v(voxel.x, voxel.y, voxel.z);
+        v += Vector3d(center / voxel_size);
         setVoxel( v.x(), v.y(), v.z() );
     }
 }
 
-void DynamicVoxel::addHemiSphere(const Vec3d &center, double radius, const Vec3d & direction)
+void DynamicVoxel::addHemiSphere(const Vector3d &center, double radius, const Vector3d & direction)
 {
     std::vector<Voxel> hemisphere = voxelSphere(radius);
 
     // Recenter
     foreach(Voxel voxel, hemisphere){
-        Vec3d v(voxel.x, voxel.y, voxel.z);
+        Vector3d v(voxel.x, voxel.y, voxel.z);
 
         if(dot(direction, v) > 0)
         {
@@ -226,8 +226,8 @@ void DynamicVoxel::addHemiSphere(const Vec3d &center, double radius, const Vec3d
     }
 }
 
-void DynamicVoxel::addCylinder(const Vec3d &from, const Vec3d &to, double radius){
-    Vec3d direction = (from - to).normalized();
+void DynamicVoxel::addCylinder(const Vector3d &from, const Vector3d &to, double radius){
+    Vector3d direction = (from - to).normalized();
 
     std::vector<Voxel> cross_section = orientedVoxelCircle(radius, direction);
     std::vector<Voxel> path = voxelLine(from, to, radius < 5 * voxel_size );
@@ -242,21 +242,21 @@ void DynamicVoxel::addCylinder(const Vec3d &from, const Vec3d &to, double radius
     }
 }
 
-void DynamicVoxel::addCapsule(const Vec3d &from, const Vec3d &to, double radius)
+void DynamicVoxel::addCapsule(const Vector3d &from, const Vector3d &to, double radius)
 {
-    Vec3d direction = (to - from).normalized();
+    Vector3d direction = (to - from).normalized();
 
     this->addHemiSphere(from, radius, -direction);
     this->addCylinder(from, to, radius);
     this->addHemiSphere(to, radius, direction);
 }
 
-void DynamicVoxel::addPolyLine(const QVector<Vec3d> &points, double radius)
+void DynamicVoxel::addPolyLine(const QVector<Vector3d> &points, double radius)
 {
     if(points.size() < 2) return;
 
     // Start cap
-    Vec3d startDirection = points.first() - points[1];
+    Vector3d startDirection = points.first() - points[1];
     this->addHemiSphere(points.first(), radius, startDirection);
 
     // Segments in between
@@ -269,34 +269,34 @@ void DynamicVoxel::addPolyLine(const QVector<Vec3d> &points, double radius)
     }
 
     // End cap
-    Vec3d endDirection = points.last() - points[ points.size() - 2 ];
+    Vector3d endDirection = points.last() - points[ points.size() - 2 ];
     this->addHemiSphere(points.last(), radius, endDirection);
 }
 
-void DynamicVoxel::addTorus(const Vec3d &center, double pathRadius, double circleRadius, const Vec3d &direction)
+void DynamicVoxel::addTorus(const Vector3d &center, double pathRadius, double circleRadius, const Vector3d &direction)
 {
     // Recenter
     foreach(Voxel voxel, voxelTorus(pathRadius, circleRadius)){
-        Vec3i v(voxel.x, voxel.y, voxel.z);
+        Vector3d v(voxel.x, voxel.y, voxel.z);
         v += center / voxel_size;
 
         // rotate to direction (todo)
-        Vec3d d = direction;
+        Vector3d d = direction;
         d = d;
 
         setVoxel( v.x(), v.y(), v.z() );
     }
 }
 
-void DynamicVoxel::addBox(const Vec3d & minimum, const Vec3d & maximum)
+void DynamicVoxel::addBox(const Vector3d & minimum, const Vector3d & maximum)
 {
-	Vec3d diag = maximum - minimum;
+	Vector3d diag = maximum - minimum;
 
 	int stepsX = qMax(diag.x()+voxel_size*2, voxel_size) / voxel_size;
 	int stepsY = qMax(diag.y()+voxel_size*2, voxel_size) / voxel_size;
 	int stepsZ = qMax(diag.z()+voxel_size*2, voxel_size) / voxel_size;
 
-	Voxel corner ((minimum - Vector3(voxel_size)) / voxel_size);
+	Voxel corner (Vector3d((minimum - Vector3d(voxel_size)) / voxel_size));
 
 	for(int x = 0; x <= stepsX; x++){
 		for(int y = 0; y <= stepsY; y++){
@@ -348,15 +348,15 @@ void DynamicVoxel::buildMesh(SurfaceMesh::Model * mesh, QuadMesh & m)
 	m.clear();
 
 	// Add faces
-	std::vector<Vec3d> voxelCorners;
-	std::vector<Vec3d> allFaceCenters;
+	std::vector<Vector3d> voxelCorners;
+	std::vector<Vector3d> allFaceCenters;
 	std::vector<QuadFace> allQuads;
 
 	foreach(Voxel v, voxels)
 	{
 		for(int i = 0; i < 6; i++)
 		{
-			Vec3d p = (v.toVec3d() + faceCenters[i]) * voxel_size - Vec3d(voxel_size * 0.5);
+			Vector3d p = (v.toVector3d() + faceCenters[i]) * voxel_size - Vector3d(voxel_size * 0.5);
 			allFaceCenters.push_back( p );
 
 			// Add redundant quad face
@@ -364,17 +364,17 @@ void DynamicVoxel::buildMesh(SurfaceMesh::Model * mesh, QuadMesh & m)
 			for(int j = 0; j < 4; j++)
 			{
 				f[j] = voxelCorners.size();
-				voxelCorners.push_back( (v.toVec3d() + faceCorners[i][j]) * voxel_size - Vec3d(voxel_size * 0.5) );
+				voxelCorners.push_back( (v.toVector3d() + faceCorners[i][j]) * voxel_size - Vector3d(voxel_size * 0.5) );
 			}
 			allQuads.push_back(f);
 		}
 	}
 
 	std::vector<size_t> corner_xrefs;
-    weldVoxel(voxelCorners, corner_xrefs, std::hashv_Vec3d(), std::equal_to<Vec3d>());
+    weldVoxel(voxelCorners, corner_xrefs, std::hashv_Vector3d(), std::equal_to<Vector3d>());
 
 	std::vector<size_t> face_xrefs;
-    weldVoxel(allFaceCenters, face_xrefs, std::hashv_Vec3d(), std::equal_to<Vec3d>());
+    weldVoxel(allFaceCenters, face_xrefs, std::hashv_Vector3d(), std::equal_to<Vector3d>());
 	
 	// Count face center occurrences
 	std::vector<int> fcount(allFaceCenters.size(), 0);
@@ -503,8 +503,8 @@ void DynamicVoxel::MeanCurvatureFlow(SurfaceMesh::Model * m, double dt)
                 Point p2 = points[m->to_vertex(m->next_halfedge(h))];
                 Point p3 = points[m->to_vertex(m->next_halfedge(m->opposite_halfedge(h)))];
 
-                double cos_alpha = dot((p0 - p2).normalize(), (p1 - p2).normalize());
-                double cos_beta = dot((p0 - p3).normalize(), (p1 - p3).normalize());
+                double cos_alpha = dot((p0 - p2).normalized(), (p1 - p2).normalized());
+                double cos_beta = dot((p0 - p3).normalized(), (p1 - p3).normalized());
 
                 cot_alpha = cos_alpha / sin(acos( qRanged(-1.0, cos_alpha, 1.0) ));
                 cot_beta = cos_beta / sin(acos( qRanged(-1.0, cos_beta, 1.0) ));
@@ -551,7 +551,7 @@ void DynamicVoxel::LaplacianSmoothing(SurfaceMesh::Model * m, bool protectBorder
     Surface_mesh::Vertex_around_vertex_circulator vvit, vvend;
 
     Surface_mesh::Vertex_property<Point> points = m->vertex_property<Point>("v:point");
-    Surface_mesh::Vertex_property<Point> newPositions = m->vertex_property<Point>("v:new_point", Vector3(0));
+    Surface_mesh::Vertex_property<Point> newPositions = m->vertex_property<Point>("v:new_point", Vector3(0,0,0));
 
     // Original positions
     for(vit = m->vertices_begin(); vit != vend; ++vit)
@@ -608,7 +608,7 @@ void DynamicVoxel::FillHoles( SurfaceMesh::Model *mesh, double voxel_length )
 	{
 		Halfedge end = h;
 
-		Vector3 sum(0);
+		Vector3 sum(0,0,0);
 		std::vector<Vector3> pnts;
 		int c = 0;
 
@@ -620,9 +620,9 @@ void DynamicVoxel::FillHoles( SurfaceMesh::Model *mesh, double voxel_length )
 		} while (h != end);
 
 		// Give it a nudge
-		Vector3 nudge(0);
+		Vector3 nudge(0,0,0);
 		findNormal3D(pnts, nudge);
-		nudge = nudge.normalize() * 0.5 * sqrt( voxel_length*voxel_length + voxel_length*voxel_length );
+		nudge = nudge.normalized() * 0.5 * sqrt( voxel_length*voxel_length + voxel_length*voxel_length );
 
 		hole_center.push_back((sum / c) + nudge);
 	}

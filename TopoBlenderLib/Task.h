@@ -45,11 +45,11 @@ public:
 	bool ungrownNode(QString nid);
 
 	QVector< GraphDistance::PathPointPair > weldPath( QVector< GraphDistance::PathPointPair > oldPath );
-	QVector< GraphDistance::PathPointPair > smoothStart( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
-	QVector< GraphDistance::PathPointPair > smoothEnd( Structure::Node * n, Vec4d startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
+	QVector< GraphDistance::PathPointPair > smoothStart( Structure::Node * n, Vector4d& startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
+	QVector< GraphDistance::PathPointPair > smoothEnd( Structure::Node * n, Vector4d& startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
 	bool isPathOnSingleNode( QVector< GraphDistance::PathPointPair > path );
 
-	Structure::Node * addAuxNode(Vec3d position, Structure::Graph * g);
+	Structure::Node * addAuxNode(Vector3d position, Structure::Graph * g);
 	Structure::Node * prepareEnd( Structure::Node * n, Structure::Link * slink );
 	QPair<Structure::Node*,Structure::Node*> prepareEnd2( Structure::Node * n, Structure::Link * linkA, Structure::Link * linkB );
 
@@ -110,7 +110,7 @@ public:
 	int myOldWidth;
 
 	// DEBUG:
-	std::vector<Vec3d> debugPoints, debugPoints2;
+	std::vector<Vector3d> debugPoints, debugPoints2;
 	void drawDebug();
 
 protected:
@@ -122,7 +122,7 @@ typedef std::vector< std::pair<double,double> > VectorPairDouble;
 
 // Global meta types
 Q_DECLARE_METATYPE( Vector3 )
-Q_DECLARE_METATYPE( Vec4d )
+Q_DECLARE_METATYPE( Vector4d )
 Q_DECLARE_METATYPE( VectorPairDouble )
 Q_DECLARE_METATYPE( GraphDistance::PathPointPair )
 Q_DECLARE_METATYPE( RMF )

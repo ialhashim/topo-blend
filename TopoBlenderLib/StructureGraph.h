@@ -50,7 +50,7 @@ struct Graph
 	// Modifiers
     Node * addNode( Node * n );
     Link * addEdge( Node * n1, Node * n2 );
-	Link * addEdge( Node *n1, Node *n2, std::vector<Vec4d> coord1, std::vector<Vec4d> coord2, QString linkName = "" );
+	Link * addEdge( Node *n1, Node *n2, Array1D_Vector4d coord1, Array1D_Vector4d coord2, QString linkName = "" );
 	Link * addEdge( QString n1_id, QString n2_id );
 
     Node * removeNode( QString nodeID );
@@ -85,12 +85,12 @@ struct Graph
 	Vector3 nodeIntersection( Node * n1, Node * n2 );
 	Curve* getCurve(Link * l);
 	QVector<Link*> getEdges( QString nodeID );
-	QMap< Link*, std::vector<Vec4d> > linksCoords( QString nodeID );
+	QMap< Link*, Array1D_Vector4d > linksCoords( QString nodeID );
 	QVector<Link*> nodeEdges( QString nodeID );
 	QVector<Node*> adjNodes( Node * node );
 	QList<Link*> furthermostEdges( QString nodeID );
-	Vector3 position( QString nodeID, Vec4d coord );
-	void replaceCoords( QString nodeA, QString nodeB, std::vector<Vec4d> coordA, std::vector<Vec4d> coordB );
+	Vector3 position( QString nodeID, Vector4d& coord );
+	void replaceCoords( QString nodeA, QString nodeB, Array1D_Vector4d coordA, Array1D_Vector4d coordB );
 	int indexOfNode( Node * node );
 
 	// Input / Output

@@ -9,7 +9,7 @@ typedef std::pair<double, double> Pairdouble;
 class Line
 {
 public:
-    Vector3 a, b;
+    Eigen::Matrix<double,3,1,Eigen::DontAlign> a, b;
 	double length;
 	int index;
 
@@ -31,8 +31,8 @@ public:
     Pairdouble lengthsAt(const Vector3& point);
 	Pairdouble lengthsAt(double time);
 
-    std::vector<Vector3> uniformSample(int numSamples);
-    operator const std::vector<Vector3>();
+    std::vector< Eigen::Matrix<double,3,1,Eigen::DontAlign> > uniformSample(int numSamples);
+    operator const std::vector< Eigen::Matrix<double,3,1,Eigen::DontAlign> >();
 
     void translateBy(const Vector3& delta);
     double distanceToUnbounded(const Vector3& point);

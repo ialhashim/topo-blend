@@ -87,11 +87,11 @@ void GraphModifyDialog::updateLink()
 
 	Structure::Link * l = g->getEdge(id1,id2); if(!l) return;
 
-	Vec4d coord1(ui->uA->value(), ui->vA->value(), 0, 0);
-	Vec4d coord2(ui->uB->value(), ui->vB->value(), 0, 0);
+	Vector4d coord1(ui->uA->value(), ui->vA->value(), 0, 0);
+	Vector4d coord2(ui->uB->value(), ui->vB->value(), 0, 0);
 
-	l->setCoord(id1, std::vector<Vec4d>(1,coord1));
-	l->setCoord(id2, std::vector<Vec4d>(1,coord2));
+	l->setCoord(id1, Array1D_Vector4d(1,coord1));
+	l->setCoord(id2, Array1D_Vector4d(1,coord2));
 
 	emit( updateView() );
 }
@@ -146,8 +146,8 @@ void GraphModifyDialog::visualizeSelections()
 
 		Structure::Link * l = g->getEdge(id1,id2); if(!l) return;
 
-		Vec4d coord1 = l->getCoord(id1).front();
-		Vec4d coord2 = l->getCoord(id2).front();
+		Vector4d coord1 = l->getCoord(id1).front();
+		Vector4d coord2 = l->getCoord(id2).front();
 
 		ui->uA->setValue(coord1[0]); 
 		ui->vA->setValue(coord1[1]);

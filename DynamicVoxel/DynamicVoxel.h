@@ -16,19 +16,19 @@ public:
 
     std::vector<Voxel> voxelSphere(double radius);
     std::vector<Voxel> voxelTorus(double pathRadius, double circleRadius);
-    std::vector<Voxel> voxelLine(const Vec3d & p1, const Vec3d & p2, bool thick = false);
+    std::vector<Voxel> voxelLine(const Vector3d & p1, const Vector3d & p2, bool thick = false);
     std::vector<Voxel> voxelCircle(double radius);
-    std::vector<Voxel> orientedVoxelCircle(double radius, const Vec3d &direction);
+    std::vector<Voxel> orientedVoxelCircle(double radius, const Vector3d &direction);
 
-    void addLine(const Vec3d & p1, const Vec3d &p2);
-    void addSphere(const Vec3d & center, double radius);
-    void addHemiSphere(const Vec3d & center, double radius, const Vec3d &direction=Vec3d(0,0,1));
-    void addCircle(const Vec3d & center, double radius, const Vec3d &direction=Vec3d(0,0,1));
-    void addCylinder(const Vec3d & from, const Vec3d & to, double radius);
-    void addCapsule(const Vec3d & from, const Vec3d & to, double radius);
-    void addPolyLine(const QVector<Vec3d> &points, double radius);
-    void addTorus(const Vec3d & center, double pathRadius, double circleRadius, const Vec3d &direction=Vec3d(0,0,1));
-	void addBox(const Vec3d & minimum, const Vec3d & maximum);
+    void addLine(const Vector3d & p1, const Vector3d &p2);
+    void addSphere(const Vector3d & center, double radius);
+    void addHemiSphere(const Vector3d & center, double radius, const Vector3d &direction=Vector3d(0,0,1));
+    void addCircle(const Vector3d & center, double radius, const Vector3d &direction=Vector3d(0,0,1));
+    void addCylinder(const Vector3d & from, const Vector3d & to, double radius);
+    void addCapsule(const Vector3d & from, const Vector3d & to, double radius);
+    void addPolyLine(const QVector<Vector3d> &points, double radius);
+    void addTorus(const Vector3d & center, double pathRadius, double circleRadius, const Vector3d &direction=Vector3d(0,0,1));
+	void addBox(const Vector3d & minimum, const Vector3d & maximum);
 
     void begin();
     void setVoxel(int x, int y, int z);

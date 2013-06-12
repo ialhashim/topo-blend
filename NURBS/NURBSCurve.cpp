@@ -341,7 +341,7 @@ Real NURBSCurve<Real>::timeAt( const Vector3 & pos )
 
     int minIdx = 0;
     double t = 0.0;
-    Vector3 d(0);
+    Vector3 d(0,0,0);
     Scalar minDist = std::numeric_limits<Scalar>::max();
 
     for(int i = 0; i < ((int)times.size()) - 1; i++)
@@ -389,8 +389,8 @@ void NURBSCurve<Real>::scaleInPlace( Scalar scaleFactor, int placeCtrlPoint )
 template <typename Real>
 void NURBSCurve<Real>::translateTo( const Vector3 & newPos, int cpIDX )
 {
-    Vec3d cp = mCtrlPoint[cpIDX];
-    Vec3d delta = newPos - cp;
+    Vector3d cp = mCtrlPoint[cpIDX];
+    Vector3d delta = newPos - cp;
     for(int i = 0; i < GetNumCtrlPoints(); i++)
         mCtrlPoint[i] += delta;
 }
@@ -515,7 +515,7 @@ void NURBSCurve<Real>::refine(Array1D_Real & insknts, Array1D_Vector3 & Qw, Arra
 	int m = n+p+1;
 
 	// Output
-	Qw.resize	( n+s+1, Vector3(0) );
+	Qw.resize	( n+s+1, Vector3(0,0,0) );
 	Ubar.resize	( m+s+1, 0 );
 
 	int a = findSpan(n,p,X[0],U);
@@ -671,7 +671,7 @@ Real NURBSCurve<Real>::KnotRemovalError( int r, int s )
 	Array1D_Real	U = GetKnotVector();
 	Array1D_Vector3 P = mCtrlPoint;
 
-	Array1D_Vector3 temp(P.size(), Vector3(0.0)) ;
+	Array1D_Vector3 temp(P.size(), Vector3(0,0,0)) ;
 	
 	int deg_ = GetDegree();
 
@@ -743,7 +743,7 @@ Array1D_Vector3 NURBSCurve<Real>::removeKnots(int iterations)
 		int i,j,k,ii,jj,off ;
 		Real u ;
 
-		Array1D_Vector3 temp( 2*deg_+1, Vector3(0) ) ;
+		Array1D_Vector3 temp( 2*deg_+1, Vector3(0,0,0) ) ;
 
 		u = U[r] ;
 

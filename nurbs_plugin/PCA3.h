@@ -6,12 +6,12 @@
 using namespace Eigen;
 
 #define (vec) (Eigen::Vector3d(vec[0], vec[1], vec[2]))
-#define (vec) (Vec3d(vec[0], vec[1], vec[2]))
+#define (vec) (Vector3d(vec[0], vec[1], vec[2]))
 
 class PCA3
 {
 public:
-    PCA3(const std::vector<Vec3d> & points)
+    PCA3(const std::vector<Vector3d> & points)
 	{
 		int n = points.size();
 
@@ -20,7 +20,7 @@ public:
 			sumX2(0.0), sumY2(0.0), sumZ2(0.0),
 			sumXY(0.0), sumXZ(0.0), sumYZ(0.0);
 
-        mean = Vec3d(0);
+        mean = Vector3d(0,0,0);
 
         foreach(SurfaceMesh::Point p, points){
             mean += p;
@@ -48,14 +48,14 @@ public:
 		e_vectors = es.eigenvectors();
 	}
 
-	Vec3d eigenvalues()
+	Vector3d eigenvalues()
 	{
 		return (e_values);
 	}
 
-	std::vector<Vec3d> eigenvectors()
+	std::vector<Vector3d> eigenvectors()
 	{
-		std::vector<Vec3d> vectors;
+		std::vector<Vector3d> vectors;
 		for (int i = 2;i >= 0;i--)
 		{
 			// Descending order
@@ -65,15 +65,15 @@ public:
 		return vectors;
 	}
 
-    static void setPlane(const std::vector<Vec3d> & points, Vec3d & center, Vec3d & normal)
+    static void setPlane(const std::vector<Vector3d> & points, Vector3d & center, Vector3d & normal)
     {
         PCA3 pca(points);
         center = pca.mean;
         Vector3d n = pca.e_vectors.col(1).normalized().cross(pca.e_vectors.col(2).normalized());
-        normal = Vec3d(n[0], n[1], n[2]);
+        normal = Vector3d(n[0], n[1], n[2]);
     }
 
-	Vec3d center()
+	Vector3d center()
 	{
 		return mean;
 	}
@@ -81,5 +81,5 @@ public:
 private:
 	Vector3d e_values;
 	Matrix3d e_vectors;
-    Vec3d mean;
+    Vector3d mean;
 };
