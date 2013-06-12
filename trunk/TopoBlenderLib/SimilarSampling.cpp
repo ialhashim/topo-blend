@@ -3,17 +3,17 @@
 
 // Helpers
 static inline Scalar deg_to_rad(const Scalar& _angle){ return M_PI*(_angle/180.0); }
-static inline Vec3d barycentric(Vec3d p, Vec3d a, Vec3d b, Vec3d c){
-	Vec3d v0 = b - a, v1 = c - a, v2 = p - a;
+static inline Vector3d barycentric(Vector3d p, Vector3d a, Vector3d b, Vector3d c){
+	Vector3d v0 = b - a, v1 = c - a, v2 = p - a;
 	double d00 = dot(v0, v0); double d01 = dot(v0, v1);
 	double d11 = dot(v1, v1); double d20 = dot(v2, v0);
 	double d21 = dot(v2, v1); double denom = d00 * d11 - d01 * d01;
 	double v = (d11 * d20 - d01 * d21) / denom;
 	double w = (d00 * d21 - d01 * d20) / denom;
 	double u = 1.0 - v - w;
-	return Vec3d(u,v,w);
+	return Vector3d(u,v,w);
 }
-static inline bool isValidBaryCoord(Vec3d coord){
+static inline bool isValidBaryCoord(Vector3d coord){
 	if(	coord[0] < 0 || coord[1] < 0 || coord[2] < 0 ||
 		coord[0] > 1 || coord[1] > 1 || coord[2] > 1) return false;
 	return true;
@@ -46,7 +46,7 @@ QVector<Vector3> SimilarSampler::FaceSamples(SurfaceMeshModel * m, int sampleNum
     foreach(SurfaceMeshModel::Face f, m->faces())
     {
 		// Collect vector of triangle points, and map to vertices
-        std::vector<Vector3> triangle, virtualTri;
+        std::vector<Vector3d, Eigen::aligned_allocator<Vector3d> > triangle, virtualTri;
 		QMap<SurfaceMesh::Vertex, int> verts;
         Surface_mesh::Vertex_around_face_circulator vit = m->vertices(f),vend=vit;
         do{ verts[vit] = triangle.size(); triangle.push_back(points[vit]);  } while(++vit != vend);
@@ -65,8 +65,8 @@ QVector<Vector3> SimilarSampler::FaceSamples(SurfaceMeshModel * m, int sampleNum
 			SurfaceMesh::Vertex vP = m->to_vertex(m->next_halfedge(L));
 			SurfaceMesh::Vertex v0 = (vP == m->to_vertex(S)) ? m->from_vertex(S) : m->to_vertex(S);
 			SurfaceMesh::Vertex vM = (vP == m->to_vertex(M)) ? m->from_vertex(M) : m->to_vertex(M);
-			Vec3d deltaS = (points[vP] - points[v0]).normalized();
-			Vec3d deltaL = (points[vM] - points[v0]).normalized();
+			Vector3d deltaS = (points[vP] - points[v0]).normalized();
+			Vector3d deltaL = (points[vM] - points[v0]).normalized();
 
 			// Push vertex towards triangle with two equal edges
 			virtualTri[ verts[vP] ] = points[v0] + (deltaS * elength[m->edge(M)]);
@@ -76,7 +76,7 @@ QVector<Vector3> SimilarSampler::FaceSamples(SurfaceMeshModel * m, int sampleNum
 			triangle[ verts[vM] ] = points[vM] + (-deltaL * elength[m->edge(L)] * 0.001);
 		}
 
-		double varea = 0.5 * cross((virtualTri[1] - virtualTri[0]), (virtualTri[2] - virtualTri[0])).norm();
+		double varea = 0.5 * cross(Vector3(virtualTri[1] - virtualTri[0]), Vector3(virtualTri[2] - virtualTri[0])).norm();
 		
         // compute # samples in the current face
         int n_samples = (int) (0.5 * varea * samplePerAreaUnit);
@@ -96,9 +96,11 @@ QVector<Vector3> SimilarSampler::FaceSamples(SurfaceMeshModel * m, int sampleNum
                     Scalar uvw[] = {i*segmentLen, j*segmentLen, 1.0 - (i*segmentLen + j*segmentLen)};
 
                     // Get point from current barycentric coordinate
-                    Vector3 p(0.0); for(int vi = 0; vi < 3; vi++) p += virtualTri[vi] * uvw[vi];
+					Vector3d p = Vector3d::Zero(); 
+					for(int vi = 0; vi < 3; vi++) 
+						p = p + (virtualTri[vi] * uvw[vi]);
 
-					Vec3d coord = barycentric(p, triangle[0], triangle[1], triangle[2]);
+					Vector3d coord = barycentric(p, triangle[0], triangle[1], triangle[2]);
 					if( !isValidBaryCoord (coord) ) continue;
 
                     samples.push_back( p );
@@ -168,7 +170,7 @@ QVector<Vector3> SimilarSampler::EdgeUniformFixed( SurfaceMeshModel * m, QVector
 
 			// Normal = average of adj faces
 			{
-				Vec3d normal(0);
+				Vector3d normal(0,0,0);
 				Face f1 = m->face(m->halfedge(ei,0)),f2 = m->face(m->halfedge(ei,1));
 				if(f1.is_valid()) normal += fnormals[f1];
 				if(f2.is_valid()) normal += fnormals[f1];

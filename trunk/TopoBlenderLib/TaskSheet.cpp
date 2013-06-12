@@ -67,8 +67,8 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
 	Structure::Link * tlinkA = target->getEdge( linkA->property["correspond"].toString() );
 	Structure::Link * tlinkB = target->getEdge( linkB->property["correspond"].toString() );
 
-    Vec3d pointA = linkA->positionOther(n->id);
-    Vec3d pointB = linkB->positionOther(n->id);
+    Vector3d pointA = linkA->positionOther(n->id);
+    Vector3d pointB = linkB->positionOther(n->id);
 
     // Geodesic distance between two link positions on the active graph excluding the running tasks
     QVector<QString> exclude = active->property["activeTasks"].value< QVector<QString> >();
@@ -89,7 +89,7 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
 
     // Use the center of the path as the start point
     GraphDistance::PathPointPair startPointCoord = path[path.size() / 2];
-    Vec3d startPoint = startPointCoord.position( active );
+    Vector3d startPoint = startPointCoord.position( active );
 
     // Separate the path into two for linkA and linkB
     int N = path.size(), hN = N / 2;
@@ -223,8 +223,8 @@ void TaskSheet::executeCrossingSheet( double t )
 			linkB = target->getEdge(linkB->property["correspond"].toString());
 		}
 
-		Vec3d deltaA = linkA->property["delta"].value<Vec3d>() * dt;
-		Vec3d deltaB = linkB->property["delta"].value<Vec3d>() * dt;
+		Vector3d deltaA = linkA->property["delta"].value<Vector3d>() * dt;
+		Vector3d deltaB = linkB->property["delta"].value<Vector3d>() * dt;
 		
 		// Visualize
 		active->vs.addVector(pointA,deltaA);

@@ -29,14 +29,14 @@ void myresample::doResample()
     PointSoup * ps = new PointSoup;
     PlaneSoup * ls = new PlaneSoup(r);
 
-    std::vector<Vec3d> samples = SpherePackSampling::sample(mesh(), millions, r);
+    std::vector<Vector3d> samples = SpherePackSampling::sample(mesh(), millions, r);
 
 	// Add into a KD-tree
 	NanoKdTree tree;
-	foreach(Vec3d p, samples) tree.addPoint(p);
+	foreach(Vector3d p, samples) tree.addPoint(p);
 	tree.build();
 
-    foreach(Vec3d p, samples)
+    foreach(Vector3d p, samples)
 	{
         ps->addPoint(p);
 		
@@ -44,11 +44,11 @@ void myresample::doResample()
 		int k = 16;
 		KDResults matches;
 		tree.k_closest(p, k, matches);
-        std::vector<Vec3d> k_neighbors;
+        std::vector<Vector3d> k_neighbors;
         foreach(KDResultPair i, matches) k_neighbors.push_back(samples[i.first]);
 
         // Compute Plane
-        Vec3d c,n;
+        Vector3d c,n;
         PCA3::setPlane(k_neighbors, c, n);
         ls->addPlane(c,n);
 	}
@@ -60,16 +60,16 @@ void myresample::doResample()
     // DEBUG ====
     ofstream myfile;
     myfile.open ("sheet_point_cloud.xyz");
-    foreach(Vec3d p, samples)
+    foreach(Vector3d p, samples)
         myfile << p[0] << " " << p[1] << " " << p[2] << "\n";
     myfile.close();
 
 	/// MLS - test
 	/*Surface_mesh::Vertex_property<Vector3> points = mesh()->vertex_property<Vector3>(VPOINT);
-	Surface_mesh::Vertex_property<Vector3> normals = mesh()->vertex_property<Vector3>(VNORMAL, Vector3(0));
+	Surface_mesh::Vertex_property<Vector3> normals = mesh()->vertex_property<Vector3>(VNORMAL, Vector3(0,0,0));
 
-	Surface_mesh::Vertex_property<Vector3> new_points = mesh()->vertex_property<Vector3>("v:projected", Vector3(0));
-	Surface_mesh::Vertex_property<Vector3> new_normals = mesh()->vertex_property<Vector3>("v:projected", Vector3(0));
+	Surface_mesh::Vertex_property<Vector3> new_points = mesh()->vertex_property<Vector3>("v:projected", Vector3(0,0,0));
+	Surface_mesh::Vertex_property<Vector3> new_normals = mesh()->vertex_property<Vector3>("v:projected", Vector3(0,0,0));
 
 	RmlsSurface mls( mesh() );
 
@@ -113,9 +113,9 @@ void myresample::doParameterize()
 	//	Vec2d uv2 = mapper.tex_coord[vface[2]];
 
 	//	QVector<Eigen::Vector3d> pts;
-	//	pts.push_back( Vec3d(uv0[0],uv0[1],0) );
-	//	pts.push_back( Vec3d(uv1[0],uv1[1],0) );
-	//	pts.push_back( Vec3d(uv2[0],uv2[1],0) );
+	//	pts.push_back( Vector3d(uv0[0],uv0[1],0) );
+	//	pts.push_back( Vector3d(uv1[0],uv1[1],0) );
+	//	pts.push_back( Vector3d(uv2[0],uv2[1],0) );
 
 	//	ts->addPoly(pts);
 	//}

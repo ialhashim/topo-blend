@@ -1,15 +1,16 @@
 #pragma once
 
 #include "SurfaceMeshModel.h"
+using namespace Eigen;
 
-struct ControlPoint : public Vec3d{
-	ControlPoint( Vec3d pos, int useIndex, Vec3i gridIdx ){ 
+struct ControlPoint : public Vector3d{
+	ControlPoint( Vector3d pos, int useIndex, Vector3i gridIdx ){ 
 		set(pos);
 		index = useIndex; grid = gridIdx; 
 	}
-	void set(const Vec3d & newPos){ Vec3d & myPos = *this; myPos = newPos; } 
+	void set(const Vector3d & newPos){ Vector3d & myPos = *this; myPos = newPos; } 
 	int index;
-	Vec3i grid;
+	Vector3i grid;
 };
 
 enum FFD_FitType {BoundingBoxFFD, VolumeFFD};
@@ -17,15 +18,15 @@ enum FFD_FitType {BoundingBoxFFD, VolumeFFD};
 class FFD
 {
 public:
-	FFD( const std::vector<Vec3d> & pointSoup, FFD_FitType fit_type = BoundingBoxFFD, Vec3i res = Vec3i(2) );
-    FFD( Surface_mesh * src_mesh = NULL, FFD_FitType fit_type = BoundingBoxFFD, Vec3i res = Vec3i(2) );
-    void init( Surface_mesh*, FFD_FitType, Vec3i );
+	FFD( const std::vector<Vector3d> & pointSoup, FFD_FitType fit_type = BoundingBoxFFD, Vector3i res = Vector3i(2) );
+    FFD( Surface_mesh * src_mesh = NULL, FFD_FitType fit_type = BoundingBoxFFD, Vector3i res = Vector3i(2) );
+    void init( Surface_mesh*, FFD_FitType, Vector3i );
 
 	Surface_mesh * mesh;
 	double width, length, height;
 	Eigen::Vector3d center;
-	Vec3i resolution;
-    Surface_mesh::Vertex_property<Vec3d> mesh_points;
+	Vector3i resolution;
+    Surface_mesh::Vertex_property<Vector3d> mesh_points;
 	Surface_mesh temp_mesh;
 
     std::vector< ControlPoint* > control_points;
@@ -35,24 +36,24 @@ public:
 	void apply();
 
 private:
-	Vec3d deformVertexLocal( const Vec3d & localPoint );
-	Vec3d getWorldCoordinate(const Vec3d & pLocal);
-	Vec3d getLocalCoordinates( const Vec3d & p );
-	Vec3d mP, mS, mT, mU;	// the local frame coordinates
-    std::vector<Vec3d> meshVerticesLocal;
+	Vector3d deformVertexLocal( const Vector3d & localPoint );
+	Vector3d getWorldCoordinate(const Vector3d & pLocal);
+	Vector3d getLocalCoordinates( const Vector3d & p );
+	Vector3d mP, mS, mT, mU;	// the local frame coordinates
+    std::vector<Vector3d> meshVerticesLocal;
 
     // A) Bounding Box fitting
-    void bbFit(Vec3i res);
+    void bbFit(Vector3i res);
 
 public:
     // B) Manually setup FFD
-    void customVolume( Vec3i res, Vec3d location, double spacing, std::map<int,Vec3d> pnts );
-    std::map<int,Vec3d> applyCustom();
-    std::map<int,Vec3d> fixedPointsLocal;
+    void customVolume( Vector3i res, Vector3d location, double spacing, std::map<int,Vector3d> pnts );
+    std::map<int,Vector3d> applyCustom();
+    std::map<int,Vector3d> fixedPointsLocal;
 
 	// Quick access
-	inline Vec3d outputPoint( int idx );
-	std::vector<Vec3d> outputPoints();
+	inline Vector3d outputPoint( int idx );
+	std::vector<Vector3d> outputPoints();
 };
 
 // math helpers

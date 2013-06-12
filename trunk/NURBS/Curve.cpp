@@ -125,7 +125,7 @@ template <typename Real>
 Real Curve<Real>::GetCurvature (Real t)
 {
     Vector3 velocity = GetFirstDerivative(t);
-    Real speedSqr = velocity.sqrnorm();
+    Real speedSqr = velocity.squaredNorm();
 
     if (speedSqr >= REAL_ZERO_TOLERANCE)
     {
@@ -148,7 +148,7 @@ Real Curve<Real>::GetTorsion (Real t)
     Vector3 velocity = GetFirstDerivative(t);
     Vector3 acceleration = GetSecondDerivative(t);
     Vector3 _cross = cross(velocity,acceleration);
-    Real denom = _cross.sqrnorm();
+    Real denom = _cross.squaredNorm();
 
     if (denom >= REAL_ZERO_TOLERANCE)
     {

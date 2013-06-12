@@ -392,7 +392,7 @@ void Scheduler::executeAll()
 		foreach(Structure::Node * snode, activeGraph->nodes)
 		{
 			if (!snode->id.contains("null")) continue;
-			snode->setControlPoints( Array1D_Vector3(snode->numCtrlPnts(), Vector3(0)) );
+			snode->setControlPoints( Array1D_Vector3(snode->numCtrlPnts(), Vector3(0,0,0)) );
 			snode->property["zeroGeometry"] = true;
 		}
 
@@ -710,13 +710,13 @@ void Scheduler::blendDeltas( double globalTime, double timeStep )
 			}
 		}
 
-		Vec3d sDelta = l->delta();
-		Vec3d tDelta = tl->property["delta"].value<Vec3d>();
+		Vector3d sDelta = l->delta();
+		Vector3d tDelta = tl->property["delta"].value<Vector3d>();
 
 		// flip tDelta if is not consistent with sDeltas
 		Node *sn1 = l->n1;
 
-		Vec3d blendedDelta = AlphaBlend(alpha, sDelta, tDelta);
+		Vector3d blendedDelta = AlphaBlend(alpha, sDelta, tDelta);
 		l->property["blendedDelta"].setValue( blendedDelta );
 
 		// Visualization

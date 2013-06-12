@@ -71,14 +71,14 @@ void Relink::fixTask( Task* task )
 	if ( fixedSize && N > 0 )
 	{
 		// Use all constraints
-		Vec3d translation(0);
+		Vector3d translation(0,0,0);
 		foreach(LinkConstraint c, consts)
 		{
 			Structure::Link * link = c.link;
 
-			Vec3d oldPos = link->position(n->id);
-			Vec3d linkPosOther = link->positionOther(n->id);
-			Vec3d delta = getToDelta(link, n->id);
+			Vector3d oldPos = link->position(n->id);
+			Vector3d linkPosOther = link->positionOther(n->id);
+			Vector3d delta = getToDelta(link, n->id);
 			Vector3 newPos = linkPosOther + delta;
 
 			translation += newPos - oldPos;
@@ -90,7 +90,7 @@ void Relink::fixTask( Task* task )
 		{
 			Structure::Link* link = c.link;
 			Vector3 linkPosOther = link->positionOther(n->id);
-			Vec3d delta = getToDelta(link, n->id);
+			Vector3d delta = getToDelta(link, n->id);
 
 			activeGraph->vs2.addVector( linkPosOther, delta );
 		}
@@ -106,9 +106,9 @@ void Relink::fixTask( Task* task )
 			LinkConstraint constraint = consts.front();
 			Structure::Link * link = constraint.link;
 
-			Vec3d oldPos = link->position(n->id);
-			Vec3d linkPosOther = link->positionOther(n->id);
-			Vec3d delta = getToDelta(link, n->id);
+			Vector3d oldPos = link->position(n->id);
+			Vector3d linkPosOther = link->positionOther(n->id);
+			Vector3d delta = getToDelta(link, n->id);
 			Vector3 newPos = linkPosOther + delta;
 
 			// Translate
@@ -126,12 +126,12 @@ void Relink::fixTask( Task* task )
 			Structure::Link *linkA = cA.link, *linkB = cB.link;
 
 			// Two Handles and newPos:
-			Vec4d handleA = linkA->getCoord(n->id).front();
+			Vector4d handleA = linkA->getCoord(n->id).front();
 			Vector3 linkPosOtherA = linkA->positionOther(n->id);
 			Vector3 deltaA = getToDelta(linkA, n->id);
 			Vector3 newPosA = linkPosOtherA + deltaA;
 
-			Vec4d handleB = linkB->getCoord(n->id).front();
+			Vector4d handleB = linkB->getCoord(n->id).front();
 			Vector3 linkPosOtherB = linkB->positionOther(n->id);
 			Vector3 deltaB = getToDelta(linkB, n->id);
 			Vector3 newPosB = linkPosOtherB + deltaB;
@@ -142,9 +142,9 @@ void Relink::fixTask( Task* task )
 			if (handleDiff < 0.1 || newPosDiff < 0.05)
 			{
 				// Pick first one only
-				Vec3d oldPos = linkA->position(n->id);
-				Vec3d linkPosOther = linkA->positionOther(n->id);
-				Vec3d delta = getToDelta(linkA, n->id);
+				Vector3d oldPos = linkA->position(n->id);
+				Vector3d linkPosOther = linkA->positionOther(n->id);
+				Vector3d delta = getToDelta(linkA, n->id);
 				Vector3 newPos = linkPosOther + delta;
 
 				// Translate
@@ -168,7 +168,7 @@ void Relink::fixTask( Task* task )
 	{
 		Structure::Link* link = c.link;
 		Vector3 linkPosOther = link->positionOther(n->id);
-		Vec3d delta = getToDelta(link, n->id);
+		Vector3d delta = getToDelta(link, n->id);
 
 		activeGraph->vs.addVector( linkPosOther, delta );
 	}

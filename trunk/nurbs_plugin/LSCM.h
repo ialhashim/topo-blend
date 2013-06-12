@@ -113,9 +113,9 @@ struct LSCM
 			int id1 = vface[1].idx() ;
 			int id2 = vface[2].idx() ;
 
-			Vec3d p0 = points[vface[0]] ; 
-			Vec3d p1 = points[vface[1]] ;
-			Vec3d p2 = points[vface[2]] ;
+			Vector3d p0 = points[vface[0]] ; 
+			Vector3d p1 = points[vface[1]] ;
+			Vector3d p2 = points[vface[2]] ;
 
 			normalize_uv(p0) ;
 			normalize_uv(p1) ;
@@ -179,12 +179,12 @@ struct LSCM
 		return is_locked[Vertex(vidx)];
 	}
 
-	static void project_triangle(const Vec3d& p0, const Vec3d& p1, const Vec3d& p2, Vec2d& z0, Vec2d& z1, Vec2d& z2) 
+	static void project_triangle(const Vector3d& p0, const Vector3d& p1, const Vector3d& p2, Vec2d& z0, Vec2d& z1, Vec2d& z2) 
 	{
-		Vec3d X = (p1 - p0).normalized();
-		Vec3d Z = (cross(X, p2 - p0)).normalized();
-		Vec3d Y = cross(Z, X);
-		const Vec3d& O = p0;
+		Vector3d X = (p1 - p0).normalized();
+		Vector3d Z = (cross(X, p2 - p0)).normalized();
+		Vector3d Y = cross(Z, X);
+		const Vector3d& O = p0;
 
 		double x0 = 0 ;
 		double y0 = 0 ;
@@ -201,7 +201,7 @@ struct LSCM
 	void get_bounding_box()
 	{
 		// Compute center
-		Vec3d sum(0.0);
+		Vector3d sum(0.0);
 		foreach(Vertex v, mesh->vertices())	sum += points[v];		
 		center_ = sum / mesh->n_vertices();
 
@@ -242,33 +242,33 @@ struct LSCM
 		return result;
 	}
 
-	void principal_axes( Halfedge h, Vec3d& center, Vec3d& v1, Vec3d& v2  ) 
+	void principal_axes( Halfedge h, Vector3d& center, Vector3d& v1, Vector3d& v2  ) 
 	{
 		// Collect border points
-		std::vector<Vec3d> border_pnts;
+		std::vector<Vector3d> border_pnts;
 		Halfedge cur = h ;
 		do {
-			Vec3d p = points[mesh->to_vertex(cur)];
+			Vector3d p = points[mesh->to_vertex(cur)];
 			normalize_uv(p) ;
 			border_pnts.push_back(p);
 			cur = mesh->next_halfedge(cur);
 		} while(cur != h);
 
 		PCA3 pca( border_pnts );
-		std::vector<Vec3d> axis = pca.eigenvectors();
+		std::vector<Vector3d> axis = pca.eigenvectors();
 
 		center = pca.center();
 		v1 = axis[0];
 		v2 = axis[1];
 	}
 
-	void get_border_extrema( Halfedge h, const Vec3d& center, const Vec3d& V, Vertex& vx_min, Vertex& vx_max) 
+	void get_border_extrema( Halfedge h, const Vector3d& center, const Vector3d& V, Vertex& vx_min, Vertex& vx_max) 
 	{
 		Halfedge cur = h;
 		double v_min =  DBL_MAX ;
 		double v_max = -DBL_MAX ;
 		do {
-			Vec3d p = points[mesh->to_vertex(cur)];
+			Vector3d p = points[mesh->to_vertex(cur)];
 			normalize_uv(p) ;
 			double v = dot(p - center, V) ;
 
@@ -292,9 +292,9 @@ struct LSCM
 		is_locked[vx_max] = true;
 	}
 
-	void normalize_uv(Vec3d& p){
-		Vec3d v = 1.0 / radius_ * (p - center_) ;
-		p = Vec3d(v.x(), v.y(), v.z()) ;
+	void normalize_uv(Vector3d& p){
+		Vector3d v = 1.0 / radius_ * (p - center_) ;
+		p = Vector3d(v.x(), v.y(), v.z()) ;
 	}
 
 	// Data
@@ -316,10 +316,10 @@ struct LSCM
 
 	std::map<int,int> v_idx;
 
-	Vec3d center_;
+	Vector3d center_;
 	Scalar radius_;
 	Vertex vx_min, vx_max;
 
-	Vec3d V1,V2;
-	Vec3d center;
+	Vector3d V1,V2;
+	Vector3d center;
 };

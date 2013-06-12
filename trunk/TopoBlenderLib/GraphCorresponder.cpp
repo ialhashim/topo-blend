@@ -499,7 +499,7 @@ void GraphCorresponder::computeHausdorffDistanceMatrix( MATRIX & M )
 	initializeMatrix<float>(M, INVALID_VALUE);
 
 	// The control points of each node in the target graph
-	std::vector< std::vector<Vector3> > targetControlPointsArray;
+	Array2D_Vector3 targetControlPointsArray;
 	foreach (Structure::Node *tNode, this->tg->nodes)
 		targetControlPointsArray.push_back(tNode->controlPoints());
 
@@ -902,8 +902,8 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 
 		// Update the coordinates of links
 		foreach( Structure::Link * l, tgt->getEdges(tSheet->id) ){
-			std::vector<Vec4d> oldCoord = l->getCoord(tSheet->id), newCoord;
-			foreach(Vec4d c, oldCoord) newCoord.push_back(Vec4d(1-c[0], c[1], c[2], c[3]));
+			Array1D_Vector4d oldCoord = l->getCoord(tSheet->id), newCoord;
+			foreach(Vector4d c, oldCoord) newCoord.push_back(Vector4d(1-c[0], c[1], c[2], c[3]));
 			l->setCoord(tSheet->id, newCoord);
 		}
 	}
@@ -941,8 +941,8 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 
 		// Update the coordinates of links
 		foreach( Structure::Link * l, tgt->getEdges(tSheet->id) ){
-			std::vector<Vec4d> oldCoord = l->getCoord(tSheet->id), newCoord;
-			foreach(Vec4d c, oldCoord) newCoord.push_back(Vec4d(1-c[0], 1-c[1], c[2], c[3]));
+			Array1D_Vector4d oldCoord = l->getCoord(tSheet->id), newCoord;
+			foreach(Vector4d c, oldCoord) newCoord.push_back(Vector4d(1-c[0], 1-c[1], c[2], c[3]));
 			l->setCoord(tSheet->id, newCoord);
 		}
 	}
@@ -964,8 +964,8 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 
 			// Update the coordinates of links
 			foreach( Structure::Link * l, tgt->getEdges(tSheet->id) ){
-				std::vector<Vec4d> oldCoord = l->getCoord(tSheet->id), newCoord;
-				foreach(Vec4d c, oldCoord) newCoord.push_back(Vec4d(1- c[1], c[0], c[2], c[3]));
+				Array1D_Vector4d oldCoord = l->getCoord(tSheet->id), newCoord;
+				foreach(Vector4d c, oldCoord) newCoord.push_back(Vector4d(1- c[1], c[0], c[2], c[3]));
 				l->setCoord(tSheet->id, newCoord);
 			}
 		}
@@ -983,8 +983,8 @@ void GraphCorresponder::correspondTwoSheets( Structure::Sheet *sSheet, Structure
 
 			// Update the coordinates of links
 			foreach( Structure::Link * l, tgt->getEdges(tSheet->id) ){
-				std::vector<Vec4d> oldCoord = l->getCoord(tSheet->id), newCoord;
-				foreach(Vec4d c, oldCoord) newCoord.push_back(Vec4d(c[1], 1- c[0], c[2], c[3]));
+				Array1D_Vector4d oldCoord = l->getCoord(tSheet->id), newCoord;
+				foreach(Vector4d c, oldCoord) newCoord.push_back(Vector4d(c[1], 1- c[0], c[2], c[3]));
 				l->setCoord(tSheet->id, newCoord);
 			}
 		}

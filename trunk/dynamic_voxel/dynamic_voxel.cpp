@@ -22,19 +22,19 @@ bool dynamic_voxel::keyPressEvent( QKeyEvent* event )
     if(event->key() == Qt::Key_V) {
         showVoxels = !showVoxels;
 
-		Vec3d to(2,2,0);
+		Vector3d to(2,2,0);
 		double radius = 0.5;
 
 		vox.begin();
 
-		QVector<Vec3d> points;
-		points.push_back(Vec3d(-1,-1,0));
-		points.push_back(Vec3d(0,-1,0));
-		points.push_back(Vec3d(0,0,0));
-		points.push_back(Vec3d(1,0,0));
-		points.push_back(Vec3d(1,1,0));
-		points.push_back(Vec3d(2,1,0));
-		points.push_back(Vec3d(2,2,0));
+		QVector<Vector3d> points;
+		points.push_back(Vector3d(-1,-1,0));
+		points.push_back(Vector3d(0,-1,0));
+		points.push_back(Vector3d(0,0,0));
+		points.push_back(Vector3d(1,0,0));
+		points.push_back(Vector3d(1,1,0));
+		points.push_back(Vector3d(2,1,0));
+		points.push_back(Vector3d(2,2,0));
 		vox.addPolyLine(points, radius);
 
 		vox.end();

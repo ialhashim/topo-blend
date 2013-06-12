@@ -59,7 +59,7 @@ struct IsotropicRemesher{
 		Vector3 v0v1 = _v1 - _v0;
 		Vector3 v0v2 = _v2 - _v0;
 		Vector3 n = cross(v0v1, v0v2); // not normalized !
-		double d = n.sqrnorm();
+		double d = n.squaredNorm();
 
 
 		// Check if the triangle is degenerated
@@ -73,9 +73,9 @@ struct IsotropicRemesher{
 		// these are not needed for every point, should still perform
 		// better with many points against one triangle
 		Vector3 v1v2 = _v2 - _v1;
-		double inv_v0v2_2 = 1.0 / v0v2.sqrnorm();
-		double inv_v0v1_2 = 1.0 / v0v1.sqrnorm();
-		double inv_v1v2_2 = 1.0 / v1v2.sqrnorm();
+		double inv_v0v2_2 = 1.0 / v0v2.squaredNorm();
+		double inv_v0v1_2 = 1.0 / v0v1.squaredNorm();
+		double inv_v1v2_2 = 1.0 / v1v2.squaredNorm();
 
 
 		Vector3 v0p = _p - _v0;
@@ -163,12 +163,12 @@ struct IsotropicRemesher{
 		} else {
 			// Calculate the distance to an interior point of the triangle
 			_nearestPoint = _p - n*(dot(n,v0p) * invD);
-			return (_nearestPoint - _p).sqrnorm();
+			return (_nearestPoint - _p).squaredNorm();
 		}
 
 		_nearestPoint = v0p;
 
-		return (_nearestPoint - _p).sqrnorm();
+		return (_nearestPoint - _p).squaredNorm();
 	}
 
 	void remesh(double targetEdgeLength, int numIterations )
@@ -214,7 +214,7 @@ struct IsotropicRemesher{
 			Vector3 vec = points[v1] - points[v0];
 
 			// edge to long?
-			if ( vec.sqrnorm() > maxEdgeLengthSqr ){
+			if ( vec.squaredNorm() > maxEdgeLengthSqr ){
 
 				const Vector3 midPoint = points[v0] + ( 0.5 * vec );
 
@@ -271,7 +271,7 @@ struct IsotropicRemesher{
 
 				const Vector3 vec = points[v1] - points[v0];
 
-				const double edgeLength = vec.sqrnorm();
+				const double edgeLength = vec.squaredNorm();
 
 				// edge too short but don't try to collapse edges that have length 0
 				if ( (edgeLength < _minEdgeLengthSqr) && (edgeLength > DBL_EPSILON) ){
@@ -283,7 +283,7 @@ struct IsotropicRemesher{
 
 					foreach( Halfedge hvit, mesh->onering_hedges(v0) )
 					{
-						double d = (B - points[ mesh->to_vertex(hvit) ]).sqrnorm();
+						double d = (B - points[ mesh->to_vertex(hvit) ]).squaredNorm();
 
 						if ( d > _maxEdgeLengthSqr || mesh->is_boundary( mesh->edge( hvit ) ) || efeature[mesh->edge(hvit)] )
 						{
@@ -422,7 +422,7 @@ struct IsotropicRemesher{
 		Vector3VertexProperty orig_points = orginal_mesh->vertex_property<Vector3>( VPOINT );
 
 		Vector3  p_best = orig_points[ Vertex(0) ];
-		SurfaceMeshModel::Scalar d_best = (_point - p_best).sqrnorm();
+		SurfaceMeshModel::Scalar d_best = (_point - p_best).squaredNorm();
 
 		SurfaceMeshModel::Face fh_best;
 

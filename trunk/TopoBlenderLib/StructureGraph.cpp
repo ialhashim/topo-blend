@@ -22,7 +22,7 @@ using namespace Structure;
 
 #include "QuickMeshDraw.h"
 
-Q_DECLARE_METATYPE( Vec3d )
+Q_DECLARE_METATYPE( Vector3d )
 Q_DECLARE_METATYPE( RMF )
 Q_DECLARE_METATYPE( RMF::Frame )
 Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
@@ -136,7 +136,7 @@ Link * Graph::addEdge(Node *n1, Node *n2)
 
 	Vector3 intersectPoint = nodeIntersection(n1, n2);
 
-	std::vector<Vec4d> c1,c2;
+	Array1D_Vector4d c1,c2;
 
 	QString edgeType = POINT_EDGE;
 
@@ -144,27 +144,27 @@ Link * Graph::addEdge(Node *n1, Node *n2)
 	{
 		Sheet *s1 = (Sheet*) n1, *s2 = (Sheet*) n2;
 		double length = qMin(s1->bbox().diagonal().norm(), s2->bbox().diagonal().norm());
-		std::vector<Vec3d> pnts = s1->surface.intersect(s2->surface, 0.005 * length, c1, c2);
+		std::vector<Vector3d> pnts = s1->surface.intersect(s2->surface, 0.005 * length, c1, c2);
 		
 		// DEBUG:
-		//foreach(Vec3d p, pnts) debugPoints3.push_back(p);
+		//foreach(Vector3d p, pnts) debugPoints3.push_back(p);
 
 		// Fall back
 		double scaleFactor = 1.1;
 		while(c1.size() < 1)
 		{
-			Vec3d closetPoint1 = s1->position(s1->approxCoordinates(intersectPoint));
-			Vec3d closetPoint2 = s2->position(s2->approxCoordinates(intersectPoint));
+			Vector3d closetPoint1 = s1->position(s1->approxCoordinates(intersectPoint));
+			Vector3d closetPoint2 = s2->position(s2->approxCoordinates(intersectPoint));
 			
-			Vec3d delta = closetPoint2 - closetPoint1;
-			Vec3d moveDelta = (scaleFactor * delta.norm()) * delta.normalized();
+			Vector3d delta = closetPoint2 - closetPoint1;
+			Vector3d moveDelta = (scaleFactor * delta.norm()) * delta.normalized();
 			
 			s1->moveBy(moveDelta);
 
-			std::vector<Vec3d> pnts = s1->surface.intersect(s2->surface, 0.005 * length, c1, c2);
+			std::vector<Vector3d> pnts = s1->surface.intersect(s2->surface, 0.005 * length, c1, c2);
 
 			// DEBUG:
-			//foreach(Vec3d p, pnts) debugPoints3.push_back(p);
+			//foreach(Vector3d p, pnts) debugPoints3.push_back(p);
 
 			s1->moveBy(-moveDelta);
 
@@ -191,7 +191,7 @@ Link * Graph::addEdge(Node *n1, Node *n2)
     return e;
 }
 
-Link * Graph::addEdge(Node *n1, Node *n2, std::vector<Vec4d> coord1, std::vector<Vec4d> coord2, QString linkName)
+Link * Graph::addEdge(Node *n1, Node *n2, Array1D_Vector4d coord1, Array1D_Vector4d coord2, QString linkName)
 {
 	n1 = addNode(n1);
 	n2 = addNode(n2);
@@ -402,7 +402,7 @@ void Graph::draw( QGLViewer * drawArea )
 	}
 
 	// Geometry of graph
-	QVector<Vec3f> points, normals;
+	QVector<Eigen::Vector3f> points, normals;
 
 	// Compute blends if available
 	geometryMorph();
@@ -449,7 +449,7 @@ void Graph::draw( QGLViewer * drawArea )
 		{
 			if(n->property.contains("samples"))
 			{
-				QVector<Vec3f> n_points, n_normals;
+				QVector<Eigen::Vector3f> n_points, n_normals;
 
 				QVector<ParameterCoord> samples = n->property["samples"].value< QVector<ParameterCoord> >();
 				QVector<float> offsets = n->property["offsets"].value< QVector<float> >();
@@ -474,8 +474,8 @@ void Graph::draw( QGLViewer * drawArea )
 				}
 				else
 				{
-					n_points = n->property["cached_points"].value< QVector<Vec3f> >();
-					n_normals = n->property["cached_normals"].value< QVector<Vec3f> >();
+					n_points = n->property["cached_points"].value< QVector<Eigen::Vector3f> >();
+					n_normals = n->property["cached_normals"].value< QVector<Eigen::Vector3f> >();
 				}
 
 				if(n_points.size())
@@ -557,7 +557,7 @@ void Graph::draw( QGLViewer * drawArea )
 
 				//	PointSoup ps;
 				//	LineSegments ls;
-				//	Vec3d lastP = path.front();
+				//	Vector3d lastP = path.front();
 				//	foreach(Vector3 p, path)
 				//	{
 				//		ps.addPoint(p, Qt::green);
@@ -574,7 +574,7 @@ void Graph::draw( QGLViewer * drawArea )
 
 				//	PointSoup ps;
 				//	LineSegments ls;
-				//	Vec3d lastP = path.front();
+				//	Vector3d lastP = path.front();
 				//	foreach(Vector3 p, path)
 				//	{
 				//		ps.addPoint(p, Qt::yellow);
@@ -623,7 +623,7 @@ void Graph::draw( QGLViewer * drawArea )
 
 						PointSoup ps(10);
 						LineSegments ls;
-						Vec3d lastP = path.front();
+						Vector3d lastP = path.front();
 						foreach(Vector3 p, path)
 						{
 							ps.addPoint(p, Qt::green);
@@ -670,7 +670,7 @@ void Graph::draw( QGLViewer * drawArea )
 		foreach(Node * n, nodes)
 		{
 			if (n->property.contains("isReady") && !n->property["isReady"].toBool()) continue;
-			Vec3d position = n->bbox().center();
+			Vector3d position = n->bbox().center();
 			Vec proj = drawArea->camera()->projectedCoordinatesOf(Vec(position.x(), position.y(), position.z()));
 			drawArea->renderText(proj.x,proj.y,n->id);
 		}
@@ -744,7 +744,7 @@ void Graph::draw( QGLViewer * drawArea )
 	{
 		glDisable(GL_LIGHTING);
 		glColor3d(1,1,0); glPointSize(20);
-		glBegin(GL_POINTS); glVector3(property["selectedSample"].value<Vec3d>()); glEnd();
+		glBegin(GL_POINTS); glVector3(property["selectedSample"].value<Vector3d>()); glEnd();
 	}
 
 	glDisable(GL_LIGHTING);
@@ -770,7 +770,11 @@ void Graph::draw( QGLViewer * drawArea )
 	glBegin(GL_QUADS);
 	foreach(QuadFace f, cached_mesh.faces)
 	{
-		glNormal3(cross(cached_mesh.points[f[1]]-cached_mesh.points[f[0]],cached_mesh.points[f[2]]-cached_mesh.points[f[0]]).normalized());
+		Vector3 aa = cached_mesh.points[f[1]]-cached_mesh.points[f[0]];
+		Vector3 bb = cached_mesh.points[f[2]]-cached_mesh.points[f[0]];
+		Vector3 nn = cross(aa,bb).normalized();
+
+		glNormal3(nn);
 		glVector3(cached_mesh.points[f[0]]);
 		glVector3(cached_mesh.points[f[1]]);
 		glVector3(cached_mesh.points[f[2]]);
@@ -803,36 +807,36 @@ void Graph::drawAABB()
 	double length = diagonal.y()/2;
 	double height = diagonal.z()/2;
 
-	Vec3d center(qc.x(), qc.y(), qc.z());
-	Vec3d  c1, c2, c3, c4;
-	Vec3d  bc1, bc2, bc3, bc4;
+	Vector3d center(qc.x(), qc.y(), qc.z());
+	Vector3d  c1, c2, c3, c4;
+	Vector3d  bc1, bc2, bc3, bc4;
 
-	c1 = Vec3d (width, length, height) + center;
-	c2 = Vec3d (-width, length, height) + center;
-	c3 = Vec3d (-width, -length, height) + center;
-	c4 = Vec3d (width, -length, height) + center;
+	c1 = Vector3d (width, length, height) + center;
+	c2 = Vector3d (-width, length, height) + center;
+	c3 = Vector3d (-width, -length, height) + center;
+	c4 = Vector3d (width, -length, height) + center;
 
-	bc1 = Vec3d (width, length, -height) + center;
-	bc2 = Vec3d (-width, length, -height) + center;
-	bc3 = Vec3d (-width, -length, -height) + center;
-	bc4 = Vec3d (width, -length, -height) + center;
+	bc1 = Vector3d (width, length, -height) + center;
+	bc2 = Vector3d (-width, length, -height) + center;
+	bc3 = Vector3d (-width, -length, -height) + center;
+	bc4 = Vector3d (width, -length, -height) + center;
 
 	glDisable(GL_LIGHTING);
 	glLineWidth(1.0f);
 
 	glBegin(GL_LINES);
-	glVertex3dv(c1);glVertex3dv(bc1);
-	glVertex3dv(c2);glVertex3dv(bc2);
-	glVertex3dv(c3);glVertex3dv(bc3);
-	glVertex3dv(c4);glVertex3dv(bc4);
-	glVertex3dv(c1);glVertex3dv(c2);
-	glVertex3dv(c3);glVertex3dv(c4);
-	glVertex3dv(c1);glVertex3dv(c4);
-	glVertex3dv(c2);glVertex3dv(c3);
-	glVertex3dv(bc1);glVertex3dv(bc2);
-	glVertex3dv(bc3);glVertex3dv(bc4);
-	glVertex3dv(bc1);glVertex3dv(bc4);
-	glVertex3dv(bc2);glVertex3dv(bc3);
+	glVertex3dv(c1.data());glVertex3dv(bc1.data());
+	glVertex3dv(c2.data());glVertex3dv(bc2.data());
+	glVertex3dv(c3.data());glVertex3dv(bc3.data());
+	glVertex3dv(c4.data());glVertex3dv(bc4.data());
+	glVertex3dv(c1.data());glVertex3dv(c2.data());
+	glVertex3dv(c3.data());glVertex3dv(c4.data());
+	glVertex3dv(c1.data());glVertex3dv(c4.data());
+	glVertex3dv(c2.data());glVertex3dv(c3.data());
+	glVertex3dv(bc1.data());glVertex3dv(bc2.data());
+	glVertex3dv(bc3.data());glVertex3dv(bc4.data());
+	glVertex3dv(bc1.data());glVertex3dv(bc4.data());
+	glVertex3dv(bc2.data());glVertex3dv(bc3.data());
 	glEnd();
 
 	glEnable(GL_LIGHTING);
@@ -874,7 +878,7 @@ void Graph::draw2D(int width, int height)
 
 	foreach(Node * n, nodes){
 		QVector3D center = graph_center + (scaling * (n->vis_property[NODE_CENTER].value<QVector3D>() - corner));
-		node_centers.push_back(center);
+		node_centers.push_back(Vector3(center.x(),center.y(),center.z()));
 		nmap[nmap.size()] = n;
 	}
 
@@ -886,7 +890,7 @@ void Graph::draw2D(int width, int height)
 	{
 		Vector3 c1 = node_centers[nmap.key(e->n1)];
 		Vector3 c2 = node_centers[nmap.key(e->n2)];
-		drawLine(Vec2i(c1.x(), c1.y()), Vec2i(c2.x(), c2.y()), 1);
+		drawLine(Vector2i(c1.x(), c1.y()), Vector2i(c2.x(), c2.y()), 1);
 	}
 
 	// Draw nodes:
@@ -898,7 +902,7 @@ void Graph::draw2D(int width, int height)
 		int w = stringWidthGL(qPrintable(nmap[i]->id)) * 1.1;
 		int h = stringHeightGL();
 
-		drawRect(Vec2i(c.x(), c.y()), w, h);
+		drawRect(Vector2i(c.x(), c.y()), w, h);
 	}
 
 	// Draw titles:
@@ -981,7 +985,7 @@ void Graph::saveToFile( QString fileName ) const
 		out << "\t</controls>\n\n";
 
 		// Control Points
-		foreach(Vec3d p, n->controlPoints())
+		foreach(Vector3d p, n->controlPoints())
 			out << QString("\t<point>%1 %2 %3</point>\n").arg(p.x()).arg(p.y()).arg(p.z());
 
 		// Weights
@@ -1005,7 +1009,7 @@ void Graph::saveToFile( QString fileName ) const
 		for(int k = 0; k < 2; k++)
 		{
 			out << "\t<coord>\n";
-			foreach(Vec4d c, e->coord[k])
+			foreach(Vector4d c, e->coord[k])
 				out << "\t\t<uv>" << c[0] << " " << c[1] << " " << c[2] << " " << c[3] << "</uv>\n";
 			out << "\t</coord>\n";
 		}
@@ -1065,12 +1069,12 @@ void Graph::loadFromFile( QString fileName )
 			control_count.push_back( controls_list.at(c).toElement().text().toInt() );
 
 		// Load all control points
-		std::vector<Vec3d> ctrlPoints;
+		std::vector<Vector3d> ctrlPoints;
 		QDomNode n = node.firstChildElement("point");
 		while (!n.isNull()) {
 			if (n.isElement()) {
 				QStringList point = n.toElement().text().split(" ");
-				ctrlPoints.push_back( Vec3d(point[0].toDouble(),point[1].toDouble(),point[2].toDouble()) );
+				ctrlPoints.push_back( Vector3d(point[0].toDouble(),point[1].toDouble(),point[2].toDouble()) );
 			}
 			n = n.nextSiblingElement("point");
 		}
@@ -1091,7 +1095,7 @@ void Graph::loadFromFile( QString fileName )
 		{
 			if(control_count.size() < 2) continue;
 
-			std::vector< std::vector<Vec3d> > cp = std::vector< std::vector<Vec3d> > (control_count.first(), std::vector<Vec3d>(control_count.last(), Vector3(0)));
+			std::vector< std::vector<Vector3d> > cp = std::vector< std::vector<Vector3d> > (control_count.first(), std::vector<Vector3d>(control_count.last(), Vector3(0,0,0)));
 			std::vector< std::vector<Scalar> > cw = std::vector< std::vector<Scalar> > (control_count.first(), std::vector<Scalar>(control_count.last(), 1.0));
 
 			for(int u = 0; u < control_count.first(); u++)
@@ -1141,7 +1145,7 @@ void Graph::loadFromFile( QString fileName )
 		QString n2_id = n.at(1).toElement().text();
 
 		QDomNodeList coordList = edge.toElement().elementsByTagName("coord");
-		std::vector< std::vector<Vec4d> > coords((int)coordList.size());
+		Array2D_Vector4d coords((int)coordList.size());
 		for(int j = 0; j < (int) coords.size(); j++)
 		{
 			QDomNodeList uv = coordList.at(j).toElement().elementsByTagName("uv");
@@ -1150,7 +1154,7 @@ void Graph::loadFromFile( QString fileName )
 			for(int k = 0; k < uv_count; k++)
 			{
 				QStringList c = uv.at(k).toElement().text().split(" ");
-				coords[j].push_back(Vec4d(c[0].toDouble(), c[1].toDouble(), c[2].toDouble(), c[3].toDouble()));
+				coords[j].push_back(Vector4d(c[0].toDouble(), c[1].toDouble(), c[2].toDouble(), c[3].toDouble()));
 			}
 		}
 
@@ -1207,7 +1211,7 @@ void Graph::materialize( SurfaceMesh::Model * m, Scalar voxel_scaling )
 	{
 		QElapsedTimer nodoe_timer; nodoe_timer.start();
 
-		std::vector< std::vector<Vector3> > parts = n->discretized( voxel_size );
+		Array2D_Vector3 parts = n->discretized( voxel_size );
 		int c = parts.front().size();
 
 		// Curve segments
@@ -1295,8 +1299,8 @@ SurfaceMesh::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 	//if(n1->type() == SHEET && n2->type() == SHEET)
 	//	r *= 10;
 
-	std::vector< std::vector<Vector3> > parts1 = n1->discretized(r * (n1->type() == CURVE ? 1 : 1));
-	std::vector< std::vector<Vector3> > parts2 = n2->discretized(r * (n1->type() == CURVE ? 1 : 1));
+	Array2D_Vector3 parts1 = n1->discretized(r * (n1->type() == CURVE ? 1 : 1));
+	Array2D_Vector3 parts2 = n2->discretized(r * (n1->type() == CURVE ? 1 : 1));
 
 	// Fall back
 	if( !parts1.size() )
@@ -1480,9 +1484,9 @@ QVector<Node*> Graph::adjNodes( Node * node )
 	return adj;
 }
 
-QMap<Link*, std::vector<Vec4d> > Graph::linksCoords( QString nodeID )
+QMap<Link*, Array1D_Vector4d > Graph::linksCoords( QString nodeID )
 {
-    QMap< Link*, std::vector<Vec4d> > coords;
+    QMap< Link*, Array1D_Vector4d > coords;
 
 	for(int i = 0; i < edges.size(); i++)
 	{
@@ -1523,7 +1527,7 @@ QList<Link*> Graph::furthermostEdges( QString nodeID )
 	QMap<double, Link*> sortedLinks;
 	foreach(Link * e, nodeEdges(nodeID))
 	{
-		foreach(Vec4d c, e->getCoord(nodeID))
+		foreach(Vector4d c, e->getCoord(nodeID))
 			sortedLinks[c.norm()] = e;
 	}
 
@@ -1669,7 +1673,7 @@ QVector< QVector<Node*> > Graph::split( QString nodeID )
 	return parts;
 }
 
-void Graph::replaceCoords( QString nodeA, QString nodeB, std::vector<Vec4d> coordA, std::vector<Vec4d> coordB )
+void Graph::replaceCoords( QString nodeA, QString nodeB, Array1D_Vector4d coordA, Array1D_Vector4d coordB )
 {
 	// Get shared link
 	Link * sharedLink = getEdge(nodeA, nodeB);
@@ -1680,7 +1684,7 @@ void Graph::replaceCoords( QString nodeA, QString nodeB, std::vector<Vec4d> coor
 	sharedLink->setCoord(nodeB, coordB);
 }
 
-Vector3 Graph::position( QString nodeID, Vec4d coord )
+Vector3 Graph::position( QString nodeID, Vector4d& coord )
 {
 	Node * node = getNode(nodeID);
 	if(!node) node = auxNode( nodeID );
@@ -1701,7 +1705,7 @@ void Graph::translate( Vector3 delta )
 		// Apply to actual geometry
 		if(!node->property.contains("mesh")) continue;
 		SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
-		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+		Vector3VertexProperty points = model->vertex_property<Vector3d>("v:point");
 		foreach(Vertex v, model->vertices()) points[v] += delta;
 	}
 
@@ -1723,7 +1727,7 @@ void Graph::rotate( double angle, Vector3 axis )
 
 		// Move actual geometry
         SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
-		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+		Vector3VertexProperty points = model->vertex_property<Vector3d>("v:point");
 		model->updateBoundingBox();
 
 		foreach(Vertex v, model->vertices())
@@ -1753,7 +1757,7 @@ void Graph::scale( double scaleFactor )
 
 		// Move actual geometry
         SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
-		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+		Vector3VertexProperty points = model->vertex_property<Vector3d>("v:point");
 		foreach(Vertex v, model->vertices())
 			points[v] *= relative_scale;
 	}
@@ -1777,7 +1781,7 @@ void Graph::transform( QMatrix4x4 mat )
 		
 		Array1D_Vector3 controlPoints = node->controlPoints();
 		for(int i = 0; i < (int)controlPoints.size(); i++)
-			controlPoints[i] = mat * controlPoints[i];
+			controlPoints[i] = QVector3(mat * QVector3(controlPoints[i]));
 		node->setControlPoints(controlPoints);
 		
 		// Update needed for Sheets
@@ -1787,8 +1791,8 @@ void Graph::transform( QMatrix4x4 mat )
 		// Transform actual geometry
 		if(!node->property.contains("mesh")) continue;
 		SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
-		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
-		foreach(Vertex v, model->vertices()) points[v] = mat * points[v];
+		Vector3VertexProperty points = model->vertex_property<Vector3d>("v:point");
+		foreach(Vertex v, model->vertices()) points[v] = QVector3(mat * QVector3(points[v]));
 	}
 }
 
@@ -1796,7 +1800,7 @@ void Graph::moveBottomCenterToOrigin()
 {
 	Eigen::AlignedBox3d aabb = bbox();
 	double height = aabb.max().z() - aabb.min().z();
-	Vec3d bottom_center(aabb.center().x(), aabb.center().y(), aabb.center().z() - height/2);
+	Vector3d bottom_center(aabb.center().x(), aabb.center().y(), aabb.center().z() - height/2);
 
 	translate( -bottom_center );
 
@@ -1822,7 +1826,7 @@ void Graph::normalize()
 		// Apply to actual geometry
 		if(!node->property.contains("mesh")) continue;
 		SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
-		Vector3VertexProperty points = model->vertex_property<Vec3d>("v:point");
+		Vector3VertexProperty points = model->vertex_property<Vector3d>("v:point");
 		foreach(Vertex v, model->vertices())
 			points[v] *= scaleFactor;
 	}
@@ -1913,10 +1917,10 @@ void Graph::printLinksInfo()
 	{
 		QStringList c_string;
 
-		foreach(Array1D_Vec4d coords, e->coord)
+		foreach(Array1D_Vector4d coords, e->coord)
 		{
 			c_string << "";
-			foreach(Vec4d c, coords)
+			foreach(Vector4d c, coords)
 				c_string.back() += QString("|%1  %2|").arg(c[0]).arg(c[1]);
 		}
 
@@ -1962,7 +1966,7 @@ void Graph::geometryMorph()
 		{
 			double t = n->property["localT"].toDouble();
 
-			QVector<Vec3f> points, normals;
+			QVector<Eigen::Vector3f> points, normals;
 
 			if(n->type() == Structure::CURVE)
 			{	

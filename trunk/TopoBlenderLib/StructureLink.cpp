@@ -15,37 +15,37 @@ Link::Link( Node * node1, Node * node2, LinkCoords coord_n1, LinkCoords coord_n2
 	this->coord[1] = coord_n2;
 }
 
-void Link::setCoord( QString nodeID, std::vector<Vec4d> newCoord )
+void Link::setCoord( QString nodeID, Array1D_Vector4d newCoord )
 {
 	if(n1->id == nodeID) coord[0] = newCoord;
 	if(n2->id == nodeID) coord[1] = newCoord;
 }
 
-void Link::setCoordOther( QString nodeID, std::vector<Vec4d> newCoord )
+void Link::setCoordOther( QString nodeID, Array1D_Vector4d newCoord )
 {
 	if(n1->id == nodeID) coord[1] = newCoord;
 	if(n2->id == nodeID) coord[0] = newCoord;
 }
 
-std::vector<Vec4d> Link::getCoord( QString nodeID )
+Array1D_Vector4d Link::getCoord( QString nodeID )
 {
 	if(n1->id == nodeID) return coord[0];
 	if(n2->id == nodeID) return coord[1];
-	return std::vector<Vec4d>(1,Vec4d(0));
+	return Array1D_Vector4d(1,Vector4d(0,0,0,0));
 }
 
-std::vector<Vec4d> Link::getCoordOther( QString nodeID )
+Array1D_Vector4d Link::getCoordOther( QString nodeID )
 {
 	return getCoord(otherNode(nodeID)->id);
 }
 
-Vec4d Link::getMiddleCoord( QString nodeID )
+Vector4d Link::getMiddleCoord( QString nodeID )
 {
-	std::vector<Vec4d> nodeCoords = getCoord(nodeID);
+	Array1D_Vector4d nodeCoords = getCoord(nodeID);
 	return nodeCoords[ nodeCoords.size() / 2 ];
 }
 
-void Link::replace(QString oldNodeID, Node *newNode, std::vector<Vec4d> newCoord)
+void Link::replace(QString oldNodeID, Node *newNode, Array1D_Vector4d newCoord)
 {
 	if(!newNode) return;
 
@@ -88,7 +88,7 @@ void Link::draw()
 
 	for(int j = 0; j < (int)coord[0].size(); j++)
 	{
-		Vector3 p1(0), p2(0);
+		Vector3 p1(0,0,0), p2(0,0,0);
 
         std::vector<Vector3> nf = noFrame();
 
@@ -148,7 +148,7 @@ SurfaceMesh::Vector3 Link::position( QString nodeID )
 	Node * n = n1->id == nodeID ? n1 : n2;
 	assert(n->id == nodeID);
 
-	Vector3 pos(0);
+	Vector3 pos(0,0,0);
 
     std::vector<Vector3> nf = noFrame();
 
@@ -188,7 +188,7 @@ void Link::invertCoords( QString nodeID )
 	if(nodeID == n2->id) coord[1] = inverseCoords(coord[1]);
 }
 
-Vec3d Link::delta()
+Vector3d Link::delta()
 {
 	return position(n2->id) - position(n1->id);
 }

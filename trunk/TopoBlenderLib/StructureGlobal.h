@@ -63,47 +63,54 @@ QList< QPair<S, F> > sortQMapByValue(const QMap<F,S> & map)
 	return result;
 }
 
-static inline std::vector<Vec3d> noFrame(){
-	return std::vector<Vec3d>();
+static inline std::vector<Vector3d> noFrame(){
+	return std::vector<Vector3d>();
 }
 
-static inline Vec3d orthogonalVector(const Vec3d& n) {
+static inline Vector3d orthogonalVector(const Vector3d& n) {
 	if ((abs(n.y()) >= 0.9 * abs(n.x())) &&
-		abs(n.z()) >= 0.9 * abs(n.x())) return Vec3d(0.0, -n.z(), n.y());
+		abs(n.z()) >= 0.9 * abs(n.x())) return Vector3d(0.0, -n.z(), n.y());
 	else if ( abs(n.x()) >= 0.9 * abs(n.y()) &&
-		abs(n.z()) >= 0.9 * abs(n.y()) ) return Vec3d(-n.z(), 0.0, n.x());
-	else return Vec3d(-n.y(), n.x(), 0.0);
+		abs(n.z()) >= 0.9 * abs(n.y()) ) return Vector3d(-n.z(), 0.0, n.x());
+	else return Vector3d(-n.y(), n.x(), 0.0);
 }
 
 // Coordinates utility functions
-static inline Vec4d coord(double u = 0, double v = 0)	{ return Vec4d(u, v, 0, 0); }
-static inline Vec4d inverseCoord(const Vec4d& c)		{ return Vec4d(1 - c.x(), 1 - c.y(), 0,0); }
-static inline std::vector<Vec4d> inverseCoords(const std::vector<Vec4d>& fromCoords)	{ 
-	std::vector<Vec4d> invertedCoords;
-	foreach(Vec4d coord, fromCoords) invertedCoords.push_back( inverseCoord(coord) );
+static inline Vector4d coord(double u = 0, double v = 0)	{ return Vector4d(u, v, 0, 0); }
+static inline Vector4d inverseCoord(const Vector4d& c)		{ return Vector4d(1 - c.x(), 1 - c.y(), 0,0); }
+static inline std::vector<Vector4d, Eigen::aligned_allocator<Vector4d> > inverseCoords(const std::vector<Vector4d, Eigen::aligned_allocator<Vector4d> >& fromCoords)	{ 
+	std::vector<Vector4d, Eigen::aligned_allocator<Vector4d> > invertedCoords;
+
+	for(int i = 0; i < (int) fromCoords.size(); i++)
+	{
+		Vector4d coord = fromCoords[i];
+		invertedCoords.push_back( inverseCoord(coord) );
+	}
 	return invertedCoords; 
 }
-static inline bool isSameHalf(const Vec4d& A, const Vec4d& B){
+static inline bool isSameHalf(const Vector4d& A, const Vector4d& B){
 	bool result = false;
 	if( (A[0] <= 0.5 && B[0] <= 0.5) || (A[0] > 0.5 && B[0] > 0.5) )
 		result = true;
 	return result;
 }
 
-static inline double signedAngle(const Vec3d &a, const Vec3d &b, const Vec3d &axis)
+template<class VectorType>
+static inline double signedAngle(const VectorType &a, const VectorType &b, const VectorType &axis)
 {
-	if(axis.norm() == 0.0) qDebug() << "warning: zero axis";
-	double cosAngle = dot(a.normalized(), b.normalized());
+	if(axis.norm() == 0) qDebug() << "warning: zero axis";
+	double cosAngle = a.normalized().dot(b.normalized());
 	double angle = acos( qRanged(-1.0, cosAngle, 1.0) );
-	Vec3d c = cross(a, b);
-	if (dot(c, axis) < 0) return -angle;
+	VectorType c = a.cross(b);
+	if (c.dot(axis) < 0) return -angle;
 	return angle;
 }
 
-static inline Vec3d rotatedVec(const Vec3d & v, double theta, const Vec3d & axis)
+template<class VectorType>
+static inline VectorType rotatedVec(const VectorType & v, double theta, const VectorType & axis)
 {
-	if(theta == 0.0) return v;
-	return (v * cos(theta) + cross(axis, v) * sin(theta) + axis * dot(axis, v) * (1 - cos(theta)));
+	if(theta == 0) return v;
+	return (v * cos(theta) + axis.cross(v) * sin(theta) + axis * axis.dot(v) * (1 - cos(theta)));
 }
 
 /// Spherical Coordinates:
@@ -122,16 +129,16 @@ static inline void globalToLocalSpherical( VectorType X, VectorType Y, VectorTyp
 {
 	// Theta: angle from Z [0, PI]
 	// Psi: angle from X on XY plane [0, 2*PI)
-	double dotZ = dot(v, Z);
+	double dotZ = v.dot(Z);
 	theta = acos( qRanged(-1.0, dotZ, 1.0) );
 
-	double dotX = dot(v, X);
-	double dotY = dot(v, Y);
-	Vec3d proj_v = (dotX * X + dotY * Y).normalized();
+	double dotX = v.dot(X);
+	double dotY = v.dot(Y);
+	VectorType proj_v = (dotX * X + dotY * Y).normalized();
 	psi = signedAngle(X, proj_v, Z);
 }
 
-static inline Vec3d pointOnPlane(Vec3d p, Vec3d plane_normal, double plane_d = 0)
+static inline Vector3d pointOnPlane(Vector3d p, Vector3d plane_normal, double plane_d = 0)
 {
 	double t = dot(plane_normal, p) - plane_d;
 	return p - (t * plane_normal);
@@ -156,7 +163,7 @@ typedef std::pair< QVector<POINT_ID>, QVector<POINT_ID> > POINT_LANDMARK;
 #define AlphaBlend(alpha, start, end) ( ((1-alpha) * start) + (alpha * end) )
 
 // Spatial Hausdorff distance
-static double supInfDistance( const std::vector<Vec3d> &A, const std::vector<Vec3d> &B )
+static double supInfDistance( const std::vector<Vector3d> &A, const std::vector<Vector3d> &B )
 {
 	double supinfDis = -1;
 	for (int i = 0; i < (int)A.size(); i++)
@@ -177,7 +184,7 @@ static double supInfDistance( const std::vector<Vec3d> &A, const std::vector<Vec
 	return supinfDis;
 }
 
-static double HausdorffDistance( const std::vector<Vec3d> &A, const std::vector<Vec3d> &B )
+static double HausdorffDistance( const std::vector<Vector3d> &A, const std::vector<Vector3d> &B )
 {
 	double ABDis = supInfDistance(A, B);
 	double BADis = supInfDistance(B, A);
@@ -185,10 +192,10 @@ static double HausdorffDistance( const std::vector<Vec3d> &A, const std::vector<
 	return std::max(ABDis, BADis);
 }
 
-static std::vector<Vec3d> refineByNumber(const std::vector<Vec3d> & fromPnts, int targetNumber)
+static std::vector<Vector3d> refineByNumber(const std::vector<Vector3d> & fromPnts, int targetNumber)
 {
 	// Refine until targetNumber is achieved
-	std::vector<Vec3d> newPnts = fromPnts;
+	std::vector<Vector3d> newPnts = fromPnts;
 	while(targetNumber > (int)newPnts.size())
 	{
 		// Find index of largest edge and split
@@ -202,7 +209,7 @@ static std::vector<Vec3d> refineByNumber(const std::vector<Vec3d> & fromPnts, in
 			}
 		}
 
-		Vec3d midPoint = (newPnts[idx] + newPnts[idx-1]) / 2.0;
+		Vector3d midPoint = (newPnts[idx] + newPnts[idx-1]) / 2.0;
 
 		// Insert new point
 		newPnts.insert( newPnts.begin() + (idx), midPoint );
@@ -211,9 +218,9 @@ static std::vector<Vec3d> refineByNumber(const std::vector<Vec3d> & fromPnts, in
 	return newPnts;
 }
 
-static std::vector<Vec3d> refineByResolution(const std::vector<Vec3d> & fromPnts, double resolution)
+static std::vector<Vector3d> refineByResolution(const std::vector<Vector3d> & fromPnts, double resolution)
 {
-	std::vector<Vec3d> resampled_polyline;
+	std::vector<Vector3d> resampled_polyline;
 
 	// Parameterize line by finding segments
 	double totalLineLength = 0.0;
@@ -258,14 +265,14 @@ static std::vector<Vec3d> refineByResolution(const std::vector<Vec3d> & fromPnts
 	return resampled_polyline;
 }
 
-static std::vector<Vec3d> smoothPolyline(const std::vector<Vec3d> & fromPnts, int num_iterations)
+static std::vector<Vector3d> smoothPolyline(const std::vector<Vector3d> & fromPnts, int num_iterations)
 {
-	std::vector<Vec3d> pnts = fromPnts;
+	std::vector<Vector3d> pnts = fromPnts;
 
 	// Laplacian smoothing - fixed ends
 	for(int itr = 0; itr < num_iterations; itr++)
 	{
-		std::vector<Vec3d> newPos(pnts.size(), Vec3d(0));
+		std::vector<Vector3d> newPos(pnts.size(), Vector3d(0,0,0));
 		newPos[0] = pnts[0];
 
 		for(int i = 1; i < (int)pnts.size() - 1; i++)
@@ -361,7 +368,7 @@ static void saveOBJ(SurfaceMesh::Model * mesh, QString filename)
 	
 	QTextStream out(&file);
 	out << "# NV = " << mesh->n_vertices() << " NF = " << mesh->n_faces() << "\n";
-	SurfaceMesh::Vector3VertexProperty points = mesh->vertex_property<Vec3d>("v:point");
+	SurfaceMesh::Vector3VertexProperty points = mesh->vertex_property<Vector3d>("v:point");
 	foreach( SurfaceMesh::Vertex v, mesh->vertices() )
 		out << "v " << points[v][0] << " " << points[v][1] << " " << points[v][2] << "\n";
 	foreach( SurfaceMesh::Face f, mesh->faces() ){
@@ -387,7 +394,7 @@ static void combineMeshes( QStringList filenames, QString outputFilename )
 
 		SurfaceMesh::SurfaceMeshModel * m = new SurfaceMesh::SurfaceMeshModel;
 		m->read( qPrintable(filename) );
-		SurfaceMesh::Vector3VertexProperty points = m->vertex_property<Vec3d>("v:point");
+		SurfaceMesh::Vector3VertexProperty points = m->vertex_property<Vector3d>("v:point");
 
 		out << "# Start of mesh " << fileInfo.baseName() << "\n";
 

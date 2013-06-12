@@ -9,7 +9,8 @@ typedef unsigned int uint;
 #include "qglviewer/quaternion.h"
 using namespace qglviewer;
 
-#include "geometry/Vector.h"
+#include "SurfaceMeshModel.h"
+using namespace SurfaceMesh;
 
 class RMF{
 public:

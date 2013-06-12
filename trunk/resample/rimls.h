@@ -194,7 +194,7 @@ public:
 				Vertex v(id);
 				Scalar rs2 = radii[v] * mDomainRadiusScale;
 				rs2 = rs2*rs2;
-				Scalar dn = dot(normals[v], x - points[v]);
+				Scalar dn = dot(normals[v], Vector3(x - points[v]));
 				out = (pow(mNeighborhood[i].second, 2) + s*dn*dn) > rs2;
 				++i;
 			}
@@ -353,7 +353,7 @@ public:
 				Scalar refittingWeight = 1;
 				if (iterationCount > 0)
 				{
-					refittingWeight = exp(-(normal - previousGrad).sqrnorm() * invSigma2);
+					refittingWeight = exp(-(normal - previousGrad).squaredNorm() * invSigma2);
 				}
 				mCachedRefittingWeights.at(i) = refittingWeight;
 				Scalar w = mCachedWeights.at(i) * refittingWeight;
@@ -377,7 +377,7 @@ public:
 			iterationCount++;
 
 		} while ( (iterationCount < mMinRefittingIters)
-			|| ( (grad - previousGrad).sqrnorm() > mRefittingThreshold && iterationCount < mMaxRefittingIters) );
+			|| ( (grad - previousGrad).squaredNorm() > mRefittingThreshold && iterationCount < mMaxRefittingIters) );
 
 		mCachedGradient			= grad;
 		mCachedPotential		= potential;

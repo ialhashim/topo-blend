@@ -272,8 +272,8 @@ void TopoBlender::correspondTwoEdges( Structure::Link *slink, Structure::Link *t
 	{
 		QString n1 = slink->n1->id;
 		QString n2 = slink->n2->id;
-		Array1D_Vec4d c1 = slink->coord.front();
-		Array1D_Vec4d c2 = slink->coord.back();
+		Array1D_Vector4d c1 = slink->coord.front();
+		Array1D_Vector4d c2 = slink->coord.back();
 
 		source->removeEdge(n1,n2);
 		slink = source->addEdge(source->getNode(n2), source->getNode(n1), c2, c1, source->linkName(n2,n1) );
@@ -747,7 +747,7 @@ void TopoBlender::postprocessSuperEdges()
 		if (n->id.contains("null")){
 			foreach(Link* sl, super_sg->getEdges( n->id )) {
 				//Link* tl = super_tg->getEdge(sl->property["correspond"].toString());
-				sl->property["delta"].setValue( Vec3d(0) );
+				sl->property["delta"].setValue( Vector3d(0,0,0) );
 			}
 		}
 	}
@@ -761,7 +761,7 @@ void TopoBlender::postprocessSuperEdges()
 	}
 
 	// Set blended delta for first time relinking
-	foreach(Link * l, super_sg->edges) l->property["blendedDelta"].setValue( l->property["delta"].value<Vec3d>() );
+	foreach(Link * l, super_sg->edges) l->property["blendedDelta"].setValue( l->property["delta"].value<Vector3d>() );
 }
 
 void TopoBlender::generateTasks()
@@ -927,10 +927,10 @@ bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structu
 			if (!converted)
 			{
 				Structure::Node* other1 = superG1->getNode(otherID1);
-				Vec4d otherCoord = link2->getCoordOther(nodeID2).front();
-				Vec3d linkOtherPos1 = other1->position(otherCoord);
+				Vector4d otherCoord = link2->getCoordOther(nodeID2).front();
+				Vector3d linkOtherPos1 = other1->position(otherCoord);
 
-				Vec3d direction2 = curve2->direction();
+				Vector3d direction2 = curve2->direction();
 				NURBS::NURBSCurved new_curve = sheet1->convertToNURBSCurve(linkOtherPos1, direction2);
 
 				// create new curve node with the same id

@@ -97,7 +97,7 @@ FaceBounds Voxeler::findFaceBounds( Surface_mesh::Face f )
 
 	for(int v = 0; v < 3; v++)
 	{
-		Vec3d vec = f_vec[v];
+		Vector3d vec = f_vec[v];
 
 		if (vec.x() < minx) minx = vec.x();
 		if (vec.x() > maxx) maxx = vec.x();
@@ -122,7 +122,7 @@ FaceBounds Voxeler::findFaceBounds( Surface_mesh::Face f )
 
 bool Voxeler::isVoxelIntersects( const Voxel& v, Surface_mesh::Face f )
 {
-	Vec3d center = Vec3d(v.x * voxelSize, v.y * voxelSize, v.z * voxelSize);
+	Vector3d center = Vector3d(v.x * voxelSize, v.y * voxelSize, v.z * voxelSize);
 
 	double s = voxelSize * 0.5;
 
@@ -155,7 +155,7 @@ void Voxeler::draw()
 	glCallList(d2);
 
 	/*for(int i = 0; i < (int) temp2.size(); i++){
-		Vec3d c = temp2[i];
+		Vector3d c = temp2[i];
 		c *= voxelSize;
 		if(temp2[i].x() < 0)
 			SimpleDraw::DrawSolidBox(c, voxelSize, voxelSize, voxelSize, 1,0,0);
@@ -169,16 +169,16 @@ void Voxeler::setupDraw()
 	double s = voxelSize * 0.5;
 	int n = (int)voxels.size();
 	
-	std::vector< std::vector<Vec3d> > corner(n, std::vector<Vec3d>(8));
+	std::vector< std::vector<Vector3d> > corner(n, std::vector<Vector3d>(8));
 
 	// Find corners
 	for(int i = 0; i < n; i++)
 	{
-		Vec3d c = voxels[i];	c *= voxelSize;
-		corner[i][0] = Vec3d(s, s, s) + c;		corner[i][1] = Vec3d(-s, s, s) + c;
-		corner[i][2] = Vec3d(-s, -s, s) + c;	corner[i][3] = Vec3d(s, -s, s) + c;
-		corner[i][4] = Vec3d(s, s, -s) + c;		corner[i][5] = Vec3d(-s, s, -s) + c;
-		corner[i][6] = Vec3d(-s, -s, -s) + c;	corner[i][7] = Vec3d(s, -s, -s) + c;
+		Vector3d c = voxels[i];	c *= voxelSize;
+		corner[i][0] = Vector3d(s, s, s) + c;		corner[i][1] = Vector3d(-s, s, s) + c;
+		corner[i][2] = Vector3d(-s, -s, s) + c;	corner[i][3] = Vector3d(s, -s, s) + c;
+		corner[i][4] = Vector3d(s, s, -s) + c;		corner[i][5] = Vector3d(-s, s, -s) + c;
+		corner[i][6] = Vector3d(-s, -s, -s) + c;	corner[i][7] = Vector3d(s, -s, -s) + c;
 	}
 
 	// Save corners
@@ -187,15 +187,15 @@ void Voxeler::setupDraw()
 	cornerCorrespond.resize(n*8);
 
 	// Build corner_kd
-	std::vector<Vec3d> cornerPnts;
+	std::vector<Vector3d> cornerPnts;
 	for(int i = 0; i < n; i++)
 		for(int j = 0; j < 8; j++)
 			cornerPnts.push_back(corner[i][j]);
 
 	std::vector<size_t> xrefs;
-    weld(cornerPnts, xrefs, std::hash_Vec3d(), std::equal_to<Vec3d>());
+    weld(cornerPnts, xrefs, std::hash_Vector3d(), std::equal_to<Vector3d>());
 
-	foreach(Vec3d p, cornerPnts) corner_kd.addPoint(p);
+	foreach(Vector3d p, cornerPnts) corner_kd.addPoint(p);
 	corner_kd.build();
 
 	for(int i = 0; i < n; i++)
@@ -256,16 +256,16 @@ void Voxeler::drawVoxels( const std::vector< Voxel > & voxels, double voxel_size
 	double s = voxel_size * 0.5;
 	int n = (int)voxels.size();
 
-	std::vector<Vec3d> c1(n), c2(n), c3(n), c4(n);
-	std::vector<Vec3d> bc1(n), bc2(n), bc3(n), bc4(n);
+	std::vector<Vector3d> c1(n), c2(n), c3(n), c4(n);
+	std::vector<Vector3d> bc1(n), bc2(n), bc3(n), bc4(n);
 
 	// Find corners
 	for(int i = 0; i < (int)voxels.size(); i++){
-		Vec3d c = voxels[i];	c *= voxel_size;
-		c1[i] = Vec3d(s, s, s) + c; c2[i] = Vec3d(-s, s, s) + c;
-		c3[i] = Vec3d(-s, -s, s) + c; c4[i] = Vec3d(s, -s, s) + c;
-		bc1[i] = Vec3d(s, s, -s) + c; bc2[i] = Vec3d(-s, s, -s) + c;
-		bc3[i] = Vec3d(-s, -s, -s) + c; bc4[i] = Vec3d(s, -s, -s) + c;
+		Vector3d c = voxels[i];	c *= voxel_size;
+		c1[i] = Vector3d(s, s, s) + c; c2[i] = Vector3d(-s, s, s) + c;
+		c3[i] = Vector3d(-s, -s, s) + c; c4[i] = Vector3d(s, -s, s) + c;
+		bc1[i] = Vector3d(s, s, -s) + c; bc2[i] = Vector3d(-s, s, -s) + c;
+		bc3[i] = Vector3d(-s, -s, -s) + c; bc4[i] = Vector3d(s, -s, -s) + c;
 	}
 
 	glColor3d(1,0,0);
@@ -411,7 +411,7 @@ std::map<int, Voxel> Voxeler::around(Point p)
 			for(int k = -1; k <= 1; k += 1){
 				Voxel v(x + i, y + j, z + k);
 
-				Vec3d vpos(v.x, v.y, v.z);
+				Vector3d vpos(v.x, v.y, v.z);
 
                 Vector3 vv(v.x, v.y, v.z);
 
@@ -470,12 +470,12 @@ std::vector< Point > Voxeler::getCorners( int vid )
 	return result;
 }
 
-int Voxeler::getClosestVoxel( Vec3d point )
+int Voxeler::getClosestVoxel( Vector3d point )
 {
 	return cornerCorrespond[ corner_kd.closest(point) ];
 }
 
-int Voxeler::getEnclosingVoxel( Vec3d point )
+int Voxeler::getEnclosingVoxel( Vector3d point )
 {
 	int N = (int)voxels.size();
 

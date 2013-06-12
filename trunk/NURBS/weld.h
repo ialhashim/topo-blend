@@ -16,8 +16,15 @@ Doc:
 * @brief Weld function to remove array duplicates in linear time.
 **/
 namespace std {
-    struct hash_Vec3d {
-        size_t operator()(Vec3d v) {
+    struct hash_Vector3d {
+        size_t operator()(Vector3d v) {
+            const unsigned int * h = (const unsigned int *)(&v);
+            unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0
+            return (f>>22)^(f>>12)^(f);
+        }
+    };
+	struct hash_Vector3f {
+        size_t operator()(Vector3f v) {
             const unsigned int * h = (const unsigned int *)(&v);
             unsigned int f = (h[0]+h[1]*11-(h[2]*17))&0x7fffffff;     // avoid problems with +-0
             return (f>>22)^(f>>12)^(f);

@@ -31,23 +31,23 @@ struct Sheet : public Node
 	int numVCtrlPnts();
 
 	// Modifiers
-	void moveBy( const Vec3d & delta );
+	void moveBy( const Vector3d & delta );
 	void scale( Scalar scaleFactor );
 	void rotate( double angle, Vector3 axis );
-    std::vector< std::vector<Vec3d> > foldTo( const std::vector<Vec4d> & curve, bool isApply = false );
+    std::vector< std::vector<Vector3d> > foldTo( const Array1D_Vector4d & curve, bool isApply = false );
 	void refineControlPoints(int nU, int nV = 0);
 	void equalizeControlPoints( Structure::Node * other );
-	void deformTo( const Vec4d & handle, const Vector3 & to, bool isRigid );
-	void deformTwoHandles( Vec4d handleA, Vector3 newPosA, Vec4d handleB, Vector3 newPosB );
-	NURBS::NURBSCurved convertToNURBSCurve(Vec3d p, Vec3d dir); 
+	void deformTo( const Vector4d & handle, const Vector3 & to, bool isRigid );
+	void deformTwoHandles( Vector4d& handleA, Vector3 newPosA, Vector4d& handleB, Vector3 newPosB );
+	NURBS::NURBSCurved convertToNURBSCurve(Vector3d p, Vector3d dir); 
 
-	std::vector< std::vector<Vector3> > discretized(Scalar resolution);
-	std::vector< std::vector<Vec4d> > discretizedPoints(Scalar resolution);
+	Array2D_Vector3 discretized(Scalar resolution);
+	Array2D_Vector4d discretizedPoints(Scalar resolution);
 
 	// Coordinates
-    void get( const Vec4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame );
-	Vector3 position( const Vec4d& coordinates );
-	Vec4d approxCoordinates( const Vector3 & pos );
+    void get( const Vector4d& coordinates, Vector3 & pos, std::vector<Vector3> & frame );
+	Vector3 position( const Vector4d& coordinates );
+	Vector4d approxCoordinates( const Vector3 & pos );
 	Vector3 approxProjection( const Vector3 & point );
 	Vector3 center();
 

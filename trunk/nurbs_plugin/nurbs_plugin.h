@@ -41,8 +41,8 @@ public:
 
 	OBB_Volume mesh_obb;
 
-    void basicCurveFit(NURBS::NURBSCurved & curve, std::vector<Vec3d> pnts);
-    void basicCurveFitRecursive(NURBS::NURBSCurved & curve, std::vector<Vec3d> pnts, int high, int low);
+    void basicCurveFit(NURBS::NURBSCurved & curve, std::vector<Vector3d> pnts);
+    void basicCurveFitRecursive(NURBS::NURBSCurved & curve, std::vector<Vector3d> pnts, int high, int low);
 
 	NURBS::NURBSCurved curveFit( SurfaceMeshModel * part );
 	NURBS::NURBSRectangled surfaceFit( SurfaceMeshModel * part );
@@ -60,8 +60,8 @@ public:
 	void loadGroupsFromOBJ();
 	
 	SurfaceMeshModel * extractMesh( QString gid );
-	Vec3d pole( Vec3d center, double radius, SurfaceMeshModel * part );
-	std::vector<Vec3d> sampleEdgeTri( Vec3d a, Vec3d b, Vec3d c );
+	Vector3d pole( Vector3d center, double radius, SurfaceMeshModel * part );
+	std::vector<Vector3d> sampleEdgeTri( Vector3d a, Vector3d b, Vector3d c );
 	double minAngle(Face f, SurfaceMeshModel * ofMesh);
 	std::vector<Vertex> collectRings(SurfaceMeshModel * part, Vertex v, size_t min_nb);
 
@@ -70,7 +70,7 @@ public slots:
     void doFitSurface();
 
 	void doFitSurface_old();
-	void basicSurfaceFit_old( NURBS::NURBSRectangled & surface, std::vector<Vec3d> pnts );
+	void basicSurfaceFit_old( NURBS::NURBSRectangled & surface, std::vector<Vector3d> pnts );
 
 	void clearAll();
 	void saveAll();

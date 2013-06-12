@@ -106,9 +106,9 @@ private:
 
 public:
 
-	Vec3d sides;
-	Vec3d translation;
-	Vec4d rotation; // as quat.
+	Eigen::Matrix<double,3,1,Eigen::DontAlign>  sides;
+	Eigen::Matrix<double,3,1,Eigen::DontAlign>  translation;
+	Eigen::Matrix<double,4,1,Eigen::DontAlign>  rotation; // as quat.
 
 	bool isReady;
 
@@ -121,7 +121,7 @@ public:
 		}
 
 		// Get points
-		std::vector<Vec3d> pnts;
+		std::vector<Vector3d> pnts;
 
 		Surface_mesh::Vertex_property<Point> points = mesh->vertex_property<Point>("v:point");
 		Surface_mesh::Vertex_iterator vit, vend = mesh->vertices_end();
@@ -129,15 +129,15 @@ public:
 		for (vit = mesh->vertices_begin(); vit != vend; ++vit)
 			pnts.push_back(points[vit]);
 
-		sides = translation = Vec3d(0,0,0);
-		rotation = Vec4d(0,0,0,0);
+		sides = translation = Vector3d(0,0,0);
+		rotation = Vector4d(0,0,0,0);
 
-		fm_computeBestFitOBB(pnts.size(), &pnts.front()[0], sizeof(Vec3d), &sides[0], &translation[0], &rotation[0], true);
+		fm_computeBestFitOBB(pnts.size(), &pnts.front()[0], sizeof(Vector3d), &sides[0], &translation[0], &rotation[0], true);
 
 		isReady = true;
 	}
 
-	std::vector<Vec3d> corners()
+	std::vector<Vector3d> corners()
 	{
 		Vector3d p(translation.x(), translation.y(), translation.z());
 		Vector4d r(rotation[0], rotation[1], rotation[2], rotation[3]);
@@ -148,23 +148,23 @@ public:
 		double length = sides.y()/2;
 		double height = sides.z()/2;
 
-		Vec3d  c[8];
-		c[0] = Vec3d (width, length, height);
-		c[1] = Vec3d (-width, length, height);
-		c[2] = Vec3d (-width, -length, height);
-		c[3] = Vec3d (width, -length, height);
-		c[4] = Vec3d (width, length, -height);
-		c[5] = Vec3d (-width, length, -height);
-		c[6] = Vec3d (-width, -length, -height);
-		c[7] = Vec3d (width, -length, -height);
+		Vector3d  c[8];
+		c[0] = Vector3d (width, length, height);
+		c[1] = Vector3d (-width, length, height);
+		c[2] = Vector3d (-width, -length, height);
+		c[3] = Vector3d (width, -length, height);
+		c[4] = Vector3d (width, length, -height);
+		c[5] = Vector3d (-width, length, -height);
+		c[6] = Vector3d (-width, -length, -height);
+		c[7] = Vector3d (width, -length, -height);
 
-		std::vector<Vec3d> result;
+		std::vector<Vector3d> result;
 
 		for(int i = 0; i < 8; i++)
 		{
 			Vector3d p(c[i][0], c[i][1], c[i][2]);
 			Vector3d pt = t * p;
-			result.push_back( Vec3d(pt[0], pt[1], pt[2]) );
+			result.push_back( Vector3d(pt[0], pt[1], pt[2]) );
 		}
 
 		return result;
@@ -174,9 +174,9 @@ public:
 	{
 		if(!isReady) return;
 
-		std::vector<Vec3d> corner = corners();
-		Vec3d  c1, c2, c3, c4;
-		Vec3d  bc1, bc2, bc3, bc4;
+		std::vector<Vector3d> corner = corners();
+		Vector3d  c1, c2, c3, c4;
+		Vector3d  bc1, bc2, bc3, bc4;
 		c1 = corner[0];	c2 = corner[1];
 		c3 = corner[2];	c4 = corner[3];
 		bc1 = corner[4]; bc2 = corner[5];
@@ -188,18 +188,18 @@ public:
 		glLineWidth(1.0);
 
 		glBegin(GL_LINES);
-		glVertex3dv(c1);glVertex3dv(bc1);
-		glVertex3dv(c2);glVertex3dv(bc2);
-		glVertex3dv(c3);glVertex3dv(bc3);
-		glVertex3dv(c4);glVertex3dv(bc4);
-		glVertex3dv(c1);glVertex3dv(c2);
-		glVertex3dv(c3);glVertex3dv(c4);
-		glVertex3dv(c1);glVertex3dv(c4);
-		glVertex3dv(c2);glVertex3dv(c3);
-		glVertex3dv(bc1);glVertex3dv(bc2);
-		glVertex3dv(bc3);glVertex3dv(bc4);
-		glVertex3dv(bc1);glVertex3dv(bc4);
-		glVertex3dv(bc2);glVertex3dv(bc3);
+		glVertex3dv(c1.data());glVertex3dv(bc1.data());
+		glVertex3dv(c2.data());glVertex3dv(bc2.data());
+		glVertex3dv(c3.data());glVertex3dv(bc3.data());
+		glVertex3dv(c4.data());glVertex3dv(bc4.data());
+		glVertex3dv(c1.data());glVertex3dv(c2.data());
+		glVertex3dv(c3.data());glVertex3dv(c4.data());
+		glVertex3dv(c1.data());glVertex3dv(c4.data());
+		glVertex3dv(c2.data());glVertex3dv(c3.data());
+		glVertex3dv(bc1.data());glVertex3dv(bc2.data());
+		glVertex3dv(bc3.data());glVertex3dv(bc4.data());
+		glVertex3dv(bc1.data());glVertex3dv(bc4.data());
+		glVertex3dv(bc2.data());glVertex3dv(bc3.data());
 		glEnd();
 
 		glEnable(GL_LIGHTING);
@@ -207,9 +207,9 @@ public:
 		glPopMatrix();
 	}
 
-	std::vector<Vec3d> axis()
+	std::vector<Vector3d> axis()
 	{
-		std::vector<Vec3d> result;
+		std::vector<Vector3d> result;
 
 		Vector3f p(0, 0, 0);
 		Vector4f r(rotation[0], rotation[1], rotation[2], rotation[3]);
@@ -220,9 +220,9 @@ public:
 		Vector3f yAxis(0,1,0);	yAxis = t * yAxis;
 		Vector3f zAxis(0,0,1);	zAxis = t * zAxis;
 
-		result.push_back(Vec3d(xAxis[0], xAxis[1], xAxis[2]));
-		result.push_back(Vec3d(yAxis[0], yAxis[1], yAxis[2]));
-		result.push_back(Vec3d(zAxis[0], zAxis[1], zAxis[2]));
+		result.push_back(Vector3d(xAxis[0], xAxis[1], xAxis[2]));
+		result.push_back(Vector3d(yAxis[0], yAxis[1], yAxis[2]));
+		result.push_back(Vector3d(zAxis[0], zAxis[1], zAxis[2]));
 
 		return result;
 	}
@@ -232,7 +232,7 @@ public:
 		return translation;
 	}
 
-	Vec3d extents()
+	Vector3d extents()
 	{
 		return sides * 0.5;
 	}

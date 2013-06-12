@@ -4,7 +4,7 @@
 
 #define glColorQt(c) glColor4d(c.redF(), c.greenF(), c.blueF(), c.alphaF())
 
-static void drawRect(Vec2i center, int width, int height)
+static void drawRect(Eigen::Vector2i center, int width, int height)
 {
 	int half_width = width * 0.5;
 	int half_height = height * 0.5;
@@ -22,7 +22,7 @@ static void drawRect(Vec2i center, int width, int height)
 	glEnd();
 }
 
-static void drawLine(Vec2i from, Vec2i to, float thickness = 5)
+static void drawLine(Eigen::Vector2i from, Eigen::Vector2i to, float thickness = 5)
 {
 	glLineWidth(thickness);
 
@@ -31,7 +31,7 @@ static void drawLine(Vec2i from, Vec2i to, float thickness = 5)
 	glEnd();
 }
 
-static void drawPoint(Vec2i p, float pointSize = 5)
+static void drawPoint(Eigen::Vector2i p, float pointSize = 5)
 {
 	glPointSize(pointSize);
 	glBegin(GL_POINTS);
@@ -39,7 +39,7 @@ static void drawPoint(Vec2i p, float pointSize = 5)
 	glEnd();
 }
 
-static void drawCirlce(Vec2i center, Scalar radius, bool isFilled = true, int resolution = 10)
+static void drawCirlce(Eigen::Vector2i center, Scalar radius, bool isFilled = true, int resolution = 10)
 {
 	int x = center.x();
 	int y = center.y();

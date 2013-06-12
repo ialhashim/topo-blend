@@ -23,13 +23,13 @@ struct BoundaryFitting{
 	QVector<SurfaceMesh::Vertex> neighbours( int start, int range, QVector<SurfaceMesh::Vertex> all );
 
 	SurfaceMesh::Halfedge get_halfedge(SurfaceMesh::Vertex start, SurfaceMesh::Vertex end);
-	SurfaceMesh::Halfedge getBestEdge(Vec3d prevPoint, Vec3d direction, Face f, double & bestTime);
-	SurfaceMesh::Face getBestFace( Vec3d & point, Vertex guess );
+	SurfaceMesh::Halfedge getBestEdge(Vector3d prevPoint, Vector3d direction, Face f, double & bestTime);
+	SurfaceMesh::Face getBestFace( Vector3d & point, Vertex guess );
 
-	std::vector<Vec3d> geodesicPath(Vec3d fromPoint, Vec3d toPoint);
-	std::vector< std::vector<Vec3d> > geodesicPaths( std::vector<Vec3d> fromPoints, std::vector<Vec3d> toPoints, int segments = -1 );
+	std::vector<Vector3d> geodesicPath(Vector3d fromPoint, Vector3d toPoint);
+	std::vector< std::vector<Vector3d> > geodesicPaths( std::vector<Vector3d> fromPoints, std::vector<Vector3d> toPoints, int segments = -1 );
 
-	std::vector<Vec3d> trianglePoints( Face f );
+	std::vector<Vector3d> trianglePoints( Face f );
 	std::vector<Vertex> triangleVertices( Face f );
 
 	SurfaceMesh::SurfaceMeshModel * part;
@@ -48,10 +48,10 @@ struct BoundaryFitting{
 	NanoKdTree tree;
 
 	// output
-	std::vector< std::vector<Vec3d> > lines;
+	std::vector< std::vector<Vector3d> > lines;
 
-	std::vector<Vec3d> debugPoints, debugPoints2;
-	std::vector<Vec3d> corners;
-	std::vector< std::vector<Vec3d> > main_edges;
+	std::vector<Vector3d> debugPoints, debugPoints2;
+	std::vector<Vector3d> corners;
+	std::vector< std::vector<Vector3d> > main_edges;
 	LineSegments ls;
 };

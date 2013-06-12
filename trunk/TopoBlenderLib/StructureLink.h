@@ -3,8 +3,8 @@
 #include "StructureGlobal.h"
 #include "NurbsDraw.h"
 
-typedef Array1D_Vec4d LinkCoords;
-typedef QPair< QString,Vec4d > NodeCoord;
+typedef Array1D_Vector4d LinkCoords;
+typedef QPair< QString,Vector4d > NodeCoord;
 typedef QPair< QString,LinkCoords > NodeCoords;
 
 namespace Structure{
@@ -27,12 +27,12 @@ struct Link
 
 	bool hasProperty(QString propertyName) { return property.contains(propertyName); }
 
-	void setCoord( QString nodeID, std::vector<Vec4d> newCoord );
-	void setCoordOther( QString nodeID, std::vector<Vec4d> newCoord );
+	void setCoord( QString nodeID, Array1D_Vector4d newCoord );
+	void setCoordOther( QString nodeID, Array1D_Vector4d newCoord );
 
-	std::vector<Vec4d> getCoord(QString nodeID);
-	std::vector<Vec4d> getCoordOther(QString nodeID);
-	Vec4d getMiddleCoord(QString nodeID);
+	Array1D_Vector4d getCoord(QString nodeID);
+	Array1D_Vector4d getCoordOther(QString nodeID);
+	Vector4d getMiddleCoord(QString nodeID);
 	void invertCoords( QString nodeID );
 	Node * getNode(QString nodeID);
 	Node * otherNode(QString nodeID);
@@ -40,7 +40,7 @@ struct Link
 	Node * getNodeHasProperty(QString propertyName, QVariant propertyValue);
 
 	// Modify
-	void replace(QString oldNodeID, Node *newNode, std::vector<Vec4d> newCoord);
+	void replace(QString oldNodeID, Node *newNode, Array1D_Vector4d newCoord);
 
 	// Constructors
     Link(Node * node1, Node * node2, LinkCoords coord_n1, LinkCoords coord_n2, QString link_type, QString ID);
@@ -63,7 +63,7 @@ struct Link
 	static QVector<Link*> haveProperty( QVector<Link*> links, QString propertyName );
 	static QVector<Link*> haveProperty( QVector<Link*> links, QString propertyName, QVariant propertyValue );
 
-	Vec3d delta();
+	Vector3d delta();
 };
 
 }
