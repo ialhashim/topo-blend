@@ -1,0 +1,39 @@
+graph G{
+	node [ fontcolor = black, color = white, style = filled ];
+	0 [label = "Seat", color = "#7989F3", shape = rectangle];
+	1 [label = "BarLeft", color = "#A679F3", shape = rectangle];
+	2 [label = "BarRight", color = "#A679F3", shape = rectangle];
+	3 [label = "LegBackLeft", color = "#B079F3", shape = rectangle];
+	4 [label = "LegBackRight", color = "#B079F3", shape = rectangle];
+	5 [label = "LegFrontRight", color = "#B079F3", shape = rectangle];
+	6 [label = "LegFrontLeft", color = "#B079F3", shape = rectangle];
+	7 [label = "SeatBarRight", color = "#79EDF3", shape = rectangle];
+	8 [label = "SeatBarLeft", color = "#79EDF3", shape = rectangle];
+	9 [label = "SeatBarFront", color = "#79EDF3", shape = rectangle];
+	10 [label = "SeatBarBack", color = "#79EDF3", shape = rectangle];
+	11 [label = "Back_0", color = "#79F3D6", shape = rectangle];
+	12 [label = "Back_1", color = "#79F3D6", shape = rectangle];
+	13 [label = "Back_2", color = "#79F3D6", shape = rectangle];
+	"0" -- "3" [color="black",label="0",fontcolor="gray"] ;
+	"0" -- "4" [color="black",label="1",fontcolor="gray"] ;
+	"0" -- "5" [color="black",label="2",fontcolor="gray"] ;
+	"0" -- "6" [color="black",label="3",fontcolor="gray"] ;
+	"0" -- "1" [color="black",label="4",fontcolor="gray"] ;
+	"0" -- "2" [color="black",label="5",fontcolor="gray"] ;
+	"4" -- "7" [color="black",label="6",fontcolor="gray"] ;
+	"5" -- "7" [color="black",label="7",fontcolor="gray"] ;
+	"3" -- "8" [color="black",label="8",fontcolor="gray"] ;
+	"6" -- "8" [color="black",label="9",fontcolor="gray"] ;
+	"6" -- "9" [color="black",label="10",fontcolor="gray"] ;
+	"5" -- "9" [color="black",label="11",fontcolor="gray"] ;
+	"4" -- "10" [color="black",label="12",fontcolor="gray"] ;
+	"3" -- "10" [color="black",label="13",fontcolor="gray"] ;
+	"2" -- "11" [color="black",label="14",fontcolor="gray"] ;
+	"1" -- "11" [color="black",label="15",fontcolor="gray"] ;
+	"2" -- "12" [color="black",label="16",fontcolor="gray"] ;
+	"1" -- "12" [color="black",label="17",fontcolor="gray"] ;
+	"2" -- "13" [color="black",label="18",fontcolor="gray"] ;
+	"1" -- "13" [color="black",label="19",fontcolor="gray"] ;
+label = "\n\nsuper source\nV = 14, E = 20"
+fontsize = 20;
+}

@@ -1,0 +1,26 @@
+8
+
+1	LegFrontLeft	
+1	LegFrontLeft	
+
+1	LegFrontRight	
+1	LegFrontRight	
+
+1	LegBackLeft	
+1	LegBackLeft	
+
+1	LegBackRight	
+1	LegBackRight	
+
+1	BarRight	
+1	BarRight	
+
+1	BarLeft	
+1	BarLeft	
+
+1	Seat	
+1	Seat	
+
+1	Back	
+3	BarTop	BarMiddle	BarBottom	
+

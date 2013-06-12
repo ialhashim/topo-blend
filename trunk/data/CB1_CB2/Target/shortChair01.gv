@@ -1,0 +1,27 @@
+graph G{
+	node [ fontcolor = black, color = white, style = filled ];
+	0 [label = "Seat", color = "#7989F3", shape = rectangle];
+	1 [label = "LegFrontLeft", color = "#B079F3", shape = rectangle];
+	2 [label = "BarRight", color = "#A679F3", shape = rectangle];
+	3 [label = "BarTop", color = "#79F3D6", shape = rectangle];
+	4 [label = "LegBackLeft", color = "#B079F3", shape = rectangle];
+	5 [label = "LegBackRight", color = "#B079F3", shape = rectangle];
+	6 [label = "LegFrontRight", color = "#B079F3", shape = rectangle];
+	7 [label = "BarLeft", color = "#A679F3", shape = rectangle];
+	8 [label = "BarMiddle", color = "#79F3D6", shape = rectangle];
+	9 [label = "BarBottom", color = "#79F3D6", shape = rectangle];
+	"0" -- "4" [color="red",label="",fontcolor="gray"] ;
+	"0" -- "5" [color="red",label="",fontcolor="gray"] ;
+	"0" -- "6" [color="red",label="",fontcolor="gray"] ;
+	"0" -- "1" [color="red",label="",fontcolor="gray"] ;
+	"0" -- "2" [color="red",label="",fontcolor="gray"] ;
+	"0" -- "7" [color="red",label="",fontcolor="gray"] ;
+	"2" -- "3" [color="red",label="",fontcolor="gray"] ;
+	"2" -- "8" [color="red",label="",fontcolor="gray"] ;
+	"2" -- "9" [color="red",label="",fontcolor="gray"] ;
+	"3" -- "7" [color="red",label="",fontcolor="gray"] ;
+	"7" -- "8" [color="red",label="",fontcolor="gray"] ;
+	"7" -- "9" [color="red",label="",fontcolor="gray"] ;
+label = "\n\noriginal target\nV = 10, E = 12"
+fontsize = 20;
+}

@@ -1,0 +1,15 @@
+14
+Back_0 0 80
+Back_1 0 80
+Back_2 0 80
+BarLeft 186 80
+BarRight 186 80
+LegBackLeft 271 80
+LegBackRight 271 80
+LegFrontLeft 271 80
+LegFrontRight 271 80
+Seat 91 80
+SeatBarBack 357 80
+SeatBarFront 357 80
+SeatBarLeft 357 80
+SeatBarRight 357 80
