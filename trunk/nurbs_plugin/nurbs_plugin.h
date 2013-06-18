@@ -50,9 +50,8 @@ public:
 	bool keyPressEvent( QKeyEvent* event );
 
 	// Selection
-	void drawWithNames();
-	void endSelection( const QPoint& p );
-	void postSelection( const QPoint& point );
+    void drawWithNames();
+    bool postSelection( const QPoint& point );
 
 	// Groups
 	QMap< QString, QVector<int> > groupFaces;

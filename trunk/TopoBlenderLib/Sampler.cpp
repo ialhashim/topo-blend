@@ -14,8 +14,10 @@ Sampler::Sampler(SurfaceMesh::Model * srcMesh, SamplingMethod samplingMethod)
 
 	SurfaceMeshHelper h(mesh);
     farea = h.computeFaceAreas();
-    fcenter = h.computeFaceBarycenters();
     points = h.getVector3VertexProperty(VPOINT);
+
+    FaceBarycenterHelper fh(mesh);
+    fcenter = fh.compute();
 
 	// Sample based on method selected
 	if( method == RANDOM_BARYCENTRIC )

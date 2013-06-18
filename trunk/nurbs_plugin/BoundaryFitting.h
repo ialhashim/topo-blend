@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SurfaceMeshModel.h"
+#include "FaceBarycenterHelper.h"
 
 #include "NanoKdTree.h"
 #include "../CustomDrawObjects.h"

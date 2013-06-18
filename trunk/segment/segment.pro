@@ -1,5 +1,5 @@
-load($$[STARLAB])
-load($$[SURFACEMESH])
+include($$[STARLAB])
+include($$[SURFACEMESH])
 StarlabTemplate(plugin)
 
 HEADERS += segment.h

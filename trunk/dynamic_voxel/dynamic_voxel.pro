@@ -1,7 +1,7 @@
-load($$[STARLAB])
-load($$[SURFACEMESH])
-load($$[CHOLMOD])
-load($$[EIGEN])
+include($$[STARLAB])
+include($$[SURFACEMESH])
+include($$[CHOLMOD])
+
 StarlabTemplate(plugin)
 
 # Build flag

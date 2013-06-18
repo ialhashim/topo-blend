@@ -27,9 +27,8 @@ public:
 
     void decorate();
 
-	void drawWithNames();
-	void endSelection(const QPoint& p);
-	void postSelection(const QPoint& p);
+    void drawWithNames();
+    bool postSelection(const QPoint& p);
 
 	bool keyPressEvent( QKeyEvent* event );
 	bool mouseReleaseEvent( QMouseEvent * event );
