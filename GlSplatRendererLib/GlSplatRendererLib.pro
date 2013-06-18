@@ -1,5 +1,5 @@
-load($$[STARLAB])
-load($$[SURFACEMESH])
+include($$[STARLAB])
+include($$[SURFACEMESH])
 
 TEMPLATE = lib
 CONFIG += staticlib

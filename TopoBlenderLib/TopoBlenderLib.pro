@@ -1,9 +1,9 @@
-load($$[STARLAB])
-load($$[SURFACEMESH])
-load($$[CHOLMOD])
-load($$[EIGEN])
-load($$[NANOFLANN])
-load($$[OCTREE])
+include($$[STARLAB])
+include($$[SURFACEMESH])
+include($$[CHOLMOD])
+
+include($$[NANOFLANN])
+include($$[OCTREE])
 StarlabTemplate(none)
 
 TEMPLATE = lib
@@ -54,8 +54,6 @@ HEADERS += StructureNode.h \
     Task.h \
     SchedulerWidget.h \
     FFD.h \
-    ARAPCurveDeformer.h \
-    ARAPCurveHandle.h \
     TimelineSlider.h \
     StructureGlobal.h \
     Synthesizer.h \
@@ -79,7 +77,6 @@ SOURCES += StructureGraph.cpp \
     Task.cpp \
     SchedulerWidget.cpp \
     FFD.cpp \
-    ARAPCurveDeformer.cpp \
     TimelineSlider.cpp \
     Synthesizer.cpp \
     Sampler.cpp \

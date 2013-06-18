@@ -1,7 +1,7 @@
-load($$[STARLAB])
-load($$[SURFACEMESH])
-load($$[NANOFLANN])
-load($$[OCTREE])
+include($$[STARLAB])
+include($$[SURFACEMESH])
+include($$[NANOFLANN])
+include($$[OCTREE])
 StarlabTemplate(plugin)
 
 # Build flag

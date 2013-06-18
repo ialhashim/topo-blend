@@ -226,12 +226,7 @@ void topoblend::drawWithNames()
 	}
 }
 
-void topoblend::endSelection( const QPoint& p )
-{
-	drawArea()->defaultEndSelection(p);
-}
-
-void topoblend::postSelection( const QPoint& point )
+bool topoblend::postSelection( const QPoint& point )
 {
     Q_UNUSED(point);
 	int selectedID = drawArea()->selectedName();
@@ -262,10 +257,10 @@ void topoblend::postSelection( const QPoint& point )
 			}
 		}
 
-		return;
+        return false;
 	}
 
-	if (selectedID == -1) return;
+    if (selectedID == -1) return false;
 
 	int gID, nID, pID;
 	getIndicesFromSelectedName(selectedID, gID, nID, pID);
@@ -273,6 +268,8 @@ void topoblend::postSelection( const QPoint& point )
 	graphs[gID]->nodes[nID]->addSelectionWithColor(pID, Qt::green);
 
 	qDebug() << "Selected ID is " << selectedID;
+
+    return true;
 }
 
 void topoblend::generateChairModels()

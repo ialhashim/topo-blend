@@ -1,4 +1,4 @@
-load($$[STARLAB])
+include($$[STARLAB])
 StarlabTemplate(none)
 
 TEMPLATE = lib

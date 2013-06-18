@@ -1,8 +1,8 @@
-load($$[STARLAB])
-load($$[SURFACEMESH])
-load($$[CHOLMOD])
-load($$[EIGEN])
-load($$[NANOFLANN])
+include($$[STARLAB])
+include($$[SURFACEMESH])
+include($$[CHOLMOD])
+
+include($$[NANOFLANN])
 
 TEMPLATE = lib
 CONFIG += staticlib

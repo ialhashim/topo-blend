@@ -2,6 +2,7 @@
 
 #include "SurfaceMeshModel.h"
 #include "SurfaceMeshHelper.h"
+#include "FaceBarycenterHelper.h"
 
 using namespace SurfaceMesh;
 using namespace Eigen;

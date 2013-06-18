@@ -445,10 +445,6 @@ void nurbs_plugin::drawWithNames()
 	}
 }
 
-void nurbs_plugin::endSelection( const QPoint& p )
-{
-	drawArea()->defaultEndSelection(p);
-}
 
 SurfaceMeshModel * nurbs_plugin::extractMesh( QString gid )
 {
@@ -480,14 +476,14 @@ SurfaceMeshModel * nurbs_plugin::extractMesh( QString gid )
 	return subMesh;
 }
 
-void nurbs_plugin::postSelection( const QPoint& point )
+bool nurbs_plugin::postSelection( const QPoint& point )
 {
 	Q_UNUSED(point);
 	int selectedID = drawArea()->selectedName();
 	if (selectedID == -1){
 		ps.clear();
 		document()->setSelectedModel(entireMesh);
-		return;
+        return false;
 	}
 	qDebug() << "Selected ID is " << selectedID;
 
@@ -511,6 +507,7 @@ void nurbs_plugin::postSelection( const QPoint& point )
 		ps.addPoly(pnts, QColor(255,0,0,100));
 	}
 
+    return true;
 }
 
 void nurbs_plugin::loadGroupsFromOBJ()
@@ -1000,8 +997,8 @@ NURBS::NURBSRectangled nurbs_plugin::surfaceFit( SurfaceMeshModel * part )
 		}
 		drawArea()->addRenderObject(ps);
 
-		SurfaceMeshHelper helper(submesh);
-		Vector3FaceProperty fcenter = helper.computeFaceBarycenters();
+        FaceBarycenterHelper helper(submesh);
+        Vector3FaceProperty fcenter = helper.compute();
 		foreach(Face f, submesh->faces()){
 			//if(submesh->is_boundary(f))
 			vs.addVector(fcenter[f],bf.fgradient[f]);

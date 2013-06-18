@@ -397,8 +397,8 @@ std::vector< std::vector<Vector3d> > BoundaryFitting::geodesicPaths( std::vector
 {
 	std::vector< std::vector<Vector3d> > paths;
 
-	SurfaceMeshHelper helper(part);
-	Vector3FaceProperty fcenter = helper.computeFaceBarycenters();
+    FaceBarycenterHelper helper(part);
+    Vector3FaceProperty fcenter = helper.compute();
 
 	part->update_face_normals();
 	Vector3FaceProperty fnormal = part->get_face_property<Vector3>(FNORMAL);
