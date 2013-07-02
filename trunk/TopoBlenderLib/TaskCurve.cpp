@@ -247,7 +247,7 @@ void TaskCurve::prepareGrowCurve()
 		property["cpCoords"].setValue( Structure::Curve::encodeCurve(tcurve, tlinkA->position(tn->id), tlinkB->position(tn->id)) );
 
 		// Initial position of curve node
-		Vector4d midCoord(0.5);
+		Vector4d midCoord(0.5,0.5,0.5,0.5);
 		curve->foldTo(midCoord, true);
 		curve->curve.translate(startPoint - curve->position(midCoord));
 
