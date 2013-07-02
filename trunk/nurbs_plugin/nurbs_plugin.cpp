@@ -46,7 +46,7 @@ void nurbs_plugin::create()
 	entireMesh = (SurfaceMeshModel*)document()->selectedModel();
 	entirePoints = entireMesh->vertex_property<Vector3>("v:point");
 
-    ModePluginDockWidget * dockwidget = new ModePluginDockWidget(mainWindow());
+    ModePluginDockWidget * dockwidget = new ModePluginDockWidget("NURBS plugin", mainWindow());
     widget = new NURBSTools(this);
     dockwidget->setWidget(widget);
     dockwidget->setWindowTitle(widget->windowTitle());

@@ -54,7 +54,7 @@ void topoblend::create()
 {
 	if(!widget)
 	{
-		ModePluginDockWidget * dockwidget = new ModePluginDockWidget(mainWindow());
+        ModePluginDockWidget * dockwidget = new ModePluginDockWidget("TopoBlender", mainWindow());
 		widget = new topo_blend_widget(this);
 		dockwidget->setWidget(widget);
 		dockwidget->setWindowTitle(widget->windowTitle());
