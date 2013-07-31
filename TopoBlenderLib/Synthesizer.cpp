@@ -869,7 +869,13 @@ void Synthesizer::saveSynthesisData( Structure::Node *node, QString prefix )
 		return;
 	}
 
-	QFile file(prefix + node->id + ".txt");
+	QString synthFilename = prefix + node->id + ".txt";
+	QFile file( synthFilename );
+	QFileInfo fileinfo( file );
+
+	QString filepath = fileinfo.absoluteFilePath();
+	qDebug() << "Saving " << filepath;
+
 	if (!file.open(QIODevice::WriteOnly)) return;
 	QDataStream out(&file);
 

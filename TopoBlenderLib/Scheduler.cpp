@@ -127,7 +127,7 @@ void Scheduler::schedule()
 	// Time-line slider
 	slider = new TimelineSlider;
 	slider->reset();
-	this->connect( slider, SIGNAL(timeChanged(int)), SLOT(timeChanged(int)) );
+	this->connect( slider, SIGNAL(timeChanged(int)), SLOT(timeChanged(int)), Qt::QueuedConnection );
     this->addItem( slider );
 }
 

@@ -29,17 +29,23 @@ GraphCorresponder::GraphCorresponder( Structure::Graph *source, Structure::Graph
 	isReady = false;
 }
 
-// Helper function
+// Helper functions
+QString baseName(QString s){
+	QString result;
+	QFileInfo fname(s);
+	result = fname.baseName();
+	return result;
+}
+
 QString GraphCorresponder::sgName()
 {
-	return sg->property["name"].toString().section('\\', -1).section('.', 0, 0);
+	return baseName(sg->property["name"].toString());
 }
 
 QString GraphCorresponder::tgName()
 {
-	return tg->property["name"].toString().section('\\', -1).section('.', 0, 0);
+	return baseName(tg->property["name"].toString());
 }
-
 
 // Matrix operations
 template <class Type>

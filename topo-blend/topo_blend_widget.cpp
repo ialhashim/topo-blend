@@ -148,6 +148,9 @@ void topo_blend_widget::loadJob()
 
 	// Sample meshes
 	//tb->generateSynthesisData();
+
+	// Load samples if any
+	tb->loadSynthesisData( curPath );
 }
 
 void topo_blend_widget::saveJob()
@@ -209,6 +212,9 @@ void topo_blend_widget::saveJob()
 	out << tb->scheduler->widget->reconLevel() << "\t" << tb->scheduler->widget->renderCount() << "\n";
 
 	job_file.close();
+
+	// Save samples
+	tb->saveSynthesisData( jobDir.path() + "/" );
 }
 
 void topo_blend_widget::showGroupingDialog()

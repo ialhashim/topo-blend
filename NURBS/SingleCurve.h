@@ -20,7 +20,7 @@ public:
 
     // Length-from-time and time-from-length.
     virtual Real GetLength (Real t0, Real t1);
-    virtual Real GetTime (Real length, int iterations = 32, Real tolerance = (Real)1e-06);
+    virtual Real GetTime (Real length, int iterations = 32, Real tolerance = (Real)1e-05);
 
     Curve<Real>::mTMin;
     Curve<Real>::mTMax;

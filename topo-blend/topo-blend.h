@@ -93,8 +93,8 @@ public slots:
 
 	// Synthesis data
 	void generateSynthesisData();
-	void saveSynthesisData();
-	void loadSynthesisData();
+	void saveSynthesisData(QString parentFolder = "");
+	void loadSynthesisData(QString parentFolder = "");
 	void outputPointCloud();
 	void genSynData();
 	void reconstructXYZ();
