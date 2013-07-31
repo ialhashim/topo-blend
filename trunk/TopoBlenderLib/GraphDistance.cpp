@@ -1,12 +1,10 @@
 #include "GraphDistance.h"
 using namespace Structure;
 
-#define DIST_HIGH_RES 1
-
-#if DIST_HIGH_RES
+#ifndef QT_DEBUG
 	double DIST_RESOLUTION = 0.015;
 #else
-	double DIST_RESOLUTION = 0.1;
+	double DIST_RESOLUTION = 0.03;
 #endif
 
 GraphDistance::GraphDistance( Structure::Graph * graph, QVector<QString> exclude_nodes, QVector<QString> exclude_edges )

@@ -35,15 +35,16 @@ Real SingleCurve<Real>::GetLength (Real t0, Real t1)
 }
 //----------------------------------------------------------------------------
 template <typename Real>
-Real SingleCurve<Real>::GetTime (Real length, int iterations,
-    Real tolerance)
+Real SingleCurve<Real>::GetTime (Real length, int iterations, Real tolerance)
 {
     if (length <= (Real)0)
     {
         return mTMin;
     }
 
-    if (length >= GetTotalLength())
+	Real totalLen = GetTotalLength();
+
+    if (length >= totalLen)
     {
         return mTMax;
     }
@@ -59,7 +60,7 @@ Real SingleCurve<Real>::GetTime (Real length, int iterations,
     // this problem by using a hybrid of Newton's method and bisection.
 
     // Initial guess for Newton's method.
-    Real ratio = length/GetTotalLength();
+    Real ratio = length/totalLen;
     Real oneMinusRatio = (Real)1 - ratio;
     Real t = oneMinusRatio*mTMin + ratio*mTMax;
 

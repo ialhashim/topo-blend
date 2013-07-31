@@ -8,14 +8,13 @@
 
 #include "Curve.h"
 
-#define CURVE_HIGH_RES 1
-
-#if CURVE_HIGH_RES
+#ifndef QT_DEBUG
 	// Standard resolution
 	int TIME_ITERATIONS			= 32;
 	double CURVE_TOLERANCE		= 1e-06;
 	int RombergIntegralOrder	= 8;
 #else
+	// Lower resolution
 	int TIME_ITERATIONS			= 8;
 	double CURVE_TOLERANCE		= 1e-05;
 	int RombergIntegralOrder	= 3;

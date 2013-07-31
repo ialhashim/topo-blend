@@ -872,16 +872,18 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 		Structure::Graph * g = graphs.back();
 
+		QElapsedTimer t; t.start();
+
 		GraphDistance * gd = new GraphDistance(g);
 
 		std::vector<Vector3> starts;
 		starts.push_back(Vector3(1,-0.5,2.5));
 		starts.push_back(Vector3(-1,-0.5,2.5));
-		gd->computeDistances(starts, g->bbox().diagonal().norm() * 0.01);
 
+		gd->computeDistances(starts, g->bbox().diagonal().norm() * 0.01);
 		g->misc["distance"] = gd;
 
-		mainWindow()->setStatusBarMessage("Distance test");
+		mainWindow()->setStatusBarMessage( "Distance test: " + QString::number(t.elapsed()) );
 
 		used = true;
 	}
@@ -1316,25 +1318,27 @@ void topoblend::generateSynthesisData()
 #endif
 }
 
-void topoblend::saveSynthesisData()
+void topoblend::saveSynthesisData(QString parentFolder)
 {
 	if(!blender) return;
 
 	QString foldername = gcoor->sgName() + "_" + gcoor->tgName();
-	QDir dir; dir.mkdir(foldername); dir.setCurrent(foldername);
+
+	QDir dir(parentFolder); 
+	dir.mkdir(foldername); 
 
 	foreach(Structure::Node * node, scheduler->activeGraph->nodes)
-		Synthesizer::saveSynthesisData(node, "[activeGraph]");
+		Synthesizer::saveSynthesisData(node, parentFolder + foldername + "/[activeGraph]");
 	
 	foreach(Structure::Node * node, scheduler->targetGraph->nodes)
-		Synthesizer::saveSynthesisData(node, "[targetGraph]");
+		Synthesizer::saveSynthesisData(node, parentFolder + foldername + "/[targetGraph]");
 
 	statusBarMessage("Synth data saved.");
 
 	dir.cdUp();
 }
 
-void topoblend::loadSynthesisData()
+void topoblend::loadSynthesisData(QString parentFolder)
 {
 	if(!blender) return;
 
@@ -1346,13 +1350,13 @@ void topoblend::loadSynthesisData()
 	foreach(Structure::Node * node, scheduler->activeGraph->nodes)
 	{
 		Synthesizer::clearSynthData(node); // Force load
-		Synthesizer::loadSynthesisData(node, "[activeGraph]");
+		Synthesizer::loadSynthesisData(node, parentFolder + foldername + "/[activeGraph]");
 	}
 
 	foreach(Structure::Node * node, scheduler->targetGraph->nodes)
 	{
 		Synthesizer::clearSynthData(node);
-		Synthesizer::loadSynthesisData(node, "[targetGraph]");
+		Synthesizer::loadSynthesisData(node, parentFolder + foldername + "/[targetGraph]");
 	}
 
 	this->graphs.clear();
