@@ -20,8 +20,8 @@ public:
 	QVector<Task*> tasks;
 
 	Structure::Graph * activeGraph;
-	Structure::Graph * sourceGraph;
 	Structure::Graph * targetGraph;
+	QMap<QString, QString> superNodeCorr; // correspondence used to generate tasks
 
 	SchedulerWidget * widget;
 	QDockWidget * dock;
@@ -31,9 +31,11 @@ public:
 	// Output
 	QVector<Structure::Graph*> allGraphs;
 	
+	void generateTasks();
 	void schedule();
 	void order();
 	void executeAll();
+	void reset();
 
 	void blendDeltas( double globalTime, double timeStep );
 	int totalExecutionTime();
@@ -98,6 +100,8 @@ public slots:
 
 	void loadSchedule(QString filename);
 	void saveSchedule(QString filename);
+	QMap< QString, QPair<int,int> > getSchedule();
+	void setSchedule( QMap< QString, QPair<int,int> > fromSchedule );
 
 signals:
 	void activeGraphChanged( Structure::Graph* );

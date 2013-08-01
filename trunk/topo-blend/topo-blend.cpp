@@ -793,7 +793,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 			}
 		}
 
-		gcoor->clear();
+		if(gcoor) gcoor->clear();
 
 		used = true;
 	}
@@ -827,6 +827,40 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 			foreach(Node * n, g->nodes){
 				n->vis_property["meshSolid"] = true;
 				n->vis_property["meshColor"].setValue( QColor(180,180,180) );
+			}
+		}
+
+		// Color previously assigned correspondences
+		if( gcoor ) {
+			Graph * sourceGraph = graphs.front();
+			Graph * targetGraph = graphs.back();
+
+			foreach (PART_LANDMARK vector2vector, gcoor->correspondences){
+				QColor curColor = qRandomColor3(0, 0.25);
+
+				foreach (QString strID, vector2vector.first){
+					sourceGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
+					sourceGraph->getNode( strID )->property["is_corresponded"] = true;
+				}
+			
+				foreach (QString strID, vector2vector.second){
+					targetGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
+					targetGraph->getNode( strID )->property["is_corresponded"] = true;
+				}
+			}
+
+			foreach (PART_LANDMARK vector2vector, gcoor->landmarks){
+				QColor curColor = qRandomColor3(0, 0.25);
+
+				foreach (QString strID, vector2vector.first){
+					sourceGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
+					sourceGraph->getNode( strID )->property["is_corresponded"] = true;
+				}
+				
+				foreach (QString strID, vector2vector.second){
+					targetGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
+					targetGraph->getNode( strID )->property["is_corresponded"] = true;
+				}
 			}
 		}
 
@@ -1062,23 +1096,6 @@ void topoblend::doBlend()
 		return;
 	}
 
-	// Visualization
-	foreach(Graph * g, graphs){
-		foreach(Node * n, g->nodes){
-			n->vis_property["meshSolid"] = false;
-			n->vis_property["meshColor"].setValue( QColor(200,200,200,8) );
-		}
-	}
-
-	// Assign newly loaded source and target
-	if( graphs.size() == 2 && !orgSource && !orgTarget )
-	{
-		orgSource = new Graph(*graphs.front());
-		orgTarget = new Graph(*graphs.back());
-	}
-
-	QElapsedTimer timer; timer.start();
-
 	// Reload previous source and target if any
 	if( graphs.size() < 2 )
 	{
@@ -1087,6 +1104,19 @@ void topoblend::doBlend()
 		this->graphs.push_back( new Graph(*orgSource) );
 		this->graphs.push_back( new Graph(*orgTarget) );
 	}
+
+	orgSource = graphs.front();
+	orgTarget = graphs.back();
+
+	// Visualization
+	foreach(Graph * g, graphs){
+		foreach(Node * n, g->nodes){
+			n->vis_property["meshSolid"] = false;
+			n->vis_property["meshColor"].setValue( QColor(200,200,200,8) );
+		}
+	}
+
+	QElapsedTimer timer; timer.start();
 
 	if(scheduler) 
 	{
@@ -1106,6 +1136,7 @@ void topoblend::doBlend()
 
 	if( !gcoor->isReady )
 	{
+		gcoor->clear();
 		gcoor->computeCorrespondences();
 	}
 
@@ -1143,29 +1174,39 @@ void topoblend::clearGraphs()
 {
 	drawArea()->updateGL();
 
+	// UI and geometry clean up
 	if(scheduler) 
 	{
 		scheduler->cleanUp();
 
-		// Old signals
+		scheduler->activeGraph->clearAll();
+		scheduler->targetGraph->clearAll();
+
+		// Remove old signals
 		scheduler->disconnect(this);
 		this->disconnect(scheduler);
 
 		scheduler->dock->close();
 	}
+
+	// Delete corresponder, blender, and scheduler
+	if(gcoor) delete gcoor;
+	if(blender) delete blender;
+	if(scheduler) delete scheduler;
+
+	gcoor = NULL;
+	blender = NULL;
 	scheduler = NULL;
 
-	blender = NULL;
-
-	delete gcoor;
-	gcoor = NULL;
-
-	orgSource = orgTarget = NULL;
-
-	debugPoints.clear(); debugPoints2.clear();	
-	
+	// Delete all graphs
 	qDeleteAll(graphs);
 	graphs.clear();
+	orgSource = orgTarget = NULL;
+
+	// Clear debug
+	debugPoints.clear(); debugPoints2.clear();	
+
+	updateDrawArea();
 }
 
 void topoblend::currentExperiment()
@@ -1228,6 +1269,10 @@ void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 
 	graphs.clear();
 	this->graphs.push_back(newActiveGraph);
+
+	if(!scheduler->property["synthDataReady"].toBool())
+		this->widget->setCheckOption("showMeshes", false);
+
 	drawArea()->updateGL();
 }
 
@@ -1358,10 +1403,6 @@ void topoblend::loadSynthesisData(QString parentFolder)
 		Synthesizer::clearSynthData(node);
 		Synthesizer::loadSynthesisData(node, parentFolder + foldername + "/[targetGraph]");
 	}
-
-	this->graphs.clear();
-	this->graphs.push_back(new Structure::Graph(*scheduler->activeGraph));
-	this->graphs.push_back(new Structure::Graph(*scheduler->targetGraph));
 
 	statusBarMessage("Synth data loaded.");
 

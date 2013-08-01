@@ -8,7 +8,12 @@
 LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QDialog(parent), ui(new Ui::LandmarksDialog)
 {
 	tb = topo_blender;
-	gcorr = tb->makeCorresponder();
+
+	if(!tb->gcoor)
+		gcorr = tb->makeCorresponder();
+	else
+		gcorr = tb->gcoor;
+
     ui->setupUi(this);
 	
 	// Set up the table widgets
@@ -24,9 +29,6 @@ LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QD
 	ui->corrTable->setColumnWidth(0,100);
 	ui->corrTable->setColumnWidth(1,100);
 	ui->corrTable->setColumnWidth(2,100);
-
-	// Update the contents
-	updateAll();
 
 	/// Point Landmarks
 	this->connect(ui->addPointLandmarkButton, SIGNAL(clicked()), SLOT(addPointLandmark()));
@@ -83,6 +85,10 @@ LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QD
 
 	// Reload
 	this->connect(ui->reloadButton, SIGNAL(clicked()), SLOT(reload()));
+	this->connect(gcorr, SIGNAL(cleared()), SLOT(updateAll()));
+
+	// Update the contents
+	updateAll();
 }
 
 LandmarksDialog::~LandmarksDialog()
@@ -432,7 +438,7 @@ void LandmarksDialog::visualizePart2PartDistance( int id)
 
 void LandmarksDialog::computeCorrespondences()
 {
-	gcorr->isReady = true;
+	gcorr->isReady = false;
 	gcorr->computeCorrespondences();
 	updateCorrTab();
 }
@@ -441,11 +447,11 @@ void LandmarksDialog::rotateGraph()
 {
 	double angle = ui->angleAroundZ->value();
 
-	Structure::Graph *g = tb->getGraph(ui->graphID->value());
-	if (g)
+	Structure::Graph *graph = tb->getGraph(ui->graphID->value());
+	if( graph )
 	{
 		// Rotate the target graph
-		g->rotate(angle, Vector3(0, 0, 1));
+		graph->rotate(angle, Vector3(0, 0, 1));
 
 		// Update the scene
 		tb->updateDrawArea();

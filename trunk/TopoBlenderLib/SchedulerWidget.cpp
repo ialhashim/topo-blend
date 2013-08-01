@@ -10,12 +10,6 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
     ui->timelineView->setScene(scheduler);
 	ui->timelineView->updateSceneRect(scheduler->sceneRect());
 
-	// Add nodes to list
-	foreach(Task * t, scheduler->tasks)
-	{
-		ui->nodesList->addItem(t->property["nodeID"].toString());
-	}
-
 	scheduler->connect( ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()) );
 
 	connect( scheduler, SIGNAL(progressChanged(int)), ui->progressBar, SLOT(setValue(int)) );
@@ -55,6 +49,18 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
 	connect( ui->cleanUpButton, SIGNAL(clicked()), SLOT(cleanUp()) );
 	
 	ui->progressBar->setVisible(false);
+
+	// List nodes from scheduler
+	updateNodesList();
+}
+
+void SchedulerWidget::updateNodesList()
+{
+	ui->nodesList->clear();
+
+	// Add nodes to list
+	foreach(Task * t, s->tasks)
+		ui->nodesList->addItem(t->property["nodeID"].toString());
 }
 
 SchedulerWidget::~SchedulerWidget()

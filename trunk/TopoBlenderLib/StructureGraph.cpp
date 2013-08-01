@@ -2003,3 +2003,10 @@ void Graph::renameNode( QString oldNodeID, QString newNodeID )
 			l->id = l->id.replace(oldNodeID, newNodeID);
 	}
 }
+
+void Graph::clearAll()
+{
+	foreach(Node * n, nodes){
+		n->property.clear();
+	}
+}

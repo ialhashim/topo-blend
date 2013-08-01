@@ -102,7 +102,12 @@ void topo_blend_widget::doBlend()
 
 void topo_blend_widget::loadJob()
 {
-	QFile job_file( tb->loadJobFileName() );
+	this->loadJobFile( tb->loadJobFileName() );
+}
+
+void topo_blend_widget::loadJobFile(QString job_filename)
+{
+	QFile job_file( job_filename );
 
 	if (!job_file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
 	QFileInfo jobFileInfo(job_file.fileName());
@@ -285,8 +290,11 @@ void topo_blend_widget::loadAnimationModel()
 
 void topo_blend_widget::loadCorrespondenceModel()
 {
-	if (!tb->gcoor) tb->gcoor = tb->makeCorresponder();
-	
+	if(tb->graphs.size() != 2) {
+		qDebug() << "Please load at least 2 graphs.";
+		return;
+	}
+
 	LandmarksDialog dialog(tb);
 	dialog.exec();
 }
@@ -325,11 +333,11 @@ void topo_blend_widget::toggleCheckOption( QString optionName )
 	}
 }
 
-void topo_blend_widget::setCheckOption( QString optionName )
+void topo_blend_widget::setCheckOption( QString optionName, bool toValue )
 {
 	foreach (QAbstractButton *pButton, ui->vizButtonGroup->buttons()){
 		if(pButton->objectName() == optionName){
-			((QCheckBox *)pButton)->setChecked(true);
+			((QCheckBox *)pButton)->setChecked(toValue);
 			vizButtonClicked(pButton);
 			return;
 		}

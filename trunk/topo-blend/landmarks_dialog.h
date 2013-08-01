@@ -38,13 +38,14 @@ public:
 
 	void updateCorrTableWidget();	
 	void updateCorrTab();
-	void updateAll();
 
 	void updateAlignmentTab();
 
 public slots:
 	// Reload everything
 	void reload();
+
+	void updateAll();
 
 	// Point Landmarks
 	void addPointLandmark();
