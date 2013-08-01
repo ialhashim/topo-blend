@@ -28,8 +28,7 @@ public slots:
 	void showGroupingDialog();
 	void vizButtonClicked(QAbstractButton* b);
 	void toggleCheckOption(QString optionName);
-	void setCheckOption(QString optionName);
-
+	void setCheckOption( QString optionName, bool toValue = true );
 	// Model manipulation
 	void normalizeModel();
 	void bottomCenterModel();
@@ -45,9 +44,9 @@ public slots:
 	void splatSizeChanged(double newSize);
 
 	// Jobs
-	void loadJob();
 	void saveJob();
-
+	void loadJob();
+	void loadJobFile(QString job_filename);
 private:
 	Ui::topo_blend_widget *ui;
     topoblend * tb;

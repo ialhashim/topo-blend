@@ -461,6 +461,11 @@ void GraphCorresponder::clear()
 	tIsLandmark.clear();
 	sIsLandmark.resize(sg->nodes.size(), false);
 	tIsLandmark.resize(tg->nodes.size(), false);
+	correspondences.clear();
+
+	this->isReady = false;
+
+	emit( cleared() );
 }
 
 void GraphCorresponder::loadLandmarks(QString filename)

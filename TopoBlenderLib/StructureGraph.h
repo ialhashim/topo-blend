@@ -129,8 +129,6 @@ struct Graph
 
 	// Point Landmarks
 	QVector<POINT_ID> selectedControlPointsByColor(QColor color);
-	void clearSelections();
-
 	// DEBUG:
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
 	VectorSoup vs,vs2,vs3;
@@ -138,7 +136,11 @@ struct Graph
 	SphereSoup spheres, spheres2;
 	void printAdjacency();
 	void printLinksInfo();
+
+	// Clean up
 	void clearDebug();
+	void clearAll();
+	void clearSelections();
 };
 
 }

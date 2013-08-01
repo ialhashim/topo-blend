@@ -90,4 +90,6 @@ public:
 public slots:
 	void visualizePart2PartDistance(int sourceID);
 	void computeCorrespondences();
+signals:
+	void cleared();
 };

@@ -40,12 +40,12 @@ TopoBlender::TopoBlender(GraphCorresponder * useCorresponder, Scheduler * useSch
 
 	/// STEP 3) Generate tasks 
 	active = super_sg;
-	generateTasks();
+	scheduler->activeGraph = active;
+	scheduler->targetGraph = super_tg;
+	scheduler->superNodeCorr = this->superNodeCorr;
+	scheduler->generateTasks();
 
 	/// STEP 4) Order and schedule the tasks
-	scheduler->activeGraph = active;
-	scheduler->sourceGraph = super_sg;
-	scheduler->targetGraph = super_tg;
 	scheduler->schedule();
 
 	/// Visualize super graphs
@@ -82,6 +82,10 @@ TopoBlender::TopoBlender(GraphCorresponder * useCorresponder, Scheduler * useSch
 
 void TopoBlender::executeBlend()
 {
+	// If we are re-executing, we need to reset everything
+	if(scheduler->allGraphs.size())
+		scheduler->reset();
+
     /// STEP 4) Execute the tasks
     QtConcurrent::run( scheduler, &Scheduler::executeAll ); // scheduler->executeAll();
 }
@@ -762,39 +766,6 @@ void TopoBlender::postprocessSuperEdges()
 
 	// Set blended delta for first time relinking
 	foreach(Link * l, super_sg->edges) l->property["blendedDelta"].setValue( l->property["delta"].value<Vector3d>() );
-}
-
-void TopoBlender::generateTasks()
-{
-	foreach(QString snodeID, superNodeCorr.keys())
-	{
-		QString tnodeID = superNodeCorr[snodeID];
-
-		Task * task;
-		
-        if(active->getNode(snodeID)->type() == Structure::CURVE)
-        {
-            if (snodeID.contains("null"))  // Grow
-                task = new TaskCurve( active, super_tg, Task::GROW, scheduler->tasks.size() );
-            else if (tnodeID.contains("null")) // Shrink
-                task = new TaskCurve( active, super_tg, Task::SHRINK, scheduler->tasks.size() );
-			else
-				task = new TaskCurve( active, super_tg, Task::MORPH, scheduler->tasks.size() );
-        }
-
-        if(active->getNode(snodeID)->type() == Structure::SHEET)
-        {
-            if (snodeID.contains("null"))  // Grow
-                task = new TaskSheet( active, super_tg, Task::GROW, scheduler->tasks.size() );
-            else if (tnodeID.contains("null")) // Shrink
-                task = new TaskSheet( active, super_tg, Task::SHRINK, scheduler->tasks.size() );
-            else
-                task = new TaskSheet( active, super_tg, Task::MORPH, scheduler->tasks.size() );
-        }
-
-		task->setNode( snodeID );
-		scheduler->tasks.push_back( task );
-	}
 }
 
 void TopoBlender::equalizeSuperNodeResolutions()

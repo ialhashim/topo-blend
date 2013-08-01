@@ -10,12 +10,16 @@
 
 #include "TaskGroups.h"
 
+#include "Scheduler.h"
+#include "SchedulerWidget.h"
+
 Q_DECLARE_METATYPE( QSet<int> ) // for tags
 
 Scheduler::Scheduler()
 {
 	rulerHeight = 25;
-	sourceGraph = targetGraph = NULL;
+	activeGraph = targetGraph = NULL;
+	slider = NULL;
 
 	time_step = 0.01;
 }
@@ -28,7 +32,7 @@ void Scheduler::drawBackground( QPainter * painter, const QRectF & rect )
 	int screenBottom = y + rect.height();
 
 	// Draw tracks
-	for(int i = 0; i < (int)items().size() * 1.25; i++)
+	for(int i = 0; i < (int)tasks.size() * 1.25; i++)
 	{
 		int y = i * 17;
 		painter->fillRect(-10, y, 4000, 16, QColor(80,80,80));
@@ -101,6 +105,39 @@ void Scheduler::drawForeground( QPainter * painter, const QRectF & rect )
 	slider->paint(painter, 0, 0);
 }
 
+void Scheduler::generateTasks()
+{
+	foreach(QString snodeID, superNodeCorr.keys())
+	{
+		QString tnodeID = superNodeCorr[snodeID];
+
+		Task * task;
+
+		if(activeGraph->getNode(snodeID)->type() == Structure::CURVE)
+		{
+			if (snodeID.contains("null"))  // Grow
+				task = new TaskCurve( activeGraph, targetGraph, Task::GROW, tasks.size() );
+			else if (tnodeID.contains("null")) // Shrink
+				task = new TaskCurve( activeGraph, targetGraph, Task::SHRINK, tasks.size() );
+			else
+				task = new TaskCurve( activeGraph, targetGraph, Task::MORPH, tasks.size() );
+		}
+
+		if(activeGraph->getNode(snodeID)->type() == Structure::SHEET)
+		{
+			if (snodeID.contains("null"))  // Grow
+				task = new TaskSheet( activeGraph, targetGraph, Task::GROW, tasks.size() );
+			else if (tnodeID.contains("null")) // Shrink
+				task = new TaskSheet( activeGraph, targetGraph, Task::SHRINK, tasks.size() );
+			else
+				task = new TaskSheet( activeGraph, targetGraph, Task::MORPH, tasks.size() );
+		}
+
+		task->setNode( snodeID );
+		tasks.push_back( task );
+	}
+}
+
 void Scheduler::schedule()
 {
 	Task *current, *prev = NULL;
@@ -125,10 +162,13 @@ void Scheduler::schedule()
 	this->order();
 
 	// Time-line slider
-	slider = new TimelineSlider;
-	slider->reset();
-	this->connect( slider, SIGNAL(timeChanged(int)), SLOT(timeChanged(int)), Qt::QueuedConnection );
-    this->addItem( slider );
+	if(!slider)
+	{
+		slider = new TimelineSlider;
+		slider->reset();
+		this->connect( slider, SIGNAL(timeChanged(int)), SLOT(timeChanged(int)), Qt::QueuedConnection );
+		this->addItem( slider );
+	}
 }
 
 void Scheduler::order()
@@ -358,31 +398,58 @@ QList<Task*> Scheduler::sortTasksAsLayers( QList<Task*> currentTasks, int startT
 	return sorted;
 }
 
-void Scheduler::executeAll()
+void Scheduler::reset()
 {
-	qApp->setOverrideCursor(Qt::WaitCursor);
-	isForceStop = false;
-
-	emit( progressStarted() );
-
-	double timeStep = time_step;
-	int totalTime = totalExecutionTime();
-
-	QVector<Task*> allTasks = tasksSortedByStart();
-
-
-	// Tag interesting topology changes
-	{
-		QSet<int> tags;
-		foreach(Task * task, allTasks)
-		{
-			int time = task->start + (0.5 * task->length);
-			tags.insert( time );
-		}
-		property["timeTags"].setValue( tags );
-	}
+	// Save assigned schedule
+	QMap< QString,QPair<int,int> > curSchedule = getSchedule();
 
 	allGraphs.clear();
+	foreach(Task * task, tasks)	this->removeItem(task);
+	tasks.clear();
+
+	// Reload
+	Structure::Graph * prev = property["prevActiveGraph"].value<Structure::Graph*>();
+	this->activeGraph = prev;
+	this->generateTasks();
+	this->schedule();
+
+	// Reassign schedule
+	this->setSchedule( curSchedule );
+	this->widget->updateNodesList();
+}
+
+void Scheduler::executeAll()
+{
+	double timeStep = time_step;
+	int totalTime = totalExecutionTime();
+	QVector<Task*> allTasks = tasksSortedByStart();
+
+	// Re-execution
+	if( !allGraphs.size() )
+	{
+		property["prevActiveGraph"].setValue( new Structure::Graph(*activeGraph) );
+	}
+
+	// pre-execute
+	{
+		qApp->setOverrideCursor(Qt::WaitCursor);
+		isForceStop = false;
+
+		emit( progressStarted() );
+	
+		// Tag interesting topology changes
+		{
+			property.remove("timeTags");
+
+			QSet<int> tags;
+			foreach(Task * task, allTasks){
+				int time = task->start + (0.5 * task->length);
+				tags.insert( time );
+			}
+
+			property["timeTags"].setValue( tags );
+		}
+	}
 
 	Relink linker(this);
 
@@ -508,6 +575,8 @@ int Scheduler::totalExecutionTime()
 
 void Scheduler::timeChanged( int newTime )
 {
+	if(!allGraphs.size()) return;
+
 	int idx = allGraphs.size() * (double(newTime) / totalExecutionTime());
 
 	idx = qRanged(0, idx, allGraphs.size() - 1);
@@ -782,6 +851,26 @@ void Scheduler::saveSchedule(QString filename)
 	out << tasks.size() << "\n";
 	foreach(Task * t, tasks)	out << t->nodeID << " " << t->start << " " << t->length << "\n";
 	file.close();
+}
+
+QMap< QString, QPair<int,int> > Scheduler::getSchedule()
+{
+	QMap< QString, QPair<int,int> > result;
+	foreach(Task * t, tasks) result[t->nodeID] = qMakePair( t->start, t->length );
+	return result;
+}
+
+void Scheduler::setSchedule( QMap< QString, QPair<int,int> > fromSchedule )
+{
+	Task * t = NULL;
+	foreach(QString nodeID, fromSchedule.keys())
+	{
+		if(t = getTaskFromNodeID(nodeID))
+		{
+			t->setStart(fromSchedule[nodeID].first);
+			t->setLength(fromSchedule[nodeID].second);
+		}
+	}
 }
 
 void Scheduler::defaultSchedule()
