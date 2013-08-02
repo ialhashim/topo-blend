@@ -408,14 +408,16 @@ void Scheduler::reset()
 	tasks.clear();
 
 	// Reload
-	Structure::Graph * prev = property["prevActiveGraph"].value<Structure::Graph*>();
-	this->activeGraph = prev;
+	this->activeGraph = property["prevActiveGraph"].value<Structure::Graph*>();
+	this->targetGraph = property["prevTargetGraph"].value<Structure::Graph*>();
+
 	this->generateTasks();
 	this->schedule();
 
 	// Reassign schedule
 	this->setSchedule( curSchedule );
 	this->widget->updateNodesList();
+	emit( progressChanged(0) );
 }
 
 void Scheduler::executeAll()
@@ -428,6 +430,7 @@ void Scheduler::executeAll()
 	if( !allGraphs.size() )
 	{
 		property["prevActiveGraph"].setValue( new Structure::Graph(*activeGraph) );
+		property["prevTargetGraph"].setValue( new Structure::Graph(*targetGraph) );
 	}
 
 	// pre-execute
@@ -500,13 +503,10 @@ void Scheduler::executeAll()
 			double localTime = task->localT( globalTime * totalTime );
 			if( localTime < 0 || task->isDone ) continue;
 
-			// 1) Prepare task for grow, shrink, morph
+			// Prepare task for grow, shrink, morph
 			task->prepare();
 
-			// 2) Prepare linking with other nodes
-            //linker.prepare( task );
-
-			// 3) Execute current task at current time
+			// Execute current task at current time
 			task->execute( localTime );
 
 			// For visualization
