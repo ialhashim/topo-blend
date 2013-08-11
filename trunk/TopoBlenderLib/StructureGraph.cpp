@@ -1,3 +1,5 @@
+#include <QApplication> // For mouse icon changing
+
 #include "GlSplatRenderer.h"
 GlSplatRenderer * splat_renderer = NULL;
 
@@ -457,6 +459,8 @@ void Graph::draw( QGLViewer * drawArea )
 
 				if(!n->property.contains("cached_points"))
 				{
+					qApp->setOverrideCursor(Qt::WaitCursor);
+
 					// Without blending!
 					if(n->type() == CURVE)
 					{
@@ -471,6 +475,8 @@ void Graph::draw( QGLViewer * drawArea )
 
 					n->property["cached_points"].setValue(n_points);
 					n->property["cached_normals"].setValue(n_normals);
+
+					qApp->restoreOverrideCursor();
 				}
 				else
 				{

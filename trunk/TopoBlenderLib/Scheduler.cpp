@@ -1,4 +1,4 @@
-#include <QApplication>
+#include <QApplication> // For mouse icon changing
 
 #include "TaskCurve.h"
 #include "TaskSheet.h"
@@ -882,4 +882,9 @@ void Scheduler::mouseReleaseEvent( QGraphicsSceneMouseEvent * event )
 {
 	emit( updateExternalViewer() );
 	QGraphicsScene::mouseReleaseEvent(event);
+}
+
+void Scheduler::mousePressEvent( QGraphicsSceneMouseEvent * event )
+{
+	QGraphicsScene::mousePressEvent(event);
 }

@@ -43,12 +43,6 @@ bool dynamic_voxel::keyPressEvent( QKeyEvent* event )
     }
 
     if(event->key() == Qt::Key_M) {
-        showMesh = !showMesh;
-
-		SurfaceMesh::Model * m = new SurfaceMesh::Model("voxel_example.obj", "voxel");
-		vox.buildMesh( m );
-		vox.MeanCurvatureFlow( m );
-		document()->addModel(m);
 
         used = true;
     }

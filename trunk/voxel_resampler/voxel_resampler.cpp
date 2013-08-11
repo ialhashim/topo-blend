@@ -8,10 +8,11 @@
 
 void voxel_resampler::initParameters(RichParameterSet *pars)
 {
+	pars->addParam(new RichBool("apply_original", true, "Apply to original", ""));
 	pars->addParam(new RichFloat("voxel_scale", 0.1f, "Voxel scale", "Voxel scale in % of maximum bounding extent"));
 	pars->addParam(new RichBool("keep_inside", false, "Keep inner sheels", ""));
 	pars->addParam(new RichFloat("mcf_smoothing", 0.0f, "MCF Smoothing", ""));
-	pars->addParam(new RichInt("laplacian_smoothing", 3, "Laplacian Smoothing", ""));
+	pars->addParam(new RichInt("laplacian_smoothing", 2, "Laplacian Smoothing", ""));
 }
 
 void voxel_resampler::applyFilter(RichParameterSet *pars)
@@ -32,29 +33,40 @@ void voxel_resampler::applyFilter(RichParameterSet *pars)
 	vox.end();
 
 	// Build mesh
-	SurfaceMesh::Model * m = new SurfaceMesh::Model("voxelized.obj", "voxelized");
+	SurfaceMesh::Model m (mesh()->path, mesh()->name);
+	SurfaceMeshModel * outMesh = &m; // assume we use all output of voxelization step
 
-	vox.buildMesh( m );
-	m->triangulate();
+	vox.buildMesh( &m );
+	m.triangulate();
 
-	/// Remove inner shells
-	bool keep_inner = pars->getBool("keep_inside");
-	
-	if(!keep_inner)
+	bool apply_original = pars->getBool("apply_original");
+
+	if( apply_original )
+	{
+		// Remove original geometry
+		outMesh = mesh();
+	}
+	else
+	{
+		outMesh = new SurfaceMeshModel(m.path, m.name);
+		document()->addModel( outMesh );
+	}
+
+	/// Remove inner shells if requested
+	if( !pars->getBool("keep_inside") )
 	{
 		// Find new mesh segments
-		SurfaceMesh::Model * outerMesh = new SurfaceMesh::Model("voxelized_outer.obj", "voxelized_outer_shell");
-		Vector3VertexProperty points = m->vertex_property<Vector3>(VPOINT);
+		Vector3VertexProperty points = m.vertex_property<Vector3>(VPOINT);
 
 		QVector< QSet<int> > segments;
-		SurfaceMesh::Model::Face_property<bool> fvisited = m->add_face_property<bool>("f:visited", false);
+		SurfaceMesh::Model::Face_property<bool> fvisited = m.add_face_property<bool>("f:visited", false);
 		int visitedCount = 0;
 
-		while(visitedCount < (int)m->n_faces()){
+		while(visitedCount < (int)m.n_faces()){
 			QStack<SurfaceMesh::Model::Face> tovisit;
 
 			// Seed face
-			foreach(SurfaceMesh::Model::Face f, m->faces()){
+			foreach(SurfaceMesh::Model::Face f, m.faces()){
 				if(!fvisited[f]){
 					tovisit.push(f);
 					break;
@@ -65,12 +77,12 @@ void voxel_resampler::applyFilter(RichParameterSet *pars)
 
 			while( !tovisit.isEmpty() )	{
 				SurfaceMesh::Model::Face f = tovisit.pop();
-				SurfaceMesh::Model::Halfedge_around_face_circulator adjE(m, f), eend = adjE;
+				SurfaceMesh::Model::Halfedge_around_face_circulator adjE(&m, f), eend = adjE;
 				fvisited[f] = true;
 				segments.back().insert(f.idx());
 
 				do{ 
-					Face adjF = m->face( m->opposite_halfedge(adjE) );
+					Face adjF = m.face( m.opposite_halfedge(adjE) );
 
 					if( !fvisited[adjF] ){
 						tovisit.push(adjF);
@@ -90,53 +102,69 @@ void voxel_resampler::applyFilter(RichParameterSet *pars)
 		// Assumption: keep every other
 		QVector< QSet<int> > allSegments = segmentMap.values().toVector();
 
-		// Collect set of used vertices
-		QSet<int> vset, fset;
-		QMap<int,int> vmap;
+		outMesh->isVisible = false;
+		outMesh->clear();
 
-		for (int si = 0; si < (int)allSegments.size(); si++)
-		{
-			// Even indices starting from zero
-			if(si % 2 == 0) continue;
-
-			foreach( int fidx, allSegments[si] )
-			{
-				Face face(fidx);
-				Surface_mesh::Vertex_around_face_circulator vit = m->vertices(face),vend=vit;
-				do{ vset.insert( Vertex(vit).idx() ); } while(++vit != vend);
-				fset.insert(fidx);
+		// One segment case: Skip extraction step
+		if(allSegments.size() == 1){
+			foreach(Vertex v, m.vertices()) outMesh->add_vertex( points[v] );
+			foreach(Face f, m.faces()){
+				std::vector<Vertex> verts;
+				Surface_mesh::Vertex_around_face_circulator vit = m.vertices(f),vend=vit;
+				do{ verts.push_back( vit ); } while(++vit != vend);
+				outMesh->add_face(verts);
 			}
 		}
-
-		// Remap vertex indices and add to new mesh
-		foreach(int vi, vset)
+		else
 		{
-			vmap[vi] = vmap.size();
-			outerMesh->add_vertex( points[Vertex(vi)] );
-		}
+			// Collect set of used vertices
+			QSet<int> vset, fset;
+			QMap<int,int> vmap;
 
-		// Add faces to new mesh
-		foreach(int fi, fset)
-		{
-			std::vector<Vertex> verts;
-			Surface_mesh::Vertex_around_face_circulator vit = m->vertices(Face(fi)),vend=vit;
-			do{ verts.push_back( Vertex( vmap[ Vertex(vit).idx() ] ) ); } while(++vit != vend);
-			outerMesh->add_face(verts);
-		}
+			for (int si = 0; si < (int)allSegments.size(); si++)
+			{
+				// Even indices starting from zero
+				if(si % 2 == 0) continue;
 
-		m = outerMesh;
+				foreach( int fidx, allSegments[si] )
+				{
+					Face face(fidx);
+					Surface_mesh::Vertex_around_face_circulator vit = m.vertices(face),vend=vit;
+					do{ vset.insert( Vertex(vit).idx() ); } while(++vit != vend);
+					fset.insert(fidx);
+				}
+			}
+
+			// Remap vertex indices and add to new mesh
+			foreach(int vi, vset)
+			{
+				vmap[vi] = vmap.size();
+				outMesh->add_vertex( points[Vertex(vi)] );
+			}
+
+			// Add faces to new mesh
+			foreach(int fi, fset)
+			{
+				std::vector<Vertex> verts;
+				Surface_mesh::Vertex_around_face_circulator vit = m.vertices(Face(fi)),vend=vit;
+				do{ verts.push_back( Vertex( vmap[ Vertex(vit).idx() ] ) ); } while(++vit != vend);
+				outMesh->add_face(verts);
+			}
+		}
 	}
 
-	if(pars->getFloat("mcf_smoothing") > 0.0)
-		DynamicVoxelLib::DynamicVoxel::MeanCurvatureFlow( m, voxel_size * pars->getFloat("mcf_smoothing") );
-	
-	if(pars->getInt("laplacian_smoothing") > 0)
-	{
+	// Post processing:
+	if(pars->getFloat("mcf_smoothing") > 0.0) DynamicVoxelLib::DynamicVoxel::MeanCurvatureFlow( outMesh, voxel_size * pars->getFloat("mcf_smoothing") );
+	if(pars->getInt("laplacian_smoothing") > 0){
 		for(int i = 0; i < pars->getInt("laplacian_smoothing"); i++)
-			vox.LaplacianSmoothing( m );
+			vox.LaplacianSmoothing( outMesh );
 	}
 
-	document()->addModel(m);
+	// Clean up
+	outMesh->updateBoundingBox();
+	outMesh->update_face_normals();
+	outMesh->update_vertex_normals();
+	outMesh->isVisible = true;
 }
 
 Q_EXPORT_PLUGIN(voxel_resampler)

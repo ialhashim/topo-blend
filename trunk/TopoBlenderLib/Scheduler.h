@@ -79,6 +79,7 @@ protected:
 	void drawForeground ( QPainter * painter, const QRectF & rect );
 
 	void mouseReleaseEvent( QGraphicsSceneMouseEvent * event );
+	void mousePressEvent( QGraphicsSceneMouseEvent * event );
 
 public slots:
 	void timeChanged(int newTime);
