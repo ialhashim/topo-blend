@@ -56,7 +56,17 @@ bool NURBSTools::isRemesh()
 	return ui->remeshOption->isChecked();
 }
 
+bool NURBSTools::isVoxelize()
+{
+	return ui->voxelOption->isChecked();
+}
+
 double NURBSTools::remeshParamter()
 {
 	return ui->remeshParamter->value();
+}
+
+double NURBSTools::voxelParamter()
+{
+	return ui->voxelParamter->value();
 }

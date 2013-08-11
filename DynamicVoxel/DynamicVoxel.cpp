@@ -352,11 +352,13 @@ void DynamicVoxel::buildMesh(SurfaceMesh::Model * mesh, QuadMesh & m)
 	std::vector<Vector3d> allFaceCenters;
 	std::vector<QuadFace> allQuads;
 
+	double hv = voxel_size * 0.5;
+
 	foreach(Voxel v, voxels)
 	{
 		for(int i = 0; i < 6; i++)
 		{
-			Vector3d p = (v.toVector3d() + faceCenters[i]) * voxel_size - Vector3d(voxel_size * 0.5);
+			Vector3d p = ((v.toVector3d() + faceCenters[i]) * voxel_size) - Vector3d(hv, hv, hv);
 			allFaceCenters.push_back( p );
 
 			// Add redundant quad face
@@ -364,7 +366,7 @@ void DynamicVoxel::buildMesh(SurfaceMesh::Model * mesh, QuadMesh & m)
 			for(int j = 0; j < 4; j++)
 			{
 				f[j] = voxelCorners.size();
-				voxelCorners.push_back( (v.toVector3d() + faceCorners[i][j]) * voxel_size - Vector3d(voxel_size * 0.5) );
+				voxelCorners.push_back( (v.toVector3d() + faceCorners[i][j]) * voxel_size - Vector3d(hv, hv, hv) );
 			}
 			allQuads.push_back(f);
 		}

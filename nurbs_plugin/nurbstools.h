@@ -1,5 +1,4 @@
-#ifndef NURBSTOOLS_H
-#define NURBSTOOLS_H
+#pragma once
 
 #include <QWidget>
 
@@ -27,10 +26,10 @@ public:
 	int contractIterations();
 
 	bool isRemesh();
+	bool isVoxelize();
 	double remeshParamter();
+	double voxelParamter();
 
 private:
     Ui::NURBSTools *ui;
 };
-
-#endif // NURBSTOOLS_H

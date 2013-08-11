@@ -306,6 +306,9 @@ void TaskCurve::prepareCrossingMorphCurve()
 		gd.computeDistances( end, DIST_RESOLUTION );  
 		gd.smoothPathCoordTo( start, path );
 
+		// Check
+		if(path.isEmpty()) path.push_back(GraphDistance::PathPointPair( PathPoint(futureNodeCord.first, futureNodeCord.second)));
+
 		property["path"].setValue( GraphDistance::positionalPath(active, path) );
 
 		// Save links paths

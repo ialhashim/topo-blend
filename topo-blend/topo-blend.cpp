@@ -1058,6 +1058,15 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 			paint.end();
 			bothImg.save("All_Graphs.png");
 		}
+		else
+		{
+			QDir dir("");
+			dir.setCurrent(QFileDialog::getExistingDirectory());
+
+			DynamicGraphs::DynamicGraph sdg(graphs.front());
+			toGraphviz(sdg, graphs.front()->name(), true, QString("V = %1, E = %2").arg(sdg.nodes.size()).arg(sdg.edges.size()), "Graph");
+		}
+
 		used = true;
 	}
 
@@ -1140,7 +1149,7 @@ void topoblend::doBlend()
 		gcoor->computeCorrespondences();
 	}
 
-	scheduler = new Scheduler();
+	scheduler = new Scheduler( );
     blender = new TopoBlender( gcoor, scheduler );
 
 	// Update active graph
@@ -1386,8 +1395,6 @@ void topoblend::saveSynthesisData(QString parentFolder)
 void topoblend::loadSynthesisData(QString parentFolder)
 {
 	if(!blender) return;
-
-	drawArea()->camera()->setType(qglviewer::Camera::PERSPECTIVE);
 
 	QString foldername = gcoor->sgName() + "_" + gcoor->tgName();
 	QDir dir; dir.setCurrent(foldername);

@@ -43,6 +43,10 @@ void nurbs_plugin::create()
 {
 	if(widget) return;
 
+	if(mesh()->name == "empty"){
+		document()->deleteModel(document()->getModel("empty"));
+	}	
+
 	entireMesh = (SurfaceMeshModel*)document()->selectedModel();
 	entirePoints = entireMesh->vertex_property<Vector3>("v:point");
 
@@ -395,6 +399,18 @@ void nurbs_plugin::prepareSkeletonize()
 	// Select model to skeletonize
 	document()->setSelectedModel( m );
 
+	// Voxelize
+	if( widget->isVoxelize() )
+	{
+		FilterPlugin * voxResamplePlugin = pluginManager()->getFilter("Voxel Resampler");
+		RichParameterSet * resample_params = new RichParameterSet;
+		voxResamplePlugin->initParameters( resample_params );
+		resample_params->setValue("voxel_scale", float( widget->voxelParamter() ));
+		voxResamplePlugin->applyFilter( resample_params );
+	}
+
+	drawArea()->updateGL();
+
 	// Remesh
 	if( widget->isRemesh() )
 	{
@@ -405,11 +421,15 @@ void nurbs_plugin::prepareSkeletonize()
 		remeshPlugin->applyFilter( remesh_params );
 	}
 
+	drawArea()->updateGL();
+
 	// Compute MAT
 	FilterPlugin * matPlugin = pluginManager()->getFilter("Voronoi based MAT");
 	RichParameterSet * mat_params = new RichParameterSet;
 	matPlugin->initParameters( mat_params );
 	matPlugin->applyFilter( mat_params );
+
+
 }
 
 void nurbs_plugin::stepSkeletonizeMesh()
@@ -424,7 +444,7 @@ void nurbs_plugin::stepSkeletonizeMesh()
 	mcfPlugin->applyFilter( mcf_params );
 	 
 	//drawArea()->setRenderer(m,"Flat Wire");
-	//drawArea()->updateGL();
+	drawArea()->updateGL();
 }
 
 void nurbs_plugin::drawWithNames()
@@ -601,7 +621,7 @@ void nurbs_plugin::convertToCurve()
 
 	double theta = 15.0; // degrees
 
-	for(int i = 0; i < 40; i++){
+	for(int i = 0; i < 30; i++){
 		stepSkeletonizeMesh();
 	
 		// Decide weather or not to keep contracting based on angle of faces
@@ -610,6 +630,7 @@ void nurbs_plugin::convertToCurve()
 			if( minAngle(f, m) > RADIANS(theta) )
 				isDone = false;
 		}
+
 		if(isDone) break;
 	}
 
@@ -628,6 +649,37 @@ void nurbs_plugin::convertToCurve()
 	document()->setSelectedModel(entireMesh);
 	document()->deleteModel(m);
 	
+	m = NULL;
+
+	drawArea()->updateGL();
+}
+
+void nurbs_plugin::convertToSheet()
+{
+	if(!m) return;
+
+	document()->addModel( m );
+	document()->setSelectedModel( m );
+
+	prepareSkeletonize(); 
+	for(int i = 0; i < widget->contractIterations(); i++)
+	{
+		stepSkeletonizeMesh();
+	}
+
+	// Clean up
+	drawArea()->deleteAllRenderObjects();
+	foreach(Vertex v, m->vertices()) if(m->is_isolated(v)) m->remove_vertex(v);
+	m->garbage_collection();
+
+	// Overwrite any existing extracted nodes for selected part
+	if(graph->getNode(groupID)) graph->removeNode(graph->getNode(groupID)->id);
+
+	graph->addNode( new Structure::Sheet(surfaceFit( m ), groupID) );
+
+	document()->setSelectedModel( entireMesh );
+	document()->deleteModel(m);
+
 	m = NULL;
 
 	drawArea()->updateGL();
@@ -710,37 +762,6 @@ NURBS::NURBSCurved nurbs_plugin::curveFit( SurfaceMeshModel * part )
 	//polyLine = smoothPolyline(polyLine, 1);
 
 	return NURBS::NURBSCurved::createCurveFromPoints(polyLine);
-}
-
-void nurbs_plugin::convertToSheet()
-{
-	if(!m) return;
-
-	document()->addModel( m );
-	document()->setSelectedModel( m );
-
-	prepareSkeletonize(); 
-	for(int i = 0; i < widget->contractIterations(); i++)
-	{
-		stepSkeletonizeMesh();
-	}
-
-	// Clean up
-	drawArea()->deleteAllRenderObjects();
-	foreach(Vertex v, m->vertices()) if(m->is_isolated(v)) m->remove_vertex(v);
-	m->garbage_collection();
-
-	// Overwrite any existing extracted nodes for selected part
-	if(graph->getNode(groupID)) graph->removeNode(graph->getNode(groupID)->id);
-
-	graph->addNode( new Structure::Sheet(surfaceFit( m ), groupID) );
-
-	document()->setSelectedModel( entireMesh );
-	document()->deleteModel(m);
-
-	m = NULL;
-
-	drawArea()->updateGL();
 }
 
 std::vector<Vertex> nurbs_plugin::collectRings(SurfaceMeshModel * part, Vertex v, size_t min_nb)
