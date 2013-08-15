@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>200</width>
-    <height>539</height>
+    <height>562</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -277,6 +277,16 @@
       <string>Options</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_6">
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="remeshOption">
+        <property name="text">
+         <string>Remesh</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="1">
        <widget class="QDoubleSpinBox" name="remeshParamter">
         <property name="decimals">
@@ -290,23 +300,6 @@
         </property>
         <property name="value">
          <double>0.020000000000000</double>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QCheckBox" name="remeshOption">
-        <property name="text">
-         <string>Remesh</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QCheckBox" name="voxelOption">
-        <property name="text">
-         <string>Voxelize</string>
         </property>
        </widget>
       </item>
@@ -326,6 +319,20 @@
         </property>
         <property name="value">
          <double>0.100000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="voxelOption">
+        <property name="text">
+         <string>Voxelize</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="medialOption">
+        <property name="text">
+         <string>Use medial</string>
         </property>
        </widget>
       </item>

@@ -27,6 +27,7 @@ public:
 
 	bool isRemesh();
 	bool isVoxelize();
+	bool isUseMedial();
 	double remeshParamter();
 	double voxelParamter();
 
