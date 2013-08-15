@@ -66,6 +66,11 @@ bool NURBSTools::isUseMedial()
 	return ui->medialOption->isChecked();
 }
 
+bool NURBSTools::isProtectSmallFeatures()
+{
+	return ui->protectSmallOption->isChecked();
+}
+
 double NURBSTools::remeshParamter()
 {
 	return ui->remeshParamter->value();

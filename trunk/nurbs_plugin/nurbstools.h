@@ -28,9 +28,10 @@ public:
 	bool isRemesh();
 	bool isVoxelize();
 	bool isUseMedial();
+	bool isProtectSmallFeatures();
+
 	double remeshParamter();
 	double voxelParamter();
-
 private:
     Ui::NURBSTools *ui;
 };

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>200</width>
-    <height>562</height>
+    <height>556</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -60,31 +60,7 @@
       <string>Quick skeleton</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
-      <item row="2" column="1">
-       <widget class="QPushButton" name="skeletonButton">
-        <property name="text">
-         <string>Contract</string>
-        </property>
-        <property name="icon">
-         <iconset resource="../topo-blend/topo-blend.qrc">
-          <normaloff>:/nurbs_plugin/images/bone.png</normaloff>:/nurbs_plugin/images/bone.png</iconset>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <spacer name="horizontalSpacer_3">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item row="0" column="1">
+      <item row="0" column="2">
        <widget class="QSpinBox" name="contractIterations">
         <property name="value">
          <number>3</number>
@@ -98,7 +74,18 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="2" column="2">
+       <widget class="QPushButton" name="skeletonButton">
+        <property name="text">
+         <string>Contract</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../topo-blend/topo-blend.qrc">
+          <normaloff>:/nurbs_plugin/images/bone.png</normaloff>:/nurbs_plugin/images/bone.png</iconset>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
        <widget class="QPushButton" name="skeletonButtonStep">
         <property name="text">
          <string>More..</string>
@@ -277,32 +264,6 @@
       <string>Options</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_6">
-      <item row="0" column="0">
-       <widget class="QCheckBox" name="remeshOption">
-        <property name="text">
-         <string>Remesh</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QDoubleSpinBox" name="remeshParamter">
-        <property name="decimals">
-         <number>3</number>
-        </property>
-        <property name="maximum">
-         <double>10000.000000000000000</double>
-        </property>
-        <property name="singleStep">
-         <double>0.005000000000000</double>
-        </property>
-        <property name="value">
-         <double>0.020000000000000</double>
-        </property>
-       </widget>
-      </item>
       <item row="1" column="1">
        <widget class="QDoubleSpinBox" name="voxelParamter">
         <property name="decimals">
@@ -329,10 +290,43 @@
         </property>
        </widget>
       </item>
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="remeshOption">
+        <property name="text">
+         <string>Remesh</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QDoubleSpinBox" name="remeshParamter">
+        <property name="decimals">
+         <number>3</number>
+        </property>
+        <property name="maximum">
+         <double>10000.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.005000000000000</double>
+        </property>
+        <property name="value">
+         <double>0.020000000000000</double>
+        </property>
+       </widget>
+      </item>
       <item row="2" column="0">
        <widget class="QCheckBox" name="medialOption">
         <property name="text">
          <string>Use medial</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" colspan="2">
+       <widget class="QCheckBox" name="protectSmallOption">
+        <property name="text">
+         <string>Protect small features</string>
         </property>
        </widget>
       </item>
