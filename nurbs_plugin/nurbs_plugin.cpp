@@ -420,7 +420,15 @@ void nurbs_plugin::prepareSkeletonize()
 		FilterPlugin * remeshPlugin = pluginManager()->getFilter("Isotropic Remesher");
 		RichParameterSet * remesh_params = new RichParameterSet;
 		remeshPlugin->initParameters( remesh_params );
-		remesh_params->setValue("edgelength_TH", float(widget->remeshParamter() * m->bbox().diagonal().norm()));
+		float edge_threshold = float(widget->remeshParamter() * m->bbox().diagonal().norm());
+
+		if(widget->isProtectSmallFeatures()){
+			remesh_params->setValue("keep_shortedges", true);
+			edge_threshold *= 0.5;
+		}
+
+		remesh_params->setValue("edgelength_TH", edge_threshold);
+
 		remeshPlugin->applyFilter( remesh_params );
 	}
 
