@@ -81,6 +81,9 @@ QVector<Vector3> SimilarSampler::FaceSamples(SurfaceMeshModel * m, int sampleNum
         // compute # samples in the current face
         int n_samples = (int) (0.5 * varea * samplePerAreaUnit);
 
+		// Minimum number of samples per face
+		n_samples = qMax(n_samples, 2);
+
         if(n_samples > 1)
         {
             int n_samples_per_edge = (int)((sqrt(1.0 + 8.0 * (Scalar)n_samples) + 5.0) / 2.0);
@@ -155,7 +158,7 @@ QVector<Vector3> SimilarSampler::EdgeUniformFixed( SurfaceMeshModel * m, QVector
 	// This is a check for zero "sampleLen".. better solution is to fix it up in Face sampling
 	Scalar sumEdgeLengths = 0;
 	foreach(Edge ei, m->edges()) sumEdgeLengths += elength[ei];
-	if(sampleLen == 0.0) sampleLen = (sumEdgeLengths / m->n_edges()) / 3;
+	if(sampleLen == 0.0) sampleLen = (sumEdgeLengths / m->n_edges()) / 2;
 
 	foreach(Edge ei, m->edges()){
 		Scalar len = elength[ei];

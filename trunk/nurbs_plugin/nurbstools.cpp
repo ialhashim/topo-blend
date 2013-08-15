@@ -61,6 +61,11 @@ bool NURBSTools::isVoxelize()
 	return ui->voxelOption->isChecked();
 }
 
+bool NURBSTools::isUseMedial()
+{
+	return ui->medialOption->isChecked();
+}
+
 double NURBSTools::remeshParamter()
 {
 	return ui->remeshParamter->value();

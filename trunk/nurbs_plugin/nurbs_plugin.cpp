@@ -394,6 +394,9 @@ void nurbs_plugin::buildSamples()
 
 void nurbs_plugin::prepareSkeletonize()
 {
+	// Remove visualization
+	ps.clear();
+
 	m->updateBoundingBox();
 
 	// Select model to skeletonize
@@ -428,8 +431,6 @@ void nurbs_plugin::prepareSkeletonize()
 	RichParameterSet * mat_params = new RichParameterSet;
 	matPlugin->initParameters( mat_params );
 	matPlugin->applyFilter( mat_params );
-
-
 }
 
 void nurbs_plugin::stepSkeletonizeMesh()
@@ -439,12 +440,14 @@ void nurbs_plugin::stepSkeletonizeMesh()
 	if(!mcf_params){
 		mcf_params = new RichParameterSet;
 		mcfPlugin->initParameters( mcf_params );
-		//mcf_params->setValue("omega_P_0", 0.3f);
+
+		// Custom MCF parameters
+		if( !widget->isUseMedial() ) mcf_params->setValue("omega_P_0",0);
 	}
 	mcfPlugin->applyFilter( mcf_params );
 	 
 	//drawArea()->setRenderer(m,"Flat Wire");
-	drawArea()->updateGL();
+	//drawArea()->updateGL(); // may cause crashing of OpenGL
 }
 
 void nurbs_plugin::drawWithNames()
