@@ -163,7 +163,13 @@ void TaskSheet::prepareMorphSheet()
                                  tframe.r,tframe.s,tframe.t, rotation);
 
     // Parameters needed for morphing
-    property["rotation"].setValue( rotation );
+	QVector<double> rot; 
+	rot.push_back(rotation.w());
+	rot.push_back(rotation.x());
+	rot.push_back(rotation.y());
+	rot.push_back(rotation.z());
+
+    property["rotation"].setValue( rot );
     property["sframe"].setValue( sframe );
     property["tframe"].setValue( tframe );
 
@@ -265,7 +271,8 @@ void TaskSheet::executeMorphSheet( double t )
 
     RMF::Frame sframe = property["sframe"].value<RMF::Frame>();
     RMF::Frame tframe = property["tframe"].value<RMF::Frame>();
-    Eigen::Quaterniond rotation = property["rotation"].value<Eigen::Quaterniond>(),
+	QVector<double> rot = property["rotation"].value< QVector<double> >();
+    Eigen::Quaterniond rotation(rot[0],rot[1],rot[2],rot[3]),
         eye = Eigen::Quaterniond::Identity();
 
     // Source sheet

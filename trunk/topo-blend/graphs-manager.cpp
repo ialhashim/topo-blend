@@ -2,6 +2,9 @@
 #include "graph_modify_dialog.h"
 #include "graphs-manager.h"
 #include "QuickAlignment.h"
+
+#include "TopoBlender.h"
+#include "GraphCorresponder.h"
 #include "Scheduler.h"
 
 void GraphsManager::loadModel()

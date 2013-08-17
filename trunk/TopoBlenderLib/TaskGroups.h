@@ -4,8 +4,6 @@
 
 #include "Task.h"
 
-Q_DECLARE_METATYPE( Task* )
-
 struct TaskGroups{
 
 	static QVector< QList<Task*> > split( QList<Task*> list, Structure::Graph * graph )

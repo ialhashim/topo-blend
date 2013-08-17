@@ -121,6 +121,7 @@ protected:
 typedef std::vector< std::pair<double,double> > VectorPairDouble;
 
 // Global meta types
+Q_DECLARE_METATYPE( Task* )
 Q_DECLARE_METATYPE( Vector3 )
 Q_DECLARE_METATYPE( Vector4d )
 Q_DECLARE_METATYPE( VectorPairDouble )
@@ -131,7 +132,7 @@ Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
 Q_DECLARE_METATYPE( CurveEncoding )
 Q_DECLARE_METATYPE( QVector<QString> )
 Q_DECLARE_METATYPE( QVector<Structure::Link*> )
-Q_DECLARE_METATYPE( Eigen::Quaterniond )
+Q_DECLARE_METATYPE( QVector<double> )
 
 static inline double rad_to_deg(const double& _angle){ return 180.0*(_angle/M_PI); }
 

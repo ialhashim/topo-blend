@@ -19,6 +19,8 @@
 #include "Scheduler.h"
 #include "SchedulerWidget.h"
 
+#include "graphs-manager.h"
+#include "correspondence-manager.h"
 #include "synthesis-manager.h"
 
 QuickViewer * viewer = NULL;
@@ -31,17 +33,13 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 
     this->tb = topo_blend;
 	
-	// Generate models
-    //topo_blend->connect(ui->genChairsButton, SIGNAL(clicked()), SLOT(generateChairModels()));
-	//topo_blend->connect(ui->genSimpleButton, SIGNAL(clicked()), SLOT(generateTwoSimpleModels()));
-
 	// Save / load graphs
-    topo_blend->connect(ui->loadButton, SIGNAL(clicked()), SLOT(loadModel()));
-    topo_blend->connect(ui->saveButton, SIGNAL(clicked()), SLOT(saveModel()));
-    topo_blend->connect(ui->clearButton, SIGNAL(clicked()), SLOT(clearGraphs()));
-    topo_blend->connect(ui->linksButton, SIGNAL(clicked()), SLOT(modifyModel()));
-    topo_blend->connect(ui->alignButton, SIGNAL(clicked()), SLOT(quickAlign()));
-	topo_blend->connect(ui->normalizeButton, SIGNAL(clicked()), SLOT(normalizeAllGraphs()));
+    topo_blend->g_manager->connect(ui->loadButton, SIGNAL(clicked()), SLOT(loadModel()));
+    topo_blend->g_manager->connect(ui->saveButton, SIGNAL(clicked()), SLOT(saveModel()));
+    topo_blend->g_manager->connect(ui->clearButton, SIGNAL(clicked()), SLOT(clearGraphs()));
+    topo_blend->g_manager->connect(ui->linksButton, SIGNAL(clicked()), SLOT(modifyModel()));
+    topo_blend->g_manager->connect(ui->alignButton, SIGNAL(clicked()), SLOT(quickAlign()));
+    topo_blend->g_manager->connect(ui->normalizeButton, SIGNAL(clicked()), SLOT(normalizeAllGraphs()));
 
 	// Save / load entire jobs
 	this->connect(ui->loadJobButton, SIGNAL(clicked()), SLOT(loadJob()));
@@ -61,12 +59,10 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	this->connect(ui->groupButton, SIGNAL(clicked()), SLOT(showGroupingDialog()));
 
 	// Synthesis
-	topo_blend->connect(ui->genSynthButton, SIGNAL(clicked()), SLOT(generateSynthesisData()), Qt::UniqueConnection);
-	topo_blend->connect(ui->saveSynthButton, SIGNAL(clicked()), SLOT(saveSynthesisData()));
-	topo_blend->connect(ui->loadSynthButton, SIGNAL(clicked()), SLOT(loadSynthesisData()));
-	topo_blend->connect(ui->outputCloudButton, SIGNAL(clicked()), SLOT(outputPointCloud()));
-	topo_blend->connect(ui->reconstructButton, SIGNAL(clicked()), SLOT(reconstructXYZ()));
-	topo_blend->connect(ui->combineMeshesButton, SIGNAL(clicked()), SLOT(combineMeshesToOne()));
+    topo_blend->s_manager->connect(ui->genSynthButton, SIGNAL(clicked()), SLOT(generateSynthesisData()), Qt::UniqueConnection);
+    topo_blend->s_manager->connect(ui->saveSynthButton, SIGNAL(clicked()), SLOT(saveSynthesisData()));
+    topo_blend->s_manager->connect(ui->loadSynthButton, SIGNAL(clicked()), SLOT(loadSynthesisData()));
+    topo_blend->s_manager->connect(ui->reconstructButton, SIGNAL(clicked()), SLOT(reconstructXYZ()));
 
 	// Model manipulation
 	this->connect(ui->normalizeModel, SIGNAL(clicked()), SLOT(normalizeModel()));
@@ -152,7 +148,7 @@ void topo_blend_widget::loadJobFile(QString job_filename)
 	tb->updateDrawArea();
 
 	// Load correspondence
-	tb->gcoor = tb->makeCorresponder();
+	tb->gcoor = tb->c_manager->makeCorresponder();
 	tb->gcoor->loadCorrespondences( curPath + correspondenceFileName );
 	tb->gcoor->isReady = true;
 

@@ -66,6 +66,7 @@ struct Graph
 
 	// Node-wide Operations
 	void setPropertyAll( QString prop_name, QVariant value );
+	void setVisPropertyAll( QString prop_name, QVariant value );
 	void setPropertyFor( QVector<QString> nodeIDs, QString prop_name, QVariant value );
 	void setColorAll( QColor newNodesColor );
 	

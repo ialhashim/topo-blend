@@ -27,6 +27,7 @@ public:
     friend class topo_blend_widget;
     topo_blend_widget * widget;
     QVector<Structure::Graph*> graphs;
+	Eigen::AlignedBox3d bigbox;
 
     // DEBUG:
     QVector< Vector3 > debugPoints,debugPoints2,debugPoints3;
@@ -37,7 +38,6 @@ public:
 
     // Corresponder
     GraphCorresponder *gcoor;
-    GraphCorresponder* makeCorresponder();
     Structure::Graph * getGraph(int id);
 
 public:
@@ -48,6 +48,7 @@ public:
     void destroy(){}
 
     void decorate();
+	void drawBBox(Eigen::AlignedBox3d bbox);
 
     // Selection
     void drawWithNames();
