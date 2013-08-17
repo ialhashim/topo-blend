@@ -216,7 +216,8 @@ void TaskCurve::prepareGrowCurve()
 		GraphDistance gd( active, excludeNodes );
 		gd.computeDistances( pointA, DIST_RESOLUTION );
 		QVector< GraphDistance::PathPointPair > path;
-		gd.smoothPathCoordTo( NodeCoord( otherB->id, othercoordB ), path );
+        NodeCoord rpoint( otherB->id, othercoordB );
+        gd.smoothPathCoordTo( rpoint, path );
 
 		if(path.size() == 0) return;
 

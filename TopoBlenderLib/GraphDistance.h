@@ -55,7 +55,7 @@ public:
 	struct PathPointPair{
 		PathPoint a,b;
 		double wA,wB;
-		PathPointPair(PathPoint& A = PathPoint("",Vector4d(0,0,0,0))){
+        PathPointPair(const PathPoint& A = PathPoint("",Vector4d(0,0,0,0))){
 			a = b = A;
 			wA = 1.0; wB = 0.0;
 		}

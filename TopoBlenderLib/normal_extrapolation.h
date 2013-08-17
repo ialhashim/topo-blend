@@ -20,7 +20,7 @@ private:
 	// Plane structure: identify a plain as a <center, normal> pair
 	struct Plane
 	{
-		Plane() { center = Vector3(0); normal = Normal(0); };
+        Plane() { center = Vector3(0,0,0); normal = Normal(0,0,0); };
 
 		// Object functor: return the bounding-box enclosing a given plane
 		inline void GetBBox(Eigen::AlignedBox3d	&bb) { bb = Eigen::AlignedBox3d(center, center); };
@@ -79,7 +79,7 @@ public:
 		k = qMin(k, mesh->n_vertices());
 
 		Vector3VertexProperty points = mesh->get_vertex_property<Vector3>(VPOINT);
-		Vector3VertexProperty normals = mesh->vertex_property<Vector3>(VNORMAL, Normal(0));
+        Vector3VertexProperty normals = mesh->vertex_property<Vector3>(VNORMAL, Normal(0,0,0));
 
 		Eigen::AlignedBox3d dataset_bb;
 		foreach(Vertex v, mesh->vertices())	
@@ -288,7 +288,7 @@ public:
 	static void SmoothNormalsUsingNeighbors(SurfaceMeshModel * mesh, const unsigned int k, bool usedistance)
 	{
 		Vector3VertexProperty points = mesh->get_vertex_property<Vector3>(VPOINT);
-		Vector3VertexProperty normals = mesh->vertex_property<Vector3>(VNORMAL, Normal(0));
+        Vector3VertexProperty normals = mesh->vertex_property<Vector3>(VNORMAL, Normal(0,0,0));
 
 		Eigen::AlignedBox3d dataset_bb;
 		foreach(Vertex v, mesh->vertices())	
