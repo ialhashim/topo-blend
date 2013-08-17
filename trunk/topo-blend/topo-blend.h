@@ -3,20 +3,42 @@
 #include "qglviewer/qglviewer.h"
 #include "SurfaceMeshPlugins.h"
 #include "SurfaceMeshHelper.h"
-#include "topo_blend_widget.h"
 
+#include "topo_blend_widget.h"
 #include "StructureGraph.h"
+#include "StructureNode.h"
 
 // Forward declare
 class GraphCorresponder;
 class TopoBlender;
 class Scheduler;
 
+class GraphsManager;
+class CorrespondenceManager;
+class SynthesisManager;
+
 class topoblend : public SurfaceMeshModePlugin{
     Q_OBJECT
     Q_INTERFACES(ModePlugin)
 
     QIcon icon(){ return QIcon(":/images/topo-blend-icon.png"); }
+
+public:
+    friend class topo_blend_widget;
+    topo_blend_widget * widget;
+    QVector<Structure::Graph*> graphs;
+
+    // DEBUG:
+    QVector< Vector3 > debugPoints,debugPoints2,debugPoints3;
+    QVector< QPair<Vector3,Vector3> > debugLines,debugLines2,debugLines3;
+    Vector3VertexProperty points;
+
+public:
+
+    // Corresponder
+    GraphCorresponder *gcoor;
+    GraphCorresponder* makeCorresponder();
+    Structure::Graph * getGraph(int id);
 
 public:
     topoblend();
@@ -27,86 +49,46 @@ public:
 
     void decorate();
 
+    // Selection
     void drawWithNames();
     bool postSelection(const QPoint& p);
 
+    // Mouse and Keyboard
 	bool keyPressEvent( QKeyEvent* event );
 	bool mouseReleaseEvent( QMouseEvent * event );
+
+    Structure::Graph *orgSource;
+    Structure::Graph *orgTarget;
 
 	TopoBlender * blender;
 	Scheduler * scheduler;
 
 	QMap<QString, QVariant> params;
 	QMap<QString, QVariant> viz_params;
-
 	QMap<QString, QVariant> property;
 
-public:
-    topo_blend_widget * widget;
+    // Refactoring
+    friend class GraphsManager;
+    friend class CorrespondenceManager;
+    friend class SynthesisManager;
 
-    QVector<Structure::Graph*> graphs;
-
-	// DEBUG:
-	QVector< Vector3 > debugPoints,debugPoints2,debugPoints3;
-	QVector< QPair<Vector3,Vector3> > debugLines,debugLines2,debugLines3;
-	Vector3VertexProperty points;
-	
-public:
-	bool layout;
-
-	// Corresponder
-	GraphCorresponder *gcoor;
-	GraphCorresponder* makeCorresponder();
-	Structure::Graph * getGraph(int id);
+    GraphsManager * g_manager;
+    CorrespondenceManager * c_manager;
+    SynthesisManager * s_manager;
 
 public slots:
-	void setSceneBounds();
-
-	// Generate
-    void generateChairModels();
-	void generateTwoSimpleModels();
-
-	// Graphs
-    void loadModel();
-	void saveModel();
-    void clearGraphs();
-    void modifyModel();
-    void quickAlign();
-	void normalizeAllGraphs();
-	QString loadJobFileName();
-
-	void experiment1();
-	void currentExperiment();
 
 	// Main blend process
 	void doBlend();
 
-	// Experiments
-	void experimentSlot();
+    // Update GUI
+    void updateDrawArea();
+    void setSceneBounds();
+    void setStatusBarMessage(QString);
 
-	// Update
-	void updateDrawArea();
-	void testPoint2PointCorrespondences();
+    // Show graphs
+    void updateActiveGraph(Structure::Graph *);
 
-	// Show graphs
-	void updateActiveGraph(Structure::Graph *);
-
-	// Synthesis data
-	void generateSynthesisData();
-	void saveSynthesisData(QString parentFolder = "");
-	void loadSynthesisData(QString parentFolder = "");
-	void outputPointCloud();
-	void genSynData();
-	void reconstructXYZ();
-	void combineMeshesToOne();
-
-	void doRenderAll();
-	void renderAll();
-	void renderCurrent();
-	void renderGraph( Structure::Graph graph, QString filename, bool isOutPointCloud, int reconLevel, bool isOutGraph = false );
-	void draftRender();
-
-	void setStatusBarMessage(QString);
 signals:
 	void statusBarMessage(QString);
 

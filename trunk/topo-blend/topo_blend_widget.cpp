@@ -19,6 +19,8 @@
 #include "Scheduler.h"
 #include "SchedulerWidget.h"
 
+#include "synthesis-manager.h"
+
 QuickViewer * viewer = NULL;
 QString cur_filename;
 
@@ -80,6 +82,7 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	// Populate list
 	this->updatePartsList();
 	this->connect(ui->refreshViewButton, SIGNAL(clicked()), SLOT(updatePartsList()));
+	this->connect(ui->partsList, SIGNAL(itemSelectionChanged()), SLOT(updateVisualization()));
 
 	// Visualization & default values
 	this->connect(ui->vizButtonGroup, SIGNAL(buttonClicked(QAbstractButton*)),SLOT(vizButtonClicked(QAbstractButton*)));
@@ -100,9 +103,21 @@ void topo_blend_widget::doBlend()
     tb->doBlend();
 }
 
+QString topo_blend_widget::loadJobFileName()
+{
+    QString job_filename = QFileDialog::getOpenFileName(0, tr("Load Job"), tb->mainWindow()->settings()->getString("lastUsedDirectory"), tr("Job Files (*.job)"));
+    if(job_filename.isEmpty()) return "";
+
+    // Keep folder active
+    QFileInfo fileInfo(job_filename);
+    tb->mainWindow()->settings()->set( "lastUsedDirectory", fileInfo.absolutePath() );
+
+    return job_filename;
+}
+
 void topo_blend_widget::loadJob()
 {
-	this->loadJobFile( tb->loadJobFileName() );
+    this->loadJobFile( loadJobFileName() );
 }
 
 void topo_blend_widget::loadJobFile(QString job_filename)
@@ -155,7 +170,7 @@ void topo_blend_widget::loadJobFile(QString job_filename)
 	//tb->generateSynthesisData();
 
 	// Load samples if any
-	tb->loadSynthesisData( curPath );
+    tb->s_manager->loadSynthesisData( curPath );
 }
 
 void topo_blend_widget::saveJob()
@@ -219,7 +234,7 @@ void topo_blend_widget::saveJob()
 	job_file.close();
 
 	// Save samples
-	tb->saveSynthesisData( jobDir.path() + "/" );
+    tb->s_manager->saveSynthesisData( jobDir.path() + "/" );
 }
 
 void topo_blend_widget::showGroupingDialog()
@@ -498,4 +513,20 @@ void topo_blend_widget::updatePartsList()
 	// Populate list
 	foreach(Structure::Node * n, g->nodes) 
 		ui->partsList->addItem(new QListWidgetItem(n->id));
+}
+
+void topo_blend_widget::updateVisualization()
+{
+	if(!tb->graphs.size()) return;
+	Structure::Graph * g = tb->graphs.back();
+
+	g->setVisPropertyAll("glow", false);
+
+	foreach(QListWidgetItem * item, ui->partsList->selectedItems())
+	{
+		Structure::Node * n = g->getNode(item->text());
+		n->vis_property["glow"] = true;
+	}
+
+	tb->updateDrawArea();
 }
