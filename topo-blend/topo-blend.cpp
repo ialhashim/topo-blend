@@ -32,9 +32,14 @@ using namespace Structure;
 #define BBOX_WIDTH(box) (box.max().x()-box.min().x())
 #define PADDING_FACTOR 0.3
 
+// Simple UI
+#include "wizard.h"
+
 topoblend::topoblend()
 {
 	widget = NULL;
+	wizard = NULL;
+
     gcoor = NULL;
 	blender = NULL;
 	scheduler = NULL;
@@ -61,6 +66,9 @@ void topoblend::create()
 
 		// Events
 		this->connect(this, SIGNAL(statusBarMessage(QString)), SLOT(setStatusBarMessage(QString)));
+
+		// Simple UI
+		this->wizard = new Wizard;
 	}
 
 	drawArea()->setSelectRegionHeight(20);

@@ -17,6 +17,8 @@ class GraphsManager;
 class CorrespondenceManager;
 class SynthesisManager;
 
+class Wizard;
+
 class topoblend : public SurfaceMeshModePlugin{
     Q_OBJECT
     Q_INTERFACES(ModePlugin)
@@ -25,7 +27,11 @@ class topoblend : public SurfaceMeshModePlugin{
 
 public:
     friend class topo_blend_widget;
+	friend class Wizard;
+
     topo_blend_widget * widget;
+	Wizard * wizard;
+
     QVector<Structure::Graph*> graphs;
 	Eigen::AlignedBox3d bigbox;
 
