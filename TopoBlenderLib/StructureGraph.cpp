@@ -313,6 +313,12 @@ void Graph::setPropertyAll( QString prop_name, QVariant value )
 		n->property[prop_name].setValue(value);
 }
 
+void Graph::setVisPropertyAll( QString prop_name, QVariant value )
+{
+	foreach(Node* n, nodes) 
+		n->vis_property[prop_name].setValue(value);
+}
+
 void Graph::setPropertyFor( QVector<QString> nodeIDs, QString prop_name, QVariant value )
 {
 	foreach(QString nodeID, nodeIDs) 

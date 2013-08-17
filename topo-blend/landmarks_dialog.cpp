@@ -3,14 +3,15 @@
 #include "GraphCorresponder.h"
 
 #include <QFileDialog>
- #include <QItemSelectionModel>
+#include <QItemSelectionModel>
+#include "correspondence-manager.h"
 
 LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QDialog(parent), ui(new Ui::LandmarksDialog)
 {
 	tb = topo_blender;
 
 	if(!tb->gcoor)
-		gcorr = tb->makeCorresponder();
+		gcorr = tb->c_manager->makeCorresponder();
 	else
 		gcorr = tb->gcoor;
 
@@ -418,7 +419,7 @@ void LandmarksDialog::updateAll()
 
 void LandmarksDialog::reload()
 {
-	gcorr = tb->makeCorresponder();
+	gcorr = tb->c_manager->makeCorresponder();
 	if (!gcorr)
 	{
 		this->done(0);

@@ -24,14 +24,13 @@ using namespace Structure;
 #include "Scheduler.h"
 #include "Task.h"
 #include "Synthesizer.h"
-Q_DECLARE_METATYPE( Task* )
-
-VectorSoup vs1, vs2;
-double boundX = -DBL_MAX;
 
 #include "graphs-manager.h"
 #include "correspondence-manager.h"
 #include "synthesis-manager.h"
+
+#define BBOX_WIDTH(box) (box.max().x()-box.min().x())
+#define PADDING_FACTOR 0.3
 
 topoblend::topoblend()
 {
@@ -61,15 +60,20 @@ void topoblend::create()
 		points = mesh()->vertex_property<Vector3>("v:point");
 
 		// Events
-		this->connect(this,SIGNAL(statusBarMessage(QString)),SLOT(setStatusBarMessage(QString)));
+		this->connect(this, SIGNAL(statusBarMessage(QString)), SLOT(setStatusBarMessage(QString)));
 	}
 
 	drawArea()->setSelectRegionHeight(20);
 	drawArea()->setSelectRegionWidth(20);
+
+	// Change camera type
+	drawArea()->camera()->setType(qglviewer::Camera::PERSPECTIVE);
 }
 
 void topoblend::decorate()
 {
+	//drawBBox(bigbox);
+
 	// 2D view
 	//glDisable(GL_LIGHTING);
 	//for(int g = 0; g < (int) graphs.size(); g++)
@@ -100,8 +104,6 @@ void topoblend::decorate()
 	glPointSize(4); glColor3d(1,0,0); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints) glVector3(v); glEnd();
 	glPointSize(8); glColor3d(1,1,1); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints) glVector3(v); glEnd();
 
-	vs1.draw();
-
 	glPopMatrix();
 
 	// Points 2
@@ -109,8 +111,6 @@ void topoblend::decorate()
 	glTranslatef(0.0, drawArea()->sceneRadius(), 0);
 	glColor3d(0,1,0); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints2) glVector3(v); glEnd();
 	
-	vs2.draw();
-
 	glPopMatrix();
 
 	glColor3d(0,0,1); glBegin(GL_POINTS); foreach(Vector3 v, debugPoints3) glVector3(v); glEnd();
@@ -128,8 +128,7 @@ void topoblend::decorate()
 	// 3D visualization
 	glEnable(GL_LIGHTING);
 
-	double deltaX = boundX;
-	double posX = -(deltaX / 2) * (graphs.size() / 2);
+	double startX = bigbox.min().x();
 
 	for(int g = 0; g < (int) graphs.size(); g++)
 	{
@@ -147,22 +146,34 @@ void topoblend::decorate()
 
 		// Place and draw graph
 		glPushMatrix();
-		glTranslatef(posX, 0, 0);
-        graphs[g]->draw( drawArea() );
+
+		Eigen::AlignedBox3d curbox = graphs[g]->bbox();
+
+		double curwidth = (curbox.max().x() - curbox.min().x());
+		double deltaX = curwidth * 0.5;
+
+		double padding = 0;
+		if(g > 0) padding = curwidth * PADDING_FACTOR;
+
+		double posX = startX + deltaX + padding;
+
+		glTranslated(posX, 0, 0);
+
+		// store for later use
 		graphs[g]->property["posX"] = posX;
+        graphs[g]->draw( drawArea() );
+		//drawBBox( curbox );
+
 		glPopMatrix();
 
-		posX += deltaX;
+		startX += curwidth + padding;
 	}
 
 	if( scheduler && graphs.size() == 2 )
 	{
-		double posX = graphs.front()->property["posX"].toDouble();
-
 		// Source
 		foreach(Node * n, scheduler->activeGraph->nodes){
 			glPushMatrix();
-			glTranslatef(posX,0,0);
 			if(n->vis_property["glow"].toBool()) n->draw();
 			glPopMatrix();
 		}
@@ -174,33 +185,15 @@ void topoblend::decorate()
 	if( property["correspondenceMode"].toBool() ) 
 	{
 		glColor4d(1,1,1,1);
-		drawArea()->renderText(40,80, "Correspondence Mode");
+		drawArea()->renderText(40,60, "Correspondence Mode");
 	}
 }
 
 void topoblend::drawWithNames()
 {
-    float deltaX = drawArea()->sceneRadius();
-	float posX = - deltaX * (graphs.size() - 1) / 2;
-
 	if(property["correspondenceMode"].toBool())
 	{
-		int offset = 0;
-
-		for(int gID = 0; gID < (int) graphs.size(); gID++)
-		{
-			Structure::Graph *g = graphs[gID];
-
-			glPushMatrix();
-			glTranslatef(posX, 0, 0);
-
-			g->drawNodeMeshNames( offset );
-
-			glPopMatrix();
-
-			posX += deltaX;
-		}
-		
+		c_manager->drawWithNames();
 		return;
 	}
 
@@ -211,7 +204,6 @@ void topoblend::drawWithNames()
 		int nodeID_base = gID * NODE_ID_RANGE;
 
 		glPushMatrix();
-		glTranslatef(posX, 0, 0);
 
 		for (int nID = 0; nID < (int)g->nodes.size(); nID++)
 		{
@@ -219,8 +211,6 @@ void topoblend::drawWithNames()
 		}
 
 		glPopMatrix();
-
-		posX += deltaX;
 	}
 }
 
@@ -275,17 +265,25 @@ void topoblend::setSceneBounds()
 	if(!graphs.size()) return;
 
 	// Set scene bounds
-	boundX = -DBL_MAX;
+	bigbox = graphs.front()->bbox();
+	double deltaX = BBOX_WIDTH(bigbox);
+	bigbox.translate( Vector3(deltaX * 0.5, 0, 0) ); // start from zero
 
-	Eigen::AlignedBox3d bigbox = graphs.front()->bbox();
-	for(int i = 0; i < (int)graphs.size(); i++)
+	for(int i = 1; i < (int)graphs.size(); i++)
 	{
-		bigbox = bigbox.merged( Eigen::AlignedBox3d(graphs[i]->bbox()) );
-		boundX = qMax(boundX, graphs[i]->bbox().diagonal().x());
+		Eigen::AlignedBox3d curbox = graphs[i]->bbox();
+		
+		double curWidth = BBOX_WIDTH(curbox);
+		double padding = curWidth * PADDING_FACTOR;
+
+		curbox.translate( Vector3(deltaX + (0.5 * curWidth) + padding, 0, 0) );
+		bigbox = bigbox.merged( Eigen::AlignedBox3d(curbox) );
+
+		deltaX += BBOX_WIDTH(curbox) + padding; 
 	}
 
-	// Scale up by 3
-	//bigbox.transform(QMatrix4x4() * 3);
+	// Move to center
+	bigbox.translate( Vector3(-bigbox.center().x(), 0, 0) );
 
 	Vector3 a = bigbox.min();
 	Vector3 b = bigbox.max();
@@ -304,55 +302,10 @@ bool topoblend::mouseReleaseEvent( QMouseEvent * event )
 	bool used = false;
 
 	if( property["correspondenceMode"].toBool() ) 
-	{ 
+	{
 		if( event->button() == Qt::RightButton )
 		{
-			Graph * sourceGraph = graphs.front();
-			Graph * targetGraph = graphs.back();
-
-			QVector<QString> sParts, tParts;
-
-			// Source
-			foreach(Node * n, sourceGraph->nodes){
-				if( n->property["nodeSelected"].toBool() ){
-					sParts << n->id;
-					n->property["nodeSelected"] = false;
-					n->vis_property["meshColor"].setValue( QColor(180,180,180) );
-				}
-			}
-
-			// Target
-			foreach(Node * n, targetGraph->nodes){
-				if( n->property["nodeSelected"].toBool() ){
-					tParts << n->id;
-					n->property["nodeSelected"] = false;
-					n->vis_property["meshColor"].setValue( QColor(180,180,180) );
-				}
-			}
-			
-			// Correspondence specified
-			if(sParts.size() > 0 && tParts.size() > 0)
-			{
-				if(!gcoor) gcoor = makeCorresponder();
-
-				gcoor->addLandmarks(sParts, tParts);
-
-				QColor curColor = qRandomColor3(0, 0.25);
-
-				// Assign colors
-				foreach(QString nodeID, sParts)	
-				{
-					sourceGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
-					sourceGraph->getNode( nodeID )->property["is_corresponded"] = true;
-				}
-				foreach(QString nodeID, tParts)	
-				{
-					targetGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
-					targetGraph->getNode( nodeID )->property["is_corresponded"] = true;
-				}
-
-				gcoor->isReady = false;
-			}
+			c_manager->assignCorrespondence();
 		}
 	}
 
@@ -367,84 +320,13 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 	if(event->key() == Qt::Key_C)
 	{
-		foreach(Graph * g, graphs){
-			foreach(Node * n, g->nodes){
-				n->vis_property["meshColor"].setValue( QColor(180,180,180) );
-				n->property["is_corresponded"] = false;
-			}
-		}
-
-		if(gcoor) gcoor->clear();
-
+		c_manager->clearCorrespondence();
 		used = true;
 	}
 
 	if(event->key() == Qt::Key_Space)
 	{
-		// Enter / exit correspondence mode
-		property["correspondenceMode"] = !property["correspondenceMode"].toBool();
-		if(!property["correspondenceMode"].toBool()) 
-		{ 
-			drawArea()->setMouseBinding(Qt::LeftButton, QGLViewer::CAMERA, QGLViewer::ROTATE);
-			drawArea()->setMouseBinding(Qt::SHIFT | Qt::LeftButton, QGLViewer::SELECT);
-
-			// Reset mesh visualization
-			foreach(Graph * g, graphs){
-				foreach(Node * n, g->nodes){
-					n->vis_property["meshSolid"] = false;
-					n->vis_property["meshColor"].setValue( QColor(200,200,200,8) );
-				}
-			}
-
-			drawArea()->updateGL(); 
-			return used; 
-		}
-
-		drawArea()->setMouseBinding(Qt::LeftButton, QGLViewer::SELECT);
-		drawArea()->setMouseBinding(Qt::SHIFT | Qt::LeftButton, QGLViewer::CAMERA, QGLViewer::ROTATE);
-
-		// mesh visualization - set to solid gray
-		foreach(Graph * g, graphs){
-			foreach(Node * n, g->nodes){
-				n->vis_property["meshSolid"] = true;
-				n->vis_property["meshColor"].setValue( QColor(180,180,180) );
-			}
-		}
-
-		// Color previously assigned correspondences
-		if( gcoor ) {
-			Graph * sourceGraph = graphs.front();
-			Graph * targetGraph = graphs.back();
-
-			foreach (PART_LANDMARK vector2vector, gcoor->correspondences){
-				QColor curColor = qRandomColor3(0, 0.25);
-
-				foreach (QString strID, vector2vector.first){
-					sourceGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
-					sourceGraph->getNode( strID )->property["is_corresponded"] = true;
-				}
-			
-				foreach (QString strID, vector2vector.second){
-					targetGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
-					targetGraph->getNode( strID )->property["is_corresponded"] = true;
-				}
-			}
-
-			foreach (PART_LANDMARK vector2vector, gcoor->landmarks){
-				QColor curColor = qRandomColor3(0, 0.25);
-
-				foreach (QString strID, vector2vector.first){
-					sourceGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
-					sourceGraph->getNode( strID )->property["is_corresponded"] = true;
-				}
-				
-				foreach (QString strID, vector2vector.second){
-					targetGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
-					targetGraph->getNode( strID )->property["is_corresponded"] = true;
-				}
-			}
-		}
-
+		c_manager->correspondenceMode();
 		used = true;
 	}
 
@@ -535,9 +417,6 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		double minDist = DBL_MAX;
 		QString sample_details = "";
 
-		double deltaX = boundX;
-		double posX = -(deltaX / 2) * (graphs.size() / 2);
-
 		for(int gi = 0; gi < (int) graphs.size(); gi++)
 		{
 			Structure::Graph * g = graphs[gi];
@@ -551,7 +430,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 					QVector<ParameterCoord> samples = node->property["samples"].value< QVector<ParameterCoord> >();
 					QVector<float> offsets = node->property["offsets"].value< QVector<float> >();
 
-					Vector3f delta = Vector3f(posX,0,0);
+					Vector3f delta = Vector3f(g->property["posX"].toDouble(),0,0);
 					Vector3f q = p.cast<float>() - delta;
 
 					for(int i = 0; i < (int)pnts.size(); i++)
@@ -573,8 +452,6 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 					}
 				}
 			}
-
-			posX += deltaX;
 		}
 
 		setStatusBarMessage(sample_details);
@@ -716,14 +593,15 @@ void topoblend::doBlend()
 
 	if( !gcoor )
 	{
-		gcoor = makeCorresponder();
+		gcoor = c_manager->makeCorresponder();
 	}
 
 	if( !gcoor->isReady )
 	{
-		gcoor->clear();
 		gcoor->computeCorrespondences();
 	}
+
+	c_manager->exitCorrespondenceMode();
 
 	scheduler = new Scheduler( );
     blender = new TopoBlender( gcoor, scheduler );
@@ -732,18 +610,14 @@ void topoblend::doBlend()
 	this->connect(scheduler, SIGNAL(activeGraphChanged( Structure::Graph* )), SLOT(updateActiveGraph( Structure::Graph* )));
 
 	// Render connections
-	this->connect(scheduler, SIGNAL(renderAll()), SLOT(renderAll()), Qt::UniqueConnection);
-	this->connect(scheduler, SIGNAL(renderCurrent()), SLOT(renderCurrent()), Qt::UniqueConnection);
-	this->connect(scheduler, SIGNAL(draftRender()), SLOT(draftRender()), Qt::UniqueConnection);
+	this->s_manager->connect(scheduler, SIGNAL(renderAll()), SLOT(renderAll()), Qt::UniqueConnection);
+	this->s_manager->connect(scheduler, SIGNAL(renderCurrent()), SLOT(renderCurrent()), Qt::UniqueConnection);
+	this->s_manager->connect(scheduler, SIGNAL(draftRender()), SLOT(draftRender()), Qt::UniqueConnection);
 
 	// Other connections
 	this->connect(scheduler, SIGNAL(updateExternalViewer()), SLOT(updateDrawArea()));
 
 	setStatusBarMessage( QString("Created TopoBlender and tasks in [ %1 ms ]").arg( timer.elapsed() ) );
-
-	//this->graphs.clear();
-	//this->graphs.push_back(scheduler->activeGraph);
-	//this->graphs.push_back(scheduler->targetGraph);
 
 	setSceneBounds();
 
@@ -753,22 +627,6 @@ void topoblend::doBlend()
 void topoblend::updateDrawArea()
 {
 	drawArea()->updateGL();
-}
-
-GraphCorresponder* topoblend::makeCorresponder()
-{
-	if (graphs.size() < 2)
-	{
-		qDebug() << "Please load at least two graphs.";
-		return NULL;
-	}
-
-	Structure::Graph *sg = graphs[0];
-	Structure::Graph *tg = graphs[1];
-
-	gcoor = new GraphCorresponder(sg, tg);
-
-	return gcoor;
 }
 
 Structure::Graph * topoblend::getGraph(int id)
@@ -791,12 +649,7 @@ void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 				viz_params["showTasks"] = true;
 			}
 		}
-
-		//newActiveGraph->normalize();
-		//newActiveGraph->moveBottomCenterToOrigin();
 	}	
-	
-	//setSceneBounds();
 
 	graphs.clear();
 	this->graphs.push_back(newActiveGraph);
@@ -811,6 +664,53 @@ void topoblend::setStatusBarMessage(QString message)
 {
 	mainWindow()->setStatusBarMessage(message, 1000);
 	drawArea()->updateGL();
+}
+
+void topoblend::drawBBox(Eigen::AlignedBox3d bbox)
+{
+	float min[3]; 
+	min[0] = bbox.min().x();
+	min[1] = bbox.min().y();
+	min[2] = bbox.min().z();
+
+	float max[3]; 
+	max[0] = bbox.max().x();
+	max[1] = bbox.max().y();
+	max[2] = bbox.max().z();
+
+	/// --- Inherited from VCG ---
+	glPushAttrib(GL_ENABLE_BIT);
+	glColor3d(1,1,0.5);
+	glLineWidth(3);
+	glLineStipple(3, 0xAAAA);
+	glEnable(GL_LINE_STIPPLE);
+
+	glDisable(GL_LIGHTING);
+	glBegin(GL_LINE_STRIP);
+	glVertex3f((float)min[0],(float)min[1],(float)min[2]);
+	glVertex3f((float)max[0],(float)min[1],(float)min[2]);
+	glVertex3f((float)max[0],(float)max[1],(float)min[2]);
+	glVertex3f((float)min[0],(float)max[1],(float)min[2]);
+	glVertex3f((float)min[0],(float)min[1],(float)min[2]);
+	glEnd();
+	glBegin(GL_LINE_STRIP);
+	glVertex3f((float)min[0],(float)min[1],(float)max[2]);
+	glVertex3f((float)max[0],(float)min[1],(float)max[2]);
+	glVertex3f((float)max[0],(float)max[1],(float)max[2]);
+	glVertex3f((float)min[0],(float)max[1],(float)max[2]);
+	glVertex3f((float)min[0],(float)min[1],(float)max[2]);
+	glEnd();
+	glBegin(GL_LINES);
+	glVertex3f((float)min[0],(float)min[1],(float)min[2]);
+	glVertex3f((float)min[0],(float)min[1],(float)max[2]);
+	glVertex3f((float)max[0],(float)min[1],(float)min[2]);
+	glVertex3f((float)max[0],(float)min[1],(float)max[2]);
+	glVertex3f((float)max[0],(float)max[1],(float)min[2]);
+	glVertex3f((float)max[0],(float)max[1],(float)max[2]);
+	glVertex3f((float)min[0],(float)max[1],(float)min[2]);
+	glVertex3f((float)min[0],(float)max[1],(float)max[2]);
+	glEnd();
+	glPopAttrib(); 
 }
 
 Q_EXPORT_PLUGIN(topoblend)

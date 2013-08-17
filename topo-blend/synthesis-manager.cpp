@@ -16,8 +16,6 @@
 
 void SynthesisManager::genSynData()
 {
-    tb->drawArea()->camera()->setType(qglviewer::Camera::PERSPECTIVE);
-
     qApp->setOverrideCursor(Qt::WaitCursor);
 
     QElapsedTimer timer; timer.start();

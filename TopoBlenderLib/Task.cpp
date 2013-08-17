@@ -14,8 +14,6 @@
 using namespace NURBS;
 using namespace Structure;
 
-Q_DECLARE_METATYPE( Task* )
-
 Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, TaskType taskType, int ID )
 {
 	// Task properties
