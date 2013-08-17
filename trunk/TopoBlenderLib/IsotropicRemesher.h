@@ -389,7 +389,7 @@ struct IsotropicRemesher{
 		//first compute barycenters
 		for (v_it = mesh->vertices_begin(); v_it != v_end; ++v_it){
 
-			Vector3 tmp(0);
+            Vector3 tmp(0,0,0);
 			uint N = 0;
 
 			foreach( Halfedge hvit, mesh->onering_hedges(v_it) )
