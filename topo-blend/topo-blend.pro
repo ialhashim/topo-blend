@@ -1,7 +1,6 @@
 include($$[STARLAB])
 include($$[SURFACEMESH])
 include($$[CHOLMOD])
-
 include($$[NANOFLANN])
 StarlabTemplate(plugin)
 
@@ -32,29 +31,35 @@ INCLUDEPATH += ../TopoBlenderLib
 LIBS += -L$$PWD/../GLSplatRendererLib/$$CFG/lib -lGLSplatRendererLib
 INCLUDEPATH += ../GLSplatRendererLib
 
-HEADERS += topo-blend.h \ 
-    QuickMesh.h \
-    QuickViewer.h \
-    topo_blend_widget.h \
-    graph_modify_dialog.h \
-    landmarks_dialog.h \
-    QuickAlignment.h \
-    QuickGroup.h
+HEADERS +=  topo-blend.h \
+            QuickMesh.h \
+            QuickViewer.h \
+            topo_blend_widget.h \
+            graph_modify_dialog.h \
+            landmarks_dialog.h \
+            QuickAlignment.h \
+            QuickGroup.h \
+            graphs-manager.h \
+            correspondence-manager.h \
+            synthesis-manager.h
 
 SOURCES +=  topo-blend.cpp \
             topo_blend_widget.cpp \
             graph_modify_dialog.cpp \
-			landmarks_dialog.cpp \
-    QuickAlignment.cpp \
-    QuickGroup.cpp
+            landmarks_dialog.cpp \
+            QuickAlignment.cpp \
+            QuickGroup.cpp \
+            graphs-manager.cpp \
+            correspondence-manager.cpp \
+            synthesis-manager.cpp
 	
 RESOURCES += topo-blend.qrc
 
 FORMS +=    topo_blend_widget.ui \
             animationWidget.ui \
             graph_modify_dialog.ui \
-			landmarks_dialog.ui \
-    QuickAlignment.ui \
-    QuickGroup.ui
+            landmarks_dialog.ui \
+            QuickAlignment.ui \
+            QuickGroup.ui
 
-mac:LIBS += -framework CoreFoundation # We need this for GLee
+mac:LIBS += -framework CoreFoundation # We need this for GLee..
