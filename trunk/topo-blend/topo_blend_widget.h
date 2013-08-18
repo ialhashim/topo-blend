@@ -18,6 +18,8 @@ public:
     ~topo_blend_widget();
 
 	int synthesisSamplesCount();
+	
+	QWidget * simpleWidget();
 
 public slots:
     void renderViewer();

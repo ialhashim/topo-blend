@@ -7,10 +7,17 @@
 SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidget(parent), ui(new Ui::SchedulerWidget), s(scheduler)
 {
     ui->setupUi(this);
+
+	// Execute blending sequence
+	scheduler->connect( ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()) );
+
+	// Controls show / hide
+	isShowControls = true;
+	toggleOptions(); // Hide all controls by default
+	this->connect(ui->showAllButton, SIGNAL(clicked()), SLOT(toggleOptions()));
+
     ui->timelineView->setScene(scheduler);
 	ui->timelineView->updateSceneRect(scheduler->sceneRect());
-
-	scheduler->connect( ui->blendButton, SIGNAL(clicked()), SLOT(doBlend()) );
 
 	connect( scheduler, SIGNAL(progressChanged(int)), ui->progressBar, SLOT(setValue(int)) );
 
@@ -52,6 +59,28 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
 
 	// List nodes from scheduler
 	updateNodesList();
+}
+
+void SchedulerWidget::toggleOptions()
+{
+	if (isShowControls)
+	{
+		ui->blendControls->hide();
+		ui->nodesWrapperWidget->hide();
+		ui->synthesisControl->hide();
+		ui->timelineLabel->hide();
+
+		isShowControls = false;
+	}
+	else
+	{
+		ui->blendControls->show();
+		ui->nodesWrapperWidget->show();
+		ui->synthesisControl->show();
+		ui->timelineLabel->show();
+
+		isShowControls = true;
+	}
 }
 
 void SchedulerWidget::updateNodesList()

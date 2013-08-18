@@ -81,7 +81,7 @@ void Scheduler::drawForeground( QPainter * painter, const QRectF & rect )
 
 		int curX = i * spacing;
 
-		QString tickText = QString("00:%1").arg(time);
+		QString tickText = QString("%1").arg(time);
 		painter->drawText(curX - (fm.width(tickText) * 0.5), screenBottom - 14, tickText );
 
 		// Major tick
@@ -406,6 +406,7 @@ void Scheduler::reset()
 	allGraphs.clear();
 	foreach(Task * task, tasks)	this->removeItem(task);
 	tasks.clear();
+	property.remove("timeTags");
 
 	// Reload
 	this->activeGraph = property["prevActiveGraph"].value<Structure::Graph*>();

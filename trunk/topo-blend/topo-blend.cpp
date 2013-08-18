@@ -30,10 +30,12 @@ using namespace Structure;
 #include "synthesis-manager.h"
 
 #define BBOX_WIDTH(box) (box.max().x()-box.min().x())
-#define PADDING_FACTOR 0.3
+#define PADDING_FACTOR 1.0
 
 // Simple UI
 #include "wizard.h"
+
+#include "QuickMeshDraw.h"
 
 topoblend::topoblend()
 {
@@ -68,14 +70,15 @@ void topoblend::create()
 		this->connect(this, SIGNAL(statusBarMessage(QString)), SLOT(setStatusBarMessage(QString)));
 
 		// Simple UI
-		this->wizard = new Wizard;
+		this->wizard = new Wizard(this, widget->simpleWidget());
 	}
 
-	drawArea()->setSelectRegionHeight(20);
-	drawArea()->setSelectRegionWidth(20);
+	drawArea()->setSelectRegionHeight( 20 );
+	drawArea()->setSelectRegionWidth( 20 );
 
 	// Change camera type
 	drawArea()->camera()->setType(qglviewer::Camera::PERSPECTIVE);
+	setSceneBounds();
 }
 
 void topoblend::decorate()
@@ -177,12 +180,30 @@ void topoblend::decorate()
 		startX += curwidth + padding;
 	}
 
+	// Draw selections 
 	if( scheduler && graphs.size() == 2 )
 	{
 		// Source
 		foreach(Node * n, scheduler->activeGraph->nodes){
 			glPushMatrix();
-			if(n->vis_property["glow"].toBool()) n->draw();
+
+			if(n->vis_property["glow"].toBool()) 
+			{
+				double posActiveX = scheduler->activeGraph->property["posX"].toDouble();
+				double posTargetX = scheduler->targetGraph->property["posX"].toDouble();
+
+				if(n->id.contains("_null")) posActiveX = posTargetX;
+
+				glTranslated(posActiveX, 0, 0);
+
+				n->draw();
+				
+				if(n->property.contains("mesh")){
+					SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
+					QColor meshColor(255,255,0);
+					QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
+				}
+			}
 			glPopMatrix();
 		}
 	}
@@ -270,7 +291,16 @@ bool topoblend::postSelection( const QPoint& point )
 
 void topoblend::setSceneBounds()
 {
-	if(!graphs.size()) return;
+	if(!graphs.size())
+	{
+		drawArea()->setSceneRadius(2);
+		drawArea()->setSceneCenter(qglviewer::Vec(0,0,0));
+		drawArea()->setSceneBoundingBox(qglviewer::Vec(-1,-1,-1), qglviewer::Vec(1,1,1));
+		drawArea()->camera()->setPosition(qglviewer::Vec(-1,-3,2));
+		drawArea()->showEntireScene();
+		drawArea()->updateGL();
+		return;
+	}
 
 	// Set scene bounds
 	bigbox = graphs.front()->bbox();

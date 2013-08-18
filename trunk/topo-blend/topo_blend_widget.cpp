@@ -89,6 +89,11 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	this->connect(ui->splatSize, SIGNAL(valueChanged(double)), SLOT(splatSizeChanged(double)));
 }
 
+QWidget * topo_blend_widget::simpleWidget()
+{
+	return ui->simpleWidget;
+}
+
 topo_blend_widget::~topo_blend_widget()
 {
     delete ui;

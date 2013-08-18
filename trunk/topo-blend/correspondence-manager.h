@@ -14,4 +14,5 @@ public:
 	void clearCorrespondence();
 	void drawWithNames();
 	void exitCorrespondenceMode();
+	void visualizeAsSolids();
 };
