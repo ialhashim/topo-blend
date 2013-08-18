@@ -26,6 +26,7 @@ public:
 
 private:
     Ui::SchedulerWidget *ui;
+	bool isShowControls;
 
 public slots:
 	void updateNodesList();
@@ -39,4 +40,5 @@ public slots:
 	void saveSchedule();
 
 	void cleanUp();
+	void toggleOptions();
 };

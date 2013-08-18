@@ -7,12 +7,14 @@ namespace Ui { class Wizard; }
 #include "QtAwesome/QtAwesome.h"
 extern QtAwesome* awesome;
 
+#include "topo-blend.h"
+
 class Wizard : public QWidget
 {
     Q_OBJECT
     
 public:
-    explicit Wizard(QWidget *parent = 0);
+    explicit Wizard(topoblend *parent, QWidget * parentWidget);
     ~Wizard();
 
 	QVector<QLabel*> icons;
@@ -20,9 +22,13 @@ public:
 	
 	void setOpacity( QString objName, double toValue );
 
+	topoblend *tb;
+
 public slots:
 	void loadShapeA();
 	void loadShapeB();
+	void matchingButton();
+	void generateBlend();
 
 private:
     Ui::Wizard *ui;

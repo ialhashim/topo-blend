@@ -88,6 +88,17 @@ void CorrespondenceManager::exitCorrespondenceMode()
 	tb->drawArea()->updateGL(); 
 }
 
+void CorrespondenceManager::visualizeAsSolids()
+{
+	// mesh visualization - set to solid gray
+	foreach(Graph * g, tb->graphs){
+		foreach(Node * n, g->nodes){
+			n->vis_property["meshSolid"] = true;
+			n->vis_property["meshColor"].setValue( QColor(180,180,180) );
+		}
+	}
+}
+
 void CorrespondenceManager::correspondenceMode()
 {
 	// Enter / exit correspondence mode
@@ -102,13 +113,7 @@ void CorrespondenceManager::correspondenceMode()
 	tb->drawArea()->setMouseBinding(Qt::LeftButton, QGLViewer::SELECT);
 	tb->drawArea()->setMouseBinding(Qt::SHIFT | Qt::LeftButton, QGLViewer::CAMERA, QGLViewer::ROTATE);
 
-	// mesh visualization - set to solid gray
-	foreach(Graph * g, tb->graphs){
-		foreach(Node * n, g->nodes){
-			n->vis_property["meshSolid"] = true;
-			n->vis_property["meshColor"].setValue( QColor(180,180,180) );
-		}
-	}
+	this->visualizeAsSolids();
 
 	// Color previously assigned correspondences
 	if( tb->gcoor ) {
