@@ -70,16 +70,19 @@ void CorrespondenceManager::assignCorrespondence()
 	}
 }
 
-void CorrespondenceManager::exitCorrespondenceMode()
+void CorrespondenceManager::exitCorrespondenceMode(bool isChangeVisualization)
 {
 	tb->drawArea()->setMouseBinding(Qt::LeftButton, QGLViewer::CAMERA, QGLViewer::ROTATE);
 	tb->drawArea()->setMouseBinding(Qt::SHIFT | Qt::LeftButton, QGLViewer::SELECT);
 
 	// Reset mesh visualization
-	foreach(Graph * g, tb->graphs){
-		foreach(Node * n, g->nodes){
-			n->vis_property["meshSolid"] = false;
-			n->vis_property["meshColor"].setValue( QColor(200,200,200,8) );
+	if( isChangeVisualization )
+	{
+		foreach(Graph * g, tb->graphs){
+			foreach(Node * n, g->nodes){
+				n->vis_property["meshSolid"] = false;
+				n->vis_property["meshColor"].setValue( QColor(200,200,200,8) );
+			}
 		}
 	}
 
@@ -106,7 +109,7 @@ void CorrespondenceManager::correspondenceMode()
 
 	if(!tb->property["correspondenceMode"].toBool()) 
 	{ 
-		exitCorrespondenceMode();
+		exitCorrespondenceMode(true);
 		return; 
 	}
 

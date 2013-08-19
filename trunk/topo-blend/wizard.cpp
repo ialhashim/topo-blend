@@ -159,9 +159,13 @@ void Wizard::matchingButton()
 
 		tb->doBlend();
 	}
+
+	tb->updateDrawArea();
 }
 
 void Wizard::generateBlend()
 {
 	tb->scheduler->doBlend();
+
+	tb->updateDrawArea();
 }

@@ -126,7 +126,6 @@ void GraphsManager::clearGraphs()
     // Delete all graphs
     qDeleteAll(tb->graphs);
     tb->graphs.clear();
-    tb->orgSource = tb->orgTarget = NULL;
 
     // Clear debug
     tb->debugPoints.clear(); tb->debugPoints2.clear();

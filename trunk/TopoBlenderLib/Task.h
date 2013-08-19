@@ -115,6 +115,7 @@ public:
 
 protected:
 	virtual QVariant itemChange ( GraphicsItemChange change, const QVariant & value );
+	QVector<Task*> allOtherTasks();
 };
 
 // Useful global definitions
@@ -138,8 +139,8 @@ static inline double rad_to_deg(const double& _angle){ return 180.0*(_angle/M_PI
 
 // red, orange, yellow, green, blue
 // pink, purpule, portage, lacoste, corn
-static QColor TaskColors[] = { QColor(255,97,121),  QColor(255,219,88),
-    QColor(107,255,135), QColor(255,165,107) , QColor(104,126,255),
+static QColor TaskColors[] = { 
+	QColor(255,97,121),  QColor(255,219,88), QColor(107,255,135), QColor(255,165,107), QColor(104,126,255),
     QColor(242,5,135), QColor(113,53,242), QColor(138,109,242), QColor(3,166,60), QColor(242,203,5)};
 
 static QString TaskNames[] = { "SHRINK", "MERGE", "MORPH", "SPLIT", "GROW" };

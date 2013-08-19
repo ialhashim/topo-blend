@@ -64,9 +64,6 @@ public:
 	bool keyPressEvent( QKeyEvent* event );
 	bool mouseReleaseEvent( QMouseEvent * event );
 
-    Structure::Graph *orgSource;
-    Structure::Graph *orgTarget;
-
 	TopoBlender * blender;
 	Scheduler * scheduler;
 

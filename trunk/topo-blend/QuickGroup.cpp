@@ -80,8 +80,7 @@ void QuickGroup::updateCurrentGroups()
 
 	// Display current groups
 	ui->curList->clear();
-	NodeGroups groups = g->property["groups"].value<NodeGroups>();
-	foreach(QVector<QString> group, groups)
+	foreach(QVector<QString> group, g->groups)
 	{
 		QStringList nlist;
 		foreach(QString nodeId, group) nlist << nodeId;

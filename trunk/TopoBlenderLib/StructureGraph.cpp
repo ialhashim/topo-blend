@@ -81,6 +81,7 @@ Graph::Graph( const Graph & other )
 		newEdge->property = e->property;
 	}
 
+	groups = other.groups;
 	property = other.property;
 	adjacency = other.adjacency;
 	misc = other.misc;
@@ -396,11 +397,6 @@ void Graph::clearDebug()
 void Graph::draw( QGLViewer * drawArea )
 {
 	if( property["isBusy"].toBool() ) return;
-
-	// Make sure we draw smooth objects
-	glEnable(GL_MULTISAMPLE_ARB);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	if( property["showTasks"].toBool() )
 	{
@@ -1029,19 +1025,14 @@ void Graph::saveToFile( QString fileName ) const
 		out << "</edge>\n\n";
 	}
 
-    // Save groups
-    if(property.contains("groups"))
-    {
-        NodeGroups groups = property["groups"].value<NodeGroups>();
-
-        foreach(QVector<QString> group, groups){
-            out << "<group>";
-            foreach(QString nid, group){
-                out << QString("\n\t<n>%1</n>").arg(nid);
-            }
-            out << "\n</group>\n\n";
-        }
-    }
+	// Save groups
+	foreach(QVector<QString> group, groups){
+		out << "<group>";
+		foreach(QString nid, group){
+			out << QString("\n\t<n>%1</n>").arg(nid);
+		}
+		out << "\n</group>\n\n";
+	}
 
 	out << "\n</document>\n";
 	file.close();
@@ -1871,33 +1862,25 @@ void Graph::removeEdges( QString nodeID )
 void Graph::addGroup(QVector<QString> newGroup)
 {
     if(!newGroup.size()) return;
-
-    NodeGroups groups;
-
-    if(property.contains("groups"))
-        groups = property["groups"].value<NodeGroups>();
-
-    // Add
     groups.push_back( newGroup );
-    property["groups"].setValue( groups );
 }
 
 void Graph::removeGroup(int groupIDX)
 {
 	if(groupIDX < 0) return;
-
-    NodeGroups groups;
-
-    if(property.contains("groups"))
-        groups = property["groups"].value<NodeGroups>();
-    else
-        property["groups"].setValue( groups );
-
     if(!groups.size()) return;
 
     // Remove
     groups.remove(groupIDX);
-    property["groups"].setValue( groups );
+}
+
+QVector<QString> Graph::groupOf( QString nodeID )
+{
+	foreach(QVector<QString> group, groups)
+		foreach(QString nid, group)
+			if(nid == nodeID) return group;
+
+	return QVector<QString>(0);
 }
 
 QVector<POINT_ID> Graph::selectedControlPointsByColor(QColor color)

@@ -13,6 +13,6 @@ public:
 	void correspondenceMode();
 	void clearCorrespondence();
 	void drawWithNames();
-	void exitCorrespondenceMode();
+	void exitCorrespondenceMode(bool isChangeVisualization);
 	void visualizeAsSolids();
 };

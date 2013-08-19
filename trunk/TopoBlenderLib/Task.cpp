@@ -67,16 +67,16 @@ void Task::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWid
 }
 
 QVariant Task::itemChange( GraphicsItemChange change, const QVariant & value )
-{
+{  
 	// Glow when selected
-	if(this->isSelected())
+	if( this->isSelected() )
 	{
 		QGraphicsDropShadowEffect * taskGlow = new QGraphicsDropShadowEffect;
 		taskGlow->setColor(QColor(255,255,255,255));
 		taskGlow->setBlurRadius(20);
 		taskGlow->setOffset(0);
 		this->setGraphicsEffect(taskGlow);
-		
+
 		if(node() && targetNode())
 		{
 			node()->vis_property["glow"] = true;
@@ -93,8 +93,8 @@ QVariant Task::itemChange( GraphicsItemChange change, const QVariant & value )
 			targetNode()->vis_property["glow"] = false;
 		}
 	}
-
-	if (scene() && change == ItemPositionChange && !isResizing) 
+	
+	if (change == ItemPositionChange && scene() && !isResizing) 
 	{
 		QPointF newPos = value.toPointF();
 
@@ -106,6 +106,7 @@ QVariant Task::itemChange( GraphicsItemChange change, const QVariant & value )
 
 		return newPos;
 	}
+
 	return QGraphicsItem::itemChange(change, value);
 }
 
@@ -135,6 +136,24 @@ void Task::mouseMoveEvent( QGraphicsSceneMouseEvent * event )
 
 		event->accept();
 		return;
+	}
+
+	// Select siblings in the group, if non-else selected
+	bool nothingElseSelected = true;
+	foreach(Task * otherTask, allOtherTasks()){
+		if(otherTask->isSelected()){
+			nothingElseSelected = false;
+			break;
+		}
+	}
+	if( nothingElseSelected ){
+		bool needRefresh = false;
+		foreach(QString member, active->groupOf(nodeID)){
+			Task * t = active->getNode(member)->property["task"].value<Task*>();
+			t->setSelected(true);
+			needRefresh = true;
+		}
+		if(needRefresh) ((Scheduler*)this->scene())->emitUpdateExternalViewer();
 	}
 
 	QGraphicsItem::mouseMoveEvent(event);
@@ -847,4 +866,15 @@ bool Task::ungrownNode( QString nid )
 	if ( node->property.contains("taskIsDone")  && !node->property["taskIsDone"].toBool() ) return true;
 
 	return false;
+}
+
+QVector<Task*> Task::allOtherTasks()
+{
+	QVector<Task*> result;
+	foreach(Node * n, active->nodes){
+		if(n->id != nodeID){
+			result.push_back( n->property["task"].value<Task*>() );
+		}
+	}
+	return result;
 }

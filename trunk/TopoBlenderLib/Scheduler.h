@@ -80,6 +80,7 @@ protected:
 
 	void mouseReleaseEvent( QGraphicsSceneMouseEvent * event );
 	void mousePressEvent( QGraphicsSceneMouseEvent * event );
+	void mouseMoveEvent( QGraphicsSceneMouseEvent * event );
 
 public slots:
 	void timeChanged(int newTime);
@@ -103,6 +104,7 @@ public slots:
 	void saveSchedule(QString filename);
 	QMap< QString, QPair<int,int> > getSchedule();
 	void setSchedule( QMap< QString, QPair<int,int> > fromSchedule );
+	void emitUpdateExternalViewer();
 
 signals:
 	void activeGraphChanged( Structure::Graph* );
