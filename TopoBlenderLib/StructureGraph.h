@@ -28,6 +28,8 @@ struct Graph
 	// Properties
     QVector<Node*> nodes;
     QVector<Link*> edges;
+	NodeGroups groups;
+
     Eigen::AlignedBox3d bbox();
     QMap< QString, QVariant > property;
 	Eigen::MatrixXd adjacency;
@@ -60,6 +62,7 @@ struct Graph
 
     void addGroup(QVector<QString> nodes);
     void removeGroup(int groupIDX);
+	QVector<QString> groupOf( QString nodeID );
 
 	QString linkName( QString n1_id, QString n2_id );
     QString linkName( Node * n1, Node * n2 );

@@ -249,8 +249,7 @@ void TopoBlender::correspondSuperNodes()
 		if (tN > 1)	{
 			QVector<QString> csnodeIDs = cloneGraphNode(super_sg, snode->id, tN);
 			for (int i = 0; i < tN; i++) superNodeCorr[csnodeIDs[i]] = tNodes[i];
-			super_tg->addGroup(csnodeIDs);
-
+			super_sg->addGroup(csnodeIDs);
 		}
 	}
 
@@ -869,7 +868,6 @@ void TopoBlender::equalizeSuperNodeTypes()
 	// remove tags
 	foreach(Structure::Node* n, super_sg->nodes) n->property.remove("type_equalized");
 	foreach(Structure::Node* n, super_tg->nodes) n->property.remove("type_equalized");
-
 }
 
 // The sheet and curve should serve the same functionality in each shape

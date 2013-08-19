@@ -46,9 +46,6 @@ topoblend::topoblend()
 	blender = NULL;
 	scheduler = NULL;
 
-    orgSource = NULL;
-    orgTarget = NULL;
-
     g_manager = new GraphsManager(this);
     c_manager = new CorrespondenceManager(this);
     s_manager = new SynthesisManager(this);
@@ -83,6 +80,15 @@ void topoblend::create()
 
 void topoblend::decorate()
 {
+	#ifndef GL_MULTISAMPLE
+	#define GL_MULTISAMPLE  0x809D
+	#endif
+
+	// Make sure we draw smooth objects
+	glEnable(GL_MULTISAMPLE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	//drawBBox(bigbox);
 
 	// 2D view
@@ -139,72 +145,78 @@ void topoblend::decorate()
 	// 3D visualization
 	glEnable(GL_LIGHTING);
 
-	double startX = bigbox.min().x();
-
-	for(int g = 0; g < (int) graphs.size(); g++)
-	{
-		// Apply visualization options
-		graphs[g]->property["showEdges"] = viz_params["showEdges"];
-		graphs[g]->property["showMeshes"] = viz_params["showMeshes"];
-		graphs[g]->property["showTasks"] = viz_params["showTasks"];
-		graphs[g]->property["showCtrlPts"] = viz_params["showCtrlPts"];
-		graphs[g]->property["isSplatsHQ"] = viz_params["isSplatsHQ"];
-		graphs[g]->property["splatSize"] = viz_params["splatSize"];
-		graphs[g]->property["showNodes"] = viz_params["showNodes"];
-		graphs[g]->property["showNodes"] = viz_params["showNodes"];
-		graphs[g]->property["showNames"] = viz_params["showNames"];
-		graphs[g]->property["showCurveFrames"] = viz_params["showCurveFrames"];
-
-		// Place and draw graph
-		glPushMatrix();
-
-		Eigen::AlignedBox3d curbox = graphs[g]->bbox();
-
-		double curwidth = (curbox.max().x() - curbox.min().x());
-		double deltaX = curwidth * 0.5;
-
-		double padding = 0;
-		if(g > 0) padding = curwidth * PADDING_FACTOR;
-
-		double posX = startX + deltaX + padding;
-
-		glTranslated(posX, 0, 0);
-
-		// store for later use
-		graphs[g]->property["posX"] = posX;
-        graphs[g]->draw( drawArea() );
-		//drawBBox( curbox );
-
-		glPopMatrix();
-
-		startX += curwidth + padding;
-	}
-
 	// Draw selections 
-	if( scheduler && graphs.size() == 2 )
+	if( scheduler && scheduler->allGraphs.size() == 0 )
 	{
-		// Source
-		foreach(Node * n, scheduler->activeGraph->nodes){
-			glPushMatrix();
+		QVector<Structure::Graph*> currentGraphs;
+		currentGraphs.push_back(scheduler->activeGraph);
+		currentGraphs.push_back(scheduler->targetGraph);
 
-			if(n->vis_property["glow"].toBool()) 
-			{
-				double posActiveX = scheduler->activeGraph->property["posX"].toDouble();
-				double posTargetX = scheduler->targetGraph->property["posX"].toDouble();
+		foreach(Structure::Graph * g, currentGraphs){
+			foreach(Node * n, g->nodes){
+				if(n->id.contains("_null") || !n->property.contains("mesh")) continue;
+				SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
 
-				if(n->id.contains("_null")) posActiveX = posTargetX;
+				glPushMatrix();
+				double posX = g->property["posX"].toDouble();
 
-				glTranslated(posActiveX, 0, 0);
+				glTranslated(posX, 0, 0);
 
-				n->draw();
-				
-				if(n->property.contains("mesh")){
-					SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
+				if(n->vis_property["glow"].toBool()) 
+				{
 					QColor meshColor(255,255,0);
 					QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
 				}
+				else
+				{
+					QColor meshColor(180,180,180);
+					QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
+				}
+				glPopMatrix();
 			}
+		}
+	}
+	else
+	{
+		double startX = bigbox.min().x();
+
+		for(int g = 0; g < (int) graphs.size(); g++)
+		{
+			// Apply visualization options
+			graphs[g]->property["showEdges"] = viz_params["showEdges"];
+			graphs[g]->property["showMeshes"] = viz_params["showMeshes"];
+			graphs[g]->property["showTasks"] = viz_params["showTasks"];
+			graphs[g]->property["showCtrlPts"] = viz_params["showCtrlPts"];
+			graphs[g]->property["isSplatsHQ"] = viz_params["isSplatsHQ"];
+			graphs[g]->property["splatSize"] = viz_params["splatSize"];
+			graphs[g]->property["showNodes"] = viz_params["showNodes"];
+			graphs[g]->property["showNodes"] = viz_params["showNodes"];
+			graphs[g]->property["showNames"] = viz_params["showNames"];
+			graphs[g]->property["showCurveFrames"] = viz_params["showCurveFrames"];
+
+			// Place and draw graph
+			glPushMatrix();
+
+			Eigen::AlignedBox3d curbox = graphs[g]->bbox();
+
+			double curwidth = (curbox.max().x() - curbox.min().x());
+			double deltaX = curwidth * 0.5;
+
+			double padding = 0;
+			if(g > 0) padding = curwidth * PADDING_FACTOR;
+
+			double posX = startX + deltaX + padding;
+
+			glTranslated(posX, 0, 0);
+
+			// store for later use
+			graphs[g]->property["posX"] = posX;
+			graphs[g]->draw( drawArea() );
+			//drawBBox( curbox );
+
 			glPopMatrix();
+
+			startX += curwidth + padding;
 		}
 	}
 
@@ -590,30 +602,10 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 void topoblend::doBlend()
 {
-	if ( graphs.size() < 2 && !orgSource )
+	if ( graphs.size() < 2 )
 	{
 		qDebug() << "Please load at least two graphs.";
 		return;
-	}
-
-	// Reload previous source and target if any
-	if( graphs.size() < 2 )
-	{
-		// Use previously loaded 
-		this->graphs.clear();
-		this->graphs.push_back( new Graph(*orgSource) );
-		this->graphs.push_back( new Graph(*orgTarget) );
-	}
-
-	orgSource = graphs.front();
-	orgTarget = graphs.back();
-
-	// Visualization
-	foreach(Graph * g, graphs){
-		foreach(Node * n, g->nodes){
-			n->vis_property["meshSolid"] = false;
-			n->vis_property["meshColor"].setValue( QColor(200,200,200,8) );
-		}
 	}
 
 	QElapsedTimer timer; timer.start();
@@ -639,7 +631,7 @@ void topoblend::doBlend()
 		gcoor->computeCorrespondences();
 	}
 
-	c_manager->exitCorrespondenceMode();
+	c_manager->exitCorrespondenceMode(true);
 
 	scheduler = new Scheduler( );
     blender = new TopoBlender( gcoor, scheduler );

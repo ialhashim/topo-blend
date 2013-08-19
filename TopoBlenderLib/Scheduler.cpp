@@ -217,7 +217,7 @@ void Scheduler::order()
 
 			// Group events in same group
 			g = (i == Task::SHRINK) ? activeGraph : targetGraph;
-			if(g->property.contains("groups")) groupStart(g, curTasks, curStart, futureStart);		
+			groupStart(g, curTasks, curStart, futureStart);		
 
 			curStart = futureStart;
 		}
@@ -244,7 +244,7 @@ void Scheduler::order()
 			}
 
 			g = targetGraph;
-			if(g->property.contains("groups")) groupStart(g, curTasks, curStart, futureStart);
+			groupStart(g, curTasks, curStart, futureStart);
 
 			curStart = futureStart;
 
@@ -306,11 +306,9 @@ void Scheduler::groupStart( Structure::Graph * g, QList<Task*> curTasks, int cur
 {
 	if(!curTasks.size()) return;
 
-	NodeGroups groups = g->property["groups"].value<NodeGroups>();
-
 	int i = curTasks.front()->type;
 
-	foreach(QVector<QString> group, groups)
+	foreach(QVector<QString> group, g->groups)
 	{
 		QVector<Task*> tasksInGroup;
 
@@ -588,6 +586,8 @@ void Scheduler::timeChanged( int newTime )
 
 void Scheduler::doBlend()
 {
+	foreach(Task * t, tasks) t->setSelected(false);
+
 	emit( startBlend() );
 }
 
@@ -887,5 +887,32 @@ void Scheduler::mouseReleaseEvent( QGraphicsSceneMouseEvent * event )
 
 void Scheduler::mousePressEvent( QGraphicsSceneMouseEvent * event )
 {
+	property["mouseFirstPress"] = true;
+
 	QGraphicsScene::mousePressEvent(event);
+
+	// Reset on changes to schedule
+	if(allGraphs.size()){
+		foreach(Task* t, tasks){
+			if(t->isSelected()){
+				this->reset();
+				emitUpdateExternalViewer();
+			}
+		}
+	}
+}
+
+void Scheduler::mouseMoveEvent( QGraphicsSceneMouseEvent * event )
+{
+	if(property["mouseFirstPress"].toBool()){
+		property["mouseFirstPress"] = false;
+		emitUpdateExternalViewer();
+	}
+
+	QGraphicsScene::mouseMoveEvent(event);
+}
+
+void Scheduler::emitUpdateExternalViewer()
+{
+	emit( updateExternalViewer() );
 }
