@@ -45,14 +45,14 @@ void CorrespondenceManager::assignCorrespondence()
 		}
 	}
 
+	QColor curColor = qRandomColor3(0, 0.25);
+
+	if(!tb->gcoor) tb->gcoor = makeCorresponder();
+
 	// Correspondence specified
 	if(sParts.size() > 0 && tParts.size() > 0)
 	{
-		if(!tb->gcoor) tb->gcoor = makeCorresponder();
-
 		tb->gcoor->addLandmarks(sParts, tParts);
-
-		QColor curColor = qRandomColor3(0, 0.25);
 
 		// Assign colors
 		foreach(QString nodeID, sParts)	
@@ -64,6 +64,27 @@ void CorrespondenceManager::assignCorrespondence()
 		{
 			targetGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
 			targetGraph->getNode( nodeID )->property["is_corresponded"] = true;
+		}
+
+		tb->gcoor->isReady = false;
+	}
+	else
+	{
+		if(tParts.size() == 0)
+		{
+			foreach(QString nodeID, sParts){
+				tb->gcoor->setNonCorresSource( nodeID );
+				sourceGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
+				sourceGraph->getNode( nodeID )->property["is_corresponded"] = true;
+			}
+		}
+		else
+		{
+			foreach(QString nodeID, tParts){
+				tb->gcoor->setNonCorresTarget( nodeID );
+				targetGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
+				targetGraph->getNode( nodeID )->property["is_corresponded"] = true;
+			}
 		}
 
 		tb->gcoor->isReady = false;

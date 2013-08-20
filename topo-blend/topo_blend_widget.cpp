@@ -531,3 +531,8 @@ void topo_blend_widget::updateVisualization()
 
 	tb->updateDrawArea();
 }
+
+void topo_blend_widget::setSynthSamplesCount( int samplesCount )
+{
+	ui->synthesisSamplesCount->setValue( samplesCount );
+}

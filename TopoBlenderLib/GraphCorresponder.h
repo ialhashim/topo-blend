@@ -77,9 +77,12 @@ public:
 	void correspondTwoNodes(Structure::Node *sNode, Structure::Node *tNode);
 	static void correspondTwoCurves( Structure::Curve *sCurve, Structure::Curve *tCurve, Structure::Graph * tgt );
 	static void correspondTwoSheets( Structure::Sheet *sSheet, Structure::Sheet *tSheet, Structure::Graph * tgt );
+	
 	// Find non-corresponding nodes
 	std::vector<QString> nonCorresSource(); // to kill
 	std::vector<QString> nonCorresTarget(); // to grow
+	void setNonCorresSource(QString sID);
+	void setNonCorresTarget(QString sID);
 
 	// Results
 	bool isReady;
@@ -87,9 +90,13 @@ public:
 	std::vector<PART_LANDMARK> correspondences;
 	std::vector<std::vector<float> > corrScores;
 
+	QVector<int> nonCorresS;
+	QVector<int> nonCorresT;
+
 public slots:
 	void visualizePart2PartDistance(int sourceID);
 	void computeCorrespondences();
 signals:
 	void cleared();
+
 };

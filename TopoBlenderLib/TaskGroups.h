@@ -36,7 +36,9 @@ struct TaskGroups{
 				visited[curNode] = true;
 				curSet.push_back( curTask );
 
-				foreach( Structure::Node * adj, graph->adjNodes(curNode) )
+				QVector<Node*> adjNodes = graph->adjNodes(curNode);
+
+				foreach( Structure::Node * adj, adjNodes )
 				{
 					if( visited.keys().contains(adj) && !visited[adj] )
 					{
@@ -79,7 +81,7 @@ struct TaskGroups{
 				{
 					if( !taskMap.keys().contains(adj) ) 
 					{
-						nodeProperty[n]["isBoundray"] = true;
+						nodeProperty[n]["isBoundary"] = true;
 						continue;
 					}
 
@@ -92,6 +94,32 @@ struct TaskGroups{
 					edges[adj].insert(n);
 				}
 			}
+
+			/// Drop the "boundary" property when:
+
+			// 1) For group of two, one will not be
+			if(list.size() == 2)
+			{
+				Node * first = list.front()->node();
+				Node * last = list.back()->node();
+				Structure::Node * n = graph->valence(first) < graph->valence(last) ? first : last;
+				nodeProperty[n]["isBoundary"] = false;
+			}
+
+			// 2) For boundary nodes connecting with many boundary
+			foreach(Structure::Node * n, boundaryNodes()){
+
+				// Count number of neighboring boundaries 
+				int numBoundary = 0;
+				foreach( Structure::Node * adj, graph->adjNodes(n) ){
+					if(nodeProperty[adj]["isBoundary"].toBool())
+						numBoundary++;
+				}
+
+				// Drop property
+				if(numBoundary == 1)
+					nodeProperty[n]["isBoundary"] = false;
+			}
 		}
 
 		void clearProperty(QString propertyName, QVariant value){
@@ -103,8 +131,8 @@ struct TaskGroups{
 		void removeNode(Structure::Node * n){
 			foreach(Structure::Node * adj, edges[n])
 			{
-				// Assign nighbour as boundary
-				nodeProperty[adj]["isBoundray"] = true;
+				// Assign neighbor as boundary
+				nodeProperty[adj]["isBoundary"] = true;
 
 				// Erase edge
 				edges[adj].remove(n);
@@ -118,7 +146,7 @@ struct TaskGroups{
 		QVector<Structure::Node *> boundaryNodes(){
 			QVector<Structure::Node *> b;
 			foreach(Structure::Node* n, nodes){
-				if(nodeProperty[n]["isBoundray"].toBool())
+				if(nodeProperty[n]["isBoundary"].toBool())
 					b.push_back(n);
 			}
 			return b;

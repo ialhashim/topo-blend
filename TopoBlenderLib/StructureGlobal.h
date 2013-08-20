@@ -416,3 +416,74 @@ static void combineMeshes( QStringList filenames, QString outputFilename )
 		out << "# End of mesh " << fileInfo.baseName() ;
 	}
 }
+
+/*
+General Bezier curve
+Number of control points is n+1
+0 <= mu < 1    IMPORTANT, the last point is not computed
+*/
+template<class VectorType>
+VectorType BezierCurve(const std::vector<VectorType> & p, double mu){
+	int k,kn,nn,nkn;
+	double blend,muk,munk;
+	VectorType b(0,0,0);
+
+	int n = p.size() - 1;
+	muk = 1;
+	munk = pow(1-mu,(double)n);
+
+	for (k=0;k<=n;k++) {
+		nn = n;
+		kn = k;
+		nkn = n - k;
+		blend = muk * munk;
+		muk *= mu;
+		munk /= (1-mu);
+		while (nn >= 1) {
+			blend *= nn;
+			nn--;
+			if (kn > 1) {
+				blend /= (double)kn;
+				kn--;
+			}
+			if (nkn > 1) {
+				blend /= (double)nkn;
+				nkn--;
+			}
+		}
+		b[0] += p[k][0] * blend;
+		b[1] += p[k][1] * blend;
+		b[2] += p[k][2] * blend;
+	}
+
+	return(b);
+}
+
+template<class VectorType>
+std::vector<VectorType> BezierArc(const VectorType& pointA, const VectorType& pointB, int numSteps = 20, double bend = 1.0)
+{
+	std::vector<VectorType> arc, cpoints;
+
+	VectorType midPoint = 0.5 * (pointA + pointB);
+	VectorType axis(0,0,1);
+	VectorType d(pointB - midPoint);
+	VectorType delta = rotatedVec(d, M_PI_2, axis);
+
+	// Set control points for Bezier curve
+	cpoints.push_back(pointA);
+	cpoints.push_back(midPoint + (delta * bend));
+	cpoints.push_back(pointB);
+
+	// Bound
+	numSteps = qMax(3, numSteps);
+
+	for(int i = 0; i < numSteps; i++){
+		double t = double(i) / numSteps;
+		arc.push_back( BezierCurve(cpoints, t) );
+	}
+
+	// Last point on arc
+	arc.push_back(pointB);
+
+	return arc;
+}

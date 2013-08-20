@@ -676,6 +676,15 @@ void GraphCorresponder::computePartToPartCorrespondences()
 	int tN = tg->nodes.size();
 	float tolerance = 0.04f;
 
+	// Force un-corresponded
+	foreach(int ri, nonCorresS)
+		for (int ci = 0; ci < tN; ci++)
+			disMatrix[ri][ci] = INVALID_VALUE;
+	
+	for (int ri = 0; ri < sN; ri++)
+		foreach(int ci, nonCorresT)
+			disMatrix[ri][ci] = INVALID_VALUE;
+
 	int r, c;
 	float minValue;
 	while (minElementInMatrix(disMatrix, r, c, minValue))
@@ -1080,6 +1089,16 @@ std::vector<QString> GraphCorresponder::nonCorresTarget()
 	}
 
 	return nodes;
+}
+
+void GraphCorresponder::setNonCorresSource(QString sID)
+{
+	nonCorresS.push_back(sg->getNode(sID)->property["index"].toInt());
+}
+
+void GraphCorresponder::setNonCorresTarget(QString tID)
+{
+	nonCorresT.push_back(tg->getNode(tID)->property["index"].toInt());
 }
 
 void GraphCorresponder::saveCorrespondences( QString filename )
