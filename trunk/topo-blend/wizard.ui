@@ -6,21 +6,9 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>300</width>
-    <height>350</height>
+    <width>292</width>
+    <height>316</height>
    </rect>
-  </property>
-  <property name="minimumSize">
-   <size>
-    <width>300</width>
-    <height>350</height>
-   </size>
-  </property>
-  <property name="maximumSize">
-   <size>
-    <width>300</width>
-    <height>16777215</height>
-   </size>
   </property>
   <property name="windowTitle">
    <string>Form</string>
@@ -28,8 +16,8 @@
   <property name="styleSheet">
    <string notr="true">font-size:12pt &quot;Segoe UI&quot;;</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
     <spacer name="verticalSpacer_6">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -42,7 +30,7 @@
      </property>
     </spacer>
    </item>
-   <item>
+   <item row="1" column="0">
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
       <widget class="QLabel" name="label_9">
@@ -60,7 +48,7 @@
      </item>
     </layout>
    </item>
-   <item>
+   <item row="2" column="0">
     <spacer name="verticalSpacer_3">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -73,7 +61,7 @@
      </property>
     </spacer>
    </item>
-   <item>
+   <item row="3" column="0">
     <layout class="QHBoxLayout" name="layoutLoading">
      <item>
       <widget class="QLabel" name="label">
@@ -136,7 +124,7 @@
      </item>
     </layout>
    </item>
-   <item>
+   <item row="4" column="0">
     <spacer name="verticalSpacer_2">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -149,7 +137,7 @@
      </property>
     </spacer>
    </item>
-   <item>
+   <item row="5" column="0">
     <layout class="QHBoxLayout" name="layoutMatching">
      <item>
       <widget class="QLabel" name="label_2">
@@ -196,7 +184,7 @@
      </item>
     </layout>
    </item>
-   <item>
+   <item row="6" column="0">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -209,7 +197,7 @@
      </property>
     </spacer>
    </item>
-   <item>
+   <item row="7" column="0">
     <layout class="QHBoxLayout" name="layoutOrder">
      <item>
       <widget class="QLabel" name="label_3">
@@ -256,7 +244,7 @@
      </item>
     </layout>
    </item>
-   <item>
+   <item row="8" column="0">
     <spacer name="verticalSpacer_4">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -269,7 +257,7 @@
      </property>
     </spacer>
    </item>
-   <item>
+   <item row="9" column="0">
     <layout class="QHBoxLayout" name="layoutQuality">
      <item>
       <widget class="QLabel" name="label_4">
@@ -334,7 +322,7 @@
      </item>
     </layout>
    </item>
-   <item>
+   <item row="10" column="0">
     <spacer name="verticalSpacer_5">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -347,7 +335,7 @@
      </property>
     </spacer>
    </item>
-   <item>
+   <item row="11" column="0">
     <layout class="QHBoxLayout" name="layoutGenerate">
      <item>
       <spacer name="horizontalSpacer_5">
