@@ -54,7 +54,9 @@ public:
     void destroy(){}
 
     void decorate();
+
 	void drawBBox(Eigen::AlignedBox3d bbox);
+	bool rayBBoxIntersect(Eigen::AlignedBox3d bbox, Vector3 origin, Vector3 ray);
 
     // Selection
     void drawWithNames();
@@ -63,6 +65,8 @@ public:
     // Mouse and Keyboard
 	bool keyPressEvent( QKeyEvent* event );
 	bool mouseReleaseEvent( QMouseEvent * event );
+	bool mousePressEvent( QMouseEvent * event );
+	bool mouseMoveEvent( QMouseEvent * event );
 
 	TopoBlender * blender;
 	Scheduler * scheduler;
