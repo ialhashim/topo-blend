@@ -304,6 +304,7 @@ void topoblend::drawWithNames()
 		int nodeID_base = gID * NODE_ID_RANGE;
 
 		glPushMatrix();
+		glTranslated(g->property["posX"].toDouble(), 0, 0);
 
 		for (int nID = 0; nID < (int)g->nodes.size(); nID++)
 		{
@@ -807,6 +808,46 @@ void topoblend::drawBBox(Eigen::AlignedBox3d bbox)
 	glVertex3f((float)min[0],(float)max[1],(float)max[2]);
 	glEnd();
 	glPopAttrib(); 
+}
+
+bool topoblend::mousePressEvent( QMouseEvent * event )
+{
+	property["mousePressPos"] = event->pos();
+	return false;
+}
+
+bool topoblend::mouseMoveEvent( QMouseEvent * event )
+{
+	if( property["correspondenceMode"].toBool() ) 
+	{
+		if( event->buttons() & Qt::LeftButton ){
+			QPoint startPos = property["mousePressPos"].toPoint();
+			if((event->pos()-startPos).manhattanLength()){
+				setStatusBarMessage(QString::number(event->pos().x()));
+
+				qglviewer::Vec orig, dir;
+				drawArea()->camera()->convertClickToLine(event->pos(), orig, dir);
+
+				for(int gID = 0; gID < (int) graphs.size(); gID++)
+				{
+					Structure::Graph *g = graphs[gID];
+
+					foreach(Node * n, g->nodes){
+						SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
+						double posX = g->property["posX"].toDouble();
+
+						
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
+bool topoblend::rayBBoxIntersect( Eigen::AlignedBox3d bbox, Vector3 origin, Vector3 ray )
+{
+	return false;
 }
 
 Q_EXPORT_PLUGIN(topoblend)
