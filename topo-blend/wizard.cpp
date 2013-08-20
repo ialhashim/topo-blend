@@ -73,9 +73,6 @@ Wizard::Wizard(topoblend *tobo_blend, QWidget * parentWidget) : QWidget(parentWi
 		}
 	}
 
-	this->setWindowTitle("Blending Tool");
-	this->show();
-
 	// Fade window in
 	if(false){
 		this->setWindowOpacity(0);
