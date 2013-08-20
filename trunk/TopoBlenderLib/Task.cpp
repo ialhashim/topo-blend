@@ -138,22 +138,29 @@ void Task::mouseMoveEvent( QGraphicsSceneMouseEvent * event )
 		return;
 	}
 
-	// Select siblings in the group, if non-else selected
-	bool nothingElseSelected = true;
-	foreach(Task * otherTask, allOtherTasks()){
-		if(otherTask->isSelected()){
-			nothingElseSelected = false;
-			break;
+	if(!(event->modifiers() & Qt::ShiftModifier))
+	{
+		// Select siblings in the group, if non-else selected
+		bool nothingElseSelected = true;
+		foreach(Task * otherTask, allOtherTasks()){
+			if(otherTask->isSelected()){
+				nothingElseSelected = false;
+				break;
+			}
 		}
-	}
-	if( nothingElseSelected ){
-		bool needRefresh = false;
-		foreach(QString member, active->groupOf(nodeID)){
-			Task * t = active->getNode(member)->property["task"].value<Task*>();
-			t->setSelected(true);
-			needRefresh = true;
+		if( nothingElseSelected ){
+			bool needRefresh = false;
+			foreach(QString member, active->groupOf(nodeID)){
+				Task * t = active->getNode(member)->property["task"].value<Task*>();
+
+				if(abs(t->start - this->start) < 10){
+					t->setSelected(true);
+					needRefresh = true;
+				}
+			}
+			if(needRefresh) ((Scheduler*)this->scene())->emitUpdateExternalViewer();
 		}
-		if(needRefresh) ((Scheduler*)this->scene())->emitUpdateExternalViewer();
+
 	}
 
 	QGraphicsItem::mouseMoveEvent(event);
@@ -685,8 +692,20 @@ void Task::setNode( QString node_ID )
 	// Override default colors for split and merge
 	QString snID = node()->id, tnID = targetNode()->id;
 
-	if( snID.contains("_") && !snID.contains("null") ) mycolor = TaskColors[Task::SPLIT];
-	if( tnID.contains("_") && !tnID.contains("null") ) mycolor = TaskColors[Task::MERGE];
+	node()->property["taskTypeReal"] = type;
+
+	if( snID.contains("_") && !snID.contains("null") ) 
+	{
+		mycolor = TaskColors[Task::SPLIT];
+		node()->property["taskTypeReal"] = Task::SPLIT;
+	}
+	if( tnID.contains("_") && !tnID.contains("null") ) 
+	{
+		mycolor = TaskColors[Task::MERGE];
+		node()->property["taskTypeReal"] = Task::MERGE;
+	}
+
+	targetNode()->property["taskTypeReal"] = node()->property["taskTypeReal"];
 }
 
 std::vector<RMF::Frame> Task::smoothRotateFrame( RMF::Frame sframe, Eigen::Quaterniond & rotation, int steps )
@@ -766,6 +785,9 @@ void Task::prepareMorphEdges()
 			gd.computeDistances( end, DIST_RESOLUTION );	
 			gd.smoothPathCoordTo( start, path );
 		}
+
+		// Check
+		if(path.isEmpty()) path.push_back(GraphDistance::PathPointPair( PathPoint(futureNodeCord.first, futureNodeCord.second)));
 
 		// End of path should be exactly as in target
 		path.back() = GraphDistance::PathPointPair( PathPoint(futureNodeCord.first, futureNodeCord.second)  );

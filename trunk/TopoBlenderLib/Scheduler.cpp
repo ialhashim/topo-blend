@@ -185,12 +185,15 @@ void Scheduler::order()
 	{
 		QList<Task*> curTasks = tasksByType.values(Task::TaskType(i));
 
-		// Special case: Remove already set tasks during GROW
+		if(false)
 		{
-			QMutableListIterator<Task*> itr(curTasks);
-			while (itr.hasNext()) 
-				if (itr.next()->property.contains("isTaskAlreadyOrdered")) 
-					itr.remove();
+			// Special case: Remove already set tasks during GROW
+			{
+				QMutableListIterator<Task*> itr(curTasks);
+				while (itr.hasNext()) 
+					if (itr.next()->property.contains("isTaskAlreadyOrdered")) 
+						itr.remove();
+			}
 		}
 
 		int futureStart = curStart;
@@ -222,37 +225,40 @@ void Scheduler::order()
 			curStart = futureStart;
 		}
 
-		// Special case: growing cut null groups
-		if(i == Task::SHRINK)
+		if(false)
 		{
-			curTasks = tasksByType.values(Task::GROW);
-			if(!curTasks.size()) continue;
-
-			QMutableListIterator<Task*> itr(curTasks);
-			while (itr.hasNext()) 
+			// Special case: growing cut null groups
+			if(i == Task::SHRINK)
 			{
-				Structure::Node * n = itr.next()->node();
-				if (!n->property.contains("isCutGroup")) itr.remove();
+				curTasks = tasksByType.values(Task::GROW);
+				if(!curTasks.size()) continue;
+
+				QMutableListIterator<Task*> itr(curTasks);
+				while (itr.hasNext()) 
+				{
+					Structure::Node * n = itr.next()->node();
+					if (!n->property.contains("isCutGroup")) itr.remove();
+				}
+				if(!curTasks.size()) continue;
+
+				curTasks = sortTasksAsLayers( curTasks, curStart );
+				foreach(Task* t, curTasks) 
+				{
+					futureStart = qMax(futureStart, t->endTime());
+					t->property["isTaskAlreadyOrdered"] = true;
+				}
+
+				g = targetGraph;
+				groupStart(g, curTasks, curStart, futureStart);
+
+				curStart = futureStart;
+
+				// Experiment:
+				//foreach(Task* t, curTasks) 
+				//{
+				//	addMorphTask( t->node()->id );
+				//}
 			}
-			if(!curTasks.size()) continue;
-
-			curTasks = sortTasksAsLayers( curTasks, curStart );
-			foreach(Task* t, curTasks) 
-			{
-				futureStart = qMax(futureStart, t->endTime());
-				t->property["isTaskAlreadyOrdered"] = true;
-			}
-
-			g = targetGraph;
-			groupStart(g, curTasks, curStart, futureStart);
-
-			curStart = futureStart;
-
-			// Experiment:
-			//foreach(Task* t, curTasks) 
-			//{
-			//	addMorphTask( t->node()->id );
-			//}
 		}
 	}
 
@@ -278,7 +284,7 @@ void Scheduler::order()
 		}
 	}
 
-	// Add spaces between tasks
+	// Add small spaces between tasks
 	{
 		int timeSpacing = totalExecutionTime() * time_step + 1;
 
@@ -876,6 +882,7 @@ void Scheduler::setSchedule( QMap< QString, QPair<int,int> > fromSchedule )
 
 void Scheduler::defaultSchedule()
 {
+	this->startDiffTime();
 	this->order();
 }
 

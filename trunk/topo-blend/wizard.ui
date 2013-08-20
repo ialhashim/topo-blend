@@ -292,7 +292,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QSlider" name="horizontalSlider">
+      <widget class="QSlider" name="synthQuality">
        <property name="minimumSize">
         <size>
          <width>80</width>

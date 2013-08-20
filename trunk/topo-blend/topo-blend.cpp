@@ -73,6 +73,9 @@ void topoblend::create()
 	drawArea()->setSelectRegionHeight( 20 );
 	drawArea()->setSelectRegionWidth( 20 );
 
+	drawArea()->setShortcut(QGLViewer::DRAW_AXIS, Qt::Key_A);
+	drawArea()->setShortcut(QGLViewer::DRAW_GRID, Qt::Key_G);
+
 	// Change camera type
 	drawArea()->camera()->setType(qglviewer::Camera::PERSPECTIVE);
 	setSceneBounds();
@@ -156,10 +159,10 @@ void topoblend::decorate()
 			foreach(Node * n, g->nodes){
 				if(n->id.contains("_null") || !n->property.contains("mesh")) continue;
 				SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
-
-				glPushMatrix();
+				
 				double posX = g->property["posX"].toDouble();
 
+				glPushMatrix();
 				glTranslated(posX, 0, 0);
 
 				if(n->vis_property["glow"].toBool()) 
@@ -175,8 +178,62 @@ void topoblend::decorate()
 				glPopMatrix();
 			}
 		}
+
+		foreach(Structure::Graph * g, currentGraphs){
+			foreach(Node * n, g->nodes){
+				if(!n->vis_property["glow"].toBool() || n->id.contains("_null")) continue;
+
+				int nType = n->property["taskTypeReal"].toInt();
+
+				double posX = g->property["posX"].toDouble();
+				
+				QString taskName = TaskNames[nType];
+
+				glColorQt(TaskColors[nType]);
+				glDisable(GL_LIGHTING);
+
+				qglviewer::Vec end(drawArea()->width() * 0.5, 20, 0);
+
+				// Draw arc
+				drawArea()->startScreenCoordinatesSystem();
+
+				Vector3 boxCenter = n->bbox().center();
+				boxCenter.x() += posX;
+
+				qglviewer::Vec start = drawArea()->camera()->projectedCoordinatesOf( qglviewer::Vec(boxCenter) );
+
+				double bend = currentGraphs.front() == g ? -1 : 1;
+				std::vector<Vector3> arc = BezierArc(Vector3(start.x,start.y,start.z), Vector3(end.x,end.y,end.z), 10, bend);
+
+				for(int i = 0; i < (int) arc.size(); i++){
+					glLineWidth(3);
+					glBegin(GL_LINE_STRIP);
+					foreach(Vector3 p, arc) glVector3(p);
+					glEnd();
+				}
+
+				// Draw box
+				int w = 30, h = 10;
+				glBegin (GL_POLYGON);
+				glVertex2d (end.x - w, end.y - h);
+				glVertex2d (end.x + w, end.y - h);
+				glVertex2d (end.x + w, end.y + h);
+				glVertex2d (end.x - w, end.y + h);
+				glEnd();
+
+				// Draw text
+				QFont font = QFont();
+				QFontMetrics metric(font);
+				glColor3d(0,0,0);
+				drawArea()->renderText(end.x - (metric.width(taskName) * 0.5), end.y + 4, taskName);
+				
+				drawArea()->stopScreenCoordinatesSystem();
+
+				glEnable(GL_LIGHTING);
+			}
+		}
 	}
-	else
+	else if(graphs.size())
 	{
 		double startX = bigbox.min().x();
 
@@ -206,6 +263,8 @@ void topoblend::decorate()
 			if(g > 0) padding = curwidth * PADDING_FACTOR;
 
 			double posX = startX + deltaX + padding;
+
+			if(graphs.size() < 2) posX = 0;
 
 			glTranslated(posX, 0, 0);
 
@@ -565,17 +624,19 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 			paint.drawImage(img1.width(),0,img2);
 			paint.end();
 			bothImg.save("All_Graphs.png");
+
+			used = true;
 		}
-		else
+		else if(graphs.size())
 		{
 			QDir dir("");
 			dir.setCurrent(QFileDialog::getExistingDirectory());
 
 			DynamicGraphs::DynamicGraph sdg(graphs.front());
 			toGraphviz(sdg, graphs.front()->name(), true, QString("V = %1, E = %2").arg(sdg.nodes.size()).arg(sdg.edges.size()), "Graph");
-		}
 
-		used = true;
+			used = true;
+		}
 	}
 
 	if(event->key() == Qt::Key_F)
@@ -682,6 +743,11 @@ void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 	}	
 
 	graphs.clear();
+
+	if(graphs.size() > 1){
+		setSceneBounds();
+	}
+
 	this->graphs.push_back(newActiveGraph);
 
 	if(!scheduler->property["synthDataReady"].toBool())

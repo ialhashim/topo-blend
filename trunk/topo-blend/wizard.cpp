@@ -3,6 +3,7 @@
 
 #include "topo-blend.h"
 #include "graphs-manager.h"
+#include "synthesis-manager.h"
 #include "correspondence-manager.h"
 #include "Scheduler.h"
 #include "SchedulerWidget.h"
@@ -140,6 +141,7 @@ void Wizard::loadShapeB()
 	ui->loadBButton->setStyleSheet(style_ok);
 
 	setOpacity("layoutMatching", 1.0);
+	setOpacity("layoutQuality", 1.0);
 
 	tb->updateDrawArea();
 }
@@ -154,10 +156,18 @@ void Wizard::matchingButton()
 		ui->matchingButton->setStyleSheet(style_ok);
 
 		//setOpacity("layoutOrder", 1.0);
-		setOpacity("layoutQuality", 1.0);
 		setOpacity("layoutGenerate", 1.0);
 
 		tb->doBlend();
+
+		double synthQuality = (ui->synthQuality->value()) / 100.0;
+		if(synthQuality > 0){
+
+			int samplesCount = 50000 * pow(synthQuality, 2);
+			tb->widget->setSynthSamplesCount( samplesCount );
+
+			tb->s_manager->generateSynthesisData();
+		}
 	}
 
 	tb->updateDrawArea();

@@ -31,6 +31,7 @@ public slots:
 	void vizButtonClicked(QAbstractButton* b);
 	void toggleCheckOption(QString optionName);
 	void setCheckOption( QString optionName, bool toValue = true );
+	void setSynthSamplesCount( int );
 
 	// Model manipulation
 	void normalizeModel();
