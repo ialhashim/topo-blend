@@ -39,6 +39,5 @@ public slots:
 	void loadSchedule();
 	void saveSchedule();
 
-	void cleanUp();
 	void toggleOptions();
 };

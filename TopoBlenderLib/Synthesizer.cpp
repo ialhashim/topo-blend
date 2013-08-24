@@ -538,7 +538,7 @@ void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structur
 }
 
 // Co-sampling
-void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2, int s )
+void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2, int s, SynthData & output )
 {
 	if(!curve1 || !curve2 || !curve1->property.contains("mesh") || !curve2->property.contains("mesh")) return;
 
@@ -582,20 +582,20 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 	// Compute offset and normal for each ray
 	{
 		sampleGeometryCurve(samples, curve1, offsets1, normals1);
-		curve1->property["samples"].setValue(samples);
-		curve1->property["offsets"].setValue(offsets1);
-		curve1->property["normals"].setValue(normals1);
+		output["node1"]["samples"].setValue(samples);
+		output["node1"]["offsets"].setValue(offsets1);
+		output["node1"]["normals"].setValue(normals1);
 
 		sampleGeometryCurve(samples, curve2, offsets2, normals2);
-		curve2->property["samples"].setValue(samples);
-		curve2->property["offsets"].setValue(offsets2);
-		curve2->property["normals"].setValue(normals2);
+		output["node2"]["samples"].setValue(samples);
+		output["node2"]["offsets"].setValue(offsets2);
+		output["node2"]["normals"].setValue(normals2);
 	}
 
 	qDebug() << QString("Resampling Time [ %1 ms ]\n==\n").arg(timer.elapsed());
 }
 
-void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2, int s )
+void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2, int s, SynthData & output  )
 {
 	if(!sheet1 || !sheet2 || !sheet1->property.contains("mesh") || !sheet2->property.contains("mesh")) return;
 
@@ -623,23 +623,172 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 	// Re-sample the meshes
 	{	
 		sampleGeometrySheet(samples, sheet1, offsets1, normals1);
-		sheet1->property["samples"].setValue(samples);
-		sheet1->property["offsets"].setValue(offsets1);
-		sheet1->property["normals"].setValue(normals1);
+		output["node1"]["samples"].setValue(samples);
+		output["node1"]["offsets"].setValue(offsets1);
+		output["node1"]["normals"].setValue(normals1);
 
 		if(sheet1 != sheet2) 
 		{
 			sampleGeometrySheet(samples, sheet2, offsets2, normals2);
-			sheet2->property["samples"].setValue(samples);
-			sheet2->property["offsets"].setValue(offsets2);
-			sheet2->property["normals"].setValue(normals2);
+			output["node2"]["samples"].setValue(samples);
+			output["node2"]["offsets"].setValue(offsets2);
+			output["node2"]["normals"].setValue(normals2);
 		}
 	}
 
 	qDebug() << QString("Resampling Time [ %1 ms ]\n==\n").arg(timer.elapsed());
 }
 
+/// RECONSTRUCTION
+void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, const QVector<ParameterCoord> & in_samples, const QVector<float> &in_offsets,
+	const QVector<Vec2f> &in_normals, QVector<Vector3f> &out_points, QVector<Vector3f> &out_normals, bool isApprox )
+{
+	// Clear
+	out_points.clear();
+	out_points.resize(in_samples.size());
+	out_normals.clear();
+	out_normals.resize(in_samples.size());
 
+	// Generate consistent frames along curve
+	Array1D_Vector4d coords;
+	RMF rmf = consistentFrame(base_curve,coords);
+	int rmfCount = rmf.count();
+
+	// Approximation for faster reconstruction
+	std::vector<Vector3f> proxy;
+	if(isApprox){
+		int steps = 100;
+		foreach(Vector4d p, base_curve->discretizedPoints( base_curve->curve.GetTotalLength() / steps).front())
+			proxy.push_back( base_curve->position(p).cast<float>() );
+	}
+
+	const std::vector<Vector3d> curvePnts = base_curve->curve.mCtrlPoint;
+
+	int N = in_samples.size();
+
+	#pragma omp parallel for
+	for(int i = 0; i < N; i++)
+	{
+		ParameterCoord sample = in_samples[i];
+
+		Vector3f rayPos, rayDir;
+
+		int idx = sample.u * (rmfCount - 1);
+
+		Vector3f X (rmf.U[idx].r[0],rmf.U[idx].r[1],rmf.U[idx].r[2]);
+		Vector3f Y (rmf.U[idx].s[0],rmf.U[idx].s[1],rmf.U[idx].s[2]);
+		Vector3f Z (rmf.U[idx].t[0],rmf.U[idx].t[1],rmf.U[idx].t[2]);
+
+		if(isApprox)
+			rayPos = proxy[ sample.u * (proxy.size()-1) ];
+		else
+		{
+			NURBS::NURBSCurved c = NURBS::NURBSCurved::createCurveFromPoints(curvePnts);
+			rayPos = c.GetPosition(sample.u).cast<float>();
+		}
+
+		localSphericalToGlobal(X, Y, Z, sample.theta, sample.psi, rayDir);
+
+		// Reconstructed point
+		out_points[ i ] = rayPos + (rayDir * in_offsets[ i ]);
+
+		// Reconstructed normal
+		Vec2f normalCoord = in_normals[ i ];
+		Vector3f normal(0,0,0);
+		localSphericalToGlobal(X, Y, Z, normalCoord[0], normalCoord[1], normal);
+
+		// Normal correction
+		{
+			float theta = acos(qRanged(-1.0f, (float)dot(normal, rayDir), 1.0f));
+			if(theta > M_PI / 2.0) normal = rayDir;
+		}
+
+		out_normals[ i ] = normal;
+	}
+}
+
+void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet, const QVector<ParameterCoord> &in_samples, const QVector<float> &in_offsets,
+	const QVector<Vec2f> &in_normals, QVector<Vector3f> &out_points, QVector<Vector3f> &out_normals, bool isApprox )
+{
+	out_points.clear();
+	out_points.resize(in_samples.size());
+
+	out_normals.clear();
+	out_normals.resize(in_samples.size());
+
+	// Approximation for faster reconstruction
+	std::vector< std::vector< std::vector<Vector3> > > proxy;
+	if(isApprox){
+		int steps = 100;
+		double res = base_sheet->bbox().diagonal().norm() / steps;
+		Array2D_Vector4d pnts = base_sheet->discretizedPoints( res );
+		proxy.resize(pnts.size(), std::vector< std::vector<Vector3> >(pnts[0].size(), std::vector<Vector3>(4,Vector3(0,0,0))));
+
+		// Fill proxy
+		for(int u = 0; u < (int)pnts.size(); u++){
+			for(int v = 0; v < (int)pnts[0].size(); v++){
+				base_sheet->surface.GetFrame(pnts[u][v][0],pnts[u][v][1],
+											 proxy[u][v][0],proxy[u][v][1],proxy[u][v][2],proxy[u][v][3]);
+			}
+		}
+	}
+
+	const Array2D_Vector3 sheetPnts = base_sheet->surface.mCtrlPoint;
+
+	int N = in_samples.size();
+
+	#pragma omp parallel for
+	for(int i = 0; i < N; i++)
+	{
+		Vector3d _X, _Y, _Z;
+		Vector3d vDirection, sheetPoint;
+		Vector3f rayPos, rayDir;
+
+		ParameterCoord sample = in_samples[i];
+
+		if( isApprox )
+		{
+			int u = sample.u * (proxy.size()-1);
+			int v = sample.v * (proxy.front().size()-1);
+			sheetPoint = proxy[u][v][0];
+			_X = proxy[u][v][1];
+			_Z = proxy[u][v][3];
+		}
+		else
+		{
+			NURBS::NURBSRectangled r = NURBS::NURBSRectangled::createSheetFromPoints(sheetPnts);
+			r.GetFrame( sample.u, sample.v, sheetPoint, _X, vDirection, _Z );
+		}
+
+		rayPos = Vector3f(sheetPoint[0],sheetPoint[1],sheetPoint[2]);
+
+		_Y = cross(_Z, _X);
+
+		// double float
+		Vector3f X(_X[0],_X[1],_X[2]),
+				 Y(_Y[0],_Y[1],_Y[2]),
+				 Z(_Z[0],_Z[1],_Z[2]);
+
+		localSphericalToGlobal(X, Y, Z, sample.theta, sample.psi, rayDir);
+
+		// Reconstructed point
+		Vector3f isect = rayPos + (rayDir * in_offsets[i]);
+		out_points[i] = isect;
+
+		// Reconstructed normal
+		Vec2f normalCoord = in_normals[i];
+		Vector3f normal;
+		localSphericalToGlobal(X, Y, Z, normalCoord[0], normalCoord[1], normal);
+
+		// Normal correction
+		{
+			float theta = acos(qRanged(-1.0f,(float)dot(normal,rayDir),1.0f));
+			if(theta > M_PI / 2.0) normal = rayDir;
+		}
+
+		out_normals[i] = normal;
+	}
+}
 
 /// BLENDING
 void Synthesizer::blendCurveBases( Structure::Curve * curve1, Structure::Curve * curve2, float alpha )
@@ -663,182 +812,59 @@ void Synthesizer::blendSheetBases( Structure::Sheet * sheet1, Structure::Sheet *
     alpha = alpha;
 }
 
-void Synthesizer::blendGeometryCurves( Structure::Curve * curve1, Structure::Curve * curve2, float alpha, QVector<Vector3f> &points, QVector<Vector3f> &normals )
+void Synthesizer::blendGeometryCurves( Structure::Curve * curve, float alpha, const SynthData & data, QVector<Vector3f> &points, QVector<Vector3f> &normals, bool isApprox )
 {
-	if(!curve1->property.contains("samples") || !curve2->property.contains("samples")) return;
 	alpha = qMax(0.0f, qMin(alpha, 1.0f));
-
-	QVector<ParameterCoord> samples = curve1->property["samples"].value< QVector<ParameterCoord> >();
-
-	QVector<float> offsets1 = curve1->property["offsets"].value< QVector<float> >();
-	QVector<float> offsets2 = curve2->property["offsets"].value< QVector<float> >();
-
-	QVector<Vec2f> normals1 = curve1->property["normals"].value< QVector<Vec2f> >();
-	QVector<Vec2f> normals2 = curve2->property["normals"].value< QVector<Vec2f> >();
+	QVector<ParameterCoord> samples = data["node1"]["samples"].value< QVector<ParameterCoord> >();
+	QVector<float> offsets1 = data["node1"]["offsets"].value< QVector<float> >();
+	QVector<float> offsets2 = data["node2"]["offsets"].value< QVector<float> >();
+	QVector<Vec2f> normals1 = data["node1"]["normals"].value< QVector<Vec2f> >();
+	QVector<Vec2f> normals2 = data["node2"]["normals"].value< QVector<Vec2f> >();
 
 	// Blend Geometries 
-	QVector<float> blended_offsets;
-	QVector<Vec2f> blended_normals;
-	for( int i = 0; i < offsets1.size(); i++)
+	int N = samples.size();
+	QVector<float> blended_offsets(N);
+	QVector<Vec2f> blended_normals(N);
+	for( int i = 0; i < N; i++)
 	{
 		float off = ((1 - alpha) * offsets1[i]) + (alpha * offsets2[i]);
-		blended_offsets.push_back( off );
+		blended_offsets[i] = off;
 
 		Vec2f n = ((1 - alpha) * normals1[i]) + (alpha * normals2[i]);
-		blended_normals.push_back( n );
+		blended_normals[i] = n;
 	}
 
 	// Reconstruct geometry on the new base
-	reconstructGeometryCurve(curve1, samples, blended_offsets, blended_normals, points, normals);
+	reconstructGeometryCurve(curve, samples, blended_offsets, blended_normals, points, normals, isApprox);
 }
 
-void Synthesizer::blendGeometrySheets( Structure::Sheet * sheet1, Structure::Sheet * sheet2, float alpha, QVector<Vector3f> &points, QVector<Vector3f> &normals )
+void Synthesizer::blendGeometrySheets( Structure::Sheet * sheet, float alpha, const SynthData & data, QVector<Vector3f> &points, QVector<Vector3f> &normals, bool isApprox )
 {
-	if(!sheet1->property.contains("samples") || !sheet2->property.contains("samples")) return;
-
-	QVector<ParameterCoord> samples = sheet1->property["samples"].value< QVector<ParameterCoord> >();
-
-	QVector<float> offsets1 = sheet1->property["offsets"].value< QVector<float> >();
-	QVector<float> offsets2 = sheet2->property["offsets"].value< QVector<float> >();
-
-	QVector<Vec2f> normals1 = sheet1->property["normals"].value< QVector<Vec2f> >();
-	QVector<Vec2f> normals2 = sheet2->property["normals"].value< QVector<Vec2f> >();
+	alpha = qMax(0.0f, qMin(alpha, 1.0f));
+	QVector<ParameterCoord> samples = data["node1"]["samples"].value< QVector<ParameterCoord> >();
+	QVector<float> offsets1 = data["node1"]["offsets"].value< QVector<float> >();
+	QVector<float> offsets2 = data["node2"]["offsets"].value< QVector<float> >();
+	QVector<Vec2f> normals1 = data["node1"]["normals"].value< QVector<Vec2f> >();
+	QVector<Vec2f> normals2 = data["node2"]["normals"].value< QVector<Vec2f> >();
 
 	// Blend Geometries 
-	QVector<float> blended_offsets;
-	QVector<Vec2f> blended_normals;
-	for( int i = 0; i < offsets1.size(); i++)
+	int N = samples.size();
+	QVector<float> blended_offsets(N);
+	QVector<Vec2f> blended_normals(N);
+	for( int i = 0; i < N; i++)
 	{
 		float off = ((1 - alpha) * offsets1[i]) + (alpha * offsets2[i]);
-		blended_offsets.push_back( off );
+		blended_offsets[i] = off;
 
 		Vec2f n = ((1 - alpha) * normals1[i]) + (alpha * normals2[i]);
-		blended_normals.push_back( n );
+		blended_normals[i] = n;
 	}
+
 	// Reconstruct geometry on the new base
-	reconstructGeometrySheet(sheet1, samples, blended_offsets, blended_normals, points, normals);
+	reconstructGeometrySheet(sheet, samples, blended_offsets, blended_normals, points, normals, isApprox);
 }
 
-/// RECONSTRUCTION
-void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, QVector<ParameterCoord> in_samples, QVector<float> &in_offsets,
-	QVector<Vec2f> &in_normals, QVector<Vector3f> &out_points, QVector<Vector3f> &out_normals )
-{
-	// Clear
-	out_points.clear();
-	out_points.resize(in_samples.size());
-	out_normals.clear();
-	out_normals.resize(in_samples.size());
-
-	// Generate consistent frames along curve
-	Array1D_Vector4d coords;
-	RMF rmf = consistentFrame(base_curve,coords);
-
-	for(int i = 0; i < (int) in_samples.size(); i++)
-	{
-		ParameterCoord sample = in_samples[i];
-
-		Vector3f rayPos, rayDir;
-
-		int idx = sample.u * (rmf.count() - 1);
-
-		Vector3f X = rmf.U[idx].r.normalized().cast<float>();
-		Vector3f Y = rmf.U[idx].s.normalized().cast<float>();
-		Vector3f Z = rmf.U[idx].t.normalized().cast<float>();
-
-		rayPos = base_curve->position(Vector4d(sample.u,0,0,0)).cast<float>();
-
-		localSphericalToGlobal(X, Y, Z, sample.theta, sample.psi, rayDir);
-
-		// Reconstructed point
-		Vector3f isect = rayPos + (rayDir.normalized() * in_offsets[ i ]);
-		out_points[ i ] = isect;
-
-		// Reconstructed normal
-		Vec2f normalCoord = in_normals[ i ];
-		Vector3f normal(0,0,0);
-		localSphericalToGlobal(X, Y, Z, normalCoord[0], normalCoord[1], normal);
-
-		// Normal correction
-		{
-			float theta = acos(qRanged(-1.0f,(float)dot(normal.normalized(),rayDir.normalized()),1.0f));
-			if(theta > M_PI / 2.0) normal = rayDir;
-		}
-
-		out_normals[ i ] = normal.normalized();
-	}
-}
-
-void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet,  QVector<ParameterCoord> in_samples, QVector<float> &in_offsets,
-	QVector<Vec2f> &in_normals, QVector<Vector3f> &out_points, QVector<Vector3f> &out_normals )
-{
-	out_points.clear();
-	out_points.resize(in_samples.size());
-
-	out_normals.clear();
-	out_normals.resize(in_samples.size());
-
-	int N = in_samples.size();
-
-	for(int i = 0; i < N; i++)
-	{
-		Vector3d _X, _Y, _Z;
-		Vector3d vDirection, sheetPoint;
-
-		Vector3f rayPos, rayDir;
-
-		ParameterCoord sample = in_samples[i];
-
-		base_sheet->surface.GetFrame( sample.u, sample.v, sheetPoint, _X, vDirection, _Z );
-		_Y = cross(_Z, _X);
-
-		rayPos = base_sheet->position(Vector4d(sample.u, sample.v, 0, 0)).cast<float>();
-
-		// double float
-		Vector3f X = _X.cast<float>(), Y = _Y.cast<float>(), Z = _Z.cast<float>();
-
-		localSphericalToGlobal(X, Y, Z, sample.theta, sample.psi, rayDir);
-		rayDir.normalize();
-
-		// Reconstructed point
-		Vector3f isect = rayPos + (rayDir * in_offsets[i]);
-		out_points[i] = isect;
-
-		// Reconstructed normal
-		Vec2f normalCoord = in_normals[i];
-		Vector3f normal;
-		localSphericalToGlobal(X, Y, Z, normalCoord[0], normalCoord[1], normal);
-
-		// Normal correction
-		{
-			float theta = acos(qRanged(-1.0f,(float)dot(normal.normalized(),rayDir),1.0f));
-			if(theta > M_PI / 2.0) normal = rayDir;
-		}
-
-		out_normals[i] = normal.normalized();
-	}
-}
-
-
-
-/// I/O and copy
-void Synthesizer::copySynthData( Structure::Node * fromNode, Structure::Node * toNode )
-{
-	toNode->property["samples"].setValue( fromNode->property["samples"].value< QVector<ParameterCoord> >() );
-	toNode->property["offsets"].setValue( fromNode->property["offsets"].value< QVector<float> >() );
-	toNode->property["normals"].setValue( fromNode->property["normals"].value< QVector<Vec2f> >() );
-}
-
-void Synthesizer::clearSynthData( Structure::Node * fromNode )
-{
-	fromNode->property.remove("samples");
-	fromNode->property.remove("offsets");
-	fromNode->property.remove("normals");
-	
-	// Visualization
-	fromNode->property.remove("cached_points");
-	fromNode->property.remove("cached_normals");
-}
-
+/// I/O
 void Synthesizer::writeXYZ( QString filename, std::vector<Vector3f> points, std::vector<Vector3f> normals )
 {
 	QFile file(filename);
@@ -855,13 +881,15 @@ void Synthesizer::writeXYZ( QString filename, std::vector<Vector3f> points, std:
 	file.close();
 }
 
-void Synthesizer::saveSynthesisData( Structure::Node *node, QString prefix )
+void Synthesizer::saveSynthesisData( Structure::Node *node, QString prefix, SynthData & input )
 {
-	if(!node || !node->property.contains("samples")) return;
+	if(!node) return;
 
-	QVector<ParameterCoord> samples = node->property["samples"].value< QVector<ParameterCoord> >();
-	QVector<float> offsets = node->property["offsets"].value< QVector<float> >();
-	QVector<Vec2f> normals = node->property["normals"].value< QVector<Vec2f> >();
+	QString key = node->id;
+
+	QVector<ParameterCoord> samples = input[key]["samples"].value< QVector<ParameterCoord> >();
+	QVector<float> offsets = input[key]["offsets"].value< QVector<float> >();
+	QVector<Vec2f> normals = input[key]["normals"].value< QVector<Vec2f> >();
 
 	if(samples.empty())
 	{
@@ -890,7 +918,7 @@ void Synthesizer::saveSynthesisData( Structure::Node *node, QString prefix )
 	file.close();
 }
 
-void Synthesizer::loadSynthesisData( Structure::Node *node, QString prefix )
+void Synthesizer::loadSynthesisData( Structure::Node *node, QString prefix, SynthData & output )
 {
 	if(!node) return;
 
@@ -911,7 +939,9 @@ void Synthesizer::loadSynthesisData( Structure::Node *node, QString prefix )
 			offsets[i] >> normals[i][0] >> normals[i][1];
 	}
 
-	node->property["samples"].setValue(samples);
-	node->property["offsets"].setValue(offsets);
-	node->property["normals"].setValue(normals);
+	QString key = node->id;
+
+	output[key]["samples"].setValue(samples);
+	output[key]["offsets"].setValue(offsets);
+	output[key]["normals"].setValue(normals);
 }

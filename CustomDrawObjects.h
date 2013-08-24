@@ -13,6 +13,10 @@ using namespace Eigen;
 #define glColorQt(c) glColor4d(c.redF(), c.greenF(), c.blueF(), c.alphaF())
 #define glv(v) glVertex3dv(v.data())
 
+#ifndef GL_MULTISAMPLE
+#define GL_MULTISAMPLE  0x809D
+#endif
+
 // Custom QVector3D
 class QVector3: public QVector3D{
 public:

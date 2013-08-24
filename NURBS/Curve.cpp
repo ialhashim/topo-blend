@@ -10,9 +10,9 @@
 
 #ifndef QT_DEBUG
 	// Standard resolution
-	int TIME_ITERATIONS			= 32;
+	int TIME_ITERATIONS			= 16;
 	double CURVE_TOLERANCE		= 1e-06;
-	int RombergIntegralOrder	= 8;
+	int RombergIntegralOrder	= 7;
 #else
 	// Lower resolution
 	int TIME_ITERATIONS			= 8;

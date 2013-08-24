@@ -52,9 +52,6 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
 	connect( ui->loadButton, SIGNAL(clicked()), SLOT(loadSchedule()) );
 	connect( ui->saveButton, SIGNAL(clicked()), SLOT(saveSchedule()) );
 
-	// Clean up
-	connect( ui->cleanUpButton, SIGNAL(clicked()), SLOT(cleanUp()) );
-	
 	ui->progressBar->setVisible(false);
 
 	// List nodes from scheduler
@@ -120,11 +117,6 @@ void SchedulerWidget::changeRenderCount(int value)
 void SchedulerWidget::changeRenderStartPercentage(int value)
 {
 	s->property["renderStartPercentage"] = value;
-}
-
-void SchedulerWidget::cleanUp()
-{
-	s->cleanUp();
 }
 
 void SchedulerWidget::loadSchedule()

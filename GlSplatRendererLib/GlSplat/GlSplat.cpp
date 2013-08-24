@@ -279,7 +279,7 @@ bool SplatRenderer::beginAttributePass()
     mCurrentPass = 1;
     mParams.loadTo(mShaders[mCurrentPass]);
     enablePass(mCurrentPass);
-    ;
+    
     return true;
 }
 bool SplatRenderer::finalize()
@@ -302,7 +302,7 @@ bool SplatRenderer::finalize()
 
     mCurrentPass = 2;
 
-    if (mFlags&DEFERRED_SHADING_BIT)
+    if (mFlags & DEFERRED_SHADING_BIT)
         glDrawBuffer(GL_BACK);
 
     enablePass(mCurrentPass);

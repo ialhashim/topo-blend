@@ -95,8 +95,6 @@ public slots:
 	void doRenderCurrent() { emit( renderCurrent() ); }
 	void doDraftRender() { emit(draftRender()); }
 		
-	void cleanUp();
-
 	void setGDResolution(double r);
 	void setTimeStep(double dt);
 

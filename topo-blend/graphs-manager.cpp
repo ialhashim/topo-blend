@@ -1,11 +1,13 @@
 #include <QFileDialog>
 #include "graph_modify_dialog.h"
-#include "graphs-manager.h"
 #include "QuickAlignment.h"
 
 #include "TopoBlender.h"
 #include "GraphCorresponder.h"
 #include "Scheduler.h"
+
+#include "graphs-manager.h"
+#include "synthesis-manager.h"
 
 void GraphsManager::loadModel()
 {
@@ -102,8 +104,6 @@ void GraphsManager::clearGraphs()
     Scheduler * scheduler = tb->scheduler;
     if(scheduler)
     {
-        scheduler->cleanUp();
-
         scheduler->activeGraph->clearAll();
         scheduler->targetGraph->clearAll();
 
@@ -126,6 +126,10 @@ void GraphsManager::clearGraphs()
     // Delete all graphs
     qDeleteAll(tb->graphs);
     tb->graphs.clear();
+
+	// Clear any synthesis data
+	tb->s_manager->synthData.clear();
+	tb->s_manager->sampled.clear();
 
     // Clear debug
     tb->debugPoints.clear(); tb->debugPoints2.clear();

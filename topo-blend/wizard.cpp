@@ -160,7 +160,7 @@ void Wizard::matchingButton()
 		double synthQuality = (ui->synthQuality->value()) / 100.0;
 		if(synthQuality > 0){
 
-			int samplesCount = 50000 * pow(synthQuality, 2);
+			int samplesCount = 25000 * pow(synthQuality, 2);
 			tb->widget->setSynthSamplesCount( samplesCount );
 
 			tb->s_manager->generateSynthesisData();
