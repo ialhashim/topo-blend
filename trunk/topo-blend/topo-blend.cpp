@@ -83,10 +83,6 @@ void topoblend::create()
 
 void topoblend::decorate()
 {
-	#ifndef GL_MULTISAMPLE
-	#define GL_MULTISAMPLE  0x809D
-	#endif
-
 	// Make sure we draw smooth objects
 	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_BLEND);
@@ -155,6 +151,10 @@ void topoblend::decorate()
 		currentGraphs.push_back(scheduler->activeGraph);
 		currentGraphs.push_back(scheduler->targetGraph);
 
+		// Draw synthesis samples if available
+		s_manager->drawSampled();
+
+		// Draw nodes both selected and regular
 		foreach(Structure::Graph * g, currentGraphs){
 			foreach(Node * n, g->nodes){
 				if(n->id.contains("_null") || !n->property.contains("mesh")) continue;
@@ -179,6 +179,7 @@ void topoblend::decorate()
 			}
 		}
 
+		// Visualize tasks
 		foreach(Structure::Graph * g, currentGraphs){
 			foreach(Node * n, g->nodes){
 				if(!n->vis_property["glow"].toBool() || n->id.contains("_null")) continue;
@@ -277,6 +278,9 @@ void topoblend::decorate()
 
 			startX += curwidth + padding;
 		}
+
+		if( scheduler )
+			s_manager->drawSynthesis();
 	}
 
 	// Textual information
@@ -536,9 +540,9 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 			{
 				if(node->property.contains("cached_points"))
 				{
-					QVector<Eigen::Vector3f> pnts = node->property["cached_points"].value< QVector<Eigen::Vector3f> >();
-					QVector<ParameterCoord> samples = node->property["samples"].value< QVector<ParameterCoord> >();
-					QVector<float> offsets = node->property["offsets"].value< QVector<float> >();
+					/*QVector<Eigen::Vector3f> & pnts = *(node->property["cached_points"].value< QVector<Eigen::Vector3f>* >());
+					QVector<ParameterCoord> & samples = *(node->property["samples"].value< QVector<ParameterCoord>* >());
+					QVector<float> & offsets = *(node->property["offsets"].value< QVector<float>* >());
 
 					Vector3f delta = Vector3f(g->property["posX"].toDouble(),0,0);
 					Vector3f q = p.cast<float>() - delta;
@@ -559,7 +563,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 							QString graphName = g->property["name"].toString().section('\\', -1).section('.', 0, 0);
 							sample_details = "["+graphName+"] " + sample_details;
 						}
-					}
+					}*/
 				}
 			}
 		}
@@ -728,24 +732,13 @@ Structure::Graph * topoblend::getGraph(int id)
 	else
 		return NULL;
 }
+
 void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 {
-	// Debug:
-	if( blender )
-	{
-		if( false )
-		{
-			if( !newActiveGraph->nodes.front()->property.contains("samples") )
-			{
-				viz_params["showMeshes"] = false;
-				viz_params["showTasks"] = true;
-			}
-		}
-	}	
-
 	graphs.clear();
 
-	if(graphs.size() > 1){
+	if(graphs.size() > 1)
+	{
 		setSceneBounds();
 	}
 

@@ -441,6 +441,7 @@ void Scheduler::executeAll()
 	// pre-execute
 	{
 		qApp->setOverrideCursor(Qt::WaitCursor);
+		property["progressDone"] = false;
 		isForceStop = false;
 
 		emit( progressStarted() );
@@ -547,6 +548,7 @@ void Scheduler::executeAll()
 	emit( progressDone() );
 
 	qApp->restoreOverrideCursor();
+	property["progressDone"] = true;
 }
 
 bool Scheduler::isPartOfGrowingBranch( Task* t )
@@ -798,14 +800,6 @@ void Scheduler::blendDeltas( double globalTime, double timeStep )
 		// Visualization
 		activeGraph->vs3.addVector(l->position(sn1->id), blendedDelta);
 		//activeGraph->vs.addVector(l->position(sn1->id), tDelta);
-	}
-}
-
-void Scheduler::cleanUp()
-{
-	for(int i = 0; i < (int)allGraphs.size(); i++)
-	{
-		allGraphs[i]->clearGeometryCache();
 	}
 }
 

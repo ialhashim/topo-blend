@@ -2,21 +2,19 @@
 
 #include "GlSplat/GlSplat.h"
 #include "SurfaceMeshModel.h"
+#include "GLVertex.h"
 
 class GlSplatRenderer : public GlSplat::SplatRenderer
 {
 public:
-    GlSplatRenderer(const QVector<Eigen::Vector3f> &pts, const QVector<Eigen::Vector3f> &ns,
-                    double radius = 0.01, const Eigen::Vector4d & color = Eigen::Vector4d(1.0, 1.0, 1.0, 1.0));
+    GlSplatRenderer(double radius = 0.01, const Eigen::Vector4d & color = Eigen::Vector4d(1.0, 1.0, 1.0, 1.0));
 
 public:
-    QVector<Eigen::Vector3f> points;
-    QVector<Eigen::Vector3f> normals;
     double mRadius;
     double mColor[4];
 
-    void draw();
+    void draw(const std::vector<GLVertex> & splats);
 
-//private:
-    void drawpoints();
+private:
+    void drawpoints(const std::vector<GLVertex> & splats);
 };

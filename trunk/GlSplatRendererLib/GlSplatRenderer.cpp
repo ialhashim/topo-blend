@@ -1,33 +1,32 @@
 #include "GlSplatRenderer.h"
 
-GlSplatRenderer::GlSplatRenderer(const QVector<Eigen::Vector3f> &pts, const QVector<Eigen::Vector3f> &ns, double radius, const Eigen::Vector4d& color)
+GlSplatRenderer::GlSplatRenderer(double radius, const Eigen::Vector4d & color)
 {
 	Q_INIT_RESOURCE(shaders);
 
-    points = pts;
-    normals = ns;
-    mRadius = radius;
+    mRadius = qMax(0.03,radius);
     for(int i = 0; i < 4; i++) mColor[i] = color[i];
 }
 
-void GlSplatRenderer::draw()
+void GlSplatRenderer::draw(const std::vector<GLVertex> & splats)
 {
     beginVisibilityPass();
-    drawpoints();
+    drawpoints( splats );
     beginAttributePass();
-    drawpoints();
+    drawpoints( splats );
     finalize();
 }
 
-void GlSplatRenderer::drawpoints()
+void GlSplatRenderer::drawpoints(const std::vector<GLVertex> & splats)
 {
+	glColor4dv(mColor);
+
     glBegin(GL_POINTS);
-    for (int i = 0; i < (int)points.size(); ++i)
+    for (int i = 0; i < (int)splats.size(); ++i)
     {
         glMultiTexCoord1f(GL_TEXTURE2, mRadius);
-        glNormal3f(normals[i].x(), normals[i].y(), normals[i].z());
-        glColor4dv(mColor);
-        glVertex3f(points[i].x(), points[i].y(), points[i].z());
+        glNormal3f(splats[i].nx, splats[i].ny, splats[i].nz);
+        glVertex3f(splats[i].x, splats[i].y, splats[i].z);
     }
     glEnd();
 }

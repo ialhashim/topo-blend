@@ -38,6 +38,8 @@ static inline QDebug operator<<(QDebug dbg, const ParameterCoord &c){
 	return dbg.space();
 }
 
+typedef QMap<QString, QMap<QString, QVariant> > SynthData;
+
 struct Synthesizer{
 
 	// Generate sample points in the parameter domain
@@ -58,35 +60,33 @@ struct Synthesizer{
 	static void sampleGeometryCurve( QVector<ParameterCoord> samples, Structure::Curve * curve, QVector<float> &offsets, QVector<Vec2f> &normals);
 	static void sampleGeometrySheet( QVector<ParameterCoord> samples, Structure::Sheet * sheet, QVector<float> &offsets, QVector<Vec2f> &normals );
 
-	// Blend skeleton bases
-	static void blendCurveBases(Structure::Curve * curve1, Structure::Curve * curve2, float alpha);
-	static void blendSheetBases(Structure::Sheet * sheet1, Structure::Sheet * sheet2, float alpha);
-
-	// Reconstruction on given base skeleton
-	static void reconstructGeometryCurve( Structure::Curve * base_curve, QVector<ParameterCoord> in_samples, QVector<float> &in_offsets, 
-											QVector<Vec2f> &in_normals, QVector<Eigen::Vector3f> &out_points, QVector<Eigen::Vector3f> &out_normals);
-	static void reconstructGeometrySheet( Structure::Sheet * base_sheet, QVector<ParameterCoord> in_samples, QVector<float> &in_offsets, 
-											QVector<Vec2f> &in_normals, QVector<Eigen::Vector3f> &out_points, QVector<Eigen::Vector3f> &out_normals);
 	// Preparation
 	enum SamplingType{ Features = 1, Edges = 2, Random = 4, Uniform = 8, All = 16, AllNonUniform = 32, Remeshing = 64, TriUniform = 128 };
 
-	static void prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2, int samplingType = Features | Random );
-	static void prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2, int samplingType = Features | Random );
+	static void prepareSynthesizeCurve( Structure::Curve * curve1, Structure::Curve * curve2, int samplingType, SynthData & output );
+	static void prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::Sheet * sheet2, int samplingType, SynthData & output );
 	
 	// Blend geometries
-	static void blendGeometryCurves( Structure::Curve * curve1, Structure::Curve * curve2, float alpha, QVector<Eigen::Vector3f> &points, QVector<Eigen::Vector3f> &normals);
-	static void blendGeometrySheets( Structure::Sheet * sheet1, Structure::Sheet * sheet2, float alpha, QVector<Eigen::Vector3f> &points, QVector<Eigen::Vector3f> &normals);
+	static void blendGeometryCurves( Structure::Curve * curve, float alpha, const SynthData & data, QVector<Eigen::Vector3f> &points, QVector<Eigen::Vector3f> &normals, bool isApprox);
+	static void blendGeometrySheets( Structure::Sheet * sheet, float alpha, const SynthData & data, QVector<Eigen::Vector3f> &points, QVector<Eigen::Vector3f> &normals, bool isApprox);
+
+	// Reconstruction on given base skeleton
+	static void reconstructGeometryCurve( Structure::Curve * base_curve, const QVector<ParameterCoord> &in_samples, const QVector<float> &in_offsets, 
+		const QVector<Vec2f> &in_normals, QVector<Eigen::Vector3f> &out_points, QVector<Eigen::Vector3f> &out_normals, bool isApprox);
+	static void reconstructGeometrySheet( Structure::Sheet * base_sheet, const QVector<ParameterCoord> &in_samples, const QVector<float> &in_offsets, 
+		const QVector<Vec2f> &in_normals, QVector<Eigen::Vector3f> &out_points, QVector<Eigen::Vector3f> &out_normals, bool isApprox);
+
+	// Blend skeleton bases
+	static void blendCurveBases(Structure::Curve * curve1, Structure::Curve * curve2, float alpha);
+	static void blendSheetBases(Structure::Sheet * sheet1, Structure::Sheet * sheet2, float alpha);
 
 	// Helper functions
 	static RMF consistentFrame( Structure::Curve * curve, Array1D_Vector4d & coords );
 
 	// IO
-	static void saveSynthesisData(Structure::Node *node, QString prefix = "");
-	static void loadSynthesisData(Structure::Node *node, QString prefix = "");
+	static void saveSynthesisData(Structure::Node *node, QString prefix, SynthData & input);
+	static void loadSynthesisData(Structure::Node *node, QString prefix, SynthData & output);
 	static void writeXYZ( QString filename, std::vector<Eigen::Vector3f> points, std::vector<Eigen::Vector3f> normals );
-
-	static void copySynthData( Structure::Node * fromNode, Structure::Node * toNode );
-	static void clearSynthData( Structure::Node * fromNode );
 };
 
 Q_DECLARE_METATYPE(Eigen::Vector3f)

@@ -63,6 +63,7 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
     topo_blend->s_manager->connect(ui->saveSynthButton, SIGNAL(clicked()), SLOT(saveSynthesisData()));
     topo_blend->s_manager->connect(ui->loadSynthButton, SIGNAL(clicked()), SLOT(loadSynthesisData()));
     topo_blend->s_manager->connect(ui->reconstructButton, SIGNAL(clicked()), SLOT(reconstructXYZ()));
+	topo_blend->s_manager->connect(ui->outputCloudButton, SIGNAL(clicked()), SLOT(outputXYZ()));
 
 	// Model manipulation
 	this->connect(ui->normalizeModel, SIGNAL(clicked()), SLOT(normalizeModel()));

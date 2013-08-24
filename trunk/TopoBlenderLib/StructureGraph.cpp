@@ -1,8 +1,5 @@
 #include <QApplication> // For mouse icon changing
 
-#include "GlSplatRenderer.h"
-GlSplatRenderer * splat_renderer = NULL;
-
 #include <QFile>
 #include <QFileInfo>
 #include <QDir>
@@ -405,12 +402,6 @@ void Graph::draw( QGLViewer * drawArea )
 		spheres.draw(); spheres2.draw();
 	}
 
-	// Geometry of graph
-	QVector<Eigen::Vector3f> points, normals;
-
-	// Compute blends if available
-	geometryMorph();
-
     foreach(Node * n, nodes)
     {
 		// Debug points for node
@@ -451,69 +442,25 @@ void Graph::draw( QGLViewer * drawArea )
 
 		if( !property.contains("reconMesh") )
 		{
-			if(n->property.contains("samples"))
+			// Draw node mesh
+			if( property["showMeshes"].toBool() )
 			{
-				QVector<Eigen::Vector3f> n_points, n_normals;
-
-				QVector<ParameterCoord> samples = n->property["samples"].value< QVector<ParameterCoord> >();
-				QVector<float> offsets = n->property["offsets"].value< QVector<float> >();
-				QVector<Vec2f> in_normals = n->property["normals"].value< QVector<Vec2f> >();
-
-				if(!n->property.contains("cached_points"))
+				if(n->property.contains("mesh"))
 				{
-					qApp->setOverrideCursor(Qt::WaitCursor);
+					SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
+					//QuickMeshDraw::drawMeshWireFrame( nodeMesh );
 
-					// Without blending!
-					if(n->type() == CURVE)
-					{
-						Curve * curve = (Curve *)n;
-						Synthesizer::reconstructGeometryCurve(curve,samples,offsets,in_normals,n_points,n_normals);
-					}
-					if(n->type() == SHEET)
-					{
-						Sheet * sheet = (Sheet *)n;
-						Synthesizer::reconstructGeometrySheet(sheet,samples,offsets,in_normals,n_points,n_normals);
-					}
+					QColor meshColor(255,255,255,8);
+					if(!n->vis_property.contains("meshColor"))
+						n->vis_property["meshColor"] = meshColor;
+					else
+						meshColor = n->vis_property["meshColor"].value<QColor>();
 
-					n->property["cached_points"].setValue(n_points);
-					n->property["cached_normals"].setValue(n_normals);
+					bool meshSolid = n->vis_property["meshSolid"].toBool();
 
-					qApp->restoreOverrideCursor();
-				}
-				else
-				{
-					n_points = n->property["cached_points"].value< QVector<Eigen::Vector3f> >();
-					n_normals = n->property["cached_normals"].value< QVector<Eigen::Vector3f> >();
-				}
-
-				if(n_points.size())
-				{
-					points += n_points;
-					normals += n_normals;
-				}
-			}
-			else
-			{
-				// Draw node mesh
-				if( property["showMeshes"].toBool() )
-				{
-					if(n->property.contains("mesh"))
-					{
-						SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
-						//QuickMeshDraw::drawMeshWireFrame( nodeMesh );
-
-						QColor meshColor(255,255,255,8);
-						if(!n->vis_property.contains("meshColor"))
-							n->vis_property["meshColor"] = meshColor;
-						else
-							meshColor = n->vis_property["meshColor"].value<QColor>();
-
-						bool meshSolid = n->vis_property["meshSolid"].toBool();
-
-						if(!meshSolid) glDisable(GL_DEPTH_TEST);
-						QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
-						glEnable(GL_DEPTH_TEST);
-					}
+					if(!meshSolid) glDisable(GL_DEPTH_TEST);
+					QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
+					glEnable(GL_DEPTH_TEST);
 				}
 			}
 		}
@@ -531,7 +478,7 @@ void Graph::draw( QGLViewer * drawArea )
 			}
 
 			glDisable(GL_LIGHTING);
-			
+
 			if( n->property["isActive"].toBool() )
 			{
                 if( n->property.contains("consistentFrame") )
@@ -558,42 +505,6 @@ void Graph::draw( QGLViewer * drawArea )
 					fs.draw();
 				}
 
-				glDisable(GL_LIGHTING);
-				//if( n->property.contains("path") )
-				//{
-				//	Array1D_Vector3 path = n->property["path"].value<Array1D_Vector3>();
-
-				//	PointSoup ps;
-				//	LineSegments ls;
-				//	Vector3d lastP = path.front();
-				//	foreach(Vector3 p, path)
-				//	{
-				//		ps.addPoint(p, Qt::green);
-				//		ls.addLine(lastP, p, QColor(255,255,255,100));
-				//		lastP = p;
-				//	}
-				//	ps.draw();
-				//	ls.draw();
-				//}
-
-				//if( n->property.contains("path2") )
-				//{
-				//	Array1D_Vector3 path = n->property["path2"].value<Array1D_Vector3>();
-
-				//	PointSoup ps;
-				//	LineSegments ls;
-				//	Vector3d lastP = path.front();
-				//	foreach(Vector3 p, path)
-				//	{
-				//		ps.addPoint(p, Qt::yellow);
-				//		ls.addLine(lastP, p, QColor(255,255,255,100));
-				//		lastP = p;
-				//	}
-				//	ps.draw();
-				//	ls.draw();
-				//}
-				//glEnable(GL_LIGHTING);
-				
 				if( n->property.contains("frame") )
 				{
 					RMF::Frame f = n->property["frame"].value<RMF::Frame>();
@@ -612,7 +523,6 @@ void Graph::draw( QGLViewer * drawArea )
 
 
 				// For edges
-				glDisable(GL_LIGHTING);
 				foreach(Structure::Link * l, edges)
 				{
 					if( l->property.contains("path") )
@@ -689,53 +599,6 @@ void Graph::draw( QGLViewer * drawArea )
 		QuickMeshDraw::drawMeshSolid( property["reconMesh"].value<SurfaceMesh::Model*>() );
 	}
 
-	// Splat rendering
-	if( points.size() && property["showMeshes"].toBool() )
-	{
-		if(!splat_renderer)
-		{
-			splat_renderer = new GlSplatRenderer(points, normals, property["splatSize"].toDouble());
-		}
-		else
-		{
-			splat_renderer->points = points;
-			splat_renderer->normals = normals;
-			splat_renderer->mRadius = property["splatSize"].toDouble();
-		}
-
-		glEnable(GL_LIGHTING);
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
-		glEnable(GL_DEPTH_TEST);
-
-		glEnable(GL_POINT_SMOOTH);
-		glEnable(GL_BLEND);
-
-		// Color
-		glColor3d(0.9,0.9,0.9);
-
-		if(splat_renderer && property["isSplatsHQ"].toBool())
-		{
-			splat_renderer->draw();
-		}
-		else
-		{
-			/// Using basic rendering:
-			{
-				glPointSize(3.0);
-				glEnable(GL_LIGHTING);
-				glBegin(GL_POINTS);
-				for(int i = 0; i < (int)points.size(); i++){
-					glNormal3(normals[i]);
-					glVector3(points[i]);
-				}
-				glEnd();
-			}
-		}
-
-		glDisable(GL_CULL_FACE);
-
-	}
 
 	if(property["showEdges"].toBool())
 	{
@@ -1057,6 +920,8 @@ void Graph::loadFromFile( QString fileName )
 	QDomNodeList node_list = mDocument.firstChildElement("document").elementsByTagName("node");
 	int num_nodes = node_list.count();
 
+	bool hasMeshes = false;
+
 	for(int i = 0; i < num_nodes; i++)
 	{
 		QDomNode node = node_list.at(i);
@@ -1128,7 +993,20 @@ void Graph::loadFromFile( QString fileName )
 			nodeMesh->update_vertex_normals();
 			nodeMesh->updateBoundingBox();
 			new_node->property["mesh"].setValue(nodeMesh);
+
+			hasMeshes = true;
 		}
+	}
+
+	// Original shape bounding box
+	if( hasMeshes ){
+		Eigen::AlignedBox3d shapeBox;
+		for(int i = 0; i < num_nodes; i++){
+			SurfaceMesh::Model * mesh = nodes[i]->property["mesh"].value<SurfaceMesh::Model*>();
+			shapeBox = shapeBox.merged( mesh->bbox() );
+		}
+		property["shapeBox"].setValue( shapeBox );
+		property["hasMeshes"].setValue( hasMeshes );
 	}
 
 	// For each edge
@@ -1932,57 +1810,6 @@ void Graph::setColorAll( QColor newNodesColor )
 {
 	foreach(Node * n, nodes)
 		n->vis_property["color"] = newNodesColor;
-}
-
-void Graph::clearGeometryCache()
-{
-	foreach(Node * n, nodes){
-		if(n->property.contains("cached_points")){
-			n->property.remove("cached_points");
-			n->property.remove("cached_normals");
-		}
-	}
-}
-
-void Graph::geometryMorph()
-{
-	foreach(Node * n, nodes)
-	{
-		if(n->property.contains("isReady") && !n->property["isReady"].toBool())
-			continue;
-
-		if (!property.contains("targetGraph") || !n->property.contains("correspond"))
-			continue;
-
-		Structure::Graph * targetGraph = property["targetGraph"].value<Structure::Graph*>();
-		QString tnodeID = n->property["correspond"].toString();
-
-		if(n->property.contains("samples") && !n->property.contains("cached_points"))
-		{
-			double t = n->property["localT"].toDouble();
-
-			QVector<Eigen::Vector3f> points, normals;
-
-			if(n->type() == Structure::CURVE)
-			{	
-				Structure::Curve * tcurve = (Structure::Curve *)targetGraph->getNode(tnodeID);
-				Structure::Curve * curve = (Structure::Curve *)n;
-
-				Synthesizer::blendGeometryCurves(curve, tcurve, t, points, normals);
-			}
-
-			if(n->type() == Structure::SHEET)
-			{	
-				Structure::Sheet * tsheet = (Structure::Sheet *)targetGraph->getNode(tnodeID);
-				Structure::Sheet * sheet = (Structure::Sheet *)n;
-
-				Synthesizer::blendGeometrySheets(sheet, tsheet, t, points, normals);
-			}
-
-			n->property["cached_points"].setValue(points);
-			n->property["cached_normals"].setValue(normals);
-		}
-	}
 }
 
 void Graph::renameNode( QString oldNodeID, QString newNodeID )
