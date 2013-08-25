@@ -40,6 +40,7 @@ SplatRenderer::SplatRenderer()
 
     mFlags = DEFERRED_SHADING_BIT | DEPTH_CORRECTION_BIT | FLOAT_BUFFER_BIT | OUTPUT_DEPTH_BIT;
     mCachedFlags = ~mFlags;
+
     // union of bits which controls the render buffer
     mRenderBufferMask = DEFERRED_SHADING_BIT | FLOAT_BUFFER_BIT;
 }
@@ -90,7 +91,7 @@ void SplatRenderer::configureShaders()
             "       vec3 halfVec = normalize( lightVec - normalize(eyePos) );"
             "       float aux_dot = dot(normal,lightVec);"
             "       float diffuseCoeff = clamp(aux_dot, 0.0, 1.0);"
-            " float specularCoeff = aux_dot>0.0 ? clamp(pow(clamp(dot(halfVec, normal),0.0,1.0),gl_FrontMaterial.shininess), 0.0, 1.0) : 0.0;"
+            "       float specularCoeff = aux_dot>0.0 ? clamp(pow(clamp(dot(halfVec, normal),0.0,1.0),gl_FrontMaterial.shininess), 0.0, 1.0) : 0.0;"
             "       return vec4(color.rgb * ( gl_FrontLightProduct[0].ambient.rgb + diffuseCoeff * gl_FrontLightProduct[0].diffuse.rgb) + specularCoeff * gl_FrontLightProduct[0].specular.rgb, 1.0);"
             "}\n";
 
@@ -177,12 +178,6 @@ void SplatRenderer::updateRenderBuffer()
                 (mFlags&OUTPUT_DEPTH_BIT) ? QGLFramebufferObject::NoAttachment : QGLFramebufferObject::Depth,
                 GL_TEXTURE_RECTANGLE_ARB, fmt);
 
-        if (!mRenderBuffer->isValid())
-        {
-            std::cout << "SplatRenderer: invalid FBO\n";
-        }
-
-
         if (mFlags&DEFERRED_SHADING_BIT)
         {
             // in deferred shading mode we need an additional buffer to accumulate the normals
@@ -195,7 +190,6 @@ void SplatRenderer::updateRenderBuffer()
             mRenderBuffer->bind();
             glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, GL_TEXTURE_RECTANGLE_ARB, mNormalTextureID, 0);
             mRenderBuffer->release();
-
         }
 
         if (mFlags&OUTPUT_DEPTH_BIT)
@@ -211,7 +205,6 @@ void SplatRenderer::updateRenderBuffer()
             mRenderBuffer->bind();
             glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_RECTANGLE_ARB, mDepthTextureID, 0);
             mRenderBuffer->release();
-
         }
     }
 }
@@ -260,7 +253,7 @@ bool SplatRenderer::beginVisibilityPass()
     glClearColor(0,0,0,0);
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
     enablePass(mCurrentPass);
-    ;
+    
     return true;
 }
 bool SplatRenderer::beginAttributePass()
@@ -316,7 +309,6 @@ bool SplatRenderer::finalize()
     glLoadIdentity();
 
 
-
     mShaders[2].setUniform("viewport",float(mCachedVP[0]),float(mCachedVP[1]),float(mCachedVP[2]),float(mCachedVP[3]));
     mShaders[2].setUniform("ColorWeight",0);   // this is a texture unit
     glActiveTexture(GL_TEXTURE0);
@@ -368,7 +360,7 @@ bool SplatRenderer::finalize()
     glMultiTexCoord2f(GL_TEXTURE1,1.,0.);
     glVertex3f(1,-1,0);
     glEnd();
-    if (!(mFlags&OUTPUT_DEPTH_BIT))
+    if (!(mFlags & OUTPUT_DEPTH_BIT))
     {
         glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_TRUE);
@@ -390,8 +382,7 @@ void SplatRenderer::enablePass(int n)
 {
     if (mBindedPass!=n)
     {
-        if (mBindedPass>=0)
-            mShaders[mBindedPass].release();
+        if (mBindedPass >= 0) mShaders[mBindedPass].release();
         mShaders[n].activate();
         mBindedPass = n;
 
@@ -399,7 +390,6 @@ void SplatRenderer::enablePass(int n)
         if (n==0)
         {
             glDisable(GL_LIGHTING);
-            //                      glDisable(GL_POINT_SMOOTH);
             glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
             glAlphaFunc(GL_LESS,1);
@@ -409,9 +399,6 @@ void SplatRenderer::enablePass(int n)
             glEnable(GL_ALPHA_TEST);
             glEnable(GL_DEPTH_TEST);
 
-            //                      glActiveTexture(GL_TEXTURE0);
-            //                      glTexEnvf(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
-            //                      glEnable(GL_POINT_SPRITE_ARB);
         }
         if (n==1)
         {
@@ -422,15 +409,11 @@ void SplatRenderer::enablePass(int n)
 
             glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
             glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE,GL_ONE);
-            //                      //glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE,GL_ZERO);
-            //                      glBlendFunc(GL_ONE,GL_ZERO);
+
             glDepthMask(GL_FALSE);
             glEnable(GL_BLEND);
             glEnable(GL_DEPTH_TEST);
             glDisable(GL_ALPHA_TEST);
-
-            //                      glActiveTexture(GL_TEXTURE0);
-
         }
         if ( (n==0) || (n==1) )
         {

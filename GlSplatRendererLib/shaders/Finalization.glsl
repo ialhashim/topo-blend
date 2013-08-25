@@ -98,6 +98,10 @@ void Finalization(void)
 
   gl_FragColor = meshlabLighting(color, eyePos, normal);
   gl_FragColor.a = 1.0;
+  
+  // Greyscale -- fix me
+  gl_FragColor.r = gl_FragColor.g;
+  gl_FragColor.b = gl_FragColor.g;
 }
 
 #endif
