@@ -491,7 +491,7 @@ std::vector<VectorType> BezierArc(const VectorType& pointA, const VectorType& po
 static inline std::vector<bool> subsampleMask(int samples, int entire){
 	std::vector<bool> mask = std::vector<bool>(entire, false);
 	int difference = entire - samples;
-	if(difference <= 0) return mask;
+	if(difference <= 0) return std::vector<bool>(entire, true);
 
 	// Subtract the difference and shuffle
 	for(int i = 0; i < samples; i++) mask[i] = true;

@@ -917,3 +917,18 @@ void Scheduler::emitUpdateExternalViewer()
 {
 	emit( updateExternalViewer() );
 }
+
+void Scheduler::emitProgressStarted()
+{
+	emit( progressStarted() );
+}
+
+void Scheduler::emitProgressChanged( int val )
+{
+	emit( progressChanged(val) );
+}
+
+void Scheduler::emitProgressedDone()
+{
+	emit( progressDone() );
+}

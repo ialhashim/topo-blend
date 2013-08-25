@@ -128,8 +128,7 @@ void GraphsManager::clearGraphs()
     tb->graphs.clear();
 
 	// Clear any synthesis data
-	tb->s_manager->synthData.clear();
-	tb->s_manager->sampled.clear();
+	tb->s_manager->clear();
 
     // Clear debug
     tb->debugPoints.clear(); tb->debugPoints2.clear();
