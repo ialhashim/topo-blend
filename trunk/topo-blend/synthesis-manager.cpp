@@ -819,10 +819,6 @@ void SynthesisManager::drawSynthesis()
 
 	bool isBasicRenderer = !tb->viz_params["isSplatsHQ"].toBool();
 
-	// Create splat renderer instance
-	if(!isBasicRenderer && !splat_renderer) 
-		splat_renderer = new GlSplatRenderer(tb->property["splatSize"].toDouble());
-
 	if(vertices.size() && currentGraph["graph"].value<Structure::Graph*>() != graph)
 	{
 		if(isBasicRenderer)
@@ -861,6 +857,8 @@ void SynthesisManager::drawSynthesis()
 	}
 	else
 	{
+		if(!splat_renderer) splat_renderer = new GlSplatRenderer(tb->property["splatSize"].toDouble());
+
 		splat_renderer->mRadius = tb->viz_params["splatSize"].toDouble();
 		splat_renderer->draw();
 	}
