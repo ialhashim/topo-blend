@@ -40,6 +40,17 @@ void endFastNURBS(){
 	TIME_ITERATIONS = nurbsQuality.pop();
 }
 
+void SynthesisManager::clear()
+{
+	synthData.clear();
+	renderData.clear();
+
+	sampled.clear();
+	vertices.clear();
+	currentData.clear();
+	currentGraph.clear();
+}
+
 QVector<Structure::Graph*> SynthesisManager::graphs()
 {
 	QVector<Structure::Graph*> result;
@@ -249,21 +260,39 @@ void SynthesisManager::renderCurrent()
 
 void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bool isOutPointCloud, int reconLevel, bool isOutGraph )
 {
-	throw(StarlabException("FIX ME!"));
-    //geometryMorph();
+	QMap<QString, SurfaceMesh::Model*> reconMeshes;
 
-    QStringList generatedFiles, tempFiles;
+	renderData.clear();
 
-    foreach(Structure::Node * node, graph.nodes)
-    {
+    geometryMorph(renderData, &graph, false);
+
+	QVector<Node *> usedNodes;
+
+	foreach(Structure::Node * node, graph.nodes){
+		// Skip inactive nodes
+		if( node->property["zeroGeometry"].toBool() || node->property["shrunk"].toBool()) continue;
+		usedNodes.push_back(node);
+	}
+
+	// Progress bar
+	tb->scheduler->emitProgressStarted();
+
+	for(int ni = 0; ni < (int)usedNodes.size(); ni++)
+	{
+		int progress = (double(ni) / (usedNodes.size()-1)) * 100;
+		tb->scheduler->emitProgressChanged( progress );
+		qApp->processEvents();
+
+		Node * node = usedNodes[ni];
+
         // Skip inactive nodes
-        if( node->property["zeroGeometry"].toBool() || node->property["shrunk"].toBool() ||
-            !node->property.contains("cached_points")) continue;
+        if( node->property["zeroGeometry"].toBool() || node->property["shrunk"].toBool()) continue;
 
-        QVector<Eigen::Vector3f> points = node->property["cached_points"].value< QVector<Eigen::Vector3f> >();
-        QVector<Eigen::Vector3f> normals = node->property["cached_normals"].value< QVector<Eigen::Vector3f> >();
+        QVector<Eigen::Vector3f> points = renderData[node->id]["points"].value< QVector<Eigen::Vector3f> >();
+        QVector<Eigen::Vector3f> normals = renderData[node->id]["normals"].value< QVector<Eigen::Vector3f> >();
 
         if(!points.size()) continue;
+
         std::vector<Eigen::Vector3f> clean_points;
         foreach(Eigen::Vector3f p, points) clean_points.push_back(p);
 
@@ -326,27 +355,70 @@ void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bo
             //Synthesizer::writeXYZ( xyz_filename, finalP, finalN );
         }
 
-        QString node_filename = node->id + ".obj";
-        generatedFiles << node_filename;
-        PoissonRecon::makeFromCloud( pointCloudf(finalP), pointCloudf(finalN), node_filename, reconLevel );
+		SimpleMesh mesh;
+		PoissonRecon::makeFromCloud( pointCloudf(finalP), pointCloudf(finalN), mesh, reconLevel );
+		
+		reconMeshes[node->id] = new SurfaceMesh::Model;
+		SurfaceMesh::Model* nodeMesh = reconMeshes[node->id];
 
-        // Replace with reconstructed geometries
-        if( isOutGraph )
-        {
-            QFileInfo reconFile( node_filename );
+		/// Fill-in reconstructed mesh:
+		// Vertices
+		for(int i = 0; i < (int)mesh.vertices.size(); i++)
+		{
+			const std::vector<float> & p = mesh.vertices[i];
+			nodeMesh->add_vertex( Vector3(p[0],p[1],p[2]) );
+		}
+		// Faces
+		for(int i = 0; i < (int)mesh.faces.size(); i++)
+		{
+			std::vector<SurfaceMesh::Vertex> face;
+			for(int vi = 0; vi < 3; vi++) face.push_back(SurfaceMesh::Vertex( mesh.faces[i][vi] ));
+			nodeMesh->add_face( face );
+		}
 
-            if( reconFile.exists() )
-            {
-                SurfaceMesh::Model* nodeMesh = new SurfaceMesh::Model;
-                nodeMesh->read( qPrintable(node_filename) );
-
-                node->property["mesh"].setValue( nodeMesh );
-                node->property["mesh_filename"].setValue( "meshes/" + node_filename );
-            }
-        }
+		if( isOutGraph )
+		{
+			// Replace node mesh with reconstructed
+			QString node_filename = node->id + ".obj";
+			node->property["mesh"].setValue( reconMeshes[node->id] );
+			node->property["mesh_filename"].setValue( "meshes/" + node_filename );
+		}
     }
 
-    combineMeshes(generatedFiles, filename + ".obj");
+	// Write entire reconstructed mesh
+	{
+		QFile file(filename + ".obj");
+
+		// Create folder
+		QFileInfo fileInfo(file.fileName());
+		QDir d(""); d.mkpath(fileInfo.absolutePath());
+
+		// Open for writing
+		if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+
+		QTextStream out(&file);
+		int voffset = 0;
+
+		foreach(QString nid, reconMeshes.keys()){
+			SurfaceMesh::Model* mesh = reconMeshes[nid];
+			out << "# NV = " << mesh->n_vertices() << " NF = " << mesh->n_faces() << "\n";
+			SurfaceMesh::Vector3VertexProperty points = mesh->vertex_property<Vector3d>("v:point");
+
+			foreach( SurfaceMesh::Vertex v, mesh->vertices() )
+				out << "v " << points[v][0] << " " << points[v][1] << " " << points[v][2] << "\n";
+			out << "g " << nid << "\n";
+			foreach( SurfaceMesh::Face f, mesh->faces() ){
+				out << "f ";
+				Surface_mesh::Vertex_around_face_circulator fvit=mesh->vertices(f), fvend=fvit;
+				do{	out << (((Surface_mesh::Vertex)fvit).idx() + 1 + voffset) << " ";} while (++fvit != fvend);
+				out << "\n";
+			}
+
+			voffset += mesh->n_vertices();
+		}
+
+		file.close();
+	}
 
     if( isOutGraph )
     {
@@ -359,16 +431,13 @@ void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bo
             bool taskDone = n->property["taskIsDone"].toBool();
             double t = n->property["t"].toDouble();
 
-            // To-do: cut nodes cases
-            {
-                // Not yet grown
-                if( taskType == Task::GROW && !taskReady && t > 0.0 )
-                    removableNodes << n->id;
+            // Not yet grown
+            if( taskType == Task::GROW && !taskReady && t > 0.0 )
+                removableNodes << n->id;
 
-                // Shrunk nodes
-                if( taskType == Task::SHRINK && taskDone )
-                    removableNodes << n->id;
-            }
+            // Shrunk nodes
+            if( taskType == Task::SHRINK && taskDone )
+                removableNodes << n->id;
         }
 
         // Remove
@@ -377,15 +446,23 @@ void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bo
             graph.removeNode( nodeID );
         }
 
+		// Clean-up names
+		foreach(Node * n, graph.nodes) n->id = n->id.replace("_","");
+		foreach(Link * e, graph.edges) e->id = e->id.replace("_","");
+		
         graph.saveToFile( filename + ".xml" );
     }
+	else
+	{
+		// Clean up
+		foreach(QString nid, reconMeshes.keys()){
+			reconMeshes[nid]->clear();
+			delete reconMeshes[nid];
+		}
+	}
 
-    // Clean up
-    if(!isOutPointCloud)
-    {
-        foreach(QString filename, generatedFiles)
-            QFile::remove( filename );
-    }
+	// Progress bar
+	tb->scheduler->emitProgressedDone();
 }
 
 void SynthesisManager::draftRender()
@@ -570,6 +647,7 @@ void SynthesisManager::drawSampled()
 
 		glTranslated(g->property["posX"].toDouble(), 0, 0);
 
+		glColor3d(1,1,1);
 		glPointSize(3.0);
 		glEnable(GL_LIGHTING);
 
@@ -738,7 +816,7 @@ void SynthesisManager::drawSynthesis()
 	if(true)
 	{
 		/// Basic renderer
-		if(currentGraph["graph"].value<Structure::Graph*>() != graph)
+		if(vertices.size() && currentGraph["graph"].value<Structure::Graph*>() != graph)
 		{
 			GLuint VertexVBOID;
 
@@ -759,10 +837,13 @@ void SynthesisManager::drawSynthesis()
 		glColor3d(1,1,1);
 		glPointSize(4);
 
-		glBindBuffer(GL_ARRAY_BUFFER, currentGraph["vboID"].toUInt());
-		glVertexPointer(3, GL_FLOAT, sizeof(GLVertex), (void*)offsetof(GLVertex, x));
-		glNormalPointer(GL_FLOAT, sizeof(GLVertex), (void*)offsetof(GLVertex, nx));
-		glDrawArrays(GL_POINTS, 0, currentGraph["count"].toInt());
+		if(currentGraph.contains("vboID"))
+		{
+			glBindBuffer(GL_ARRAY_BUFFER, currentGraph["vboID"].toUInt());
+			glVertexPointer(3, GL_FLOAT, sizeof(GLVertex), (void*)offsetof(GLVertex, x));
+			glNormalPointer(GL_FLOAT, sizeof(GLVertex), (void*)offsetof(GLVertex, nx));
+			glDrawArrays(GL_POINTS, 0, currentGraph["count"].toInt());
+		}
 
 		glDisableClientState(GL_VERTEX_ARRAY);
 		glDisableClientState(GL_NORMAL_ARRAY);

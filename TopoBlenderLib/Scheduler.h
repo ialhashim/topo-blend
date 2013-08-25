@@ -102,7 +102,11 @@ public slots:
 	void saveSchedule(QString filename);
 	QMap< QString, QPair<int,int> > getSchedule();
 	void setSchedule( QMap< QString, QPair<int,int> > fromSchedule );
+	
 	void emitUpdateExternalViewer();
+	void emitProgressStarted();
+	void emitProgressChanged(int);
+	void emitProgressedDone();
 
 signals:
 	void activeGraphChanged( Structure::Graph* );

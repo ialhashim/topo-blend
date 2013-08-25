@@ -14,11 +14,15 @@ public:
 	QVector<Structure::Graph*> graphs();
 	Structure::Graph * graphNamed(QString graphName);
 
+	void clear();
+
 	// Synthesis data [graph][node][data]
 	QMap<QString, QMap<QString, QMap<QString,QVariant> > > synthData;
+	SynthData renderData;
+
+	// Visualization
 	QMap<QString, QMap<QString,QVariant> > sampled;
 	std::vector<GLVertex> vertices;
-
 	SynthData currentData;
 	QMap<QString, QVariant> currentGraph;
 

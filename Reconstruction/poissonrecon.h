@@ -6,13 +6,19 @@
 #include <QString>
 #include <QStringList>
 
+struct SimpleMesh{
+	std::vector< std::vector<float> > vertices;
+	std::vector< std::vector<int> > faces;
+};
+
 class PoissonRecon
 {
 public:
     static char** convertArguments(QStringList args);
 
     static void makeFromCloudFile(QString filename, QString out_filename, int depth = 7);
-	static void makeFromCloud( std::vector< std::vector<float> > p, std::vector< std::vector<float> > n, QString out_filename, int depth = 7);
+	static void makeFileFromCloud( std::vector< std::vector<float> > p, std::vector< std::vector<float> > n, QString out_filename, int depth = 7);
+	static void makeFromCloud(std::vector< std::vector<float> > p, std::vector< std::vector<float> > n, SimpleMesh & mesh, int depth = 7);
 
 	static void writeOBJ(QString out_filename, std::vector< std::vector<float> > & mesh_verts, std::vector< std::vector<int> > & mesh_faces);
 };

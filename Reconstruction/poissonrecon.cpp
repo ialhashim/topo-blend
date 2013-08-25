@@ -35,12 +35,26 @@ void PoissonRecon::makeFromCloudFile(QString filename, QString out_filename, int
     Execute< 2 >(args.size(), convertArguments(args) );
 }
 
-void PoissonRecon::makeFromCloud( std::vector< std::vector<float> > p, std::vector< std::vector<float> > n, QString out_filename, int depth /*= 7*/ )
+void PoissonRecon::makeFromCloud( std::vector< std::vector<float> > p, std::vector< std::vector<float> > n, SimpleMesh & mesh, int depth /*= 7*/ )
 {
 	QStringList args;
 
 	args << "program_name";
-	args << "--in" << "dummy" << "--out" << out_filename;
+	args << "--in" << "dummy" << "--out" << "output";
+	args << "--depth" << QString::number(depth);
+
+	std::vector< std::vector<float> > mesh_verts;
+	std::vector< std::vector<int> > mesh_faces;
+
+	ExecuteMemory< 2 >(args.size(), convertArguments(args), p, n, mesh.vertices, mesh.faces);
+}
+
+void PoissonRecon::makeFileFromCloud( std::vector< std::vector<float> > p, std::vector< std::vector<float> > n, QString out_filename, int depth /*= 7*/ )
+{
+	QStringList args;
+
+	args << "program_name";
+	args << "--in" << "dummy" << "--out" << "output";
 	args << "--depth" << QString::number(depth);
 
 	std::vector< std::vector<float> > mesh_verts;
