@@ -13,8 +13,12 @@ public:
     double mRadius;
     double mColor[4];
 
-    void draw(const std::vector<GLVertex> & splats);
+	GLuint VertexVBOID;
+	GLsizei VertexCount;
+
+    void draw();
+	void update( const std::vector<GLVertex> & splats );
 
 private:
-    void drawpoints(const std::vector<GLVertex> & splats);
+    void drawpoints();
 };

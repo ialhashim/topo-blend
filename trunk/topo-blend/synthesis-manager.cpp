@@ -629,6 +629,8 @@ void SynthesisManager::drawSampled()
 				}
 			}
 
+			if(!vertices.size()) continue;
+
 			GLuint VertexVBOID;
 			glGenBuffers(1, &VertexVBOID);
 			glBindBuffer(GL_ARRAY_BUFFER, VertexVBOID);
@@ -795,7 +797,7 @@ void SynthesisManager::drawSynthesis()
 		}
 
 		beginFastNURBS();
-		geometryMorph( currentData, graph, true, 200000 );
+		geometryMorph( currentData, graph, true, 600000 );
 		endFastNURBS();
 
 		vertices.clear();
@@ -813,10 +815,17 @@ void SynthesisManager::drawSynthesis()
 		}
 	}
 
-	if(true)
+	glEnable(GL_LIGHTING);
+
+	bool isBasicRenderer = !tb->viz_params["isSplatsHQ"].toBool();
+
+	// Create splat renderer instance
+	if(!isBasicRenderer && !splat_renderer) 
+		splat_renderer = new GlSplatRenderer(tb->property["splatSize"].toDouble());
+
+	if(vertices.size() && currentGraph["graph"].value<Structure::Graph*>() != graph)
 	{
-		/// Basic renderer
-		if(vertices.size() && currentGraph["graph"].value<Structure::Graph*>() != graph)
+		if(isBasicRenderer)
 		{
 			GLuint VertexVBOID;
 
@@ -828,30 +837,32 @@ void SynthesisManager::drawSynthesis()
 			currentGraph["count"] = vertices.size();
 			currentGraph["graph"].setValue( graph );
 		}
+		else
+		{
+			splat_renderer->update(vertices);
+		}
+	}
 
-		glEnable(GL_LIGHTING);
+	if( isBasicRenderer && currentGraph.contains("vboID") )
+	{
+		glColor3d(1,1,1);
+		glPointSize(4);
 
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glEnableClientState(GL_NORMAL_ARRAY);
 
-		glColor3d(1,1,1);
-		glPointSize(4);
-
-		if(currentGraph.contains("vboID"))
-		{
-			glBindBuffer(GL_ARRAY_BUFFER, currentGraph["vboID"].toUInt());
-			glVertexPointer(3, GL_FLOAT, sizeof(GLVertex), (void*)offsetof(GLVertex, x));
-			glNormalPointer(GL_FLOAT, sizeof(GLVertex), (void*)offsetof(GLVertex, nx));
-			glDrawArrays(GL_POINTS, 0, currentGraph["count"].toInt());
-		}
+		glBindBuffer(GL_ARRAY_BUFFER, currentGraph["vboID"].toUInt());
+		glVertexPointer(3, GL_FLOAT, sizeof(GLVertex), (void*)offsetof(GLVertex, x));
+		glNormalPointer(GL_FLOAT, sizeof(GLVertex), (void*)offsetof(GLVertex, nx));
+		glDrawArrays(GL_POINTS, 0, currentGraph["count"].toInt());
 
 		glDisableClientState(GL_VERTEX_ARRAY);
 		glDisableClientState(GL_NORMAL_ARRAY);
 	}
 	else
 	{
-		if(!splat_renderer) splat_renderer = new GlSplatRenderer(tb->property["splatSize"].toDouble());
-		splat_renderer->draw( vertices );
+		splat_renderer->mRadius = tb->viz_params["splatSize"].toDouble();
+		splat_renderer->draw();
 	}
 }
 

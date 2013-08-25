@@ -735,17 +735,12 @@ Structure::Graph * topoblend::getGraph(int id)
 
 void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 {
+	widget->setCheckOption("showMeshes", false);
+	widget->setCheckOption("showNodes", false);
+	
 	graphs.clear();
 
-	if(graphs.size() > 1)
-	{
-		setSceneBounds();
-	}
-
 	this->graphs.push_back(newActiveGraph);
-
-	if(!scheduler->property["synthDataReady"].toBool())
-		this->widget->setCheckOption("showMeshes", false);
 
 	drawArea()->updateGL();
 }
