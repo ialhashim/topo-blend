@@ -7,6 +7,8 @@ using namespace Structure;
 	double DIST_RESOLUTION = 0.03;
 #endif
 
+#include "Task.h"
+
 GraphDistance::GraphDistance( Structure::Graph * graph, QVector<QString> exclude_nodes, QVector<QString> exclude_edges )
 {
     this->g = graph;
@@ -15,12 +17,21 @@ GraphDistance::GraphDistance( Structure::Graph * graph, QVector<QString> exclude
 	this->isReady = false;
 	this->globalID = 0;
 
+	if(g->nodes.size() < 2) return;
+
 	// Exclude nodes that are not connected to anywhere else on the graph
-	if(g->nodes.size() > 1){
-		foreach(Node * node, g->nodes){
-			if( !g->getEdges(node->id).size() )
-				excludeNodes.push_back( node->id );
-		}
+	foreach(Node * node, g->nodes){
+		if( !g->getEdges(node->id).size() )
+			excludeNodes.push_back( node->id );
+	}
+
+	// Exclude non-ready nodes
+	foreach(Node * node, g->nodes){
+		Task * t = node->property["task"].value<Task*>();
+		if(!t) continue;
+
+		if( t->type == Task::GROW && t->isDone == false )
+			excludeNodes.push_back( node->id );
 	}
 }
 

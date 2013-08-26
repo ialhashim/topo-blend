@@ -56,7 +56,7 @@ void Graph::init()
 
 	vs = VectorSoup(Qt::blue);
 	vs2 = VectorSoup(Qt::red);
-	vs3 = VectorSoup(Qt::green);
+	vs3 = VectorSoup(Qt::yellow);
 
 	spheres = SphereSoup(Qt::yellow);
 	spheres2 = SphereSoup(Qt::blue);
