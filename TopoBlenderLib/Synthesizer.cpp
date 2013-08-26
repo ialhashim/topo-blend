@@ -893,7 +893,7 @@ void Synthesizer::saveSynthesisData( Structure::Node *node, QString prefix, Synt
 
 	if(samples.empty())
 	{
-		qDebug() << QString("WARNING: Node [%1]: No data").arg(node->id);
+		qDebug() << QString("WARNING: Node [%1]: No synthesis data").arg(node->id);
 		return;
 	}
 
@@ -923,7 +923,12 @@ void Synthesizer::loadSynthesisData( Structure::Node *node, QString prefix, Synt
 	if(!node) return;
 
 	QFile file(prefix + node->id + ".txt");
-	if (!file.open(QIODevice::ReadOnly)) return;
+	if (!file.open(QIODevice::ReadOnly)) 
+	{
+		qDebug() << QString("WARNING: Node [%1]: No synthesis data found").arg(node->id);
+		return;
+	}
+
 	QDataStream inF(&file);
 
 	int num;

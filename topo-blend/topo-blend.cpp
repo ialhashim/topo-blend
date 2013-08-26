@@ -12,6 +12,7 @@
 #include "../CustomDrawObjects.h"
 #include "graph_modify_dialog.h"
 #include "QuickAlignment.h"
+#include "GraphExplorer.h"
 
 using namespace NURBS;
 using namespace Structure;
@@ -41,6 +42,7 @@ topoblend::topoblend()
 {
 	widget = NULL;
 	wizard = NULL;
+	graph_explorer = NULL;
 
     gcoor = NULL;
 	blender = NULL;
@@ -68,6 +70,9 @@ void topoblend::create()
 
 		// Simple UI
 		this->wizard = new Wizard(this, widget->simpleWidget());
+
+		// Explore graph and its properties
+		this->graph_explorer = new GraphExplorer;
 	}
 
 	drawArea()->setSelectRegionHeight( 20 );
@@ -432,6 +437,16 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 	QElapsedTimer timer; timer.start();
 
+	if(event->key() == Qt::Key_I)
+	{
+		if(graphs.size()){
+			graph_explorer->update(graphs.front());
+			if(graph_explorer) graph_explorer->show();
+		}
+
+		used = true;
+	}
+
 	if(event->key() == Qt::Key_C)
 	{
 		c_manager->clearCorrespondence();
@@ -639,7 +654,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 			DynamicGraphs::DynamicGraph sdg(graphs.front());
 			toGraphviz(sdg, graphs.front()->name(), true, QString("V = %1, E = %2").arg(sdg.nodes.size()).arg(sdg.edges.size()), "Graph");
-
+			
 			used = true;
 		}
 	}
@@ -735,14 +750,19 @@ Structure::Graph * topoblend::getGraph(int id)
 
 void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 {
+	if(s_manager->renderData.size())
+		widget->setCheckOption("showNodes", false);
 	widget->setCheckOption("showMeshes", false);
-	widget->setCheckOption("showNodes", false);
-	
+
 	graphs.clear();
 
 	this->graphs.push_back(newActiveGraph);
 
 	drawArea()->updateGL();
+
+	if(graph_explorer->isVisible()){
+		graph_explorer->update(newActiveGraph);
+	}
 }
 
 void topoblend::setStatusBarMessage(QString message)

@@ -685,8 +685,11 @@ void SynthesisManager::geometryMorph( SynthData & data, Structure::Graph * graph
 		if( n->property["zeroGeometry"].toBool() || n->property["shrunk"].toBool()) 
 			continue;
 
-		if (!n->property.contains("correspond"))
+		if(!n->property.contains("correspond"))
 			continue;
+
+		const QVector<float> & offsets = synthData[ag][n->id]["offsets"].value< QVector<float> >();
+		if(offsets.isEmpty()) continue;
 
 		usedNodes.push_back(n);
 	}
@@ -815,11 +818,13 @@ void SynthesisManager::drawSynthesis()
 		}
 	}
 
+	if(!vertices.size()) return;
+
 	glEnable(GL_LIGHTING);
 
 	bool isBasicRenderer = !tb->viz_params["isSplatsHQ"].toBool();
 
-	if(vertices.size() && currentGraph["graph"].value<Structure::Graph*>() != graph)
+	if(currentGraph["graph"].value<Structure::Graph*>() != graph)
 	{
 		if(isBasicRenderer)
 		{
