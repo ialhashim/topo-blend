@@ -7,6 +7,11 @@ StarlabTemplate(plugin)
 # UI related
 include(QtAwesome/QtAwesome.pri)
 
+# Graph visualization
+SOURCES += QGraphViz/svgview.cpp
+HEADERS += QGraphViz/svgview.h
+QT += svg
+
 # Build flag
 CONFIG(debug, debug|release) {
     CFG = debug
@@ -45,8 +50,8 @@ HEADERS +=  topo-blend.h \
             graphs-manager.h \
             correspondence-manager.h \
             synthesis-manager.h \
-    wizard.h \
-    GraphExplorer.h
+            wizard.h \
+            GraphExplorer.h
 
 SOURCES +=  topo-blend.cpp \
             topo_blend_widget.cpp \
@@ -57,8 +62,8 @@ SOURCES +=  topo-blend.cpp \
             graphs-manager.cpp \
             correspondence-manager.cpp \
             synthesis-manager.cpp \
-    wizard.cpp \
-    GraphExplorer.cpp
+            wizard.cpp \
+            GraphExplorer.cpp
 	
 RESOURCES += topo-blend.qrc
 
@@ -68,7 +73,7 @@ FORMS +=    topo_blend_widget.ui \
             landmarks_dialog.ui \
             QuickAlignment.ui \
             QuickGroup.ui \
-    wizard.ui \
-    GraphExplorer.ui
+            wizard.ui \
+            GraphExplorer.ui
 
 mac:LIBS += -framework CoreFoundation # We need this for GLee..

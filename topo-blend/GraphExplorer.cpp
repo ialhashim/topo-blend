@@ -1,4 +1,9 @@
 #include <QtConcurrentRun>
+#include <QSet>
+#include <QStack>
+#include <QFileDialog>
+#include <QProcess>
+#include <QTemporaryFile>
 
 #include "GraphExplorer.h"
 #include "ui_GraphExplorer.h"
@@ -8,6 +13,28 @@
 #include "Task.h"
 
 #include "ExportDynamicGraph.h"
+#include "QGraphViz/svgview.h"
+
+QProcess * p = NULL;
+SvgView * svgViewer = NULL;
+
+#ifndef popen
+#define popen _popen
+#define pclose _pclose
+#endif
+
+static inline std::string exec(char* cmd) {
+	FILE* pipe = popen(cmd, "r");
+	if (!pipe) return "ERROR";
+	char buffer[128];
+	std::string result = "";
+	while(!feof(pipe)) {
+		if(fgets(buffer, 128, pipe) != NULL)
+			result += buffer;
+	}
+	pclose(pipe);
+	return result;
+}
 
 GraphExplorer::GraphExplorer(QWidget *parent): QWidget(parent), ui(new Ui::GraphExplorer)
 {
@@ -16,6 +43,15 @@ GraphExplorer::GraphExplorer(QWidget *parent): QWidget(parent), ui(new Ui::Graph
 
 	g = NULL;
 	clear();
+
+	this->connect(ui->nodesFilterProperty, SIGNAL(textChanged(QString)), SLOT(filterNodes()));
+	this->connect(ui->nodesFilterValue, SIGNAL(textChanged(QString)), SLOT(filterNodes()));
+
+	this->connect(ui->edgesFilterProperty, SIGNAL(textChanged(QString)), SLOT(filterEdges()));
+	this->connect(ui->edgesFilterValue, SIGNAL(textChanged(QString)), SLOT(filterEdges()));
+
+	ui->nodesTree->sortByColumn(0);
+	ui->edgesTree->sortByColumn(0);
 }
 
 void GraphExplorer::update(Structure::Graph * graph)
@@ -41,20 +77,73 @@ void GraphExplorer::update(Structure::Graph * graph)
 	fillNodesInfo();
 	fillEdgesInfo();
 
-	this->show();
+	// Apply filters
+	filterNodes();
+	filterEdges();
+
+	if(!this->isVisible()) this->show();
 }
 
 void GraphExplorer::drawGraph()
 {
 	// Create graph visualization
-	QString tmpGraphFilename = "tempGraph_"+QString::number(QDateTime::currentMSecsSinceEpoch());
+	/*QString tmpGraphFilename = "tempGraph_"+QString::number(QDateTime::currentMSecsSinceEpoch());
 	visualizeStructureGraph(g, tmpGraphFilename, "");
 	QImage gimg(tmpGraphFilename+".png");
 	QFile::remove(tmpGraphFilename+".png");
 	QFile::remove(tmpGraphFilename+".gv");
-
 	// Set graph visualization
-	ui->graphImage->setPixmap( QPixmap::fromImage(gimg.scaled(gimg.size() * 0.5, Qt::KeepAspectRatio, Qt::SmoothTransformation)) );
+	//ui->graphImage->setPixmap( QPixmap::fromImage(gimg.scaled(gimg.size() * 0.5, Qt::KeepAspectRatio, Qt::SmoothTransformation)) );*/
+
+	if(!dotPath.size()){
+		#ifdef Q_OS_WIN
+		dotPath = "\"" + QString(exec("where dot").c_str()).replace("\\","/").trimmed() + "\"";
+		#else
+		dotPath = QString(exec("which dot").c_str());
+		#endif
+
+		if(!dotPath.size())
+		{
+			// Ask user for help
+			dotPath = QFileDialog::getOpenFileName(0, "Graphviz dot application", "dot", tr("Application (*.*)"));
+			if(dotPath == "") dotPath = "-";
+		}
+	}
+	if(dotPath == "-") return;
+
+	p = new QProcess;
+	this->connect(p, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(drawGraphSVG()));
+	p->start( dotPath, QStringList() << "-Tsvg" );
+	if (!p->waitForStarted()){
+		qDebug() << "Error process: " << p->error();
+		return;
+	}
+
+	p->write( qPrintable(toGraphvizFormat(g,"","")) );
+	p->closeWriteChannel();
+	p->waitForFinished(-1);
+
+	double x = 0;
+}
+
+void GraphExplorer::drawGraphSVG()
+{
+	QString svgData = p->readAllStandardOutput();
+	QTemporaryFile file;
+	if (file.open()){
+		QTextStream out(&file);
+		out << svgData;
+		file.close();
+
+		if(!svgViewer) 
+		{
+			svgViewer = new SvgView;
+			ui->graphVizLayout->addWidget(svgViewer);
+			ui->graphImage->setText("");
+		}
+
+		svgViewer->openFile(file);
+	}
 }
 
 void GraphExplorer::fillNodesInfo()
@@ -156,4 +245,104 @@ void GraphExplorer::clear()
 
 	ui->nodesTree->clear();
 	ui->edgesTree->clear();
+}
+
+void GraphExplorer::filterNodes()
+{
+	ui->nodesTree->clear();
+	fillNodesInfo();
+	filterTree(ui->nodesTree, ui->nodesFilterProperty->text().split("|",QString::SkipEmptyParts), 0);
+	filterTree(ui->nodesTree, ui->nodesFilterValue->text().split("|",QString::SkipEmptyParts), 1);
+}
+
+void GraphExplorer::filterEdges()
+{
+	ui->edgesTree->clear();
+	fillEdgesInfo();
+	filterTree(ui->edgesTree, ui->edgesFilterProperty->text().split("|",QString::SkipEmptyParts), 0);
+	filterTree(ui->edgesTree, ui->edgesFilterValue->text().split("|",QString::SkipEmptyParts), 1);
+}
+
+void GraphExplorer::filterTree(QTreeWidget * tree, QStringList filters, int column)
+{
+	if(!filters.size()) return;
+
+	QSet<QTreeWidgetItem*> terminals;
+
+	// Get all terminals
+	QTreeWidgetItemIterator it(tree);
+	while (*it) {
+		if((*it)->childCount() == 0) terminals.insert(*it);
+		it++;
+	}
+
+	// Check if terminals name is within filtered
+	QVector<QTreeWidgetItem*> keep;
+	foreach(QTreeWidgetItem * item, terminals)
+	{
+		QStringList itemName = column == 0 ? fullName(item) : (QStringList() << item->text(column));
+
+		bool isKeep = false;
+
+		foreach(QString n, itemName){
+			foreach(QString f, filters){
+				if(n.contains(f, Qt::CaseInsensitive)){
+					isKeep = true;
+					break;
+				}
+			}
+			if(isKeep) break;
+		}
+
+		if(isKeep)
+		{
+			QTreeWidgetItem * filtered = new QTreeWidgetItem();
+			filtered->setText(0, fullName(item).join(" / "));
+			filtered->setText(1, item->text(1));
+			keep.push_back(filtered);
+		}
+	}
+
+	tree->clear();
+
+	foreach(QTreeWidgetItem* item, keep){
+		tree->addTopLevelItem(item);
+	}
+}
+
+QStringList GraphExplorer::selectedNode()
+{
+	return treeSelection(ui->nodesTree);
+}
+
+QStringList GraphExplorer::selectedEdge()
+{
+	return treeSelection(ui->edgesTree);
+}
+
+QStringList GraphExplorer::treeSelection( QTreeWidget * tree )
+{
+	QStringList selection;
+
+	foreach(QTreeWidgetItem * item, tree->selectedItems()){
+		QTreeWidgetItem * parent = item;
+
+		while( parent ){
+			selection << parent->text(0);
+			parent = parent->parent();
+		}
+	}
+
+	return selection;
+}
+
+QStringList GraphExplorer::fullName( QTreeWidgetItem * item )
+{
+	QStringList nameList;
+	QTreeWidgetItem * parent = item;
+	while( parent ){
+		nameList << parent->text(0);
+		parent = parent->parent();
+	}
+	return nameList;
 }
