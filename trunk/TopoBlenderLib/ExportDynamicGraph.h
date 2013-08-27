@@ -169,13 +169,10 @@ static void toGraphML(DynamicGraphs::DynamicGraph g, QString fileName = "mygraph
 	file.close();
 }
 
-// Save to XML based graph file
-static void toGraphviz(DynamicGraphs::DynamicGraph g, QString fileName = "mygraph", bool isOutputImage = true, QString subcaption="", QString caption = "")
+// Convert to Graphviz '.gv' format
+static QString toGraphvizFormat(DynamicGraphs::DynamicGraph g, QString subcaption, QString caption)
 {
-	QFile file(fileName + ".gv");
-	if (!file.open(QFile::WriteOnly | QFile::Text))	return;
-	QTextStream out(&file);
-
+	QStringList out;
 	out << "graph G{\n";
 	out << "\t" << "node [ fontcolor = black, color = white, style = filled ];" << "\n";
 
@@ -220,13 +217,13 @@ static void toGraphviz(DynamicGraphs::DynamicGraph g, QString fileName = "mygrap
 	// Write edges
 	foreach(int i, g.edges.keys())
 	{
-        const SimpleEdge & e = g.edges[i];
+		const SimpleEdge & e = g.edges[i];
 
 		const DynamicGraphs::SimpleNode & n1 = g.nodes[e.n[0]];
 		const DynamicGraphs::SimpleNode & n2 = g.nodes[e.n[1]];
 
 		Structure::Link * link = g.mGraph->getEdge(n1.property["original"].toString(),n2.property["original"].toString());
-		
+
 		QString color = "black", lcolor = "gray";
 		QString lable = "";
 
@@ -240,7 +237,7 @@ static void toGraphviz(DynamicGraphs::DynamicGraph g, QString fileName = "mygrap
 			lable = QString::number( uid ); // +  correspond;
 		}
 
-		out << "\t\"" << n1.idx << "\" -- \"" << n2.idx << "\"" 
+		out << "\t\"" << QString::number(n1.idx) << "\" -- \"" << QString::number(n2.idx) << "\"" 
 			<< QString(" [color=\"%1\",label=\"%2\",fontcolor=\"%3\"] ").arg(color).arg(lable).arg(lcolor) << ";\n";
 	}
 
@@ -249,6 +246,18 @@ static void toGraphviz(DynamicGraphs::DynamicGraph g, QString fileName = "mygrap
 	out << "fontsize = 20;\n";
 
 	out << "}\n";
+
+	return out.join("");
+}
+
+// Save to XML based graph file
+static void toGraphviz(DynamicGraphs::DynamicGraph g, QString fileName = "mygraph", bool isOutputImage = true, QString subcaption="", QString caption = "")
+{
+	QFile file(fileName + ".gv");
+	if (!file.open(QFile::WriteOnly | QFile::Text))	return;
+	QTextStream out(&file);
+
+	out << toGraphvizFormat(g, subcaption, caption); 
 
 	file.flush();
 	file.close();
