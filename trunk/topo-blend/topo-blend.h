@@ -56,6 +56,7 @@ public:
     void destroy(){}
 
     void decorate();
+	void drawFancyBackground();
 
 	void drawBBox(Eigen::AlignedBox3d bbox);
 	bool rayBBoxIntersect(Eigen::AlignedBox3d bbox, Vector3 origin, Vector3 ray);
@@ -101,5 +102,4 @@ public slots:
 
 signals:
 	void statusBarMessage(QString);
-
 };

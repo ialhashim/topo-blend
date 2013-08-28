@@ -52,10 +52,17 @@ GraphExplorer::GraphExplorer(QWidget *parent): QWidget(parent), ui(new Ui::Graph
 
 	ui->nodesTree->sortByColumn(0);
 	ui->edgesTree->sortByColumn(0);
+
+	// Tree view properties
+	QStringList headers;
+	headers << "Name" << "Value";
+	ui->nodesTree->setHeaderLabels(headers);
+	ui->edgesTree->setHeaderLabels(headers);
 }
 
 void GraphExplorer::update(Structure::Graph * graph)
 {
+	storeOldValues();
 	clear();
 
 	g = graph;
@@ -67,12 +74,6 @@ void GraphExplorer::update(Structure::Graph * graph)
 	// Graph visualization
 	drawGraph();
 
-	// Tree view properties
-	QStringList headers;
-	headers << "Name" << "Value";
-	ui->nodesTree->setHeaderLabels(headers);
-	ui->edgesTree->setHeaderLabels(headers);
-
 	// Fill in node and edges info
 	fillNodesInfo();
 	fillEdgesInfo();
@@ -82,6 +83,29 @@ void GraphExplorer::update(Structure::Graph * graph)
 	filterEdges();
 
 	if(!this->isVisible()) this->show();
+}
+
+void GraphExplorer::storeOldValues()
+{
+	oldValues.clear();
+	if(!g) return;
+
+	clear();
+	fillNodesInfo();
+	fillEdgesInfo();
+
+	// Store old values
+	QTreeWidgetItemIterator nit(ui->nodesTree), eit(ui->edgesTree);
+	
+	while(*nit) {
+		oldValues[fullName(*nit).join("")] = (*nit)->text(1);
+		nit++;
+	}
+
+	while(*eit) {
+		oldValues[fullName(*eit).join("")] = (*eit)->text(1);
+		eit++;
+	}
 }
 
 void GraphExplorer::drawGraph()
@@ -144,6 +168,8 @@ void GraphExplorer::drawGraphSVG()
 
 		svgViewer->openFile(file);
 	}
+
+	p->deleteLater();
 }
 
 void GraphExplorer::fillNodesInfo()
@@ -152,85 +178,98 @@ void GraphExplorer::fillNodesInfo()
 		QTreeWidgetItem * nitem = new QTreeWidgetItem;
 		nitem->setText(0, n->id);
 		nitem->setText(1, n->type());
-
-		QMap<QString,QVariant> prop = n->property;
-
-		foreach(QString key, prop.keys())
-		{
-			QTreeWidgetItem * p = new QTreeWidgetItem;
-			QVariant val = prop[key];
-			p->setText(0, key);
-
-			// Special values
-			if(key == "taskType"){
-				p->setText(1, TaskNames[val.toInt()]);
-			}
-			else if(key == "task"){
-				Task * task = prop[key].value<Task*>();
-				foreach(QString k, task->property.keys()){
-					QVariant v = task->property[k];
-					QString tval = v.toString();
-					if(tval.size()){
-						QTreeWidgetItem * taskItem = new QTreeWidgetItem;
-						taskItem->setText(0, k);
-						taskItem->setText(1, v.toString());
-						p->addChild(taskItem);
-					}
-				}
-			}
-			else if(val.typeName()) // All other values
-			{
-				if(val.toString().size())
-				{
-					p->setText(1, val.toString());
-				}
-			}
-
-			if(p->text(0).size()) 
-				nitem->addChild(p);
-			else
-				delete p;
-		}
-
+		fillInfoItem(n->property, nitem);
 		ui->nodesTree->addTopLevelItem(nitem);
+	}
+
+	// Color changes when values do
+	QTreeWidgetItemIterator nit(ui->nodesTree);
+	while(*nit) {
+		QString key = fullName(*nit).join("");
+		if(oldValues.contains(key)){
+			if(oldValues[key] != (*nit)->text(1)){
+				(*nit)->setForeground( 0, QBrush(Qt::red) );
+				(*nit)->setForeground( 1, QBrush(Qt::red) );
+			}
+		}
+		nit++;
 	}
 }
 
 void GraphExplorer::fillEdgesInfo()
 {
-	foreach(Structure::Link * l, g->edges){
-		QTreeWidgetItem * item = new QTreeWidgetItem;
-		item->setText(0, l->id);
-		item->setText(1, ""); // or l->type
+	foreach(Structure::Link * e, g->edges){
+		QTreeWidgetItem * eitem = new QTreeWidgetItem;
+		eitem->setText(0, e->id);
+		eitem->setText(1, "");
+		fillInfoItem(e->property, eitem);
+		ui->edgesTree->addTopLevelItem(eitem);
+	}
 
-		QMap<QString,QVariant> prop = l->property;
-
-		foreach(QString key, prop.keys())
-		{
-			QTreeWidgetItem * p = new QTreeWidgetItem;
-			QVariant val = prop[key];
-
-			if(key == "") // Special values
-			{
-				p->setText(0, key);
-				p->setText(1, "");
+	// Color changes when values do
+	QTreeWidgetItemIterator eit(ui->edgesTree);
+	while(*eit) {
+		QString key = fullName(*eit).join("");
+		if(oldValues.contains(key)){
+			if(oldValues[key] != (*eit)->text(1)){
+				(*eit)->setForeground( 0, QBrush(Qt::red) );
+				(*eit)->setForeground( 1, QBrush(Qt::red) );
 			}
-			else if(val.typeName()) // All other values
-			{
-				if(val.toString().size())
-				{
-					p->setText(0, key);
-					p->setText(1, val.toString());
-				}
-			}
+		}
+		eit++;
+	}
+}
 
-			if(p->text(0).size()) 
-				item->addChild(p);
-			else
-				delete p;
+void GraphExplorer::fillInfoItem( QMap<QString,QVariant> prop, QTreeWidgetItem * item )
+{
+	foreach(QString key, prop.keys())
+	{
+		QTreeWidgetItem * p = new QTreeWidgetItem;
+		QVariant val = prop[key];
+		p->setText(0, key);
+
+		// Special values
+		if(key == "taskType"){
+			p->setText(1, TaskNames[val.toInt()]);
 		}
 
-		ui->edgesTree->addTopLevelItem(item);
+		if(key == "task"){
+			Task * task = prop[key].value<Task*>();
+			foreach(QString k, task->property.keys())
+			{
+				QTreeWidgetItem * taskItem = new QTreeWidgetItem;
+				taskItem->setText(0, k);
+				QVariant v = task->property[k];
+				QString tval = v.toString();
+
+				if(tval.size())
+					taskItem->setText(1, v.toString());
+				else
+					taskItem->setText(1, v.typeName());
+
+				p->addChild(taskItem);
+			}
+		}
+
+		QString typeName = val.typeName();
+
+		if(val.toString().size())
+			p->setText(1, val.toString());
+		else if(typeName == "Vector3")
+		{
+			Vector3 vec = val.value<Vector3>();
+			QString vec_str = QString("[ %1, %2, %3 ]").arg(vec[0]).arg(vec[1]).arg(vec[2]);
+			p->setText(1, vec_str);
+		}
+		else
+			p->setText(1, typeName);
+
+		if(p->text(0).size()) 
+		{
+			item->addChild(p);
+		}
+		else
+			delete p;
 	}
 }
 
@@ -299,6 +338,9 @@ void GraphExplorer::filterTree(QTreeWidget * tree, QStringList filters, int colu
 			QTreeWidgetItem * filtered = new QTreeWidgetItem();
 			filtered->setText(0, fullName(item).join(" / "));
 			filtered->setText(1, item->text(1));
+			// Preserve any coloration
+			filtered->setForeground(0, item->foreground(0));
+			filtered->setForeground(1, item->foreground(1));
 			keep.push_back(filtered);
 		}
 	}
