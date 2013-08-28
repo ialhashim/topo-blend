@@ -27,9 +27,13 @@ private:
     Ui::GraphExplorer *ui;
 	Structure::Graph * g;
 
+	QMap<QString,QString> oldValues;
+	void storeOldValues();
+
 	void clear();
 	void fillNodesInfo();
 	void fillEdgesInfo();
+	void fillInfoItem( QMap<QString,QVariant> prop, QTreeWidgetItem * item );
 
 	QStringList selectedNode();
 	QStringList selectedEdge();

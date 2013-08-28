@@ -649,8 +649,8 @@ void SynthesisManager::drawSampled()
 
 		glTranslated(g->property["posX"].toDouble(), 0, 0);
 
-		glColor3d(1,1,1);
-		glPointSize(3.0);
+		glColor4d(1,1,1,0.5);
+		glPointSize(2.0);
 		glEnable(GL_LIGHTING);
 
 		glEnableClientState(GL_VERTEX_ARRAY);
@@ -666,6 +666,8 @@ void SynthesisManager::drawSampled()
 
 		glPopMatrix();
 	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0); // avoid interference with other drawing
 }
 
 void SynthesisManager::geometryMorph( SynthData & data, Structure::Graph * graph, bool isApprox, int limit )
@@ -867,6 +869,8 @@ void SynthesisManager::drawSynthesis()
 		splat_renderer->mRadius = tb->viz_params["splatSize"].toDouble();
 		splat_renderer->draw();
 	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0); // avoid interference with other drawing
 }
 
 bool SynthesisManager::samplesAvailable( QString graph, QString nodeID )

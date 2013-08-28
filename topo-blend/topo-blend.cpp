@@ -86,8 +86,26 @@ void topoblend::create()
 	setSceneBounds();
 }
 
+void topoblend::drawFancyBackground()
+{
+	// Fancy background
+	int width = drawArea()->width();
+	int height = drawArea()->height();
+	drawArea()->startScreenCoordinatesSystem();
+	glDisable(GL_LIGHTING);
+	glBegin(GL_QUADS);
+	glColor3d(0,0,0); glVertex2d(0,0); glVertex2d(width,0);
+	glColor3d(0.2,0.2,0.2); glVertex2d(width,height); glVertex2d(0,height);
+	glEnd();
+	glEnable(GL_LIGHTING);
+	glClear(GL_DEPTH_BUFFER_BIT);
+	drawArea()->stopScreenCoordinatesSystem();
+}
+
 void topoblend::decorate()
 {
+	drawFancyBackground();
+
 	// Make sure we draw smooth objects
 	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_BLEND);
@@ -156,35 +174,8 @@ void topoblend::decorate()
 		currentGraphs.push_back(scheduler->activeGraph);
 		currentGraphs.push_back(scheduler->targetGraph);
 
-		// Draw synthesis samples if available
-		s_manager->drawSampled();
-
-		// Draw nodes both selected and regular
-		foreach(Structure::Graph * g, currentGraphs){
-			foreach(Node * n, g->nodes){
-				if(n->id.contains("_null") || !n->property.contains("mesh")) continue;
-				SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
-				
-				double posX = g->property["posX"].toDouble();
-
-				glPushMatrix();
-				glTranslated(posX, 0, 0);
-
-				if(n->vis_property["glow"].toBool()) 
-				{
-					QColor meshColor(255,255,0);
-					QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
-				}
-				else
-				{
-					QColor meshColor(180,180,180);
-					QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
-				}
-				glPopMatrix();
-			}
-		}
-
 		// Visualize tasks
+		glDisable(GL_LIGHTING);
 		foreach(Structure::Graph * g, currentGraphs){
 			foreach(Node * n, g->nodes){
 				if(!n->vis_property["glow"].toBool() || n->id.contains("_null")) continue;
@@ -192,12 +183,11 @@ void topoblend::decorate()
 				int nType = n->property["taskTypeReal"].toInt();
 
 				double posX = g->property["posX"].toDouble();
-				
+
 				QString taskName = TaskNames[nType];
 
 				glColorQt(TaskColors[nType]);
-				glDisable(GL_LIGHTING);
-
+				
 				qglviewer::Vec end(drawArea()->width() * 0.5, 20, 0);
 
 				// Draw arc
@@ -232,12 +222,41 @@ void topoblend::decorate()
 				QFontMetrics metric(font);
 				glColor3d(0,0,0);
 				drawArea()->renderText(end.x - (metric.width(taskName) * 0.5), end.y + 4, taskName);
-				
+
 				drawArea()->stopScreenCoordinatesSystem();
 
-				glEnable(GL_LIGHTING);
+				glEnable(GL_MULTISAMPLE);
 			}
 		}
+		glEnable(GL_LIGHTING);
+
+		// Draw nodes both selected and regular
+		foreach(Structure::Graph * g, currentGraphs){
+			foreach(Node * n, g->nodes){
+				if(n->id.contains("_null") || !n->property.contains("mesh")) continue;
+				SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
+				
+				double posX = g->property["posX"].toDouble();
+
+				glPushMatrix();
+				glTranslated(posX, 0, 0);
+
+				if(n->vis_property["glow"].toBool()) 
+				{
+					QColor meshColor(255,255,0);
+					QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
+				}
+				else
+				{
+					QColor meshColor(180,180,180,220);
+					QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
+				}
+				glPopMatrix();
+			}
+		}
+
+		// Draw synthesis samples if available
+		s_manager->drawSampled();
 	}
 	else if(graphs.size())
 	{
@@ -284,7 +303,7 @@ void topoblend::decorate()
 			startX += curwidth + padding;
 		}
 
-		if( scheduler )
+		if( scheduler && scheduler->allGraphs.size() )
 			s_manager->drawSynthesis();
 	}
 
