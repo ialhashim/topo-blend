@@ -64,8 +64,7 @@ public:
 	void removeUncorrespondedEdges( Structure::Graph * graph );
 
 	// Query
-	bool isExtraNode(Structure::Node *node);
-	bool isExtraEdge(Structure::Link *link);
+	bool isExtraNode( Structure::Node *node );
 	bool isCorrespondedEdge(Structure::Link *link);
 	bool isShareCorrespondedNode( Structure::Link * slink, Structure::Link * tlink );
 

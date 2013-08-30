@@ -467,9 +467,37 @@ void Scheduler::executeAll()
 		// Zero the geometry for null nodes
 		foreach(Structure::Node * snode, activeGraph->nodes)
 		{
-			if (!snode->id.contains("null")) continue;
+			QString sid = snode->id;
+			if (!sid.contains("null")) continue;
 			snode->setControlPoints( Array1D_Vector3(snode->numCtrlPnts(), Vector3(0,0,0)) );
 			snode->property["zeroGeometry"] = true;
+
+			/*
+			// Make sure it is "effectively" linked on only one existing node
+			QMap<Link *,int> existValence;
+			foreach(Link * edge, activeGraph->getEdges(sid)){
+				QString otherID = edge->otherNode(sid)->id;
+				if(otherID.contains("null")) continue;
+				existValence[edge] = activeGraph->valence(activeGraph->getNode(otherID));
+			}
+
+			// Ignore if connects to one existing
+			if(existValence.size() < 2) 
+				continue;
+
+			// Pick existing node with most valence
+			QList< QPair<int, Link *> > sorted = sortQMapByValue(existValence);
+			Link * linkKeep = sorted.front().second;
+			
+			// Replace all edges of null into the kept edge
+			foreach(Link * edge, activeGraph->getEdges(sid))
+			{
+				if(edge == linkKeep) continue;
+
+				QString oldNode = edge->otherNode(sid)->id;
+				edge->replace(oldNode, linkKeep->otherNode(sid), linkKeep->getCoordOther(sid));
+			}
+			*/
 		}
 
 		// Relink once to place null nodes at initial positions:
@@ -765,7 +793,7 @@ void Scheduler::blendDeltas( double globalTime, double timeStep )
 
 	foreach(Structure::Link* l, activeGraph->edges)
 	{
-		Structure::Link* tl = targetGraph->getEdge(l->property["correspond"].toString());
+		Structure::Link* tl = targetGraph->getEdge(l->property["correspond"].toInt());
 		if (!tl) continue;
 
 		//Alpha value:

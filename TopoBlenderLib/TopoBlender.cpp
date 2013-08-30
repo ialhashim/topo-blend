@@ -96,15 +96,9 @@ void TopoBlender::drawDebug()
 }
 
 // Super graphs
-
 bool TopoBlender::isExtraNode( Structure::Node *node )
 {
 	return node->property["correspond"].toString().contains("null");
-}
-
-bool TopoBlender::isExtraEdge( Structure::Link *link )
-{
-	return link->property["correspond"].toString().contains("null");
 }
 
 void TopoBlender::tagEdge( Structure::Link *link, QString tag )
@@ -282,8 +276,8 @@ void TopoBlender::correspondTwoEdges( Structure::Link *slink, Structure::Link *t
 		slink = source->addEdge(source->getNode(n2), source->getNode(n1), c2, c1, source->linkName(n2,n1) );
 	}
 
-	slink->property["correspond"] = tlink->id;
-	tlink->property["correspond"] = slink->id;
+	slink->property["correspond"] = tlink->property["uid"].toInt();
+	tlink->property["correspond"] = slink->property["uid"].toInt();
 }
 
 // This function could be written with [graphA] and [graphB] but we should 
@@ -342,19 +336,18 @@ void TopoBlender::correspondSuperEdges()
 
 	/// Remove excess edges (edges of core nodes still uncorresponded)
 	if( CASE_7 )
-
 	{
 		removeRedundantEdges( super_sg );
 		removeRedundantEdges( super_tg );
 	}
 	
 	// Visualization: assign global unique ids
-	int uid = 0;
+	int viz_uid = 0;
 	foreach(Structure::Link * slink, super_sg->edges){
 		if(!slink->property.contains("correspond")) continue;
-		Link* tlink = super_tg->getEdge(slink->property["correspond"].toString());
+		Link* tlink = super_tg->getEdge(slink->property["correspond"].toInt());
 		if(!tlink) continue;
-		slink->property["uid"] = tlink->property["uid"] = uid++;
+		slink->property["viz_uid"] = tlink->property["viz_uid"] = viz_uid++;
 	}
 }
 
@@ -749,7 +742,7 @@ void TopoBlender::postprocessSuperEdges()
 	foreach (Node* n, super_sg->nodes){
 		if (n->id.contains("null")){
 			foreach(Link* sl, super_sg->getEdges( n->id )) {
-				//Link* tl = super_tg->getEdge(sl->property["correspond"].toString());
+				//Link* tl = super_tg->getEdge(sl->property["correspond"].toInt());
 				sl->property["delta"].setValue( Vector3d(0,0,0) );
 			}
 		}
@@ -757,7 +750,7 @@ void TopoBlender::postprocessSuperEdges()
 	foreach (Node* n, super_tg->nodes){
 		if (n->id.contains("null")){
 			foreach(Link* tl, super_tg->getEdges(n->id)) {
-				Link* sl = super_sg->getEdge(tl->property["correspond"].toString());
+				Link* sl = super_sg->getEdge(tl->property["correspond"].toInt());
 				tl->property["delta"].setValue( sl->delta() );
 			}
 		}

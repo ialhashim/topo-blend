@@ -60,6 +60,8 @@ void Graph::init()
 
 	spheres = SphereSoup(Qt::yellow);
 	spheres2 = SphereSoup(Qt::blue);
+
+	ueid = 1001;
 }
 
 Graph::Graph( const Graph & other )
@@ -90,6 +92,8 @@ Graph::Graph( const Graph & other )
 	vs = other.vs; vs2 = other.vs2; vs3 = other.vs3;
 	ps = other.ps; ps2 = other.ps2; ps3 = other.ps3;
 	spheres = other.spheres; spheres2 = other.spheres2;
+
+	ueid = other.ueid;
 }
 
 Graph::~Graph()
@@ -179,16 +183,7 @@ Link * Graph::addEdge(Node *n1, Node *n2)
 		c2.push_back(n2->approxCoordinates(intersectPoint));
 	}
 
-    Link * e = new Link( n1, n2, c1, c2, edgeType, linkName(n1, n2) );
-    edges.push_back(e);
-
-	// Add to adjacency list
-	if(adjacency.cols() != nodes.size()) adjacency = MatrixXd::Zero( nodes.size(), nodes.size() );
-
-	adjacency(nodes.indexOf(n1), nodes.indexOf(n2)) = 1 ;
-	adjacency(nodes.indexOf(n2), nodes.indexOf(n1)) = 1 ;
-
-    return e;
+    return addEdge(n1,n2,c1,c2,linkName(n1, n2));
 }
 
 Link * Graph::addEdge(Node *n1, Node *n2, Array1D_Vector4d coord1, Array1D_Vector4d coord2, QString linkName)
@@ -203,6 +198,8 @@ Link * Graph::addEdge(Node *n1, Node *n2, Array1D_Vector4d coord1, Array1D_Vecto
 
 	Link * e = new Link( n1, n2, coord1, coord2, edgeType, linkName );
 	edges.push_back( e );
+
+	e->property["uid"] = ueid++;
 
 	// Add to adjacency list
 	if(adjacency.cols() != nodes.size()) adjacency = MatrixXd::Zero( nodes.size(), nodes.size() );
@@ -292,14 +289,13 @@ Link *Graph::getEdge(QString id1, QString id2)
 	return NULL;
 }
 
-
-Link* Graph::getEdge( QString linkID )
+Link* Structure::Graph::getEdge( int edgeUID )
 {
 	for(int i = 0; i < (int)edges.size(); i++)
 	{
 		Link * e = edges[i];
 
-		if( e->id == linkID) return e;
+		if( e->property["uid"].toInt() == edgeUID) return e;
 	}
 
 	return NULL;
