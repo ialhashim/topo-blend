@@ -168,7 +168,7 @@ void TaskCurve::prepareGrowCurve()
 	// Find corresponding edges
 	foreach(Link * edge, tedges)
 	{
-		Link * slink = active->getEdge( edge->property["correspond"].toString() );
+		Link * slink = active->getEdge( edge->property["correspond"].toInt() );
 		if(slink) edges.push_back( slink );
 	}
 
@@ -203,8 +203,8 @@ void TaskCurve::prepareGrowCurve()
 		Vector4d othercoordB = tlinkB->getCoord(totherB->id).front();
 
 		// Corresponding stuff on ACTIVE
-		Link *linkA = active->getEdge( tlinkA->property["correspond"].toString() );
-		Link *linkB = active->getEdge( tlinkB->property["correspond"].toString() );
+		Link *linkA = active->getEdge( tlinkA->property["correspond"].toInt() );
+		Link *linkB = active->getEdge( tlinkB->property["correspond"].toInt() );
 		Node *otherA = active->getNode( totherA->property["correspond"].toString() );
 		Node *otherB = active->getNode( totherB->property["correspond"].toString() );
 		Vector3d pointA = otherA->position(othercoordA);
@@ -240,8 +240,8 @@ void TaskCurve::prepareGrowCurve()
 		property["pathB"].setValue( GraphDistance::positionalPath(active,pathB) );
 
 		QVector<Link*> edges;
-		edges.push_back( active->getEdge( tlinkA->property["correspond"].toString() ) );
-		edges.push_back( active->getEdge( tlinkB->property["correspond"].toString() ) );
+		edges.push_back( active->getEdge( tlinkA->property["correspond"].toInt() ) );
+		edges.push_back( active->getEdge( tlinkB->property["correspond"].toInt() ) );
 		property["edges"].setValue( edges );
 
 		// Encode curve
@@ -432,7 +432,7 @@ void TaskCurve::executeCrossingCurve( double t )
 		Vector3d sDelta = slink->property["delta"].value<Vector3d>();
 		if (type == Task::GROW) sDelta = Vector3d(0,0,0);
 
-		Structure::Link* tlink = target->getEdge(slink->property["correspond"].toString());
+		Structure::Link* tlink = target->getEdge(slink->property["correspond"].toInt());
 		Vector3d tDelta = tlink->property["delta"].value<Vector3d>();
 		if (type == Task::SHRINK) tDelta = Vector3d(0,0,0);
 
@@ -479,8 +479,8 @@ void TaskCurve::executeCrossingCurve( double t )
 		Vector3d sDeltaB = slinkB->property["delta"].value<Vector3d>();
 		if (type == Task::GROW) {sDeltaA = Vector3d(0,0,0); sDeltaB = Vector3d(0,0,0);}
 
-		Structure::Link* tlinkA = target->getEdge(slinkA->property["correspond"].toString());
-		Structure::Link* tlinkB = target->getEdge(slinkB->property["correspond"].toString());
+		Structure::Link* tlinkA = target->getEdge(slinkA->property["correspond"].toInt());
+		Structure::Link* tlinkB = target->getEdge(slinkB->property["correspond"].toInt());
 		Vector3d tDeltaA = tlinkA->property["delta"].value<Vector3d>();
 		Vector3d tDeltaB = tlinkB->property["delta"].value<Vector3d>();
 		if (type == Task::SHRINK) {tDeltaA = Vector3d(0,0,0); tDeltaB = Vector3d(0,0,0);}

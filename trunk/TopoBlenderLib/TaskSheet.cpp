@@ -64,8 +64,8 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
     Structure::Node * n = node();
 	Structure::Node * tn = targetNode();
 
-	Structure::Link * tlinkA = target->getEdge( linkA->property["correspond"].toString() );
-	Structure::Link * tlinkB = target->getEdge( linkB->property["correspond"].toString() );
+	Structure::Link * tlinkA = target->getEdge( linkA->property["correspond"].toInt() );
+	Structure::Link * tlinkB = target->getEdge( linkB->property["correspond"].toInt() );
 
     Vector3d pointA = linkA->positionOther(n->id);
     Vector3d pointB = linkB->positionOther(n->id);
@@ -225,8 +225,8 @@ void TaskSheet::executeCrossingSheet( double t )
 
 		Structure::Link *linkA = edges.front(), *linkB = edges.back();
 		if (type == GROW){
-			linkA = target->getEdge(linkA->property["correspond"].toString());
-			linkB = target->getEdge(linkB->property["correspond"].toString());
+			linkA = target->getEdge(linkA->property["correspond"].toInt());
+			linkB = target->getEdge(linkB->property["correspond"].toInt());
 		}
 
 		Vector3d deltaA = linkA->property["delta"].value<Vector3d>() * dt;

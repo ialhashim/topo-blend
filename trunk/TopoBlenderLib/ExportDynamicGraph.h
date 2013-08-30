@@ -231,9 +231,8 @@ static QString toGraphvizFormat(DynamicGraphs::DynamicGraph g, QString subcaptio
 			color = "red";
 		else
 		{
-			QString correspond = link->property["correspond"].toString();
 			int uid = -1;
-			if(link->property.contains("uid")) uid = link->property["uid"].toInt();
+			if(link->property.contains("viz_uid")) uid = link->property["viz_uid"].toInt();
 			lable = QString::number( uid ); // +  correspond;
 		}
 

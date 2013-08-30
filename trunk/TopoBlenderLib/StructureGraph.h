@@ -54,6 +54,7 @@ struct Graph
     Link * addEdge( Node * n1, Node * n2 );
 	Link * addEdge( Node *n1, Node *n2, Array1D_Vector4d coord1, Array1D_Vector4d coord2, QString linkName = "" );
 	Link * addEdge( QString n1_id, QString n2_id );
+	int ueid;
 
     Node * removeNode( QString nodeID );
 	void removeEdge( Node * n1, Node * n2 );
@@ -83,8 +84,8 @@ struct Graph
 	void renameNode( QString oldNodeID, QString newNodeID );
 
     // Accessors
-    Node* getNode(QString nodeID);
-	Link* getEdge(QString linkID);
+	Node* getNode(QString nodeID);
+	Link* getEdge(int edgeUID);
 	Link* getEdge(QString id1, QString id2);
 	Vector3 nodeIntersection( Node * n1, Node * n2 );
 	Curve* getCurve(Link * l);

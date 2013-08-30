@@ -23,7 +23,6 @@ public:
 	// Helper functions
 	NodeCoord futureOtherNodeCoord( Structure::Link *link );
 	NodeCoord futureLinkCoord( Structure::Link *link );
-	void copyTargetEdge( Structure::Link *tlink );
 
 	// Prepare stage
 	void prepare();

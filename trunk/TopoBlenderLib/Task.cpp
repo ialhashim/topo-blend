@@ -301,9 +301,7 @@ bool Task::isActive( double t )
 NodeCoord Task::futureOtherNodeCoord( Structure::Link *link )
 {
 	Structure::Node *tn = targetNode();
-
-	QString tlinkID = link->property["correspond"].toString();
-	Structure::Link * tlink = target->getEdge(tlinkID);
+	Structure::Link * tlink = target->getEdge( link->property["correspond"].toInt());
 
 	Structure::Node * tfutureOther = tlink->otherNode(tn->id);
 	QString futureOtherID = tfutureOther->property["correspond"].toString();
@@ -337,21 +335,6 @@ NodeCoord Task::futureLinkCoord( Structure::Link *link )
 	}
 
 	return fnc;
-}
-
-void Task::copyTargetEdge( Structure::Link *tlink )
-{
-	Structure::Node *n = node();
-	Structure::Node *tn = targetNode();
-
-	Array1D_Vector4d coord = tlink->getCoord(tn->id);
-
-	Structure::Node *tOther = tlink->otherNode(tn->id);
-	QString otherID = tOther->property["correspond"].toString();
-	Structure::Node *nOther = active->getNode(otherID);
-	Array1D_Vector4d coordOther = tlink->getCoordOther(tn->id);
-
-	active->addEdge(n, nOther, coord, coordOther);
 }
 
 void Task::geometryMorph( double t )
@@ -402,8 +385,7 @@ QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Struct
 			Structure::Node * otherJ = edges[j]->otherNode(n->id);
 			double sumV = sumvec( otherI->geometricDiff(otherJ) ).norm();
 
-			if(sumV < 1e-10)
-			{
+			if(sumV < 1e-10){
 				otherI = NULL;
 				break;
 			}
@@ -413,19 +395,6 @@ QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Struct
 		if( (!otherI) || ungrownNode(otherI->id) ) continue;
 
 		if(otherI) edges.push_back(allEdges[i]);
-	}
-
-
-	// Remove any shrunken edges
-	QVector<Structure::Link*> afterShrink;
-	if(edges.size() > 1)
-	{
-		foreach(Structure::Link * l, edges){
-			if(!l->hasNodeProperty("shrunk", true))
-				afterShrink.push_back(l);
-		}
-
-		edges = afterShrink;
 	}
 
 	// Bin edges by their coordinates into 4 locations (2 for curves)
@@ -438,23 +407,14 @@ QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Struct
 
 	edges.clear();
 
-	//if(n->type() == Structure::SHEET && bin.keys().contains(0) && bin.keys().contains(3))
-	//{
-	//	// Get edges at furthest corners of sheet
-	//	edges.push_back( bin[0].front() );
-	//	edges.push_back( bin[3].front() );
-	//}
-	//else
-	//{
-		foreach( int i, bin.keys() ){
-			QVector<Structure::Link*> similarEdges = bin[i];
+	foreach( int i, bin.keys() ){
+		QVector<Structure::Link*> similarEdges = bin[i];
 
-			// Arbitrary choice for now..
-			Structure::Link * furthest = similarEdges.front();
+		// Arbitrary choice for now..
+		Structure::Link * furthest = similarEdges.front();
 
-			if(edges.size() < 2) edges.push_back( furthest );
-		}
-	//}
+		if(edges.size() < 2) edges.push_back( furthest );
+	}
 
 	return edges;
 }
@@ -632,8 +592,7 @@ bool Task::isPathOnSingleNode( QVector< GraphDistance::PathPointPair > path )
 
 Structure::Link * Task::getCoorespondingEdge( Structure::Link * link, Structure::Graph * otherGraph )
 {
-	QString correspondID = link->property["correspond"].toString();
-	return otherGraph->getEdge(correspondID);
+	return otherGraph->getEdge(link->property["correspond"].toInt());
 }
 
 Structure::Node * Task::addAuxNode(Vector3d position, Structure::Graph * g)
@@ -647,7 +606,7 @@ Structure::Node * Task::addAuxNode(Vector3d position, Structure::Graph * g)
 Structure::Node * Task::prepareEnd( Structure::Node * n, Structure::Link * slink )
 {
 	Structure::Node * tn = target->getNode(n->property["correspond"].toString());
-	Structure::Link * tlink = target->getEdge(slink->property["correspond"].toString());
+	Structure::Link * tlink = target->getEdge(slink->property["correspond"].toInt());
 	Vector3d endDelta = tlink->position(tn->id) - tlink->positionOther(tn->id);
 	QString corrBaseNodeID = tlink->otherNode(tn->id)->property["correspond"].toString();
 	Vector3d posOther = active->getNode(corrBaseNodeID)->position(tlink->getCoordOther(tn->id).front());
@@ -659,8 +618,8 @@ Structure::Node * Task::prepareEnd( Structure::Node * n, Structure::Link * slink
 QPair<Structure::Node*,Structure::Node*> Task::prepareEnd2( Structure::Node * n, Structure::Link * linkA, Structure::Link * linkB )
 {
 	Structure::Node * tn = target->getNode(n->property["correspond"].toString());
-	Structure::Link * tlinkA = target->getEdge(linkA->property["correspond"].toString());
-	Structure::Link * tlinkB = target->getEdge(linkB->property["correspond"].toString());
+	Structure::Link * tlinkA = target->getEdge(linkA->property["correspond"].toInt());
+	Structure::Link * tlinkB = target->getEdge(linkB->property["correspond"].toInt());
 
 	Vector3d endDeltaA = tlinkA->position(tn->id) - tlinkA->positionOther(tn->id);
 	Vector3d endDeltaB = tlinkB->position(tn->id) - tlinkB->positionOther(tn->id);
@@ -745,14 +704,14 @@ void Task::prepareMorphEdges()
 		if (other->property["taskType"].toInt() == Task::GROW && !other->property["taskIsDone"].toBool()) continue;
 		
 		// Skip edges that will leave me in future
-		Structure::Link* tl = target->getEdge(l->property["correspond"].toString());
+		Structure::Link* tl = target->getEdge(l->property["correspond"].toInt());
 		if (!tl->hasNode(tn->id)) continue;
 
 		edges.push_back(l);
 
 		// Make sure local link coordinates are consistent from source to target
 		//Vector4d scoord = l->getCoord(n->id).front();
-		//Vector4d tcoord = target->getEdge(l->property["correspond"].toString())->getCoord(tn->id).front();
+		//Vector4d tcoord = target->getEdge(l->property["correspond"].toInt())->getCoord(tn->id).front();
 		//bool isWithinThreshold = (abs(scoord[0]-tcoord[0]) < 0.5);
 		//if(isSameHalf(scoord,tcoord) || isWithinThreshold ) continue;
 		//l->invertCoords(n->id);
@@ -824,7 +783,7 @@ bool Task::isCrossing()
 	foreach(Link * l, active->getEdges(n->id))
 	{
 		// check if my neighbor will change
-		Structure::Link* tl = target->getEdge(l->property["correspond"].toString());
+		Structure::Link* tl = target->getEdge(l->property["correspond"].toInt());
 		Structure::Node* sNb = l->otherNode(n->id);
 		QString tNbID = tl->otherNode(tn->id)->id;
 		if (sNb->property["correspond"].toString() != tNbID){
