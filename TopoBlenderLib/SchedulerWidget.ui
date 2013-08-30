@@ -356,16 +356,6 @@
            <property name="spacing">
             <number>0</number>
            </property>
-           <item row="0" column="5">
-            <widget class="QPushButton" name="showAllButton">
-             <property name="styleSheet">
-              <string notr="true"/>
-             </property>
-             <property name="text">
-              <string>show / hide</string>
-             </property>
-            </widget>
-           </item>
            <item row="0" column="0">
             <layout class="QHBoxLayout" name="horizontalLayout">
              <property name="spacing">
@@ -394,6 +384,16 @@
              </item>
             </layout>
            </item>
+           <item row="0" column="6">
+            <widget class="QPushButton" name="showAllButton">
+             <property name="styleSheet">
+              <string notr="true"/>
+             </property>
+             <property name="text">
+              <string>show / hide</string>
+             </property>
+            </widget>
+           </item>
            <item row="0" column="1">
             <spacer name="horizontalSpacer_6">
              <property name="orientation">
@@ -410,7 +410,14 @@
              </property>
             </spacer>
            </item>
-           <item row="0" column="4">
+           <item row="0" column="9">
+            <widget class="QPushButton" name="blendButton">
+             <property name="text">
+              <string>Blend</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="5">
             <widget class="QPushButton" name="sameTimeButton">
              <property name="text">
               <string>Same time</string>
@@ -418,13 +425,6 @@
             </widget>
            </item>
            <item row="0" column="8">
-            <widget class="QPushButton" name="blendButton">
-             <property name="text">
-              <string>Blend</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="7">
             <spacer name="horizontalSpacer_7">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -462,6 +462,13 @@
               </size>
              </property>
             </spacer>
+           </item>
+           <item row="0" column="4">
+            <widget class="QPushButton" name="shuffleButton">
+             <property name="text">
+              <string>shuffle</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>

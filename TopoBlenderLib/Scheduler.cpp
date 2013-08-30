@@ -425,6 +425,36 @@ void Scheduler::reset()
 	emit( progressChanged(0) );
 }
 
+void Scheduler::shuffleSchedule()
+{
+	if(allGraphs.size()) reset();
+
+	QMap< int, QVector<Task*> > startTask;
+
+	foreach(Task * t, this->tasks)
+		startTask[t->start].push_back(t);
+	
+	// These keys are sorted in increasing order
+	QVector<int> originalTimes = startTask.keys().toVector();
+
+	// Shuffle them
+	QVector<int> startTimes = originalTimes;
+	std::random_shuffle(startTimes.begin(), startTimes.end());
+
+	for(int i = 0; i < (int)startTimes.size(); i++)
+	{
+		int oldStart = originalTimes[i];
+		int newStart = startTimes[i];
+
+		QVector<Task*> curTasks = startTask[oldStart];
+
+		foreach(Task * t, curTasks)
+		{
+			t->setStart( newStart );
+		}
+	}
+}
+
 void Scheduler::executeAll()
 {
 	double timeStep = time_step;

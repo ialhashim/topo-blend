@@ -28,6 +28,7 @@ SchedulerWidget::SchedulerWidget(Scheduler * scheduler, QWidget *parent) : QWidg
 	scheduler->connect( ui->sameTimeButton, SIGNAL(clicked()), SLOT(startAllSameTime()) );
 	scheduler->connect( ui->diffTimeButton, SIGNAL(clicked()), SLOT(startDiffTime()) );
 	scheduler->connect( ui->defaultScheduleButton, SIGNAL(clicked()), SLOT(defaultSchedule()) );
+	scheduler->connect( ui->shuffleButton, SIGNAL(clicked()), SLOT(shuffleSchedule()) );
 
 	scheduler->connect( ui->renderCurrentButton, SIGNAL(clicked()), SLOT(doRenderCurrent()) );
 	scheduler->connect( ui->renderAllButton, SIGNAL(clicked()), SLOT(doRenderAll()) );

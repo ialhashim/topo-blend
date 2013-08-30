@@ -90,6 +90,7 @@ public slots:
 	void startAllSameTime();
 	void startDiffTime();
 	void defaultSchedule();
+	void shuffleSchedule();
 
 	void doRenderAll() { emit( renderAll() ); } 
 	void doRenderCurrent() { emit( renderCurrent() ); }
