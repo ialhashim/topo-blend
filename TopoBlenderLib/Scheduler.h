@@ -14,7 +14,7 @@ class Scheduler : public QGraphicsScene
 
 public:
 	Scheduler();
-	QMap< QString, QVariant > property;
+	PropertyMap property;
 
 	// Input
 	QVector<Task*> tasks;

@@ -180,7 +180,7 @@ void Relink::propagateFrom( Task* task )
 	QVector<Structure::Link*> edges = activeGraph->getEdges(n->id);
 
 	// Virtual cut node
-	bool virtualCutting =  task->isCutting() && !task->isCuttingReal();
+	//bool virtualCutting = task->isCutting() && !task->isCuttingReal();
 
 	foreach(Structure::Link* link, edges)
 	{
@@ -189,7 +189,8 @@ void Relink::propagateFrom( Task* task )
 
 		// Virtual cut node
 		// Don't propagate to its real neighbours
-		if (virtualCutting && !task->ungrownNode(otherTask->nodeID)) continue;
+		//if (virtualCutting && !task->ungrownNode(otherTask->nodeID)) 
+		//	continue;
 
 		// Add to queue
 		if ( !otherTask->property["propagated"].toBool() )

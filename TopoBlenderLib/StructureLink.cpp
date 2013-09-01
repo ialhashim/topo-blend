@@ -3,6 +3,8 @@
 
 using namespace Structure;
 
+Q_DECLARE_METATYPE(Structure::Node*)
+
 Link::Link( Node * node1, Node * node2, LinkCoords coord_n1, LinkCoords coord_n2, QString link_type, QString ID )
 {
 	this->n1 = node1;
@@ -191,4 +193,30 @@ void Link::invertCoords( QString nodeID )
 Vector3d Link::delta()
 {
 	return position(n2->id) - position(n1->id);
+}
+
+void Link::pushState()
+{
+	state["n1"].setValue(n1);
+	state["n2"].setValue(n2);
+	state["id"].setValue(id);
+	state["type"].setValue(type);
+	state["coord"].setValue(coord);
+	//state["property"].setValue(property); // Issue: this changes over time
+
+	property["modified"] = true;
+}
+
+void Link::popState()
+{
+	if(!state.contains("n1")) return;
+
+	n1 = state["n1"].value<Node*>();
+	n2 = state["n2"].value<Node*>();
+	id = state["id"].toString();
+	type = state["type"].toString();
+	coord = state["coord"].value< std::vector<LinkCoords> >();
+	//property = state["coord"].value<PropertyMap>();
+
+	property["modified"] = false;
 }

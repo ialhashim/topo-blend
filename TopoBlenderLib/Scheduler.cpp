@@ -502,32 +502,38 @@ void Scheduler::executeAll()
 			snode->setControlPoints( Array1D_Vector3(snode->numCtrlPnts(), Vector3(0,0,0)) );
 			snode->property["zeroGeometry"] = true;
 
-			/*
-			// Make sure it is "effectively" linked on only one existing node
-			QMap<Link *,int> existValence;
-			foreach(Link * edge, activeGraph->getEdges(sid)){
-				QString otherID = edge->otherNode(sid)->id;
-				if(otherID.contains("null")) continue;
-				existValence[edge] = activeGraph->valence(activeGraph->getNode(otherID));
-			}
-
-			// Ignore if connects to one existing
-			if(existValence.size() < 2) 
-				continue;
-
-			// Pick existing node with most valence
-			QList< QPair<int, Link *> > sorted = sortQMapByValue(existValence);
-			Link * linkKeep = sorted.front().second;
-			
-			// Replace all edges of null into the kept edge
-			foreach(Link * edge, activeGraph->getEdges(sid))
+			if( !activeGraph->isCutNode(sid) )
 			{
-				if(edge == linkKeep) continue;
+				// Make sure it is "effectively" linked on only one existing node
+				QMap<Link *,int> existValence;
+				foreach(Link * edge, activeGraph->getEdges(sid)){
+					QString otherID = edge->otherNode(sid)->id;
+					if(otherID.contains("null")) continue;
+					existValence[edge] = activeGraph->valence(activeGraph->getNode(otherID));
+				}
 
-				QString oldNode = edge->otherNode(sid)->id;
-				edge->replace(oldNode, linkKeep->otherNode(sid), linkKeep->getCoordOther(sid));
+				// Ignore if connects to one existing
+				if(existValence.size() < 2) 
+					continue;
+
+				// Pick existing node with most valence
+				QList< QPair<int, Link *> > sorted = sortQMapByValue(existValence);
+				Link * linkKeep = sorted.front().second;
+
+				// Replace all edges of null into the kept edge
+				foreach(Link * edge, activeGraph->getEdges(sid))
+				{
+					// Keep track of original edge info
+					edge->pushState();
+
+					if(edge == linkKeep) continue;
+
+					QString oldNode = edge->otherNode(sid)->id;
+					edge->replace(oldNode, linkKeep->otherNode(sid), linkKeep->getCoordOther(sid));
+				}
+
+				snode->property["edgesModified"] = true;
 			}
-			*/
 		}
 
 		// Relink once to place null nodes at initial positions:

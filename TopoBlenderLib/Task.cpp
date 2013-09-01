@@ -350,14 +350,22 @@ void Task::prepare()
 {
 	if ( isReady ) return;
 
-	this->start = this->x();
-	this->currentTime = start;
-	this->isDone = false;
-	this->property["orgCtrlPoints"].setValue( node()->controlPoints() );
+	// Initialize
+	{
+		this->start = this->x();
+		this->currentTime = start;
+		this->isDone = false;
+		this->property["orgCtrlPoints"].setValue( node()->controlPoints() );
+	}
 
-	QVector<QString> runningTasks = active->property["activeTasks"].value< QVector<QString> >();
-	foreach(QString id, runningTasks) qDebug() << id;
-	qDebug() << "---";
+	// Reset any modified edges
+	{
+		Node * n = node();
+		if(n->property["edgesModified"].toBool()){
+			foreach(Link * l, active->getEdges(n->id))
+				l->popState();
+		}
+	}
 
 	if (node()->type() == Structure::CURVE)
 	{
@@ -782,6 +790,9 @@ bool Task::isCrossing()
 	bool isCross = false;
 	foreach(Link * l, active->getEdges(n->id))
 	{
+		if(l->property["modified"].toBool())
+			continue;
+
 		// check if my neighbor will change
 		Structure::Link* tl = target->getEdge(l->property["correspond"].toInt());
 		Structure::Node* sNb = l->otherNode(n->id);
@@ -835,18 +846,10 @@ bool Task::isCuttingReal()
 	return copyActive.isCutNode(nodeID);
 }
 
-
 bool Task::ungrownNode( QString nid )
 {
-	Node* node = active->getNode(nid);
-
-	if( node->property["taskType"].toInt() != GROW) return false;
-
-	if (!node->property.contains("taskIsDone")) return true;
-
-	if ( node->property.contains("taskIsDone")  && !node->property["taskIsDone"].toBool() ) return true;
-
-	return false;
+	Task* t = active->getNode(nid)->property["task"].value<Task*>();
+	return t->type == GROW && !t->isReady;
 }
 
 QVector<Task*> Task::allOtherTasks()

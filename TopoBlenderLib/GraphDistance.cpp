@@ -24,15 +24,6 @@ GraphDistance::GraphDistance( Structure::Graph * graph, QVector<QString> exclude
 		if( !g->getEdges(node->id).size() )
 			excludeNodes.push_back( node->id );
 	}
-
-	// Exclude non-ready nodes
-	foreach(Node * node, g->nodes){
-		Task * t = node->property["task"].value<Task*>();
-		if(!t) continue;
-
-		if( t->type == Task::GROW && t->isDone == false )
-			excludeNodes.push_back( node->id );
-	}
 }
 
 GraphDistance::GraphDistance( Structure::Node * n )

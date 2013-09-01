@@ -233,24 +233,33 @@ void topoblend::decorate()
 		// Draw nodes both selected and regular
 		foreach(Structure::Graph * g, currentGraphs){
 			foreach(Node * n, g->nodes){
-				if(n->id.contains("_null") || !n->property.contains("mesh")) continue;
-				SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
-				
+				if(n->id.contains("_null")) continue;
+
 				double posX = g->property["posX"].toDouble();
 
 				glPushMatrix();
 				glTranslated(posX, 0, 0);
 
-				if(n->vis_property["glow"].toBool()) 
+				SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
+
+				if( !nodeMesh || !nodeMesh->n_vertices() )
 				{
-					QColor meshColor(255,255,0);
-					QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
+					n->draw();
 				}
 				else
 				{
-					QColor meshColor(180,180,180,220);
-					QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
+					if(n->vis_property["glow"].toBool()) 
+					{
+						QColor meshColor(255,255,0);
+						QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
+					}
+					else
+					{
+						QColor meshColor(180,180,180,220);
+						QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
+					}
 				}
+	
 				glPopMatrix();
 			}
 		}
