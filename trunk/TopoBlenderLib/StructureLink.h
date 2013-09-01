@@ -23,7 +23,7 @@ struct Link
 	std::vector<LinkCoords> coord;
 	QString id;
 	QString type;
-	QMap< QString, QVariant > property;
+	PropertyMap property;
 
 	bool hasProperty(QString propertyName) { return property.contains(propertyName); }
 
@@ -64,6 +64,13 @@ struct Link
 	static QVector<Link*> haveProperty( QVector<Link*> links, QString propertyName, QVariant propertyValue );
 
 	Vector3d delta();
+
+	// State
+	void pushState();
+	void popState();
+
+private:
+	QMap< QString, QVariant> state;
 };
 
 }

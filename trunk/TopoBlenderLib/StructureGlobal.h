@@ -13,6 +13,8 @@
 #undef max
 #define qRanged(min, v, max) ( qMax(min, qMin(v, max)) )
 
+typedef QMap< QString, QVariant > PropertyMap;
+
 /** Sorts a vector and returns index of the sorted values
  * \param Index Contains the index of sorted values in the original vector
  * \param data The vector to be sorted

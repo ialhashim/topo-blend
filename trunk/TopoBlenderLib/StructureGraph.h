@@ -31,7 +31,7 @@ struct Graph
 	NodeGroups groups;
 
     Eigen::AlignedBox3d bbox();
-    QMap< QString, QVariant > property;
+    PropertyMap property;
 	Eigen::MatrixXd adjacency;
 	QMap< QString, void* > misc;
 	QString name();
