@@ -110,15 +110,6 @@ void GraphExplorer::storeOldValues()
 
 void GraphExplorer::drawGraph()
 {
-	// Create graph visualization
-	/*QString tmpGraphFilename = "tempGraph_"+QString::number(QDateTime::currentMSecsSinceEpoch());
-	visualizeStructureGraph(g, tmpGraphFilename, "");
-	QImage gimg(tmpGraphFilename+".png");
-	QFile::remove(tmpGraphFilename+".png");
-	QFile::remove(tmpGraphFilename+".gv");
-	// Set graph visualization
-	//ui->graphImage->setPixmap( QPixmap::fromImage(gimg.scaled(gimg.size() * 0.5, Qt::KeepAspectRatio, Qt::SmoothTransformation)) );*/
-
 	if(!dotPath.size()){
 		#ifdef Q_OS_WIN
 		dotPath = "\"" + QString(exec("where dot").c_str()).replace("\\","/").trimmed() + "\"";
@@ -146,8 +137,6 @@ void GraphExplorer::drawGraph()
 	p->write( qPrintable(toGraphvizFormat(g,"","")) );
 	p->closeWriteChannel();
 	p->waitForFinished(-1);
-
-	double x = 0;
 }
 
 void GraphExplorer::drawGraphSVG()

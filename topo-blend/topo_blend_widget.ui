@@ -373,7 +373,7 @@
                  <number>1000</number>
                 </property>
                 <property name="value">
-                 <number>50000</number>
+                 <number>20000</number>
                 </property>
                </widget>
               </item>
@@ -389,6 +389,13 @@
                  </size>
                 </property>
                </spacer>
+              </item>
+              <item row="5" column="1">
+               <widget class="QPushButton" name="clearSynthButton">
+                <property name="text">
+                 <string>Clear</string>
+                </property>
+               </widget>
               </item>
              </layout>
             </widget>
@@ -416,13 +423,10 @@
                 </attribute>
                </widget>
               </item>
-              <item row="2" column="0">
-               <widget class="QCheckBox" name="showNodes">
+              <item row="1" column="1">
+               <widget class="QCheckBox" name="showCtrlPts">
                 <property name="text">
-                 <string>Show nodes</string>
-                </property>
-                <property name="checked">
-                 <bool>true</bool>
+                 <string>Control points</string>
                 </property>
                 <attribute name="buttonGroup">
                  <string notr="true">vizButtonGroup</string>
@@ -439,17 +443,7 @@
                 </attribute>
                </widget>
               </item>
-              <item row="1" column="1">
-               <widget class="QCheckBox" name="showCtrlPts">
-                <property name="text">
-                 <string>Control points</string>
-                </property>
-                <attribute name="buttonGroup">
-                 <string notr="true">vizButtonGroup</string>
-                </attribute>
-               </widget>
-              </item>
-              <item row="3" column="1">
+              <item row="4" column="1">
                <widget class="QDoubleSpinBox" name="splatSize">
                 <property name="decimals">
                  <number>7</number>
@@ -468,10 +462,13 @@
                 </property>
                </widget>
               </item>
-              <item row="3" column="0">
-               <widget class="QCheckBox" name="isSplatsHQ">
+              <item row="2" column="0">
+               <widget class="QCheckBox" name="showNodes">
                 <property name="text">
-                 <string>High quality splats</string>
+                 <string>Show nodes</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
                 </property>
                 <attribute name="buttonGroup">
                  <string notr="true">vizButtonGroup</string>
@@ -488,6 +485,29 @@
                 </attribute>
                </widget>
               </item>
+              <item row="4" column="0">
+               <widget class="QCheckBox" name="isSplatsHQ">
+                <property name="text">
+                 <string>High quality splats</string>
+                </property>
+                <attribute name="buttonGroup">
+                 <string notr="true">vizButtonGroup</string>
+                </attribute>
+               </widget>
+              </item>
+              <item row="5" column="0">
+               <spacer name="verticalSpacer_3">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
               <item row="0" column="1">
                <widget class="QCheckBox" name="showMeshes">
                 <property name="text">
@@ -501,18 +521,18 @@
                 </attribute>
                </widget>
               </item>
-              <item row="4" column="0">
-               <spacer name="verticalSpacer_3">
-                <property name="orientation">
-                 <enum>Qt::Vertical</enum>
+              <item row="3" column="0">
+               <widget class="QCheckBox" name="showSamples">
+                <property name="text">
+                 <string>Show samples</string>
                 </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>20</width>
-                  <height>40</height>
-                 </size>
+                <property name="checked">
+                 <bool>true</bool>
                 </property>
-               </spacer>
+                <attribute name="buttonGroup">
+                 <string notr="true">vizButtonGroup</string>
+                </attribute>
+               </widget>
               </item>
              </layout>
             </widget>

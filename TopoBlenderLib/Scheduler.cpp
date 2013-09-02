@@ -1,4 +1,5 @@
 #include <QApplication> // For mouse icon changing
+#include <QtConcurrentRun> // For easy multi-threading
 
 #include "TaskCurve.h"
 #include "TaskSheet.h"
@@ -18,8 +19,10 @@ Q_DECLARE_METATYPE( QSet<int> ) // for tags
 Scheduler::Scheduler()
 {
 	rulerHeight = 25;
+
 	activeGraph = targetGraph = NULL;
 	slider = NULL;
+	widget = NULL;
 
 	time_step = 0.01;
 }
@@ -421,8 +424,8 @@ void Scheduler::reset()
 
 	// Reassign schedule
 	this->setSchedule( curSchedule );
-	this->widget->updateNodesList();
 	emit( progressChanged(0) );
+	emit( hasReset() );
 }
 
 void Scheduler::shuffleSchedule()
@@ -660,7 +663,12 @@ void Scheduler::doBlend()
 {
 	foreach(Task * t, tasks) t->setSelected(false);
 
-	emit( startBlend() );
+	// If we are re-executing, we need to reset everything
+	if(allGraphs.size())
+		reset();
+
+	/// Execute the tasks on a new thread
+	QtConcurrent::run( this, &Scheduler::executeAll ); // scheduler->executeAll();
 }
 
 QVector<Task*> Scheduler::tasksSortedByStart()

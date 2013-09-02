@@ -64,6 +64,8 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
     topo_blend->s_manager->connect(ui->loadSynthButton, SIGNAL(clicked()), SLOT(loadSynthesisData()));
     topo_blend->s_manager->connect(ui->reconstructButton, SIGNAL(clicked()), SLOT(reconstructXYZ()));
 	topo_blend->s_manager->connect(ui->outputCloudButton, SIGNAL(clicked()), SLOT(outputXYZ()));
+	topo_blend->s_manager->connect(ui->clearSynthButton, SIGNAL(clicked()), SLOT(clear()));
+	topo_blend->s_manager->connect(ui->synthesisSamplesCount, SIGNAL(valueChanged(int)), SLOT(setSampleCount(int)));
 
 	// Model manipulation
 	this->connect(ui->normalizeModel, SIGNAL(clicked()), SLOT(normalizeModel()));
@@ -85,6 +87,7 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	this->connect(ui->vizButtonGroup, SIGNAL(buttonClicked(QAbstractButton*)),SLOT(vizButtonClicked(QAbstractButton*)));
 	tb->viz_params["showNodes"] = true;
 	tb->viz_params["showMeshes"] = true;
+	tb->viz_params["showSamples"] = true;
 	tb->viz_params["splatSize"] = 0.008;
 
 	this->connect(ui->splatSize, SIGNAL(valueChanged(double)), SLOT(splatSizeChanged(double)));
@@ -326,6 +329,7 @@ void topo_blend_widget::vizButtonClicked(QAbstractButton* b)
 	tb->viz_params["showTasks"] = ui->showTasks->isChecked();
 	tb->viz_params["showCtrlPts"] = ui->showCtrlPts->isChecked();
 	tb->viz_params["showCurveFrames"] = ui->showCurveFrames->isChecked();
+	tb->viz_params["showSamples"] = ui->showSamples->isChecked();
 	tb->viz_params["isSplatsHQ"] = ui->isSplatsHQ->isChecked();
 	tb->viz_params["splatSize"] = ui->splatSize->value();
 

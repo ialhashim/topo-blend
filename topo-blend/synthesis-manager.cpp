@@ -49,6 +49,8 @@ void SynthesisManager::clear()
 	vertices.clear();
 	currentData.clear();
 	currentGraph.clear();
+
+	if(tb && tb->scheduler) tb->scheduler->property["synthDataReady"] = false;
 }
 
 QVector<Structure::Graph*> SynthesisManager::graphs()
@@ -58,17 +60,22 @@ QVector<Structure::Graph*> SynthesisManager::graphs()
 	return result;
 }
 
+void SynthesisManager::setSampleCount(int numSamples)
+{
+	samplesCount = numSamples;
+}
+
 void SynthesisManager::genSynData()
 {
-	tb->scheduler->property["synthDataReady"] = false;
+	clear();
 
     qApp->setOverrideCursor(Qt::WaitCursor);
 
     QElapsedTimer timer; timer.start();
 
     // Number of samples
-    randomCount = tb->widget->synthesisSamplesCount();
-    uniformTriCount = tb->widget->synthesisSamplesCount();
+    uniformTriCount = samplesCount;
+	randomCount = uniformTriCount;
 
 	// Progress counter
 	int numNodes = tb->scheduler->activeGraph->nodes.size();

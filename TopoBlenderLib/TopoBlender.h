@@ -24,9 +24,6 @@ public:
     Structure::Graph * tg;
 	GraphCorresponder * gcoor;
 	Scheduler * scheduler;
-
-	void oldSetup();
-
     QMap<QString, QVariant> params;
 
 	/// Super graphs:
@@ -35,6 +32,8 @@ public:
 	Structure::Graph * super_tg;
 	QMap<QString, QString> superNodeCorr;
 	QMap<QString, QString> superEdgeCorr;
+
+	/// Super graphs operations:
 	void generateSuperGraphs();
 	void correspondSuperNodes();
 	void equalizeSuperNodeResolutions();
@@ -81,18 +80,12 @@ public:
 	/// Tasks:
 	void generateTasks();
 
-	/// Logging
-	int stepCounter;
-
-public slots:
-	void executeBlend();
+	/// Create widgets and such
+	void setupUI();
 
 // DEBUG:
 public:
-    std::vector< Vector3 > debugPoints;
-    std::vector< PairVector3 > debugLines;
-    void drawDebug();
-
-signals:
-
+	std::vector< Vector3 > debugPoints;
+	std::vector< PairVector3 > debugLines;
+	void drawDebug();
 };
