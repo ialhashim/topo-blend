@@ -122,4 +122,5 @@ signals:
 	void draftRender();
 
 	void updateExternalViewer();
+	void hasReset();
 };

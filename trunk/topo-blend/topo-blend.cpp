@@ -61,7 +61,7 @@ void topoblend::create()
 		widget = new topo_blend_widget(this);
 		dockwidget->setWidget(widget);
 		dockwidget->setWindowTitle(widget->windowTitle());
-		mainWindow()->addDockWidget(Qt::RightDockWidgetArea,dockwidget);
+		mainWindow()->addDockWidget(Qt::RightDockWidgetArea, dockwidget);
 
 		points = mesh()->vertex_property<Vector3>("v:point");
 
@@ -167,7 +167,6 @@ void topoblend::decorate()
 	// 3D visualization
 	glEnable(GL_LIGHTING);
 
-	// Draw selections 
 	if( scheduler && scheduler->allGraphs.size() == 0 )
 	{
 		QVector<Structure::Graph*> currentGraphs;
@@ -242,9 +241,10 @@ void topoblend::decorate()
 
 				SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
 
-				if( !nodeMesh || !nodeMesh->n_vertices() )
+				if( !nodeMesh || !nodeMesh->n_vertices() || !viz_params["showMeshes"].toBool() )
 				{
-					n->draw();
+					if(viz_params["showNodes"].toBool())
+						n->draw();
 				}
 				else
 				{
@@ -265,7 +265,8 @@ void topoblend::decorate()
 		}
 
 		// Draw synthesis samples if available
-		s_manager->drawSampled();
+		if(viz_params["showSamples"].toBool())
+			s_manager->drawSampled();
 	}
 	else if(graphs.size())
 	{
@@ -280,7 +281,6 @@ void topoblend::decorate()
 			graphs[g]->property["showCtrlPts"] = viz_params["showCtrlPts"];
 			graphs[g]->property["isSplatsHQ"] = viz_params["isSplatsHQ"];
 			graphs[g]->property["splatSize"] = viz_params["splatSize"];
-			graphs[g]->property["showNodes"] = viz_params["showNodes"];
 			graphs[g]->property["showNodes"] = viz_params["showNodes"];
 			graphs[g]->property["showNames"] = viz_params["showNames"];
 			graphs[g]->property["showCurveFrames"] = viz_params["showCurveFrames"];
@@ -719,14 +719,12 @@ void topoblend::doBlend()
 
 	QElapsedTimer timer; timer.start();
 
-	if(scheduler) 
+	if(scheduler)
 	{
 		// Old signals
 		scheduler->disconnect(this);
 		this->disconnect(scheduler);
-		
 		scheduler->dock->close();
-
 		scheduler = NULL;
 	}
 
@@ -745,6 +743,8 @@ void topoblend::doBlend()
 	scheduler = new Scheduler( );
     blender = new TopoBlender( gcoor, scheduler );
 
+	blender->setupUI();
+
 	// Update active graph
 	this->connect(scheduler, SIGNAL(activeGraphChanged( Structure::Graph* )), SLOT(updateActiveGraph( Structure::Graph* )));
 
@@ -756,11 +756,10 @@ void topoblend::doBlend()
 	// Other connections
 	this->connect(scheduler, SIGNAL(updateExternalViewer()), SLOT(updateDrawArea()));
 
-	setStatusBarMessage( QString("Created TopoBlender and tasks in [ %1 ms ]").arg( timer.elapsed() ) );
-
 	setSceneBounds();
-
 	updateDrawArea();
+
+	setStatusBarMessage( QString("Created TopoBlender and tasks in [ %1 ms ]").arg( timer.elapsed() ) );
 }
 
 void topoblend::updateDrawArea()

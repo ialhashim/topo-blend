@@ -8,17 +8,16 @@ class SynthesisManager : public QObject
 {
 	Q_OBJECT
 public:
-    SynthesisManager(topoblend * topo_blender) : tb(topo_blender) {}
+    SynthesisManager(topoblend * topo_blender) : tb(topo_blender) { samplesCount = 20000; }
     topoblend * tb;
 
 	QVector<Structure::Graph*> graphs();
 	Structure::Graph * graphNamed(QString graphName);
 
-	void clear();
-
 	// Synthesis data [graph][node][data]
 	QMap<QString, QMap<QString, QMap<QString,QVariant> > > synthData;
 	SynthData renderData;
+	int samplesCount;
 
 	// Visualization
 	QMap<QString, QMap<QString,QVariant> > sampled;
@@ -30,11 +29,13 @@ public:
 
 public slots:
     void generateSynthesisData();
+	void setSampleCount(int numSamples);
     void saveSynthesisData(QString parentFolder = "");
     void loadSynthesisData(QString parentFolder = "");
     void genSynData();
     void reconstructXYZ();
 	void outputXYZ();
+	void clear();
 
     void doRenderAll();
     void renderAll();
