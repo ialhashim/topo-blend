@@ -487,6 +487,7 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		used = true;
 	}
 
+    /*
 	if(event->key() == Qt::Key_Space && (event->modifiers() & Qt::ShiftModifier))
 	{
 		for(int g = 0; g < (int) graphs.size(); g++)
@@ -518,7 +519,8 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		qDebug() << "Materialized graphs, generated smooth mesh " << timer.elapsed() << " ms";
 
 		used = true;
-	}
+    }
+    */
 
 	if(event->key() == Qt::Key_W)
 	{

@@ -10,17 +10,21 @@ SUBDIRS += Reconstruction
 SUBDIRS += GlSplatRendererLib
 
 # Plugins
-SUBDIRS += resample
-SUBDIRS += segment
-SUBDIRS += dynamic_voxel
 SUBDIRS += voxel_resampler
 SUBDIRS += nurbs_plugin
-SUBDIRS += visiblity_resampler
 
-SUBDIRS += topo-blend  # Main UI for topo-blending
+# Legacy
+#SUBDIRS += resample
+#SUBDIRS += segment
+#SUBDIRS += visiblity_resampler
+#SUBDIRS += dynamic_voxel
+
+SUBDIRS += demo         # Standalone demo
+SUBDIRS += topo-blend   # Main plugin for topo-blending
 
 # Dependecy map
+#dynamic_voxel.depends = DynamicVoxel
 nurbs_plugin.depends = NURBS
-dynamic_voxel.depends = DynamicVoxel
 TopoBlenderLib.depends = GlSplatRendererLib
 topo-blend.depends = GlSplatRendererLib NURBS DynamicVoxel TopoBlenderLib 
+demo.depends = GlSplatRendererLib NURBS DynamicVoxel TopoBlenderLib

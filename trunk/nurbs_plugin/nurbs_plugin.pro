@@ -16,10 +16,6 @@ CONFIG(debug, debug|release) {
 LIBS += -L$$PWD/../NURBS/$$CFG/lib -lNURBS
 INCLUDEPATH += ../NURBS
 
-# VOXEL library
-LIBS += -L$$PWD/../DynamicVoxel/$$CFG/lib -lDynamicVoxel
-INCLUDEPATH += ../DynamicVoxel
-
 # Surface Reconstruction library
 LIBS += -L$$PWD/../Reconstruction/$$CFG/lib -lReconstruction
 INCLUDEPATH += ../Reconstruction
@@ -32,16 +28,16 @@ INCLUDEPATH += ../GLSplatRendererLib
 LIBS += -L$$PWD/../TopoBlenderLib/$$CFG/lib -lTopoBlenderLib
 INCLUDEPATH += ../TopoBlenderLib
 
-HEADERS += nurbs_plugin.h \
-    nurbstools.h \
-    OBB_Volume.h \
-    PCA3.h \
-    LSCM.h \
-	BoundaryFitting.h
+HEADERS +=  nurbs_plugin.h \
+            nurbstools.h \
+            OBB_Volume.h \
+            PCA3.h \
+            LSCM.h \
+            BoundaryFitting.h
 
-SOURCES += nurbs_plugin.cpp \
-    nurbstools.cpp \
-	BoundaryFitting.cpp
+SOURCES +=  nurbs_plugin.cpp \
+            nurbstools.cpp \
+            BoundaryFitting.cpp
 	
 RESOURCES += nurbs_plugin.qrc
 
