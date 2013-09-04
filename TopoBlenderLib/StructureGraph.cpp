@@ -633,32 +633,35 @@ void Graph::draw( QGLViewer * drawArea )
 	glEnd();
 	glEnable(GL_LIGHTING);
 
-	// Materialized
-	glBegin(GL_QUADS);
-	foreach(QuadFace f, cached_mesh.faces)
-	{
-		Vector3 aa = cached_mesh.points[f[1]]-cached_mesh.points[f[0]];
-		Vector3 bb = cached_mesh.points[f[2]]-cached_mesh.points[f[0]];
-		Vector3 nn = cross(aa,bb).normalized();
-
-		glNormal3(nn);
-		glVector3(cached_mesh.points[f[0]]);
-		glVector3(cached_mesh.points[f[1]]);
-		glVector3(cached_mesh.points[f[2]]);
-		glVector3(cached_mesh.points[f[3]]);
-	}
-	glEnd();
-
-	glDisable(GL_LIGHTING);
-	glPointSize(15);
-	glColor3d(1,1,0);
-	glBegin(GL_POINTS);
-	foreach(Vector3 p, cached_mesh.debug) glVector3(p);
-	glEnd();
-	glEnable(GL_LIGHTING);
-
 	// AABB
 	if (property["showAABB"].toBool()) drawAABB();
+
+    // LEGACY:
+    /*
+    // Materialized
+    glBegin(GL_QUADS);
+    foreach(QuadFace f, cached_mesh.faces)
+    {
+        Vector3 aa = cached_mesh.points[f[1]]-cached_mesh.points[f[0]];
+        Vector3 bb = cached_mesh.points[f[2]]-cached_mesh.points[f[0]];
+        Vector3 nn = cross(aa,bb).normalized();
+
+        glNormal3(nn);
+        glVector3(cached_mesh.points[f[0]]);
+        glVector3(cached_mesh.points[f[1]]);
+        glVector3(cached_mesh.points[f[2]]);
+        glVector3(cached_mesh.points[f[3]]);
+    }
+    glEnd();
+
+    glDisable(GL_LIGHTING);
+    glPointSize(15);
+    glColor3d(1,1,0);
+    glBegin(GL_POINTS);
+    foreach(Vector3 p, cached_mesh.debug) glVector3(p);
+    glEnd();
+    glEnable(GL_LIGHTING);
+    */
 }
 
 void Graph::drawAABB()
@@ -1067,9 +1070,9 @@ void Graph::loadFromFile( QString fileName )
 	file.close();
 }
 
-void Graph::materialize( SurfaceMesh::Model * m, Scalar voxel_scaling )
+/*void Graph::materialize( SurfaceMesh::Model * m, Scalar voxel_scaling )
 {
-	QElapsedTimer timer; timer.start();
+    QElapsedTimer timer; timer.start();
 
 	cached_mesh.clear();
 
@@ -1125,7 +1128,7 @@ void Graph::materialize( SurfaceMesh::Model * m, Scalar voxel_scaling )
 	vox.buildMesh(m, cached_mesh);
 
     if(m) cached_mesh.clear();
-}
+}*/
 
 Node *Graph::rootBySize()
 {

@@ -26,8 +26,8 @@ LIBS += -L$$PWD/../NURBS/$$CFG/lib -lNURBS
 INCLUDEPATH += ../NURBS
 
 # VOXEL library
-LIBS += -L$$PWD/../DynamicVoxel/$$CFG/lib -lDynamicVoxel
-INCLUDEPATH += ../DynamicVoxel
+#LIBS += -L$$PWD/../DynamicVoxel/$$CFG/lib -lDynamicVoxel
+#INCLUDEPATH += ../DynamicVoxel
 
 # Surface Reconstruction library
 LIBS += -L$$PWD/../Reconstruction/$$CFG/lib -lReconstruction

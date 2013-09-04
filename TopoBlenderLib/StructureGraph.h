@@ -5,8 +5,8 @@
 #include "StructureCurve.h"
 #include "StructureSheet.h"
 
-#include "DynamicVoxel.h"
-using namespace DynamicVoxelLib;
+//#include "DynamicVoxel.h"
+//using namespace DynamicVoxelLib;
 
 // DEBUG:
 #include "../CustomDrawObjects.h"
@@ -110,8 +110,8 @@ struct Graph
 	QImage fontImage;
 
 	// [OLD] Synthesis
-	void materialize( SurfaceMesh::Model * m, Scalar voxel_scaling = 1.0 );
-	DynamicVoxel::QuadMesh cached_mesh;
+    //void materialize( SurfaceMesh::Model * m, Scalar voxel_scaling = 1.0 );
+    //DynamicVoxel::QuadMesh cached_mesh;
 
     // Analysis
     Node * rootBySize();
