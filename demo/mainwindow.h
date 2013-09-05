@@ -3,6 +3,7 @@
 #include <QMainWindow>
 
 #include "Session.h"
+#include "Controls.h"
 
 namespace Ui {
 class MainWindow;
@@ -22,7 +23,8 @@ private:
     Ui::MainWindow *ui;
     QGLWidget * viewport;
 
-    Scene * s;
+    Scene * scene;
     ShapesGallery * gallery;
     Session * session;
+    Controls * control;
 };

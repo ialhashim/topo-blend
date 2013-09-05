@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1280</width>
-    <height>771</height>
+    <height>741</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -56,19 +56,6 @@
      <width>1280</width>
      <height>21</height>
     </rect>
-   </property>
-  </widget>
-  <widget class="QToolBar" name="mainToolBar">
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-  </widget>
-  <widget class="QStatusBar" name="statusBar">
-   <property name="styleSheet">
-    <string notr="true">background:#333333;</string>
    </property>
   </widget>
  </widget>

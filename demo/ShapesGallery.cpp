@@ -3,41 +3,34 @@
 #include <QPropertyAnimation>
 #include "ShapesGallery.h"
 
-ShapesGallery::ShapesGallery(Scene * scene) : s(scene)
+ShapesGallery::ShapesGallery(Scene * scene, QString title) : DemoPage(scene,title)
 {
-    QFont titleFont("", 30);
-    QGraphicsTextItem * title = s->addText("Select two shapes", titleFont);
-    title->setPos( (s->width() * 0.5) - (title->boundingRect().width() * 0.5),
-                   s->height() * 0.1);
-    title->setDefaultTextColor(Qt::white);
-    items.push_back(title);
-
     show();
-}
-
-bool ShapesGallery::isVisible()
-{
-    return visible;
 }
 
 void ShapesGallery::hide()
 {
-    this->visible = false;
-
-    // Hide items and shapes
     QVector<QGraphicsItem *> all;
-    all << items << listA << listB;
+    all << listA << listB;
     foreach(QGraphicsItem * item, all) item->hide();
+
+    DemoPage::hide();
 }
 
 void ShapesGallery::show()
 {
-    this->visible = true;
-
-    // Show items and shapes
     QVector<QGraphicsItem *> all;
-    all << items << listA << listB;
+    all << listA << listB;
     foreach(QGraphicsItem * item, all) item->show();
+
+    DemoPage::show();
+
+    if(!s->isInputReady()) return;
+
+    QParallelAnimationGroup * animGroup = new QParallelAnimationGroup;
+    animGroup->addAnimation( s->inputGraphs[0]->animateTo( s->graphRect(0) ) );
+    animGroup->addAnimation( s->inputGraphs[1]->animateTo( s->graphRect(1) ) );
+    animGroup->start( QAbstractAnimation::DeleteWhenStopped );
 }
 
 ShapeItem *ShapesGallery::makeShapeItem( QString name, PropertyMap info )
@@ -53,7 +46,7 @@ ShapeItem *ShapesGallery::makeShapeItem( QString name, PropertyMap info )
     item->width = thumbnail.width();
     item->height = thumbnail.height();
 
-    item->setScale(0.4);
+    item->setScale(0.2);
 
     return item;
 }
@@ -78,6 +71,9 @@ void ShapesGallery::loadDataset(DatasetMap dataset)
     items.push_back( s->addRect(  (penWidth*0.5) + 0, center, item->realWidth(), item->realHeight(), pen ) );
     items.push_back( s->addRect( -(penWidth*0.5) + s->width() - item->realWidth(), center, item->realWidth(), item->realHeight(), pen ) );
 
+    // Tell scene about item size
+    s->setProperty("itemWidth", item->realWidth());
+
     qDebug() << "Added [" << dataset.size() << "] shapes.";
 }
 
@@ -90,7 +86,10 @@ void ShapesGallery::layout()
     indexB = 1;
 
     scrollTo(listA, indexA);
+    emit( shapeChanged(0, listA[indexA]) );
+
     scrollTo(listB, indexB);
+    emit( shapeChanged(1, listB[indexB]) );
 }
 
 void ShapesGallery::arrangeList( QVector<QGraphicsItem*> & list, int x )

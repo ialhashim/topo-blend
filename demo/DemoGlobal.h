@@ -23,5 +23,3 @@ typedef QMap<QString, PropertyMap> DatasetMap;
 #ifndef GL_MULTISAMPLE
 #define GL_MULTISAMPLE  0x809D
 #endif
-
-#include "StructureGraph.h"

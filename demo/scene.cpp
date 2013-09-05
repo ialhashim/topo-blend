@@ -5,8 +5,12 @@ Q_DECLARE_METATYPE(qglviewer::Vec)
 
 Scene::Scene(QObject *parent) : QGraphicsScene(parent)
 {
-    this->setupCamera();
+    inputGraphs[0] = inputGraphs[1] = NULL;
+
     this->setSceneRect(0, 0, 1280, 720);
+    this->setupCamera();
+
+    this->setProperty("camera-rotate", true);
 }
 
 void Scene::setupCamera()
@@ -19,6 +23,22 @@ void Scene::setupCamera()
     this->camera->setUpVector(qglviewer::Vec(0,0,1));
     this->camera->setPosition(qglviewer::Vec(2,-2,2));
     this->camera->lookAt(qglviewer::Vec());
+}
+
+void Scene::setupLights()
+{
+    GLfloat lightColor[] = {0.9f, 0.9f, 0.9f, 1.0f};
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor);
+
+    glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHTING);
+
+    // Specular
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    float specReflection[] = { 0.8f, 0.8f, 0.8f, 1.0f };
+    glMaterialfv(GL_FRONT, GL_SPECULAR, specReflection);
+    glMateriali(GL_FRONT, GL_SHININESS, 56);
 }
 
 void Scene::drawBackground(QPainter *painter, const QRectF &rect)
@@ -64,10 +84,11 @@ void Scene::drawBackground(QPainter *painter, const QRectF &rect)
     {
         painter->beginNativePainting();
 
+        this->setupLights();
+
         glEnable(GL_MULTISAMPLE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
         glEnable(GL_DEPTH_TEST);
 
         glViewport( 0, 0, GLint(width), GLint(height) );
@@ -77,14 +98,42 @@ void Scene::drawBackground(QPainter *painter, const QRectF &rect)
 
         // Scene has no depth
         glClear(GL_DEPTH_BUFFER_BIT);
+        glDisable(GL_DEPTH_TEST);
 
         painter->endNativePainting();
     }
 }
 
+QRect Scene::graphRect(bool isRight)
+{
+    int itemWidth = property("itemWidth").toInt();
+    int innerWidth = width() - (2 * itemWidth);
+    int graphWidth = innerWidth * 0.5;
+    int graphHeight = height() - (0.2 * height());
+
+    int x = (width() * 0.5) - graphWidth;
+    int y = (height() * 0.5) - (graphHeight * 0.5);
+
+    QRect r(x,y,graphWidth,graphHeight);
+    if(isRight) r.translate(r.width(),0);
+    return r;
+}
+
 void Scene::drawForeground(QPainter *painter, const QRectF &rect)
 {
     QGraphicsScene::drawForeground(painter,rect);
+
+    for(int i = 0; i < 2; i++)
+    {
+        if(inputGraphs[i] != NULL) continue;
+
+        painter->save();
+        painter->setPen(Qt::white);
+        QRect r = graphRect(i);
+        painter->drawText(r, Qt::AlignCenter, "Loading..");
+        //painter->drawRect(r);
+        painter->restore();
+    }
 }
 
 void Scene::draw3D()
@@ -92,7 +141,13 @@ void Scene::draw3D()
     camera->loadProjectionMatrix();
     camera->loadModelViewMatrix();
 
-    testScene();
+    //testScene();
+
+    // Draw input graphs
+    for(int i = 0; i < 2; i++)
+    {
+        if(inputGraphs[i]) inputGraphs[i]->draw3D( camera );
+    }
 }
 
 void Scene::testScene()
@@ -137,13 +192,13 @@ static float projectOnBall(float x, float y)
     return d < size_limit ? sqrt(size2 - d) : size_limit/sqrt(d);
 }
 static qglviewer::Quaternion deformedBallQuaternion(int prevX, int prevY, int x, int y, float cx, float cy,
-                                                    const qglviewer::Camera* const camera, float rotationSensitivity = 1.0)
+                                                    int viewportWidth, int viewportHeight, float rotationSensitivity = 1.0)
 {
     // Points on the deformed ball
-    float px = rotationSensitivity * (prevX  - cx) / camera->screenWidth();
-    float py = rotationSensitivity * (cy - prevY)  / camera->screenHeight();
-    float dx = rotationSensitivity * (x - cx)	    / camera->screenWidth();
-    float dy = rotationSensitivity * (cy - y)	    / camera->screenHeight();
+    float px = rotationSensitivity * (prevX  - cx) / viewportWidth;
+    float py = rotationSensitivity * (cy - prevY)  / viewportHeight;
+    float dx = rotationSensitivity * (x - cx)	   / viewportWidth;
+    float dy = rotationSensitivity * (cy - y)	   / viewportHeight;
 
     const qglviewer::Vec p1(px, py, projectOnBall(px, py));
     const qglviewer::Vec p2(dx, dy, projectOnBall(dx, dy));
@@ -166,8 +221,12 @@ void Scene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
             camera->frame()->setOrientation( camera->property("startOrientation").value<qglviewer::Quaternion>() );
 
             // Rotate to new view
-            qglviewer::Vec trans = camera->projectedCoordinatesOf(qglviewer::Vec());
-            qglviewer::Quaternion rot = deformedBallQuaternion(startPos.x(), startPos.y(), currentPos.x(), currentPos.y(), trans[0], trans[1], camera);
+            QRect r = graphRect(0);
+            if(startPos.x() > width() * 0.5) r = graphRect(1);
+
+            qglviewer::Quaternion rot = deformedBallQuaternion(startPos.x(), startPos.y(),
+                                                               currentPos.x(), currentPos.y(),
+                                                               r.center().x(), r.center().y(), r.width(), r.height());
             camera->frame()->rotateAroundPoint(rot, camera->revolveAroundPoint());
 
             update();
