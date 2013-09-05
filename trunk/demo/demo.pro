@@ -38,13 +38,23 @@ SOURCES +=  main.cpp\
             scene.cpp \
             ShapesGallery.cpp \
             ShapeItem.cpp \
-            Session.cpp
+            Session.cpp \
+    Controls.cpp \
+    GraphItem.cpp \
+    Matcher.cpp \
+    Blender.cpp
 
 HEADERS  += mainwindow.h \
             scene.h \
             ShapesGallery.h \
             ShapeItem.h \
             Session.h \
-            DemoGlobal.h
+            DemoGlobal.h \
+    Controls.h \
+    GraphItem.h \
+    Matcher.h \
+    Blender.h \
+    DemoPage.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    Controls.ui

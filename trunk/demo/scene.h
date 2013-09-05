@@ -1,12 +1,17 @@
 #pragma once
-#include <qglviewer/camera.h>
 #include "DemoGlobal.h"
+#include "GraphItem.h"
 
 class Scene : public QGraphicsScene
 {
     Q_OBJECT
 public:
     explicit Scene(QObject *parent = 0);
+
+    GraphItem * inputGraphs[2];
+    bool isInputReady() { return inputGraphs[0] && inputGraphs[1]; }
+
+    QRect graphRect(bool isRight);
 
 protected:
     void drawBackground ( QPainter * painter, const QRectF & rect );
@@ -23,6 +28,7 @@ protected:
 private:
     qglviewer::Camera * camera;
     void setupCamera();
+    void setupLights();
 
 signals:
     void wheelEvents(QGraphicsSceneWheelEvent*);

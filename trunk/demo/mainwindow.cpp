@@ -1,6 +1,7 @@
 #include "DemoGlobal.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "Controls.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
 {
@@ -16,22 +17,36 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     ui->graphicsView->setViewport( viewport );
     ui->graphicsView->setViewportUpdateMode( QGraphicsView::FullViewportUpdate );
-    ui->graphicsView->setScene( (s = new Scene(this)) );
+    ui->graphicsView->setScene( (scene = new Scene(this)) );
     ui->graphicsView->setAlignment(Qt::AlignLeft | Qt::AlignTop);
     ui->graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->graphicsView->setRenderHint(QPainter::HighQualityAntialiasing, true);
     ui->graphicsView->setRenderHint(QPainter::SmoothPixmapTransform, true);
 
-    // Load shapes
-    gallery = new ShapesGallery(s);
+    // Create controls
+    control = new Controls;
+    QGraphicsProxyWidget * proxy = scene->addWidget(control);
+    proxy->setPos((scene->width() * 0.5) - (proxy->boundingRect().width() * 0.5),
+                   scene->height() - proxy->boundingRect().height());
+
+    // Loading shapes
+    gallery = new ShapesGallery(scene, "Select two shapes");
     gallery->loadDataset( getDataset() );
-    gallery->layout();
-    gallery->connect(s, SIGNAL(wheelEvents(QGraphicsSceneWheelEvent*)), SLOT(wheelEvent(QGraphicsSceneWheelEvent*)));
+    gallery->connect(scene, SIGNAL(wheelEvents(QGraphicsSceneWheelEvent*)), SLOT(wheelEvent(QGraphicsSceneWheelEvent*)));
+
+    // Match shapes
+    Matcher * matcher = new Matcher(scene, "Match parts");
+
+    // Create shapes
+    Blender * blender = new Blender(scene, "Blend shapes");
 
     // Create session
-    session = new Session(s, gallery, this);
+    session = new Session(scene, gallery, control, matcher, blender, this);
     session->connect(gallery, SIGNAL(shapeChanged(int,QGraphicsItem*)), SLOT(shapeChanged(int,QGraphicsItem*)));
+    scene->connect(session, SIGNAL(update()), SLOT(update()));
+
+    gallery->layout();
 }
 
 MainWindow::~MainWindow()
