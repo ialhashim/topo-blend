@@ -2,7 +2,7 @@
 #include <QObject>
 
 #include "DemoGlobal.h"
-#include "scene.h"
+#include "Scene.h"
 
 enum DemoPages{ SELECT_PAGE, MATCH_PAGE, CREATE_PAGE };
 
@@ -13,7 +13,7 @@ public:
     {
         visible = false;
 
-        QFont titleFont("", 20);
+        QFont titleFont("", 25);
         QGraphicsTextItem * titleItem = s->addText(title, titleFont);
         titleItem->setPos( (s->width()  * 0.50) - (titleItem->boundingRect().width() * 0.5), 0);
         titleItem->setDefaultTextColor(Qt::white);

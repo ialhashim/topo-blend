@@ -47,7 +47,7 @@ QPushButton:pressed{ background:rgb(255,153,0); border-color:#FFB444; top:2px; }
       <enum>QTabWidget::Rounded</enum>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>true</bool>
@@ -89,7 +89,9 @@ QPushButton {
 }
 
 QPushButton:hover{ background: #8AA9D3; border-color: #8AA9D3; color:white;}
-QPushButton:checked{ background:rgb(50,118,211); border-color: rgb(33,83,152); color:white;  }
+
+QPushButton:checked#autoButton{ background:rgb(50,118,211); border-color: rgb(33,83,152); color:white;  }
+QPushButton:checked#manualButton{ background:#d33276; border-color: #982153; color:white;  }
 </string>
          </property>
          <property name="frameShape">
@@ -102,7 +104,7 @@ QPushButton:checked{ background:rgb(50,118,211); border-color: rgb(33,83,152); c
           <item>
            <layout class="QGridLayout" name="gridLayout_3">
             <item row="0" column="1">
-             <widget class="QPushButton" name="pushButton_3">
+             <widget class="QPushButton" name="autoButton">
               <property name="text">
                <string>Automatic</string>
               </property>
@@ -124,7 +126,7 @@ QPushButton:checked{ background:rgb(50,118,211); border-color: rgb(33,83,152); c
              </widget>
             </item>
             <item row="0" column="2">
-             <widget class="QPushButton" name="pushButton_2">
+             <widget class="QPushButton" name="manualButton">
               <property name="text">
                <string>Modified</string>
               </property>

@@ -6,6 +6,7 @@
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    this->resize(this->sizeHint());
 
     // Anti-aliasing when using QGLWidget or subclasses
     QGLFormat glf = QGLFormat::defaultFormat();

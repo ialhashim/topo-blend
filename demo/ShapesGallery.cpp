@@ -59,6 +59,8 @@ void ShapesGallery::loadDataset(DatasetMap dataset)
         listB.push_back( makeShapeItem(shape, dataset[shape]) );
     }
 
+	if(!listA.size()) return;
+
     foreach(QGraphicsItem * item, listA) s->addItem(item);
     foreach(QGraphicsItem * item, listB) s->addItem(item);
 
@@ -84,6 +86,8 @@ void ShapesGallery::layout()
 
     indexA = 0;
     indexB = 1;
+
+	if(!listA.size()) return;
 
     scrollTo(listA, indexA);
     emit( shapeChanged(0, listA[indexA]) );
@@ -123,6 +127,8 @@ void ShapesGallery::wheelEvent(QGraphicsSceneWheelEvent * event)
 
 void ShapesGallery::scrollTo( QVector<QGraphicsItem*> & list, int & index )
 {
+	if(!list.size()) return;
+
     // bound check
     index = qMax(qMin(index,list.size()-1), 0);
 

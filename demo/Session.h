@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DemoGlobal.h"
-#include "scene.h"
+#include "Scene.h"
 #include "ShapesGallery.h"
 #include "Controls.h"
 #include "Matcher.h"

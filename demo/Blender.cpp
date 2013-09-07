@@ -1,8 +1,27 @@
 #include "Blender.h"
+#include "ProgressItem.h"
 
 Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title)
 {
+	this->numSuggestions = 4;
 
+	int padding = 5;
+	int blendPathHeight = (s->height() / (numSuggestions * 1.5)) * 0.98;
+	int totalHeight = numSuggestions * (blendPathHeight + padding);
+	int startY = (s->height() * 0.5 - totalHeight * 0.5) - 45;
+
+	for(int i = 0; i < numSuggestions; i++)
+	{
+		QGraphicsItem * blendPathBack = scene->addRect(0,0,s->width() * 0.5, blendPathHeight, QPen(), QColor::fromRgbF(0,0,0.25,0.5) );
+
+		blendPathBack->setY( startY + (i * (blendPathHeight + padding)) );
+		blendPathBack->setX( 0.5*s->width() - 0.5*blendPathBack->boundingRect().width() );
+
+		blendPathBack->setZValue(-999);
+		blendPathBack->setVisible(false);
+
+		items.push_back( blendPathBack );
+	}
 }
 
 void Blender::show()
