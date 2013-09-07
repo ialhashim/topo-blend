@@ -42,6 +42,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Create shapes
     Blender * blender = new Blender(scene, "Blend shapes");
 
+	// Connect matcher and blender
+	blender->connect(matcher, SIGNAL(corresponderCreated(GraphCorresponder *)), SLOT(setGraphCorresponder(GraphCorresponder *)));
+
     // Create session
     session = new Session(scene, gallery, control, matcher, blender, this);
     session->connect(gallery, SIGNAL(shapeChanged(int,QGraphicsItem*)), SLOT(shapeChanged(int,QGraphicsItem*)));

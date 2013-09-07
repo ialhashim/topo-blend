@@ -34,11 +34,17 @@ public slots:
     {
         this->visible = false;
         foreach(QGraphicsItem * item, items) item->hide();
+		emit( becameHidden() );
     }
 
     void show()
     {
         this->visible = true;
         foreach(QGraphicsItem * item, items) item->show();
+		emit( becameVisible() );
     }
+
+signals:
+	void becameVisible();
+	void becameHidden();
 };

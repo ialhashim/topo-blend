@@ -1,10 +1,14 @@
 #include "Blender.h"
 #include "ProgressItem.h"
 
-Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title)
+#include "TopoBlender.h"
+#include "Scheduler.h"
+
+Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL)
 {
 	this->numSuggestions = 4;
 
+	// Create background items for each blend path
 	int padding = 5;
 	int blendPathHeight = (s->height() / (numSuggestions * 1.5)) * 0.98;
 	int totalHeight = numSuggestions * (blendPathHeight + padding);
@@ -22,6 +26,10 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title)
 
 		items.push_back( blendPathBack );
 	}
+
+	// Connections
+	this->connect(this, SIGNAL(becameVisible()), SLOT(preparePaths()));
+	this->connect(this, SIGNAL(blendPathsReady()), SLOT(computeBlendPaths()));
 }
 
 void Blender::show()
@@ -67,4 +75,58 @@ void Blender::hide()
     animGroup->start( QAbstractAnimation::DeleteWhenStopped );
 
     DemoPage::hide();
+}
+
+void Blender::setGraphCorresponder( GraphCorresponder * graphCorresponder )
+{
+	this->m_gcorr = graphCorresponder;
+}
+
+void Blender::preparePaths()
+{    
+	if(!s->isInputReady() || m_gcorr == NULL) return;
+
+	qApp->setOverrideCursor(Qt::WaitCursor);
+
+	for(int i = 0; i < numSuggestions; i++)
+	{
+		BlendPath bp;
+
+		bp.source = s->inputGraphs[0]->g;
+		bp.target = s->inputGraphs[1]->g;
+		bp.gcorr = this->m_gcorr;
+
+		bp.scheduler = new Scheduler;
+		bp.blender = new TopoBlender( bp.gcorr, bp.scheduler );
+
+		/// Different scheduling happens here...
+		// bp.scheduler->shuffle();
+
+		blendPaths.push_back( bp );
+	}
+
+	qApp->restoreOverrideCursor();
+
+	emit( blendPathsReady() );
+}
+
+void Blender::computePath( int index )
+{
+	blendPaths[index].scheduler->doBlend();
+}
+
+void Blender::computeBlendPaths()
+{
+	ProgressItem * progress = new ProgressItem("Working..", true, s);
+	
+	progress->startProgress();
+
+	for(int i = 0; i < blendPaths.size(); i++)
+	{
+		computePath( i );
+	}
+
+	//progress->stopProgress();
+	//progress->setVisible(false);
+	//s->removeItem(progress);
 }

@@ -13,11 +13,12 @@ public:
 
 	QVector<QColor> coldColors, warmColors;
 
-signals:
-    
 public slots:
     void show();
     void hide();
 
     void visualize();
+
+signals:
+	void corresponderCreated(GraphCorresponder *);
 };
