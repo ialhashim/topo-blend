@@ -53,6 +53,7 @@ void Matcher::show()
     // Make corresponder
     gcorr = new GraphCorresponder(s->inputGraphs[0]->g, s->inputGraphs[1]->g);
     gcorr->computeCorrespondences();
+	emit( corresponderCreated(gcorr) );
 
     // Visualize computed correspondences
     visualize();

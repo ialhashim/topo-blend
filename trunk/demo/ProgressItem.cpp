@@ -21,6 +21,7 @@ ProgressItem::ProgressItem(QString message, bool isLoading, QGraphicsScene * sce
     isSmoothAnimation = false;
 
     this->setVisible(false);
+	scene->addItem(this);
 }
 
 ProgressItem::~ProgressItem()
@@ -59,11 +60,8 @@ void ProgressItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
 
 void ProgressItem::startProgress()
 {
-    if(!this->isVisible())
-    {
-        this->setVisible( true );
-        spinner->timer->start( isSmoothAnimation ? 50 : 200 );
-    }
+    this->show();
+    spinner->timer->start( isSmoothAnimation ? 50 : 200 );
 }
 
 void ProgressItem::setProgress(double new_progress)
