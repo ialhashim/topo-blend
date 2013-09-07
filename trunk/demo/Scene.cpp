@@ -1,4 +1,4 @@
-#include "scene.h"
+#include "Scene.h"
 
 Q_DECLARE_METATYPE(qglviewer::Quaternion)
 Q_DECLARE_METATYPE(qglviewer::Vec)

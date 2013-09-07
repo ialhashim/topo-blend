@@ -35,17 +35,18 @@ TARGET = demo
 
 SOURCES +=  main.cpp\
             mainwindow.cpp \
-            scene.cpp \
+            Scene.cpp \
             ShapesGallery.cpp \
             ShapeItem.cpp \
             Session.cpp \
     Controls.cpp \
     GraphItem.cpp \
     Matcher.cpp \
-    Blender.cpp
+    Blender.cpp \
+    ProgressItem.cpp
 
 HEADERS  += mainwindow.h \
-            scene.h \
+            Scene.h \
             ShapesGallery.h \
             ShapeItem.h \
             Session.h \
@@ -54,7 +55,9 @@ HEADERS  += mainwindow.h \
     GraphItem.h \
     Matcher.h \
     Blender.h \
-    DemoPage.h
+    DemoPage.h \
+    ProgressItem.h \
+    SpinnerItem.h
 
 FORMS    += mainwindow.ui \
     Controls.ui

@@ -8,6 +8,8 @@ class Blender : public DemoPage
 public:
     explicit Blender(Scene * scene, QString title);
     
+	int numSuggestions;
+
 signals:
     
 public slots:
