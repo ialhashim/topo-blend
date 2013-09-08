@@ -49,7 +49,6 @@ HEADERS +=  topo-blend.h \
             QuickGroup.h \
             graphs-manager.h \
             correspondence-manager.h \
-            synthesis-manager.h \
             wizard.h \
             GraphExplorer.h
 
@@ -61,7 +60,6 @@ SOURCES +=  topo-blend.cpp \
             QuickGroup.cpp \
             graphs-manager.cpp \
             correspondence-manager.cpp \
-            synthesis-manager.cpp \
             wizard.cpp \
             GraphExplorer.cpp
 	

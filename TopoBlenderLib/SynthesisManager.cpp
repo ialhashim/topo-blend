@@ -1,10 +1,11 @@
 #include "GlSplatRenderer.h"
 GlSplatRenderer * splat_renderer = NULL;
 
+#include <QApplication>
 #include <QStack>
 #include <QFileDialog>
 #include <QtConcurrentRun>
-#include "synthesis-manager.h"
+#include "SynthesisManager.h"
 
 // Synthesis
 #include "Synthesizer.h"
@@ -16,6 +17,7 @@ GlSplatRenderer * splat_renderer = NULL;
 
 #include "GraphCorresponder.h"
 #include "Scheduler.h"
+#include "TopoBlender.h"
 #include "Task.h"
 
 Q_DECLARE_METATYPE( std::vector<bool> )
@@ -40,6 +42,12 @@ void endFastNURBS(){
 	TIME_ITERATIONS = nurbsQuality.pop();
 }
 
+SynthesisManager::SynthesisManager( GraphCorresponder * gcorr, Scheduler * scheduler, TopoBlender * blender, int samplesCount ) :
+	gcorr(gcorr), scheduler(scheduler), blender(blender), samplesCount(samplesCount), isSplatRenderer(false), 
+		splatSize(0.02), pointSize(4), color(QColor::fromRgbF(0.9, 0.9, 0.9))
+{
+}
+
 void SynthesisManager::clear()
 {
 	synthData.clear();
@@ -50,13 +58,13 @@ void SynthesisManager::clear()
 	currentData.clear();
 	currentGraph.clear();
 
-	if(tb && tb->scheduler) tb->scheduler->property["synthDataReady"] = false;
+	if(scheduler) scheduler->property["synthDataReady"] = false;
 }
 
 QVector<Structure::Graph*> SynthesisManager::graphs()
 {
 	QVector<Structure::Graph*> result;
-	result << tb->scheduler->activeGraph << tb->scheduler->targetGraph;
+	result << scheduler->activeGraph << scheduler->targetGraph;
 	return result;
 }
 
@@ -78,12 +86,12 @@ void SynthesisManager::genSynData()
 	randomCount = uniformTriCount;
 
 	// Progress counter
-	int numNodes = tb->scheduler->activeGraph->nodes.size();
+	int numNodes = scheduler->activeGraph->nodes.size();
 	int n = 0;
 
 	// Readability
-	Structure::Graph * sgraph = tb->scheduler->activeGraph;
-	Structure::Graph * tgraph = tb->scheduler->targetGraph;
+	Structure::Graph * sgraph = scheduler->activeGraph;
+	Structure::Graph * tgraph = scheduler->targetGraph;
 
     // Generate synthesis data for each corresponding node
     foreach(Structure::Node * snode, sgraph->nodes)
@@ -113,23 +121,26 @@ void SynthesisManager::genSynData()
 		synthData[tgraph->name()][tnode->id] = output["node2"];
 
         int percent = (double(n++) / (numNodes-1) * 100);
-        emit( tb->statusBarMessage(QString("Generating data.. [ %1 % ]").arg(percent)) );
+        
+		emit( setMessage(QString("Generating data.. [ %1 % ]").arg(percent)) );
+		emit( progressChanged(double(percent) / 100.0) );
     }
 
     QString timingString = QString("Synthesis data [ %1 ms ]").arg(timer.elapsed());
     qDebug() << timingString;
-    emit( tb->statusBarMessage(timingString) );
+    emit( setMessage(timingString) );
 
-    tb->scheduler->property["synthDataReady"] = true;
+    scheduler->property["synthDataReady"] = true;
+	emit( synthDataReady() );
 
     qApp->restoreOverrideCursor();
 }
 
 void SynthesisManager::generateSynthesisData()
 {
-    if(!tb->blender) return;
+    if(!blender) return;
 
-    tb->setStatusBarMessage("Generating synthesis samples...");
+    setMessage("Generating synthesis samples...");
 
 #ifdef Q_OS_WIN
     QtConcurrent::run( this, &SynthesisManager::genSynData );
@@ -140,15 +151,15 @@ void SynthesisManager::generateSynthesisData()
 
 void SynthesisManager::saveSynthesisData(QString parentFolder)
 {
-    if(!tb->blender) return;
+    if(!blender) return;
 
-    QString foldername = tb->gcoor->sgName() + "_" + tb->gcoor->tgName();
+    QString foldername = gcorr->sgName() + "_" + gcorr->tgName();
 
     QDir dir(parentFolder);
     dir.mkdir(foldername);
 
-	Structure::Graph * sgraph = tb->scheduler->activeGraph;
-	Structure::Graph * tgraph = tb->scheduler->targetGraph;
+	Structure::Graph * sgraph = scheduler->activeGraph;
+	Structure::Graph * tgraph = scheduler->targetGraph;
 
     foreach(Structure::Node * node, sgraph->nodes)
 	{
@@ -158,20 +169,20 @@ void SynthesisManager::saveSynthesisData(QString parentFolder)
     foreach(Structure::Node * node, tgraph->nodes)
         Synthesizer::saveSynthesisData(node, parentFolder + foldername + "/[targetGraph]", synthData[tgraph->name()]);
 
-    tb->statusBarMessage("Synth data saved.");
+    setMessage("Synth data saved.");
 
     dir.cdUp();
 }
 
 void SynthesisManager::loadSynthesisData(QString parentFolder)
 {
-    if(!tb->blender) return;
+    if(!blender) return;
 
-    QString foldername = tb->gcoor->sgName() + "_" + tb->gcoor->tgName();
+    QString foldername = gcorr->sgName() + "_" + gcorr->tgName();
     QDir dir; dir.setCurrent(foldername);
 
-	Structure::Graph * sgraph = tb->scheduler->activeGraph;
-	Structure::Graph * tgraph = tb->scheduler->targetGraph;
+	Structure::Graph * sgraph = scheduler->activeGraph;
+	Structure::Graph * tgraph = scheduler->targetGraph;
 
     foreach(Structure::Node * node, sgraph->nodes)
     {
@@ -183,11 +194,10 @@ void SynthesisManager::loadSynthesisData(QString parentFolder)
         Synthesizer::loadSynthesisData(node, parentFolder + foldername + "/[targetGraph]", synthData[tgraph->name()]);
     }
 
+	scheduler->property["synthDataReady"] = true;
 
-	tb->scheduler->property["synthDataReady"] = true;
-    tb->statusBarMessage("Synth data loaded.");
-
-    tb->drawArea()->updateGL();
+    setMessage("Synth data loaded.");
+	updateViewer();
 
     dir.cdUp();
 }
@@ -197,25 +207,25 @@ void SynthesisManager::doRenderAll()
     QElapsedTimer timer; timer.start();
 
     int stepSize = 1;
-    int N = tb->scheduler->allGraphs.size();
+    int N = scheduler->allGraphs.size();
 
-    if(tb->scheduler->property.contains("renderCount")){
-        int renderCount = tb->scheduler->property["renderCount"].toInt();
+    if(scheduler->property.contains("renderCount")){
+        int renderCount = scheduler->property["renderCount"].toInt();
         if(renderCount > 1)
             stepSize = double(N) / renderCount;
     }
 
     int reconLevel = 7;
-    if(tb->scheduler->property.contains("reconLevel")){
-        reconLevel = tb->scheduler->property["reconLevel"].toInt();
+    if(scheduler->property.contains("reconLevel")){
+        reconLevel = scheduler->property["reconLevel"].toInt();
     }
 
-    int startPercentage = tb->scheduler->property["renderStartPercentage"].toInt();
+    int startPercentage = scheduler->property["renderStartPercentage"].toInt();
     int startID = N * ( (double) startPercentage / 100);
 
     for(int i = startID; i < N; i += stepSize)
     {
-        Structure::Graph currentGraph = *(tb->scheduler->allGraphs[i]);
+        Structure::Graph currentGraph = *(scheduler->allGraphs[i]);
 
         int progress = (double(i) / (N-1)) * 100;
         qDebug() << QString("Rendering sequence [%1 %]").arg(progress);
@@ -229,20 +239,18 @@ void SynthesisManager::doRenderAll()
     qDebug() << QString("Sequence rendered [%1 ms]").arg(timer.elapsed());
 }
 
-void SynthesisManager::renderCurrent()
+void SynthesisManager::renderCurrent(Structure::Graph * currentGraph)
 {
-    if(!tb->scheduler) return;
+    if(!scheduler) return;
 
     QElapsedTimer timer; timer.start();
 
     int reconLevel = 7;
-    if(tb->scheduler->property.contains("reconLevel")){
-        reconLevel = tb->scheduler->property["reconLevel"].toInt();
+    if(scheduler->property.contains("reconLevel")){
+        reconLevel = scheduler->property["reconLevel"].toInt();
     }
 
-    tb->setStatusBarMessage(QString("Rendering current frame [depth=%1]..").arg(reconLevel));
-
-    Structure::Graph * currentGraph = tb->graphs.back();
+    setMessage(QString("Rendering current frame [depth=%1]..").arg(reconLevel));
 
     QDir dir("");
     dir.setCurrent(QFileDialog::getExistingDirectory());
@@ -260,9 +268,9 @@ void SynthesisManager::renderCurrent()
         currentGraph->property["reconMesh"].setValue( m );
     }
 
-    tb->updateDrawArea();
+    updateViewer();
 
-    tb->mainWindow()->setStatusBarMessage(QString("Current graph rendered [%1 ms]").arg(timer.elapsed()));
+    qDebug() << QString("Current graph rendered [%1 ms]").arg(timer.elapsed());
 }
 
 void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bool isOutPointCloud, int reconLevel, bool isOutGraph )
@@ -282,12 +290,12 @@ void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bo
 	}
 
 	// Progress bar
-	tb->scheduler->emitProgressStarted();
+	scheduler->emitProgressStarted();
 
 	for(int ni = 0; ni < (int)usedNodes.size(); ni++)
 	{
 		int progress = (double(ni) / (usedNodes.size()-1)) * 100;
-		tb->scheduler->emitProgressChanged( progress );
+		scheduler->emitProgressChanged( progress );
 		qApp->processEvents();
 
 		Node * node = usedNodes[ni];
@@ -469,50 +477,12 @@ void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bo
 	}
 
 	// Progress bar
-	tb->scheduler->emitProgressedDone();
-}
-
-void SynthesisManager::draftRender()
-{
-    if(!tb->scheduler) return;
-
-    int stepSize = 1;
-    int N = tb->scheduler->allGraphs.size();
-
-    if(tb->scheduler->property.contains("renderCount")){
-        int renderCount = tb->scheduler->property["renderCount"].toInt();
-        if(renderCount > 1)
-            stepSize = double(N) / renderCount;
-    }
-
-    if(N < 1) return;
-
-    // Setup camera
-    //qglviewer::Camera * camera = drawArea()->camera();
-
-    QString folderPath = QFileDialog::getExistingDirectory();
-
-    for(int i = 0; i < N; i += stepSize)
-    {
-        tb->graphs.clear();
-        tb->graphs.push_back( tb->scheduler->allGraphs[i] );
-        tb->drawArea()->updateGL();
-
-        // Save snapshot
-        QString snapshotFile;
-        int progress = (double(i) / (N-1)) * 100;
-        snapshotFile.sprintf("draft_%05d.png", progress);
-        snapshotFile = folderPath + "/" + snapshotFile;
-        tb->drawArea()->saveSnapshot(snapshotFile, true);
-
-        qDebug() << "File saved: " << snapshotFile;
-    }
+	scheduler->emitProgressedDone();
 }
 
 void SynthesisManager::reconstructXYZ()
 {
-    QStringList fileNames = QFileDialog::getOpenFileNames(0, "Open XYZ File",
-        tb->mainWindow()->settings()->getString("lastUsedDirectory"), "XYZ Files (*.xyz)");
+    QStringList fileNames = QFileDialog::getOpenFileNames(0, "Open XYZ File","", "XYZ Files (*.xyz)");
     if(fileNames.isEmpty()) return;
 
     foreach(QString filename, fileNames)
@@ -523,14 +493,14 @@ void SynthesisManager::reconstructXYZ()
 
 void SynthesisManager::renderAll()
 {
-    if(!tb->scheduler) return;
+    if(!scheduler) return;
 
     int reconLevel = 7;
-    if(tb->scheduler->property.contains("reconLevel")){
-        reconLevel = tb->scheduler->property["reconLevel"].toInt();
+    if(scheduler->property.contains("reconLevel")){
+        reconLevel = scheduler->property["reconLevel"].toInt();
     }
 
-    tb->setStatusBarMessage(QString("Rendering  requested frames [depth=%1]...").arg(reconLevel));
+    setMessage(QString("Rendering  requested frames [depth=%1]...").arg(reconLevel));
 
 #ifdef Q_OS_WIN
     QtConcurrent::run( this, &SynthesisManager::doRenderAll );
@@ -544,8 +514,8 @@ void SynthesisManager::outputXYZ()
 {
 	QVector<Structure::Graph*> allGraphs;
 	
-	allGraphs.push_back(tb->scheduler->activeGraph);
-	//allGraphs.push_back(tb->scheduler->targetGraph);
+	allGraphs.push_back(scheduler->activeGraph);
+	//allGraphs.push_back(scheduler->targetGraph);
 
 	QVector<Eigen::Vector3f> all_points, all_normals;
 
@@ -591,14 +561,16 @@ void SynthesisManager::outputXYZ()
 Structure::Graph * SynthesisManager::graphNamed( QString graphName )
 {
 	QMap<QString, Structure::Graph*> allgraphs;
-	allgraphs[tb->scheduler->activeGraph->name()] = tb->scheduler->activeGraph;
-	allgraphs[tb->scheduler->targetGraph->name()] = tb->scheduler->targetGraph;
+	allgraphs[scheduler->activeGraph->name()] = scheduler->activeGraph;
+	allgraphs[scheduler->targetGraph->name()] = scheduler->targetGraph;
 	return allgraphs[graphName];
 }
 
 void SynthesisManager::drawSampled()
 {
-	if(!sampled.size() && tb->scheduler->property["synthDataReady"].toBool())
+	if(!scheduler) return;
+
+	if(!sampled.size() && scheduler->property["synthDataReady"].toBool())
 	{
 		foreach(Structure::Graph * g, graphs())
 		{
@@ -679,8 +651,8 @@ void SynthesisManager::drawSampled()
 
 void SynthesisManager::geometryMorph( SynthData & data, Structure::Graph * graph, bool isApprox, int limit )
 {
-	Structure::Graph * activeGraph = tb->scheduler->activeGraph;
-	Structure::Graph * targetGraph = tb->scheduler->targetGraph;
+	Structure::Graph * activeGraph = scheduler->activeGraph;
+	Structure::Graph * targetGraph = scheduler->targetGraph;
 	QVector<Node*> usedNodes;
 
 	QString ag = activeGraph->name();
@@ -788,14 +760,12 @@ void SynthesisManager::geometryMorph( SynthData & data, Structure::Graph * graph
 	}
 }
 
-void SynthesisManager::drawSynthesis()
+void SynthesisManager::drawSynthesis( Structure::Graph * activeGraph )
 {
-	if(!tb->scheduler->property["progressDone"].toBool() || tb->graphs.size() != 1) return;
-
-	Structure::Graph * graph = tb->graphs.front();
+	if(!scheduler->property["progressDone"].toBool()) return;
 
 	// Combine all geometries
-	if(currentGraph["graph"].value<Structure::Graph*>() != graph)
+	if(currentGraph["graph"].value<Structure::Graph*>() != activeGraph)
 	{
 		GLuint VertexVBOID;
 
@@ -809,13 +779,12 @@ void SynthesisManager::drawSynthesis()
 		}
 
 		beginFastNURBS();
-		geometryMorph( currentData, graph, true, 600000 );
+		geometryMorph( currentData, activeGraph, true, 600000 );
 		endFastNURBS();
 
 		vertices.clear();
 
 		// Fill in GLVertices
-		Structure::Graph * activeGraph = tb->graphs.front();
 		foreach(Node * n, activeGraph->nodes){
 			const QVector<Eigen::Vector3f> & points = currentData[n->id]["points"].value< QVector<Eigen::Vector3f> >();
 			const QVector<Eigen::Vector3f> & normals = currentData[n->id]["normals"].value< QVector<Eigen::Vector3f> >();
@@ -831,32 +800,33 @@ void SynthesisManager::drawSynthesis()
 
 	glEnable(GL_LIGHTING);
 
-	bool isBasicRenderer = !tb->viz_params["isSplatsHQ"].toBool();
+	bool isBasicRenderer = !isSplatRenderer;
 
-	if(currentGraph["graph"].value<Structure::Graph*>() != graph)
+	if(currentGraph["graph"].value<Structure::Graph*>() != activeGraph)
 	{
 		if(isBasicRenderer)
 		{
-			GLuint VertexVBOID;
+			GLuint VertexVBOID = 0;
 
 			glGenBuffers(1, &VertexVBOID);
 			glBindBuffer(GL_ARRAY_BUFFER, VertexVBOID);
 			glBufferData(GL_ARRAY_BUFFER, sizeof(GLVertex) * vertices.size(), &vertices[0].x, GL_STATIC_DRAW);
 
 			currentGraph["vboID"] = VertexVBOID;
-			currentGraph["count"] = vertices.size();
-			currentGraph["graph"].setValue( graph );
 		}
 		else
 		{
-			splat_renderer->update(vertices);
-		}
+			if(splat_renderer) splat_renderer->update(vertices);
+		} 
+		
+		currentGraph["count"] = vertices.size();
+		currentGraph["graph"].setValue( activeGraph );
 	}
 
 	if( isBasicRenderer && currentGraph.contains("vboID") )
 	{
-		glColor3d(1,1,1);
-		glPointSize(4);
+		glColorQt( color );
+		glPointSize( pointSize );
 
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glEnableClientState(GL_NORMAL_ARRAY);
@@ -871,9 +841,10 @@ void SynthesisManager::drawSynthesis()
 	}
 	else
 	{
-		if(!splat_renderer) splat_renderer = new GlSplatRenderer(tb->property["splatSize"].toDouble());
+		if(!splat_renderer) splat_renderer = new GlSplatRenderer( splatSize );
 
-		splat_renderer->mRadius = tb->viz_params["splatSize"].toDouble();
+		splat_renderer->mRadius = splatSize;
+
 		splat_renderer->draw();
 	}
 

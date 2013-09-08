@@ -32,6 +32,7 @@ public slots:
 	void toggleCheckOption(QString optionName);
 	void setCheckOption( QString optionName, bool toValue = true );
 	void setSynthSamplesCount( int );
+	void generateSynthesisData();
 
 	// Model manipulation
 	void normalizeModel();

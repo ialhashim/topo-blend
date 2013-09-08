@@ -7,7 +7,7 @@ ShapeItem::ShapeItem(QObject *parent)
     width = 10;
     height = 10;
 
-    setFlags( QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemIsSelectable );
+    //setFlags( QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemIsSelectable );
 }
 
 QRectF ShapeItem::boundingRect() const

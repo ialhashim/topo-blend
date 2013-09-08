@@ -43,7 +43,8 @@ SOURCES +=  main.cpp\
     GraphItem.cpp \
     Matcher.cpp \
     Blender.cpp \
-    ProgressItem.cpp
+    ProgressItem.cpp \
+    BlendPathRenderer.cpp
 
 HEADERS  += mainwindow.h \
             Scene.h \
@@ -57,7 +58,8 @@ HEADERS  += mainwindow.h \
     Blender.h \
     DemoPage.h \
     ProgressItem.h \
-    SpinnerItem.h
+    SpinnerItem.h \
+    BlendPathRenderer.h
 
 FORMS    += mainwindow.ui \
     Controls.ui

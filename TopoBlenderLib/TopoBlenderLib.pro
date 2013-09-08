@@ -57,6 +57,7 @@ HEADERS += StructureNode.h \
     TimelineSlider.h \
     StructureGlobal.h \
     Synthesizer.h \
+    SynthesisManager.h \
     Sampler.h \
     SimilarSampling.h \
     SpherePackSampling.h \
@@ -79,6 +80,7 @@ SOURCES += StructureGraph.cpp \
     FFD.cpp \
     TimelineSlider.cpp \
     Synthesizer.cpp \
+    SynthesisManager.cpp \
     Sampler.cpp \
     SimilarSampling.cpp \
     AbsoluteOrientation.cpp \

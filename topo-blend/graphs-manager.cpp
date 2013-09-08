@@ -7,7 +7,7 @@
 #include "Scheduler.h"
 
 #include "graphs-manager.h"
-#include "synthesis-manager.h"
+#include "SynthesisManager.h"
 
 void GraphsManager::loadModel()
 {

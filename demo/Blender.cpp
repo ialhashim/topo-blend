@@ -1,12 +1,16 @@
 #include "Blender.h"
 #include "ProgressItem.h"
+#include "BlendPathRenderer.h"
+#include "BlenderRenderItem.h"
 
 #include "TopoBlender.h"
 #include "Scheduler.h"
+#include "SynthesisManager.h"
 
-Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL)
+Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL)
 {
 	this->numSuggestions = 4;
+	this->numInBetweens = 5;
 
 	// Create background items for each blend path
 	int padding = 5;
@@ -24,12 +28,23 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 		blendPathBack->setZValue(-999);
 		blendPathBack->setVisible(false);
 
-		items.push_back( blendPathBack );
+		QGraphicsItemGroup * blendPathItem = new QGraphicsItemGroup;
+		blendPathItem->addToGroup(blendPathBack);
+		scene->addItem(blendPathItem);
+
+		blendPathsItems.push_back( blendPathItem );
 	}
+
+	for(int i = 0; i < blendPathsItems.size(); i++)
+		items.push_back( blendPathsItems[i] );
+
+	// Progress bar
+	progress = new ProgressItem("Working..", false, s);
 
 	// Connections
 	this->connect(this, SIGNAL(becameVisible()), SLOT(preparePaths()));
 	this->connect(this, SIGNAL(blendPathsReady()), SLOT(computeBlendPaths()));
+	this->connect(this, SIGNAL(allPathsDone()), SLOT(blenderDone()));
 }
 
 void Blender::show()
@@ -88,6 +103,7 @@ void Blender::preparePaths()
 
 	qApp->setOverrideCursor(Qt::WaitCursor);
 
+	// Generate blend paths
 	for(int i = 0; i < numSuggestions; i++)
 	{
 		BlendPath bp;
@@ -100,13 +116,38 @@ void Blender::preparePaths()
 		bp.blender = new TopoBlender( bp.gcorr, bp.scheduler );
 
 		/// Different scheduling happens here...
-		// bp.scheduler->shuffle();
+		bp.scheduler->shuffleSchedule();
+
+		this->connect(bp.scheduler, SIGNAL(progressChanged(int)), SLOT(progressChanged()));
+		this->connect(bp.scheduler, SIGNAL(progressDone()), SLOT(pathDone()));
 
 		blendPaths.push_back( bp );
+		
+		// Synthesis requires a single instance of the blend process
+		if( !s_manager )
+		{
+			s_manager = new SynthesisManager(m_gcorr, bp.scheduler, bp.blender, 5000);
+
+			QVariant p_camera;
+			p_camera.setValue( s->camera );
+			s_manager->setProperty("camera", p_camera);
+
+			// Progress connections
+			progress->connect(s_manager, SIGNAL(progressChanged(double)), SLOT(setProgress(double)));
+			this->connect(s_manager, SIGNAL(synthDataReady()), SLOT(synthDataReady()));
+		}
 	}
 
 	qApp->restoreOverrideCursor();
 
+	// Generate samples
+	progress->startProgress();
+	progress->setExtra("Generating samples - ");
+	s_manager->generateSynthesisData();
+}
+
+void Blender::synthDataReady()
+{
 	emit( blendPathsReady() );
 }
 
@@ -117,16 +158,74 @@ void Blender::computePath( int index )
 
 void Blender::computeBlendPaths()
 {
-	ProgressItem * progress = new ProgressItem("Working..", true, s);
-	
 	progress->startProgress();
+	progress->setExtra("Blend paths - ");
 
 	for(int i = 0; i < blendPaths.size(); i++)
 	{
 		computePath( i );
 	}
+}
 
-	//progress->stopProgress();
-	//progress->setVisible(false);
-	//s->removeItem(progress);
+void Blender::progressChanged()
+{
+	int curProgress = 0;
+	for(int i = 0; i < blendPaths.size(); i++){
+		curProgress += blendPaths[i].scheduler->property["progress"].toInt();
+	}
+
+	int totalProgress = 100 * blendPaths.size();
+
+	progress->setProgress( double(curProgress) / totalProgress );
+}
+
+void Blender::pathDone()
+{
+	int numDone = 0;
+	for(int i = 0; i < blendPaths.size(); i++)
+		if(blendPaths[i].scheduler->property["progressDone"].toBool())
+			numDone++;
+	if(numDone == blendPaths.size()) emit( allPathsDone() );
+}
+
+void Blender::blenderDone()
+{
+	progress->stopProgress();
+	progress->hide();
+
+	// Draw results
+	BlendPathRenderer * renderer = new BlendPathRenderer(s_manager);
+	this->connect(renderer, SIGNAL(itemReady(QGraphicsItem*)), SLOT(blendResultDone(QGraphicsItem*)));
+
+	for(int i = 0; i < numSuggestions; i++)
+	{
+		Scheduler * curSchedule = blendPaths[i].scheduler;
+
+		for(int j = 0; j < numInBetweens; j++)
+		{
+			double t = double(j) / (numInBetweens - 1);
+			int idx = t * (curSchedule->allGraphs.size() - 1);
+			Structure::Graph * curGraph = curSchedule->allGraphs[idx];
+
+			renderer->generateItem( curGraph, i, j );
+		}
+	}
+}
+
+void Blender::blendResultDone(QGraphicsItem* done_item)
+{
+	BlenderRenderItem * item = (BlenderRenderItem*) done_item;
+
+	int pathID = item->pathID;
+	int blendIDX = item->blendIDX;
+
+	items.push_back(item);
+	s->addItem(item);
+
+	QRectF pathRect = blendPathsItems[pathID]->boundingRect();
+
+	int x = pathRect.x() + (blendIDX * (pathRect.width() / numInBetweens));
+	int y = pathRect.y();
+
+	item->setPos(x, y);
 }

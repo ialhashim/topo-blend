@@ -28,7 +28,7 @@ using namespace Structure;
 
 #include "graphs-manager.h"
 #include "correspondence-manager.h"
-#include "synthesis-manager.h"
+#include "SynthesisManager.h"
 
 #define BBOX_WIDTH(box) (box.max().x()-box.min().x())
 #define PADDING_FACTOR 1.0
@@ -50,7 +50,7 @@ topoblend::topoblend()
 
     g_manager = new GraphsManager(this);
     c_manager = new CorrespondenceManager(this);
-    s_manager = new SynthesisManager(this);
+    s_manager = new SynthesisManager(NULL, NULL, NULL);
 }
 
 void topoblend::create()
@@ -67,6 +67,8 @@ void topoblend::create()
 
 		// Events
 		this->connect(this, SIGNAL(statusBarMessage(QString)), SLOT(setStatusBarMessage(QString)));
+		this->connect(s_manager, SIGNAL(setMessage(QString)), SLOT(setStatusBarMessage(QString)));
+		this->connect(s_manager, SIGNAL(updateViewer()), SLOT(updateDrawArea()));
 
 		// Simple UI
 		this->wizard = new Wizard(this, widget->simpleWidget());
@@ -279,8 +281,6 @@ void topoblend::decorate()
 			graphs[g]->property["showMeshes"] = viz_params["showMeshes"];
 			graphs[g]->property["showTasks"] = viz_params["showTasks"];
 			graphs[g]->property["showCtrlPts"] = viz_params["showCtrlPts"];
-			graphs[g]->property["isSplatsHQ"] = viz_params["isSplatsHQ"];
-			graphs[g]->property["splatSize"] = viz_params["splatSize"];
 			graphs[g]->property["showNodes"] = viz_params["showNodes"];
 			graphs[g]->property["showNames"] = viz_params["showNames"];
 			graphs[g]->property["showCurveFrames"] = viz_params["showCurveFrames"];
@@ -313,7 +313,12 @@ void topoblend::decorate()
 		}
 
 		if( scheduler && scheduler->allGraphs.size() )
-			s_manager->drawSynthesis();
+		{
+			s_manager->isSplatRenderer = viz_params["isSplatRenderer"].toBool();
+			s_manager->splatSize = viz_params["splatSize"].toDouble();
+
+			s_manager->drawSynthesis( graphs.back() );
+		}
 	}
 
 	// Textual information
@@ -753,7 +758,6 @@ void topoblend::doBlend()
 	// Render connections
 	this->s_manager->connect(scheduler, SIGNAL(renderAll()), SLOT(renderAll()), Qt::UniqueConnection);
 	this->s_manager->connect(scheduler, SIGNAL(renderCurrent()), SLOT(renderCurrent()), Qt::UniqueConnection);
-	this->s_manager->connect(scheduler, SIGNAL(draftRender()), SLOT(draftRender()), Qt::UniqueConnection);
 
 	// Other connections
 	this->connect(scheduler, SIGNAL(updateExternalViewer()), SLOT(updateDrawArea()));
