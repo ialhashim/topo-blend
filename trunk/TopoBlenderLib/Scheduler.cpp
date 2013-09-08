@@ -606,6 +606,7 @@ void Scheduler::executeAll()
 		// UI - progress visual indicator:
 		int percent = globalTime * 100;
 		emit( progressChanged(percent) );
+		property["progress"] = percent;
 
 		if( isForceStop ) break;
 	}
@@ -616,6 +617,8 @@ void Scheduler::executeAll()
 
 	qApp->restoreOverrideCursor();
 	property["progressDone"] = true;
+
+	QCursor::setPos(QCursor::pos());
 }
 
 bool Scheduler::isPartOfGrowingBranch( Task* t )

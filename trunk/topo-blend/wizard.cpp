@@ -3,7 +3,7 @@
 
 #include "topo-blend.h"
 #include "graphs-manager.h"
-#include "synthesis-manager.h"
+#include "SynthesisManager.h"
 #include "correspondence-manager.h"
 #include "Scheduler.h"
 #include "SchedulerWidget.h"

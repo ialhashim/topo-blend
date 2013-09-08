@@ -44,6 +44,8 @@ void ProgressItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
 
     if(message != oldMessage)
     {
+		message = extra + message;
+
         QRect r;
         r.setWidth( painter->fontMetrics().width(message) );
         r.setHeight( painter->fontMetrics().height() );
@@ -60,6 +62,9 @@ void ProgressItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
 
 void ProgressItem::startProgress()
 {
+	this->progress = 0;
+	this->extra = "";
+
     this->show();
     spinner->timer->start( isSmoothAnimation ? 50 : 200 );
 }
@@ -112,4 +117,9 @@ void ProgressItem::close()
 void ProgressItem::visiblityChanged()
 {
     items->setVisible( this->isVisible() );
+}
+
+void ProgressItem::setExtra( QString extraText )
+{
+	extra = extraText;
 }

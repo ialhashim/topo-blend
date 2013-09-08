@@ -13,6 +13,8 @@ public:
 
     QRect graphRect(bool isRight);
 
+	friend class Blender;
+
 protected:
     void drawBackground ( QPainter * painter, const QRectF & rect );
     void drawForeground ( QPainter * painter, const QRectF & rect );

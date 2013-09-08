@@ -577,7 +577,7 @@ void Graph::draw( QGLViewer * drawArea )
     }
 
 	// Draw node names
-	if( property["showNames"].toBool() )
+	if( property["showNames"].toBool() && drawArea )
 	{
 		glColor3d(1,1,1);
 

@@ -21,7 +21,7 @@
 
 #include "graphs-manager.h"
 #include "correspondence-manager.h"
-#include "synthesis-manager.h"
+#include "SynthesisManager.h"
 
 QuickViewer * viewer = NULL;
 QString cur_filename;
@@ -59,7 +59,8 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	this->connect(ui->groupButton, SIGNAL(clicked()), SLOT(showGroupingDialog()));
 
 	// Synthesis
-    topo_blend->s_manager->connect(ui->genSynthButton, SIGNAL(clicked()), SLOT(generateSynthesisData()), Qt::UniqueConnection);
+    this->connect(ui->genSynthButton, SIGNAL(clicked()), SLOT(generateSynthesisData()), Qt::UniqueConnection);
+
     topo_blend->s_manager->connect(ui->saveSynthButton, SIGNAL(clicked()), SLOT(saveSynthesisData()));
     topo_blend->s_manager->connect(ui->loadSynthButton, SIGNAL(clicked()), SLOT(loadSynthesisData()));
     topo_blend->s_manager->connect(ui->reconstructButton, SIGNAL(clicked()), SLOT(reconstructXYZ()));
@@ -88,7 +89,6 @@ topo_blend_widget::topo_blend_widget(topoblend * topo_blend, QWidget *parent) : 
 	tb->viz_params["showNodes"] = true;
 	tb->viz_params["showMeshes"] = true;
 	tb->viz_params["showSamples"] = true;
-	tb->viz_params["splatSize"] = 0.008;
 
 	this->connect(ui->splatSize, SIGNAL(valueChanged(double)), SLOT(splatSizeChanged(double)));
 }
@@ -106,6 +106,16 @@ topo_blend_widget::~topo_blend_widget()
 void topo_blend_widget::doBlend()
 {
     tb->doBlend();
+}
+
+void topo_blend_widget::generateSynthesisData()
+{
+	// Tell synthesis manager about active blend process
+	tb->s_manager->gcorr = tb->gcoor;
+	tb->s_manager->scheduler = tb->scheduler;
+	tb->s_manager->blender = tb->blender;
+
+	tb->s_manager->generateSynthesisData();
 }
 
 QString topo_blend_widget::loadJobFileName()
@@ -175,6 +185,9 @@ void topo_blend_widget::loadJobFile(QString job_filename)
 	//tb->generateSynthesisData();
 
 	// Load samples if any
+	tb->s_manager->gcorr = tb->gcoor;
+	tb->s_manager->scheduler = tb->scheduler;
+	tb->s_manager->blender = tb->blender;
     tb->s_manager->loadSynthesisData( curPath );
 }
 
@@ -330,15 +343,16 @@ void topo_blend_widget::vizButtonClicked(QAbstractButton* b)
 	tb->viz_params["showCtrlPts"] = ui->showCtrlPts->isChecked();
 	tb->viz_params["showCurveFrames"] = ui->showCurveFrames->isChecked();
 	tb->viz_params["showSamples"] = ui->showSamples->isChecked();
-	tb->viz_params["isSplatsHQ"] = ui->isSplatsHQ->isChecked();
+	tb->viz_params["isSplatRenderer"] = ui->isSplatsHQ->isChecked();
 	tb->viz_params["splatSize"] = ui->splatSize->value();
-
+ 
 	tb->updateDrawArea();
 }
 
 void topo_blend_widget::splatSizeChanged(double newSize)
 {
 	tb->viz_params["splatSize"] = newSize;
+
 	tb->updateDrawArea();
 }
 

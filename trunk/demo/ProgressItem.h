@@ -17,7 +17,7 @@ private:
     QGraphicsScene * scene;
     QGraphicsItemGroup * items;
     SpinnerItem * spinner;
-    QString message, oldMessage;
+    QString message, oldMessage, extra;
     QRectF messageRect;
     bool isLoading;
     double progress;
@@ -35,4 +35,5 @@ public slots:
     void show();
     void close();
     void visiblityChanged();
+	void setExtra(QString);
 };

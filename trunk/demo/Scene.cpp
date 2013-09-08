@@ -93,6 +93,7 @@ void Scene::drawBackground(QPainter *painter, const QRectF &rect)
 
         glViewport( 0, 0, GLint(width), GLint(height) );
         camera->setScreenWidthAndHeight(width,height);
+		if(camera->type() != qglviewer::Camera::PERSPECTIVE) camera->setType(qglviewer::Camera::PERSPECTIVE);
 
         draw3D();
 

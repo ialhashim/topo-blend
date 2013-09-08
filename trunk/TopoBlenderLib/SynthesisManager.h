@@ -1,15 +1,28 @@
 #pragma once
 
-#include "topo-blend.h"
-#include "Synthesizer.h"
+#include <vector>
+#include <QObject>
+#include <QMap>
+
 #include "GLVertex.h"
+
+#include "StructureGraph.h"
+
+// Forward declare
+class GraphCorresponder;
+class Scheduler;
+class TopoBlender;
+typedef QMap<QString, QMap<QString, QVariant> > SynthData;
 
 class SynthesisManager : public QObject
 {
 	Q_OBJECT
 public:
-    SynthesisManager(topoblend * topo_blender) : tb(topo_blender) { samplesCount = 20000; }
-    topoblend * tb;
+    SynthesisManager(GraphCorresponder * gcorr, Scheduler * scheduler, TopoBlender * blender, int samplesCount = 20000);
+    
+	GraphCorresponder * gcorr;
+	Scheduler * scheduler;
+	TopoBlender * blender;
 
 	QVector<Structure::Graph*> graphs();
 	Structure::Graph * graphNamed(QString graphName);
@@ -25,6 +38,12 @@ public:
 	SynthData currentData;
 	QMap<QString, QVariant> currentGraph;
 
+	// Options
+	bool isSplatRenderer;
+	double splatSize;
+	float pointSize;
+	QColor color;
+
 	bool samplesAvailable(QString graph, QString nodeID);
 
 public slots:
@@ -39,11 +58,16 @@ public slots:
 
     void doRenderAll();
     void renderAll();
-    void renderCurrent();
-    void renderGraph( Structure::Graph graph, QString filename, bool isOutPointCloud, int reconLevel, bool isOutGraph = false );
-    void draftRender();
+	void renderCurrent( Structure::Graph * currentGraph );
+	void renderGraph( Structure::Graph graph, QString filename, bool isOutPointCloud, int reconLevel, bool isOutGraph = false );
 
 	void drawSampled();
 	void geometryMorph( SynthData & data, Structure::Graph * graph, bool isApprox, int limit = -1 );
-	void drawSynthesis();
+	void drawSynthesis( Structure::Graph * activeGraph );
+
+signals:
+	void setMessage(QString);
+	void progressChanged(double);
+	void synthDataReady();
+	void updateViewer();
 };
