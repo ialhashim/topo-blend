@@ -40,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     Matcher * matcher = new Matcher(scene, "Match parts");
 
     // Create shapes
-    Blender * blender = new Blender(scene, "Blend shapes");
+    Blender * blender = new Blender(scene, "Blended shapes");
 
 	// Connect matcher and blender
 	blender->connect(matcher, SIGNAL(corresponderCreated(GraphCorresponder *)), SLOT(setGraphCorresponder(GraphCorresponder *)));

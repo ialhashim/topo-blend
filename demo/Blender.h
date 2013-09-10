@@ -23,6 +23,7 @@ public:
     explicit Blender(Scene * scene, QString title);
     
 	int numSuggestions, numInBetweens;
+	int itemHeight;
 
 signals:
     void blendPathsReady();

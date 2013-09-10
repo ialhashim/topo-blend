@@ -15,7 +15,7 @@ class BlendPathRenderer : public QGLWidget
 {
     Q_OBJECT
 public:
-    explicit BlendPathRenderer(SynthesisManager * synthManager, QWidget *parent = 0);
+    explicit BlendPathRenderer(SynthesisManager * synthManager, int itemHeight, QWidget *parent = 0);
     
 protected:
 	void initializeGL(); 
