@@ -5,11 +5,11 @@
 #include "BlenderRenderItem.h"
 #include "SynthesisManager.h"
 
-BlendPathRenderer::BlendPathRenderer( SynthesisManager * synthManager, QWidget *parent ) 
+BlendPathRenderer::BlendPathRenderer( SynthesisManager * synthManager, int itemHeight, QWidget *parent ) 
 	: QGLWidget(parent), s_manager(synthManager), activeGraph(NULL)
 {
-	int w = 128;
-	int h = 128;
+	int w = itemHeight;
+	int h = itemHeight;
 
 	setMinimumSize(w,h);
 	setMaximumSize(w,h);

@@ -9,12 +9,13 @@
 
 Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL)
 {
-	this->numSuggestions = 4;
+	this->numSuggestions = 5;
 	this->numInBetweens = 5;
 
 	// Create background items for each blend path
 	int padding = 5;
 	int blendPathHeight = (s->height() / (numSuggestions * 1.5)) * 0.98;
+
 	int totalHeight = numSuggestions * (blendPathHeight + padding);
 	int startY = (s->height() * 0.5 - totalHeight * 0.5) - 45;
 
@@ -37,6 +38,8 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 
 	for(int i = 0; i < blendPathsItems.size(); i++)
 		items.push_back( blendPathsItems[i] );
+
+	itemHeight = blendPathHeight;
 
 	// Progress bar
 	progress = new ProgressItem("Working..", false, s);
@@ -79,6 +82,8 @@ void Blender::show()
     animGroup->start( QAbstractAnimation::DeleteWhenStopped );
 
     DemoPage::show();
+
+	qApp->processEvents();
 }
 
 void Blender::hide()
@@ -101,8 +106,9 @@ void Blender::setGraphCorresponder( GraphCorresponder * graphCorresponder )
 void Blender::preparePaths()
 {    
 	if(!s->isInputReady() || m_gcorr == NULL) return;
-
+	
 	qApp->setOverrideCursor(Qt::WaitCursor);
+	qApp->processEvents();
 
 	// Generate blend paths
 	for(int i = 0; i < numSuggestions; i++)
@@ -117,7 +123,7 @@ void Blender::preparePaths()
 		bp.blender = new TopoBlender( bp.gcorr, bp.scheduler );
 
 		/// Different scheduling happens here...
-		bp.scheduler->shuffleSchedule();
+		if(i != 0) bp.scheduler->shuffleSchedule();
 
 		this->connect(bp.scheduler, SIGNAL(progressChanged(int)), SLOT(progressChanged()));
 		this->connect(bp.scheduler, SIGNAL(progressDone()), SLOT(pathDone()));
@@ -155,6 +161,7 @@ void Blender::synthDataReady()
 void Blender::computePath( int index )
 {
 	blendPaths[index].scheduler->doBlend();
+	//blendPaths[index].blender->setupUI();
 }
 
 void Blender::computeBlendPaths()
@@ -195,7 +202,7 @@ void Blender::blenderDone()
 	progress->hide();
 
 	// Draw results
-	BlendPathRenderer * renderer = new BlendPathRenderer(s_manager);
+	BlendPathRenderer * renderer = new BlendPathRenderer(s_manager, itemHeight);
 	this->connect( renderer, SIGNAL(itemReady(QGraphicsItem*)), SLOT(blendResultDone(QGraphicsItem*)) );
 
 	for(int i = 0; i < numSuggestions; i++)
