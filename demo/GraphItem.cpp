@@ -18,7 +18,7 @@ void GraphItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
     Q_UNUSED(widget)
 
     painter->setBrush(QColor(0,0,0,0));
-    painter->drawRect(this->boundingRect());
+    //painter->drawRect(this->boundingRect());
 }
 
 QRectF GraphItem::setCamera()
