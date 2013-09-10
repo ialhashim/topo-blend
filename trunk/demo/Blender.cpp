@@ -45,6 +45,7 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->connect(this, SIGNAL(becameVisible()), SLOT(preparePaths()));
 	this->connect(this, SIGNAL(blendPathsReady()), SLOT(computeBlendPaths()));
 	this->connect(this, SIGNAL(allPathsDone()), SLOT(blenderDone()));
+	this->connect(this, SIGNAL(becameHidden()), SLOT(cleanUp()));
 }
 
 void Blender::show()
@@ -219,7 +220,8 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 	int pathID = item->pathID;
 	int blendIDX = item->blendIDX;
 
-	items.push_back(item);
+	resultItems.push_back(item);
+	//items.push_back(item);
 	s->addItem(item);
 
 	QRectF pathRect = blendPathsItems[pathID]->boundingRect();
@@ -228,4 +230,13 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 	int y = pathRect.y();
 
 	item->setPos(x, y);
+}
+
+void Blender::cleanUp()
+{
+	for(int i = 0; i < resultItems.size(); i++){
+		s->removeItem(resultItems[i]);
+		delete resultItems[i];
+	}
+	resultItems.clear();
 }

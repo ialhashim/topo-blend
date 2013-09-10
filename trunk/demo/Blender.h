@@ -31,6 +31,7 @@ signals:
 public slots:
     void show();
     void hide();
+	void cleanUp();
 
 	void setGraphCorresponder(GraphCorresponder *);
 	void preparePaths();
@@ -45,6 +46,7 @@ public slots:
 private:
 	QVector<BlendPath> blendPaths;
 	QVector<QGraphicsItemGroup*> blendPathsItems;
+	QVector<QGraphicsItem*> resultItems;
 	SynthesisManager * s_manager;
 
 	void computePath(int index);

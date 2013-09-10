@@ -8,12 +8,12 @@ class Scene : public QGraphicsScene
 public:
     explicit Scene(QObject *parent = 0);
 
-    GraphItem * inputGraphs[2];
+	GraphItem * inputGraphs[2];
+	qglviewer::Camera * camera;
+
     bool isInputReady() { return inputGraphs[0] && inputGraphs[1]; }
 
     QRect graphRect(bool isRight);
-
-	friend class Blender;
 
 protected:
     void drawBackground ( QPainter * painter, const QRectF & rect );
@@ -28,7 +28,6 @@ protected:
     void wheelEvent(QGraphicsSceneWheelEvent *event);
 
 private:
-    qglviewer::Camera * camera;
     void setupCamera();
     void setupLights();
 

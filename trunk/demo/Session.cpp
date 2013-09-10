@@ -24,7 +24,7 @@ void Session::shapeChanged(int i, QGraphicsItem * shapeItem)
 
     QString graphFile = item->property["graph"].toString();
 
-    s->inputGraphs[i] = new GraphItem(new Structure::Graph(graphFile), s->graphRect(i));
+    s->inputGraphs[i] = new GraphItem(new Structure::Graph(graphFile), s->graphRect(i), s->camera);
     s->addItem(s->inputGraphs[i]);
     Structure::Graph * graph = s->inputGraphs[i]->g;
 
