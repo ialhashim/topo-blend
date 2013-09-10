@@ -31,6 +31,8 @@ struct Graph
 	NodeGroups groups;
 
     Eigen::AlignedBox3d bbox();
+	Eigen::AlignedBox3d cached_bbox();
+
     PropertyMap property;
 	Eigen::MatrixXd adjacency;
 	QMap< QString, void* > misc;
@@ -103,7 +105,7 @@ struct Graph
 	void loadFromFile(QString fileName);
 
 	// Visualization
-    void draw( QGLViewer * drawArea );
+    void draw( QGLViewer * drawArea = 0 );
 	void drawAABB();
     void draw2D(int width, int height);
 	void drawNodeMeshNames( int & offSet );

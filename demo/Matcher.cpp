@@ -58,6 +58,9 @@ void Matcher::show()
     // Visualize computed correspondences
     visualize();
 
+	// Enable graph picking
+	s->setProperty("graph-pick", true);
+
     DemoPage::show();
 }
 
@@ -79,6 +82,9 @@ void Matcher::hide()
 			n->vis_property["meshColor"].setValue( QColor(180,180,180) );
 		}
 	}
+
+	// Disable graph picking
+	s->setProperty("graph-pick", false);
 
     DemoPage::hide();
 }

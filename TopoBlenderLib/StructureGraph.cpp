@@ -301,6 +301,14 @@ Link* Structure::Graph::getEdge( int edgeUID )
 	return NULL;
 }
 
+Eigen::AlignedBox3d Structure::Graph::cached_bbox()
+{
+	if(!property.contains("bbox"))
+		property["bbox"].setValue( bbox() );
+
+	return property["bbox"].value<Eigen::AlignedBox3d>();
+}
+
 void Graph::setPropertyAll( QString prop_name, QVariant value )
 {
 	foreach(Node* n, nodes) 

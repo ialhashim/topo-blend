@@ -93,7 +93,6 @@ void Scene::drawBackground(QPainter *painter, const QRectF &rect)
 
         glViewport( 0, 0, GLint(width), GLint(height) );
         camera->setScreenWidthAndHeight(width,height);
-		if(camera->type() != qglviewer::Camera::PERSPECTIVE) camera->setType(qglviewer::Camera::PERSPECTIVE);
 
         draw3D();
 
@@ -147,7 +146,7 @@ void Scene::draw3D()
     // Draw input graphs
     for(int i = 0; i < 2; i++)
     {
-        if(inputGraphs[i]) inputGraphs[i]->draw3D( camera );
+        if(inputGraphs[i]) inputGraphs[i]->draw3D( );
     }
 }
 
@@ -248,6 +247,18 @@ void Scene::mousePressEvent(QGraphicsSceneMouseEvent *event)
         camera->setProperty("startPos", pos);
         camera->setProperty("startOrientation", orient);
     }
+
+	// Picking on graphs
+	if(property("graph-pick").toBool())
+	{
+		for(int i = 0; i < 2; i++)
+		{
+			QPointF pos = event->scenePos();
+			if(inputGraphs[i]) inputGraphs[i]->pick( pos.x(), pos.y() );
+		}
+
+		update();
+	}
 
     QGraphicsScene::mousePressEvent(event);
 }
