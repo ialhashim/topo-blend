@@ -10,7 +10,7 @@
 Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL)
 {
 	this->numSuggestions = 5;
-	this->numInBetweens = 5;
+	this->numInBetweens = 4;
 
 	// Create background items for each blend path
 	int padding = 5;
@@ -45,7 +45,6 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	progress = new ProgressItem("Working..", false, s);
 
 	// Connections
-	this->connect(this, SIGNAL(becameVisible()), SLOT(preparePaths()));
 	this->connect(this, SIGNAL(blendPathsReady()), SLOT(computeBlendPaths()));
 	this->connect(this, SIGNAL(allPathsDone()), SLOT(blenderDone()));
 	this->connect(this, SIGNAL(becameHidden()), SLOT(cleanUp()));
@@ -81,9 +80,11 @@ void Blender::show()
     animGroup->addAnimation( s->inputGraphs[1]->animateTo(r1) );
     animGroup->start( QAbstractAnimation::DeleteWhenStopped );
 
-    DemoPage::show();
+	DemoPage::show();
 
-	qApp->processEvents();
+	// Give time for animation
+	progress->show();
+	QTimer::singleShot(200, this, SLOT(preparePaths()));
 }
 
 void Blender::hide()
@@ -128,6 +129,7 @@ void Blender::preparePaths()
 		this->connect(bp.scheduler, SIGNAL(progressChanged(int)), SLOT(progressChanged()));
 		this->connect(bp.scheduler, SIGNAL(progressDone()), SLOT(pathDone()));
 
+		// Add blend path
 		blendPaths.push_back( bp );
 		
 		// Synthesis requires a single instance of the blend process
@@ -245,5 +247,18 @@ void Blender::cleanUp()
 		s->removeItem(resultItems[i]);
 		delete resultItems[i];
 	}
+
+	// Clean up blending path data
+	{
+		blendPaths.clear();
+	}
+
+	// Clean up synthesis data
+	{
+		s_manager->clear();
+		delete s_manager;
+		s_manager = NULL;
+	}
+
 	resultItems.clear();
 }

@@ -6,17 +6,18 @@ Matcher::Matcher(Scene * scene, QString title) : DemoPage(scene,title)
 	// Fill in color sets
 	for(int i = 0; i < 20; i++)
 	{
-		double blueH = 2.0 / 3.0;
+		double blueH = 7.0 / 12.0;
 		double redH = 0;
 		double range = 0.1;
 
 		double coldH = fmod(1.0 + uniformRand( -range + blueH, range + blueH ), 1.0);
 		double warmH = fmod(1.0 + uniformRand( -range + redH , range + redH  ), 1.0);
 
-		double sat = 0.5;
+		double coldSat = 0.5;
+		double hotSat = 1.0;
 
-		coldColors.push_back(QColor::fromHsvF(coldH, sat, 1));
-		warmColors.push_back(QColor::fromHsvF(warmH, sat, 1));
+		coldColors.push_back(QColor::fromHsvF(coldH, coldSat, 1));
+		warmColors.push_back(QColor::fromHsvF(warmH,  hotSat, 1));
 	}
 }
 
@@ -52,7 +53,31 @@ void Matcher::show()
 
     // Make corresponder
     gcorr = new GraphCorresponder(s->inputGraphs[0]->g, s->inputGraphs[1]->g);
-    gcorr->computeCorrespondences();
+
+	// Check for existing correspondence file
+	QString path = "dataset/corr/", ext = ".txt";
+	int fileidx = -1;
+	QString g1n = s->inputGraphs[0]->name;
+	QString g2n = s->inputGraphs[1]->name;
+	QStringList files; files << (path+g1n+"_"+g2n+ext) << (path+g2n+"_"+g1n+ext);
+	for(int i = 0; i < 2; i++){
+		QString f = files[i];
+		if(!QFileInfo (f).exists()) continue;
+		fileidx = i;
+	}
+	
+    if( fileidx != -1 )
+	{
+		gcorr->loadCorrespondences( files[fileidx], (fileidx == 0) ? false : true );
+		gcorr->isReady = true;
+
+		emit( correspondenceFromFile() );
+	}
+	else
+	{
+		gcorr->computeCorrespondences();
+	}
+
 	emit( corresponderCreated(gcorr) );
 
     // Visualize computed correspondences
@@ -98,8 +123,12 @@ void Matcher::visualize()
 
 		int c_cold = 0, c_warm = 0;
 
+		int i = 0;
         foreach (PART_LANDMARK vector2vector, gcorr->correspondences){
-            QColor curColor = coldColors[c_cold++ % coldColors.size()];
+			QColor curColor = coldColors[c_cold++ % coldColors.size()];
+
+			// User defined correspondence uses warm colors
+			if(gcorr->corrScores[i++].front() < 0) curColor = warmColors[c_warm++ % warmColors.size()];
 
             foreach (QString strID, vector2vector.first){
                 sourceGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );

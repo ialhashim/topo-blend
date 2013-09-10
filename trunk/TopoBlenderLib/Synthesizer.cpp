@@ -590,6 +590,10 @@ void Synthesizer::prepareSynthesizeCurve( Structure::Curve * curve1, Structure::
 		output["node2"]["samples"].setValue(samples);
 		output["node2"]["offsets"].setValue(offsets2);
 		output["node2"]["normals"].setValue(normals2);
+
+		// Save counts
+		output["node1"]["samplesCount"] = samples.size();
+		output["node2"]["samplesCount"] = samples.size();
 	}
 
 	qDebug() << QString("Resampling Time [ %1 ms ]\n==\n").arg(timer.elapsed());
@@ -634,6 +638,10 @@ void Synthesizer::prepareSynthesizeSheet( Structure::Sheet * sheet1, Structure::
 			output["node2"]["offsets"].setValue(offsets2);
 			output["node2"]["normals"].setValue(normals2);
 		}
+
+		// Save counts
+		output["node1"]["samplesCount"] = samples.size();
+		output["node2"]["samplesCount"] = samples.size();
 	}
 
 	qDebug() << QString("Resampling Time [ %1 ms ]\n==\n").arg(timer.elapsed());
@@ -949,4 +957,5 @@ void Synthesizer::loadSynthesisData( Structure::Node *node, QString prefix, Synt
 	output[key]["samples"].setValue(samples);
 	output[key]["offsets"].setValue(offsets);
 	output[key]["normals"].setValue(normals);
+	output[key]["samplesCount"].setValue(samples.size());
 }

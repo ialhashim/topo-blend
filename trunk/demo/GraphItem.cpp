@@ -17,8 +17,9 @@ void GraphItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
     Q_UNUSED(option)
     Q_UNUSED(widget)
 
-    painter->setBrush(QColor(0,0,0,0));
+	painter->setPen(QPen(Qt::red));
     //painter->drawRect(this->boundingRect());
+	//painter->drawText(m_geometry.x() + 10, m_geometry.y() + 20, this->name);
 }
 
 QRectF GraphItem::setCamera()
@@ -41,9 +42,6 @@ QRectF GraphItem::setCamera()
 	camera->setScreenWidthAndHeight(r.width(), r.height());
 	camera->loadProjectionMatrix();
 	camera->loadModelViewMatrix();
-
-	qglviewer::Vec cp = camera->position();
-	qDebug() << cp[0] << "," << cp[1] << "," << cp[2];
 
 	return r;
 }

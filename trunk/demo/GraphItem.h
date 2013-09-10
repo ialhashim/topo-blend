@@ -14,6 +14,7 @@ class GraphItem : public QGraphicsObject{
 public:
 	GraphItem(Structure::Graph *graph, QRectF region, qglviewer::Camera * camera);
     Structure::Graph* g;
+	QString name;
 
     void setGeometry(QRectF newGeometry);
     QRectF boundingRect() const { return m_geometry; }

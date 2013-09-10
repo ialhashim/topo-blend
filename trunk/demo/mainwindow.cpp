@@ -67,6 +67,9 @@ DatasetMap MainWindow::getDataset(QString datasetPath)
 
     foreach(QString subdir, subdirs)
     {
+		// Special folders
+		if(subdir == "corr") continue;
+
         QDir d(datasetPath + "/" + subdir);
 
         dataset[subdir]["Name"] = subdir;
