@@ -196,7 +196,7 @@ void Blender::blenderDone()
 
 	// Draw results
 	BlendPathRenderer * renderer = new BlendPathRenderer(s_manager);
-	this->connect(renderer, SIGNAL(itemReady(QGraphicsItem*)), SLOT(blendResultDone(QGraphicsItem*)));
+	this->connect( renderer, SIGNAL(itemReady(QGraphicsItem*)), SLOT(blendResultDone(QGraphicsItem*)) );
 
 	for(int i = 0; i < numSuggestions; i++)
 	{
