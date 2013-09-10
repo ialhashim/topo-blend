@@ -8,6 +8,9 @@ Session::Session(   Scene *scene, ShapesGallery *gallery, Controls * control,
     this->connect( control, SIGNAL(showSelect()), SLOT(showSelect()));
     this->connect( control, SIGNAL(showMatch()), SLOT(showMatch()));
     this->connect( control, SIGNAL(showCreate()), SLOT(showCreate()));
+
+	// per-page connections
+	control->connect(matcher, SIGNAL(correspondenceFromFile()), SLOT(forceManualMatch()));
 }
 
 void Session::shapeChanged(int i, QGraphicsItem * shapeItem)
@@ -25,6 +28,7 @@ void Session::shapeChanged(int i, QGraphicsItem * shapeItem)
     QString graphFile = item->property["graph"].toString();
 
     s->inputGraphs[i] = new GraphItem(new Structure::Graph(graphFile), s->graphRect(i), s->camera);
+	s->inputGraphs[i]->name = item->property["name"].toString();
     s->addItem(s->inputGraphs[i]);
     Structure::Graph * graph = s->inputGraphs[i]->g;
 

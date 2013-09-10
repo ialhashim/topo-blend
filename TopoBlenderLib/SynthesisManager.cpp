@@ -50,6 +50,8 @@ SynthesisManager::SynthesisManager( GraphCorresponder * gcorr, Scheduler * sched
 
 void SynthesisManager::clear()
 {
+	if(scheduler) scheduler->property.remove("synthDataReady");
+
 	synthData.clear();
 	renderData.clear();
 
@@ -57,8 +59,6 @@ void SynthesisManager::clear()
 	vertices.clear();
 	currentData.clear();
 	currentGraph.clear();
-
-	if(scheduler) scheduler->property["synthDataReady"] = false;
 }
 
 QVector<Structure::Graph*> SynthesisManager::graphs()
@@ -855,5 +855,6 @@ bool SynthesisManager::samplesAvailable( QString graph, QString nodeID )
 {
 	return synthData.contains(graph) && 
 		synthData[graph].contains(nodeID) &&
-		synthData[graph][nodeID].contains("samples");
+		synthData[graph][nodeID].contains("samples") &&
+		synthData[graph][nodeID]["samplesCount"].toInt() > 0 ;
 }

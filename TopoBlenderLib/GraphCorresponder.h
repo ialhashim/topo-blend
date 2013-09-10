@@ -69,8 +69,9 @@ public:
 
 	// I/O
 	void addCorrespondences( QVector<QString> sParts, QVector<QString> tParts );
-	void saveCorrespondences(QString filename);
-	void loadCorrespondences( QString filename );
+	void addCorrespondences( QVector<QString> sParts, QVector<QString> tParts, float presetScore = -1 );
+	void saveCorrespondences( QString filename, bool isWithScores = true );
+	void loadCorrespondences( QString filename, bool isReversed = false );
 
 	// Point to Point 
 	void correspondAllNodes();

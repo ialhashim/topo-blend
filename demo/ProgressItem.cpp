@@ -66,7 +66,7 @@ void ProgressItem::startProgress()
 	this->extra = "";
 
     this->show();
-    spinner->timer->start( isSmoothAnimation ? 50 : 200 );
+    spinner->timer->start( isSmoothAnimation ? 50 : 100 );
 }
 
 void ProgressItem::setProgress(double new_progress)

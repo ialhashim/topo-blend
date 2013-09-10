@@ -36,6 +36,7 @@ void Controls::tabChanged(int index)
         break;
 
     case MATCH_PAGE:
+		ui->autoButton->setChecked(true);
         emit(showMatch());
         break;
 
@@ -45,3 +46,7 @@ void Controls::tabChanged(int index)
     }
 }
 
+void Controls::forceManualMatch()
+{
+	ui->manualButton->setChecked(true);
+}

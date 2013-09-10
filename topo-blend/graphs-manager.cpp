@@ -98,7 +98,8 @@ void GraphsManager::normalizeAllGraphs()
 
 void GraphsManager::clearGraphs()
 {
-    tb->drawArea()->updateGL();
+	// Clear any synthesis data
+	tb->s_manager->clear();
 
     // UI and geometry clean up
     Scheduler * scheduler = tb->scheduler;
@@ -114,21 +115,18 @@ void GraphsManager::clearGraphs()
         scheduler->dock->close();
     }
 
-    // Delete corresponder, blender, and scheduler
-    if(tb->gcoor) delete tb->gcoor;
-    if(tb->blender) delete tb->blender;
-    if(tb->scheduler) delete tb->scheduler;
-
-    tb->gcoor = NULL;
-    tb->blender = NULL;
-    tb->scheduler = NULL;
-
     // Delete all graphs
     qDeleteAll(tb->graphs);
     tb->graphs.clear();
 
-	// Clear any synthesis data
-	tb->s_manager->clear();
+	// Delete corresponder, blender, and scheduler
+	if(tb->gcoor) delete tb->gcoor;
+	if(tb->blender) delete tb->blender;
+	if(tb->scheduler) delete tb->scheduler;
+
+	tb->gcoor = NULL;
+	tb->blender = NULL;
+	tb->scheduler = NULL;
 
     // Clear debug
     tb->debugPoints.clear(); tb->debugPoints2.clear();

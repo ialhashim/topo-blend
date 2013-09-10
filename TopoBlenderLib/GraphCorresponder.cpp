@@ -311,7 +311,7 @@ void GraphCorresponder::addLandmarks( QVector<QString> sParts, QVector<QString> 
 	landmarks.push_back(std::make_pair(sParts, tParts));
 }
 
-void GraphCorresponder::addCorrespondences( QVector<QString> sParts, QVector<QString> tParts )
+void GraphCorresponder::addCorrespondences( QVector<QString> sParts, QVector<QString> tParts, float presetScore )
 {
 	// Check if those parts are available
 	foreach(QString strID, sParts)
@@ -362,10 +362,9 @@ void GraphCorresponder::addCorrespondences( QVector<QString> sParts, QVector<QSt
 	// Store correspondence
 	correspondences.push_back(std::make_pair(sParts, tParts));
 
-
-	// Make fake scores
+	// Set to specific score
 	int N = qMax(sParts.size(), tParts.size());
-	corrScores.push_back( std::vector<float>(N, -1) );
+	corrScores.push_back( std::vector<float>(N, presetScore) );
 }
 
 void GraphCorresponder::removeLandmark( int id )
@@ -1101,31 +1100,41 @@ void GraphCorresponder::setNonCorresTarget(QString tID)
 	nonCorresT.push_back(tg->getNode(tID)->property["index"].toInt());
 }
 
-void GraphCorresponder::saveCorrespondences( QString filename )
+void GraphCorresponder::saveCorrespondences( QString filename, bool isWithScores )
 {
 	QFile file(filename);
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
 	QTextStream outF(&file);
 
-	outF << correspondences.size() << "\n\n";
+	// Header
+	outF << (isWithScores ? "hasScore" : "" ) << " " << correspondences.size() << "\n\n";
 
-	foreach (PART_LANDMARK vector2vector, correspondences)
+	// Add items
+	int nCoor = correspondences.size();
+	for (int i = 0; i < nCoor; i++)
 	{
-		outF << vector2vector.first.size() << '\t';;
-		foreach (QString strID, vector2vector.first)
+		// Correspondences and scores
+		PART_LANDMARK vec2vec = correspondences[i];
+		std::vector<float> scores = corrScores[i];
+
+		outF << vec2vec.first.size() << '\t';;
+		foreach (QString strID, vec2vec.first)
 			outF << strID << '\t';
 		outF << '\n';
 
-		outF << vector2vector.second.size() << '\t';
-		foreach (QString strID, vector2vector.second)
+		outF << vec2vec.second.size() << '\t';
+		foreach (QString strID, vec2vec.second)
 			outF << strID << '\t';
+
+		if(isWithScores) outF << "\n" << scores.front() << "\n";
+
 		outF << "\n\n";
 	}
 
-	file.close();	
+	file.close();
 }
 
-void GraphCorresponder::loadCorrespondences( QString filename )
+void GraphCorresponder::loadCorrespondences( QString filename, bool isReversed )
 {
 	QFile file(filename);
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
@@ -1138,7 +1147,10 @@ void GraphCorresponder::loadCorrespondences( QString filename )
 	tIsCorresponded.resize(tg->nodes.size(), false);
 
 	int nbCorr;
-	inF >> nbCorr;
+	//inF >> nbCorr; // old way
+	QString header = inF.readLine();
+	bool isWithScores = header.contains("Score", Qt::CaseInsensitive);
+	nbCorr = header.split(" ", QString::SkipEmptyParts).back().toInt();
 
 	for (int i = 0; i < nbCorr; i++)
 	{
@@ -1160,8 +1172,14 @@ void GraphCorresponder::loadCorrespondences( QString filename )
 			tParts.push_back(strID);
 		}
 
+		float score = -1;
+		if(isWithScores) inF >> score;
+
+		// This is useful when file is saved as g1_g2 is loaded for g2_g1
+		if( isReversed ) qSwap(sParts, tParts);
+
 		// Store correspondence
-		addCorrespondences(sParts, tParts);
+		addCorrespondences(sParts, tParts, score);
 	}
 
 	isReady = true;  // block automatic computing correspondences

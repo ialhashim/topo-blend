@@ -227,7 +227,7 @@ void topo_blend_widget::saveJob()
 	// Save correspondence file
 	QString correspondRelative = "correspondence.txt";
 	QString correspondenceFileName = jobDir.path() + "/" + correspondRelative;
-	tb->gcoor->saveCorrespondences( correspondenceFileName );
+	tb->gcoor->saveCorrespondences( correspondenceFileName, true );
 
 	// Save the scheduler
 	QString scheduleRelative = "schedule.txt";

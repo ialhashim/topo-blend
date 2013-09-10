@@ -21,4 +21,5 @@ public slots:
 
 signals:
 	void corresponderCreated(GraphCorresponder *);
+	void correspondenceFromFile();
 };

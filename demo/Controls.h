@@ -13,6 +13,7 @@ public:
 
 public slots:
     void tabChanged(int index);
+	void forceManualMatch();
 
 signals:
     void hideAll();
