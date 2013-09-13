@@ -13,7 +13,6 @@ class Session : public QObject
 public:
     explicit Session(Scene * scene, ShapesGallery * gallery, Controls * control,
                      Matcher * matcher, Blender * blender, QObject *parent = 0);
-
     Scene * s;
     ShapesGallery * g;
     Controls * c;

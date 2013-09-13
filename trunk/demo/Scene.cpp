@@ -251,6 +251,9 @@ void Scene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 	// Picking on graphs
 	if(property("graph-pick").toBool())
 	{
+		if(event->button() == Qt::RightButton)
+			emit( rightClick() );
+
 		for(int i = 0; i < 2; i++)
 		{
 			QPointF pos = event->scenePos();
@@ -277,3 +280,13 @@ void Scene::wheelEvent(QGraphicsSceneWheelEvent * event)
     QGraphicsScene::wheelEvent(event);
 }
 
+void Scene::mouseDoubleClickEvent( QGraphicsSceneMouseEvent * mouseEvent )
+{
+	if(property("graph-pick").toBool())
+	{
+		emit( doubleClick() );
+		update();
+	}
+
+	QGraphicsScene::mouseDoubleClickEvent(mouseEvent);
+}

@@ -84,8 +84,8 @@ void ShapesGallery::layout()
     arrangeList(listA, 0);
     arrangeList(listB, -1);
 
-    indexA = 0;
-    indexB = 1;
+    indexA = 2;
+    indexB = 3;
 
 	if(!listA.size()) return;
 

@@ -15,6 +15,7 @@ public:
 	GraphItem(Structure::Graph *graph, QRectF region, qglviewer::Camera * camera);
     Structure::Graph* g;
 	QString name;
+	SphereSoup marker;
 
     void setGeometry(QRectF newGeometry);
     QRectF boundingRect() const { return m_geometry; }
@@ -27,6 +28,15 @@ public:
     QRectF popState();
     void pushState();
     QPropertyAnimation * animateTo(QRectF newRect, int duration = 200);
+
+	struct HitResult{
+		GraphItem * item;
+		QString nodeID;
+		Vector3 ipoint;
+		QPoint mousePos;
+		HitResult(GraphItem * item, QString nodeID, Vector3 ipoint, QPoint mousePos) :
+		 item(item), nodeID(nodeID), ipoint(ipoint), mousePos(mousePos) {}
+	};
 
 private:
     QRectF m_geometry;
@@ -44,5 +54,6 @@ public slots:
 signals:
     void geometryChanged();
 	void pickResult( PropertyMap );
-	void hit(GraphItem *, QString, Vector3);
+	void hit( GraphItem::HitResult );
+	void miss();
 };

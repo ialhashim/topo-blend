@@ -1,4 +1,5 @@
 #include "Session.h"
+#include "ui_Controls.h"
 
 Session::Session(   Scene *scene, ShapesGallery *gallery, Controls * control,
                     Matcher * matcher, Blender * blender, QObject *parent) : QObject(parent),
@@ -9,8 +10,11 @@ Session::Session(   Scene *scene, ShapesGallery *gallery, Controls * control,
     this->connect( control, SIGNAL(showMatch()), SLOT(showMatch()));
     this->connect( control, SIGNAL(showCreate()), SLOT(showCreate()));
 
-	// per-page connections
+	/// per-page connections
+	// Matcher:
 	control->connect(matcher, SIGNAL(correspondenceFromFile()), SLOT(forceManualMatch()));
+	m->connect(control->ui->autoButton, SIGNAL(clicked()), SLOT(autoMode()));
+	m->connect(control->ui->manualButton, SIGNAL(clicked()), SLOT(manualMode()));
 }
 
 void Session::shapeChanged(int i, QGraphicsItem * shapeItem)
@@ -32,6 +36,11 @@ void Session::shapeChanged(int i, QGraphicsItem * shapeItem)
     s->addItem(s->inputGraphs[i]);
     Structure::Graph * graph = s->inputGraphs[i]->g;
 
+	// Connection
+	m->connect(s->inputGraphs[i], SIGNAL(hit(GraphItem::HitResult)), SLOT(graphHit(GraphItem::HitResult)));
+	m->connect(s, SIGNAL(rightClick()), SLOT(clearMatch()));
+	m->connect(s, SIGNAL(doubleClick()), SLOT(setMatch()));
+
     // Visualization options
     graph->property["showNodes"] = false;
     foreach(Structure::Node * n, graph->nodes)
@@ -43,20 +52,20 @@ void Session::shapeChanged(int i, QGraphicsItem * shapeItem)
     emit( update() );
 }
 
+void Session::showSelect(){
+	g->show();
+}
+
+void Session::showMatch(){
+	m->show();
+}
+
+void Session::showCreate(){
+	b->show();
+}
+
 void Session::hideAll(){
     if(g->isVisible()) g->hide();
     if(m->isVisible()) m->hide();
     if(b->isVisible()) b->hide();
-}
-
-void Session::showSelect(){
-    g->show();
-}
-
-void Session::showMatch(){
-    m->show();
-}
-
-void Session::showCreate(){
-    b->show();
 }

@@ -313,6 +313,8 @@ void GraphCorresponder::addLandmarks( QVector<QString> sParts, QVector<QString> 
 
 void GraphCorresponder::addCorrespondences( QVector<QString> sParts, QVector<QString> tParts, float presetScore )
 {
+	if(!sParts.size() && !tParts.size()) return;
+
 	// Check if those parts are available
 	foreach(QString strID, sParts)
 	{
@@ -461,6 +463,10 @@ void GraphCorresponder::clear()
 	sIsLandmark.resize(sg->nodes.size(), false);
 	tIsLandmark.resize(tg->nodes.size(), false);
 	correspondences.clear();
+	corrScores.clear();
+	disM.clear();
+	sIsCorresponded.clear();
+	tIsCorresponded.clear();
 
 	this->isReady = false;
 
@@ -1043,7 +1049,7 @@ void GraphCorresponder::computeCorrespondences()
 	// Point to Point correspondence
 	correspondAllNodes();
 
-	// Mark the correponded nodes
+	// Mark the corresponded nodes
 	sIsCorresponded.resize(sg->nodes.size(), false);
 	tIsCorresponded.resize(tg->nodes.size(), false);
 	foreach (PART_LANDMARK vector2vector, correspondences)
