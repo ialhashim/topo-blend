@@ -62,6 +62,8 @@ void GraphItem::draw3D()
 
     g->draw();
 
+	marker.draw();
+
 	// DEBUG:
 	ps1.draw(); ps2.draw();	vs1.draw(3); vs2.draw();	ss1.draw(); ss2.draw();
 
@@ -69,18 +71,21 @@ void GraphItem::draw3D()
     glViewport(viewport[0],viewport[1],viewport[2],viewport[3]);
 }
 
-void GraphItem::pick( int x, int y )
+void GraphItem::pick( int X, int Y )
 {
-	if(!m_geometry.contains(x,y)) return;
+	if(!m_geometry.contains(X,Y)){
+		emit( miss() );
+		return;
+	}
+
+	int x = X - m_geometry.x();
+	int y = Y - m_geometry.y();
 
 	qglviewer::Vec orig, dir;
 	QMap<double,Vector3> isects;
 	QMap<double,QString> isectNode;
 
-	x -= m_geometry.x();
-	y -= m_geometry.y();
-
-	setCamera();
+	this->setCamera();
 	camera->convertClickToLine(QPoint(x,y), orig, dir);
 	
 	foreach(Structure::Node * n, g->nodes)
@@ -117,12 +122,18 @@ void GraphItem::pick( int x, int y )
 		Vector3 ipoint = isects[minDist];
 		Vector3 direction(-dir[0],-dir[1],-dir[2]);
 
-		direction *= 0.1;
+		// DEBUG:
+		if(false){
+			direction *= 0.1;
+			ss1.addSphere(ipoint, 0.03f);
+			vs1.addVector(ipoint, direction);
+		}
 
-		ss1.addSphere(ipoint, 0.03f);
-		vs1.addVector(ipoint, direction);
-
-		emit( hit(this, isectNode[minDist], ipoint) );
+		emit( hit( HitResult(this, isectNode[minDist], ipoint, QPoint(X,Y)) ) );
+	}
+	else
+	{
+		emit( miss() );
 	}
 }
 

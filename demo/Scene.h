@@ -25,7 +25,8 @@ protected:
 protected:
     void mousePressEvent( QGraphicsSceneMouseEvent * event );
     void mouseMoveEvent( QGraphicsSceneMouseEvent * event );
-    void wheelEvent(QGraphicsSceneWheelEvent *event);
+    void wheelEvent( QGraphicsSceneWheelEvent *event );
+	void mouseDoubleClickEvent( QGraphicsSceneMouseEvent * mouseEvent );
 
 private:
     void setupCamera();
@@ -33,6 +34,8 @@ private:
 
 signals:
     void wheelEvents(QGraphicsSceneWheelEvent*);
+	void doubleClick();
+	void rightClick();
 
 public slots:
     

@@ -13,8 +13,8 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->numInBetweens = 4;
 
 	// Create background items for each blend path
-	int padding = 5;
-	int blendPathHeight = (s->height() / (numSuggestions * 1.5)) * 0.98;
+	int padding = 0;
+	int blendPathHeight = (s->height() / (numSuggestions * 1.5)) * 0.99;
 
 	int totalHeight = numSuggestions * (blendPathHeight + padding);
 	int startY = (s->height() * 0.5 - totalHeight * 0.5) - 45;
@@ -213,7 +213,10 @@ void Blender::blenderDone()
 
 		for(int j = 0; j < numInBetweens; j++)
 		{
-			double t = double(j) / (numInBetweens - 1);
+			double t = double(j) / (numInBetweens-1);
+
+			t = qRanged(0.1, t, 0.9);
+
 			int idx = t * (curSchedule->allGraphs.size() - 1);
 			Structure::Graph * curGraph = curSchedule->allGraphs[idx];
 

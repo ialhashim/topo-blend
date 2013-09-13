@@ -761,7 +761,6 @@ void TopoBlender::equalizeSuperNodeResolutions()
 
 				snode->refineControlPoints(betterN, betterN);
 				tnode->refineControlPoints(betterN);
-
 			}
 			else 
 			{

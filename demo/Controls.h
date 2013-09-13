@@ -21,6 +21,6 @@ signals:
     void showMatch();
     void showCreate();
 
-private:
+public:
     Ui::Controls *ui;
 };

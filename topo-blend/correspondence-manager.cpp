@@ -55,16 +55,11 @@ void CorrespondenceManager::assignCorrespondence()
 		tb->gcoor->addLandmarks(sParts, tParts);
 
 		// Assign colors
-		foreach(QString nodeID, sParts)	
-		{
+		foreach(QString nodeID, sParts)
 			sourceGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
-			sourceGraph->getNode( nodeID )->property["is_corresponded"] = true;
-		}
+		
 		foreach(QString nodeID, tParts)	
-		{
 			targetGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
-			targetGraph->getNode( nodeID )->property["is_corresponded"] = true;
-		}
 
 		tb->gcoor->isReady = false;
 	}
@@ -75,7 +70,6 @@ void CorrespondenceManager::assignCorrespondence()
 			foreach(QString nodeID, sParts){
 				tb->gcoor->setNonCorresSource( nodeID );
 				sourceGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
-				sourceGraph->getNode( nodeID )->property["is_corresponded"] = true;
 			}
 		}
 		else
@@ -83,7 +77,6 @@ void CorrespondenceManager::assignCorrespondence()
 			foreach(QString nodeID, tParts){
 				tb->gcoor->setNonCorresTarget( nodeID );
 				targetGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
-				targetGraph->getNode( nodeID )->property["is_corresponded"] = true;
 			}
 		}
 
