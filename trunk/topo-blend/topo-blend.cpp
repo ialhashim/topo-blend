@@ -888,6 +888,10 @@ bool topoblend::mouseMoveEvent( QMouseEvent * event )
 
 bool topoblend::rayBBoxIntersect( Eigen::AlignedBox3d bbox, Vector3 origin, Vector3 ray )
 {
+	Q_UNUSED(bbox)
+	Q_UNUSED(origin)
+	Q_UNUSED(ray)
+
 	return false;
 }
 

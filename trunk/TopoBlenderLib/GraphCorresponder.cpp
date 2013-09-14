@@ -256,55 +256,27 @@ void GraphCorresponder::computeLandmarkFeatureMatrix( MATRIX & M )
 	normalizeMatrix(M);
 }
 
-
-
 // Part landmarks
 void GraphCorresponder::addLandmarks( QVector<QString> sParts, QVector<QString> tParts )
 {
-	// Check if those parts are available
-	foreach(QString strID, sParts)
-	{
-		Structure::Node * node = sg->getNode(strID);
-		if (!node)
-		{
-			qDebug() << "Add landmarks: " << strID << " doesn't exist in the source graph.";
-			return;
-		}
-		int idx = node->property["index"].toInt();
-		if (sIsLandmark[idx])
-		{
-			qDebug() << "Add landmarks: " << strID << " in the source graph has already been corresponded.";
-			return;
-		}
-	}
-
-	foreach(QString strID, tParts)
-	{
-		Structure::Node * node = tg->getNode(strID);
-		if (!node)
-		{
-			qDebug() << "Add landmarks: " << strID << " doesn't exist in the target graph.";
-			return;
-		}
-		int idx = node->property["index"].toInt();
-		if (tIsLandmark[idx])
-		{
-			qDebug() << "Add landmarks: " << strID << " in the target graph has already been corresponded.";
-			return;
-		}
-	}
-
 	// Mark those parts
 	foreach(QString strID, sParts)
 	{
 		int idx = sg->getNode(strID)->property["index"].toInt();
 		sIsLandmark[idx] = true;
+
+		// Make sure its not in list of non-corresponding
+		nonCorresS.remove(idx);
+		clearFor(strID, true);
 	}
 
 	foreach(QString strID, tParts)
 	{
 		int idx = tg->getNode(strID)->property["index"].toInt();
 		tIsLandmark[idx] = true;
+
+		nonCorresT.remove(idx);
+		clearFor(strID, false);
 	}
 
 	// Store correspondence
@@ -457,16 +429,33 @@ void GraphCorresponder::saveLandmarks(QString filename)
 
 void GraphCorresponder::clear()
 {
-	landmarks.clear();
 	sIsLandmark.clear();
 	tIsLandmark.clear();
-	sIsLandmark.resize(sg->nodes.size(), false);
-	tIsLandmark.resize(tg->nodes.size(), false);
+
+	disM.clear();
+	validM.clear();
+	spatialM.clear();
+
+	landmarks.clear();
 	correspondences.clear();
 	corrScores.clear();
-	disM.clear();
+
 	sIsCorresponded.clear();
 	tIsCorresponded.clear();
+
+	nonCorresS.clear();
+	nonCorresT.clear();
+	
+	sIsCorresponded.clear();
+	tIsCorresponded.clear();
+
+	sIsCorresponded.resize(sg->nodes.size(), false);
+	tIsCorresponded.resize(tg->nodes.size(), false);
+	sIsLandmark.resize(sg->nodes.size(), false);
+	tIsLandmark.resize(tg->nodes.size(), false);
+
+	foreach(Structure::Node * n, sg->nodes) n->property.remove("correspond");
+	foreach(Structure::Node * n, tg->nodes) n->property.remove("correspond");
 
 	this->isReady = false;
 
@@ -1049,9 +1038,13 @@ void GraphCorresponder::computeCorrespondences()
 	// Point to Point correspondence
 	correspondAllNodes();
 
-	// Mark the corresponded nodes
+	// Reset correspondence states
+	sIsCorresponded.clear();
+	tIsCorresponded.clear();
 	sIsCorresponded.resize(sg->nodes.size(), false);
 	tIsCorresponded.resize(tg->nodes.size(), false);
+
+	// Mark the corresponded nodes
 	foreach (PART_LANDMARK vector2vector, correspondences)
 	{
 		foreach (QString sID, vector2vector.first)
@@ -1096,14 +1089,45 @@ std::vector<QString> GraphCorresponder::nonCorresTarget()
 	return nodes;
 }
 
+void GraphCorresponder::clearFor( QString sID, bool isSource )
+{
+	// Only keep landmarks that don't have sID
+	QVector<PART_LANDMARK> lkeep, lremove;
+	for(int i = 0; i < landmarks.size(); i++)
+	{
+		bool isKeep = (isSource && !landmarks[i].first.contains(sID)) || (!isSource && !landmarks[i].second.contains(sID));
+		if( isKeep ) 
+			lkeep.push_back(landmarks[i]);
+		else
+			lremove.push_back(landmarks[i]);
+	}
+
+	landmarks = lkeep;
+
+	foreach(PART_LANDMARK landmark, lremove)
+	{
+		foreach(QString sid, landmark.first){
+			sIsLandmark[sg->getNode(sid)->property["index"].toInt()] = false;
+		}
+
+		foreach(QString tid, landmark.second){
+			tIsLandmark[tg->getNode(tid)->property["index"].toInt()] = false;
+		}
+	}
+}
+
 void GraphCorresponder::setNonCorresSource(QString sID)
 {
-	nonCorresS.push_back(sg->getNode(sID)->property["index"].toInt());
+	clearFor(sID, true);
+
+	nonCorresS.insert( sg->getNode(sID)->property["index"].toInt() );
 }
 
 void GraphCorresponder::setNonCorresTarget(QString tID)
 {
-	nonCorresT.push_back(tg->getNode(tID)->property["index"].toInt());
+	clearFor(tID, false);
+
+	nonCorresT.insert( tg->getNode(tID)->property["index"].toInt() );
 }
 
 void GraphCorresponder::saveCorrespondences( QString filename, bool isWithScores )
@@ -1146,11 +1170,7 @@ void GraphCorresponder::loadCorrespondences( QString filename, bool isReversed )
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
 	QTextStream inF(&file);
 
-	correspondences.clear();
-	sIsCorresponded.clear();
-	tIsCorresponded.clear();
-	sIsCorresponded.resize(sg->nodes.size(), false);
-	tIsCorresponded.resize(tg->nodes.size(), false);
+	clear();
 
 	int nbCorr;
 	//inF >> nbCorr; // old way

@@ -173,7 +173,9 @@ void Matcher::graphHit( GraphItem::HitResult hit )
 
 	QVector<QString> & group = (g == s->inputGraphs[0]->g) ? groupA : groupB;
 	
-	group.push_back(n->id);
+	// Add only if not there
+	if(!group.contains(n->id)) group.push_back(n->id);
+	
 	item->marker.addSphere( hit.ipoint, 0.04, QColor(211, 50, 118) );
 }
 
@@ -199,7 +201,6 @@ void Matcher::manualMode()
 	{
 		gcorr->clear();
 		gcorr->loadCorrespondences( property["corrFile"].toString(), property["corrReversed"].toBool() );
-		gcorr->isReady = true;
 	}
 
 	// Enable graph picking
