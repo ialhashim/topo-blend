@@ -80,7 +80,7 @@ QPushButton:pressed{ background:rgb(255,153,0); border-color:#FFB444; top:2px; }
        <item row="0" column="0">
         <widget class="QFrame" name="frame">
          <property name="styleSheet">
-          <string notr="true">QFrame { background:rgba(0, 0, 0, 100); }
+          <string notr="true">QFrame { background:rgba(0, 0, 0, 70); }
 
 QPushButton { 
 	background: rgba(188,188,188,188);
@@ -200,7 +200,7 @@ QPushButton:checked#manualButton{ background:#d33276; border-color: #982153; col
        <item row="0" column="0">
         <widget class="QFrame" name="frame_2">
          <property name="styleSheet">
-          <string notr="true">QFrame { background:rgba(0, 0, 0, 100); }</string>
+          <string notr="true">QFrame { background:rgba(0, 0, 0, 70); }</string>
          </property>
          <property name="frameShape">
           <enum>QFrame::StyledPanel</enum>

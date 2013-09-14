@@ -9,7 +9,7 @@
 
 Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL)
 {
-	this->numSuggestions = 5;
+	this->numSuggestions = 4;
 	this->numInBetweens = 4;
 
 	// Create background items for each blend path
@@ -21,19 +21,79 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 
 	for(int i = 0; i < numSuggestions; i++)
 	{
-		QGraphicsItem * blendPathBack = scene->addRect(0,0,s->width() * 0.5, blendPathHeight, QPen(), QColor::fromRgbF(0,0,0.25,0.5) );
+		QGraphicsRectItem * blendPathBack = new QGraphicsRectItem (0,0,s->width() * 0.5, blendPathHeight);
+		blendPathBack->setBrush( QColor::fromRgbF(0,0,0.25,0.5) );
+		blendPathBack->setOpacity(0);
 
 		blendPathBack->setY( startY + (i * (blendPathHeight + padding)) );
 		blendPathBack->setX( 0.5*s->width() - 0.5*blendPathBack->boundingRect().width() );
-
 		blendPathBack->setZValue(-999);
-		blendPathBack->setVisible(false);
 
 		QGraphicsItemGroup * blendPathItem = new QGraphicsItemGroup;
 		blendPathItem->addToGroup(blendPathBack);
-		scene->addItem(blendPathItem);
+		blendPathItem->setVisible(false);
 
 		blendPathsItems.push_back( blendPathItem );
+		scene->addItem(blendPathItem);
+	}
+
+	// Show path indicators
+	QRectF r0(0,0,s->width() * 0.25,s->width() * 0.25);	r0.moveTop((s->height() * 0.5) - (r0.height() * 0.5));
+	QRectF r1 = r0; r1.moveRight(s->width());
+	QPointF lstart = r0.center() + QPoint(r0.width() * 0.3,0);
+	QPointF rstart = r1.center() - QPoint(r1.width() * 0.3,0);
+	double tension = 0.5;
+
+	for(int i = 0; i < numSuggestions; i++)
+	{
+		QRectF r = blendPathsItems[i]->boundingRect();
+		QPointF lend = QPointF(r.x(), r.center().y());
+		QPointF rend = QPointF(r.x() + r.width(), r.center().y());
+		double lmidX = (lend.x() - lstart.x()) * tension;
+		double rmidX = (rstart.x() - rend.x()) * tension;
+
+		QVector<QPointF> l_points, r_points;
+
+		l_points.push_back(lstart);
+		l_points.push_back(lstart + QPointF(lmidX,0));
+		l_points.push_back(lend - QPointF(lmidX,0));
+		l_points.push_back(lend);
+
+		r_points.push_back(rstart);
+		r_points.push_back(rstart - QPointF(rmidX,0));
+		r_points.push_back(rend + QPointF(rmidX,0));
+		r_points.push_back(rend);
+
+		QPainterPath lpath;
+		lpath.moveTo(l_points.at(0));
+		{
+			int i=1;
+			while (i + 2 < l_points.size()) {
+				lpath.cubicTo(l_points.at(i), l_points.at(i+1), l_points.at(i+2));
+				i += 3;
+			}
+		}
+
+		QPainterPath rpath;
+		rpath.moveTo(r_points.at(0));
+		{
+			int i=1;
+			while (i + 2 < r_points.size()) {
+				rpath.cubicTo(r_points.at(i), r_points.at(i+1), r_points.at(i+2));
+				i += 3;
+			}
+		}
+
+		QColor color( 255, 180, 68, 50 );
+
+		QGraphicsItem * litem = s->addPath(lpath, QPen(color, 1));
+		QGraphicsItem * ritem = s->addPath(rpath, QPen(color, 1));
+
+		litem->setVisible(false);
+		ritem->setVisible(false);
+
+		items.push_back(litem);
+		items.push_back(ritem);
 	}
 
 	for(int i = 0; i < blendPathsItems.size(); i++)
@@ -84,7 +144,7 @@ void Blender::show()
 
 	// Give time for animation
 	progress->show();
-	QTimer::singleShot(200, this, SLOT(preparePaths()));
+	QTimer::singleShot(300, this, SLOT(preparePaths()));
 }
 
 void Blender::hide()
@@ -135,7 +195,13 @@ void Blender::preparePaths()
 		// Synthesis requires a single instance of the blend process
 		if( !s_manager )
 		{
-			s_manager = new SynthesisManager(m_gcorr, bp.scheduler, bp.blender, 5000);
+			int numSamples = 5000;
+
+			#ifdef QT_DEBUG
+				numSamples = 50;
+			#endif
+
+			s_manager = new SynthesisManager(m_gcorr, bp.scheduler, bp.blender, numSamples);
 
 			QVariant p_camera;
 			p_camera.setValue( s->camera );
@@ -213,9 +279,10 @@ void Blender::blenderDone()
 
 		for(int j = 0; j < numInBetweens; j++)
 		{
-			double t = double(j) / (numInBetweens-1);
+			double start = 1.0 / (numInBetweens+2);
+			double range = 1.0 - (2.0 * start);
 
-			t = qRanged(0.1, t, 0.9);
+			double t = ((double(j) / (numInBetweens-1)) * range) + start;
 
 			int idx = t * (curSchedule->allGraphs.size() - 1);
 			Structure::Graph * curGraph = curSchedule->allGraphs[idx];
@@ -238,7 +305,11 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 
 	QRectF pathRect = blendPathsItems[pathID]->boundingRect();
 
-	int x = pathRect.x() + (blendIDX * (pathRect.width() / numInBetweens));
+	qDebug() << pathID;
+
+	int delta = 0.5 * ( (pathRect.width() / numInBetweens) - item->boundingRect().width() );
+
+	int x = pathRect.x() + (blendIDX * (pathRect.width() / numInBetweens)) + delta;
 	int y = pathRect.y();
 
 	item->setPos(x, y);

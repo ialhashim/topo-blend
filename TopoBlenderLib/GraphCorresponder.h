@@ -47,6 +47,7 @@ public:
 	void loadLandmarks(QString filename);
 
 	void clear();
+	void clearFor( QString sID, bool isSource );
 
 	// Distance matrices
 	std::vector< std::vector<bool> > validM;
@@ -91,13 +92,12 @@ public:
 	std::vector<PART_LANDMARK> correspondences;
 	std::vector<std::vector<float> > corrScores;
 
-	QVector<int> nonCorresS;
-	QVector<int> nonCorresT;
+	QSet<int> nonCorresS;
+	QSet<int> nonCorresT;
 
 public slots:
 	void visualizePart2PartDistance(int sourceID);
 	void computeCorrespondences();
 signals:
 	void cleared();
-
 };

@@ -47,13 +47,17 @@ void BlendPathRenderer::initializeGL()
 	glEnable(GL_LIGHT0);
 	glEnable(GL_LIGHTING);
 
-	// Specular
 	glEnable(GL_COLOR_MATERIAL);
 	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-	float specReflection[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-	glMaterialfv(GL_FRONT, GL_SPECULAR, specReflection);
-	glMateriali(GL_FRONT, GL_SHININESS, 56);
 
+	// Specular lighting
+	bool isSpecular = false;
+	if( isSpecular )
+	{
+		float specReflection[] = { 0.8f, 0.8f, 0.8f, 1.0f };
+		glMaterialfv(GL_FRONT, GL_SPECULAR, specReflection);
+		glMateriali(GL_FRONT, GL_SHININESS, 56);
+	}
 }
 
 void BlendPathRenderer::paintGL()
@@ -77,7 +81,7 @@ void BlendPathRenderer::paintGL()
 	sceneCamera->loadModelViewMatrix();
 
 	// Draw current graph
-	s_manager->pointSize = 2.0;
+	s_manager->pointSize = 1.0;
 	s_manager->color = QColor( 255, 180, 68 );
 	s_manager->drawSynthesis( activeGraph );
 }

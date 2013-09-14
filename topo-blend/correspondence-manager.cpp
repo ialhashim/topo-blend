@@ -60,8 +60,6 @@ void CorrespondenceManager::assignCorrespondence()
 		
 		foreach(QString nodeID, tParts)	
 			targetGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
-
-		tb->gcoor->isReady = false;
 	}
 	else
 	{
@@ -79,9 +77,9 @@ void CorrespondenceManager::assignCorrespondence()
 				targetGraph->getNode( nodeID )->vis_property["meshColor"].setValue( curColor );
 			}
 		}
-
-		tb->gcoor->isReady = false;
 	}
+
+	tb->gcoor->isReady = false;
 }
 
 void CorrespondenceManager::exitCorrespondenceMode(bool isChangeVisualization)

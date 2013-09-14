@@ -254,10 +254,13 @@ void Scene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 		if(event->button() == Qt::RightButton)
 			emit( rightClick() );
 
-		for(int i = 0; i < 2; i++)
+		if(event->button() == Qt::LeftButton)
 		{
-			QPointF pos = event->scenePos();
-			if(inputGraphs[i]) inputGraphs[i]->pick( pos.x(), pos.y() );
+			for(int i = 0; i < 2; i++)
+			{
+				QPointF pos = event->scenePos();
+				if(inputGraphs[i]) inputGraphs[i]->pick( pos.x(), pos.y() );
+			}
 		}
 
 		update();
