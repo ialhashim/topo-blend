@@ -63,3 +63,6 @@ HEADERS  += mainwindow.h \
 
 FORMS    += mainwindow.ui \
     Controls.ui
+
+mac:LIBS += -framework CoreFoundation # We need this for GLee..
+mac:QMAKE_LFLAGS += -fopenmp

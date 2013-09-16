@@ -18,9 +18,13 @@
 QProcess * p = NULL;
 SvgView * svgViewer = NULL;
 
+#ifdef Q_OS_WIN
 #ifndef popen
 #define popen _popen
 #define pclose _pclose
+#endif
+#else
+
 #endif
 
 static inline std::string exec(char* cmd) {

@@ -75,3 +75,4 @@ FORMS +=    topo_blend_widget.ui \
             GraphExplorer.ui
 
 mac:LIBS += -framework CoreFoundation # We need this for GLee..
+mac:QMAKE_LFLAGS += -fopenmp

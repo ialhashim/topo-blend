@@ -42,7 +42,7 @@ public:
 		polys_colors.clear();
 	}
 
-	void draw(QGLWidget &widget){this->draw(); widget;}
+    void draw(QGLWidget &widget){ this->draw(); Q_UNUSED(widget) }
 
 	void draw(){
 
@@ -121,7 +121,7 @@ class LineSegments : public RenderObject::Base{
 public:
 	LineSegments():RenderObject::Base(1, Qt::black){}
 
-	void draw(QGLWidget &widget){this->draw();widget;}
+    void draw(QGLWidget &widget){ this->draw(); Q_UNUSED(widget) }
 
 	void draw(){
 		glDisable(GL_LIGHTING);
@@ -169,7 +169,7 @@ public:
 		points_colors.clear();
 	}
 
-	void draw(QGLWidget &widget){this->draw();widget;}
+    void draw(QGLWidget &widget){ this->draw(); Q_UNUSED(widget) }
 
 	void draw(){
 		glDisable(GL_LIGHTING);
@@ -222,7 +222,7 @@ public:
         maxLen = qMax(l,maxLen);
     }
 
-	void draw(QGLWidget &widget){this->draw();widget;}
+    void draw(QGLWidget &widget){ this->draw(); Q_UNUSED(widget) }
 
     void draw(float thickness = 1.0f){
         glDisable(GL_LIGHTING);
@@ -387,7 +387,7 @@ public:
 		frames.push_back(frame);
 	}
 
-	void draw(QGLWidget &widget){this->draw();widget;}
+    void draw(QGLWidget &widget){ this->draw(); Q_UNUSED(widget) }
 
 	void draw()
 	{
@@ -515,7 +515,7 @@ public:
 		colors.clear();
 	}
 
-	void draw(QGLWidget &widget){this->draw();widget;}
+    void draw(QGLWidget &widget){ this->draw(); Q_UNUSED(widget) }
 
 	void draw(){
 		glEnable(GL_LIGHTING);
@@ -599,7 +599,7 @@ public:
 		glPopMatrix();
 	}
 
-	void draw(QGLWidget &widget){this->draw();widget;}
+    void draw(QGLWidget &widget){ this->draw(); Q_UNUSED(widget) }
 
 	void draw()
 	{

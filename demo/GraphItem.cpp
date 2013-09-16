@@ -37,7 +37,9 @@ QRectF GraphItem::setCamera()
 	Vector3 newPos = center - (distance * Vector3(viewDir[0], viewDir[1], viewDir[2]));
 
 	camera->setRevolveAroundPoint( qglviewer::Vec(center) );
-	camera->frame()->setPositionWithConstraint(qglviewer::Vec(newPos));
+
+    qglviewer::Vec new_pos(newPos);
+    camera->frame()->setPositionWithConstraint(new_pos);
 
 	camera->setScreenWidthAndHeight(r.width(), r.height());
 	camera->loadProjectionMatrix();

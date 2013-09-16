@@ -811,7 +811,7 @@ void SynthesisManager::drawSynthesis( Structure::Graph * activeGraph )
 			if(splat_renderer) splat_renderer->update(vertices);
 		} 
 		
-		currentGraph["count"] = vertices.size();
+        currentGraph["count"] = (int)vertices.size();
 		currentGraph["graph"].setValue( activeGraph );
 	}
 
