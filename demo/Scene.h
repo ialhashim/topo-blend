@@ -27,15 +27,18 @@ protected:
     void mouseMoveEvent( QGraphicsSceneMouseEvent * event );
     void wheelEvent( QGraphicsSceneWheelEvent *event );
 	void mouseDoubleClickEvent( QGraphicsSceneMouseEvent * mouseEvent );
+	void keyReleaseEvent(QKeyEvent * keyEvent);
 
 private:
     void setupCamera();
     void setupLights();
 
 signals:
+	void keyUpEvent(QKeyEvent*);
     void wheelEvents(QGraphicsSceneWheelEvent*);
 	void doubleClick();
 	void rightClick();
+	void message(QString);
 
 public slots:
     

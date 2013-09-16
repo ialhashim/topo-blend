@@ -21,8 +21,7 @@ BlendPathRenderer::BlendPathRenderer( Blender * blender, int itemHeight, QWidget
 	QGLFormat::setDefaultFormat(f);
 	this->setFormat(f);
 
-#ifdef Q_OS_WIN
-#else
+#ifndef Q_OS_WIN
     show();
 #endif
 }

@@ -71,7 +71,10 @@ public:
 
 	TimelineSlider * slider;
 
-	double time_step;
+	// Execution parameters
+	double timeStep;
+	double globalStart;
+	double globalEnd;
 
 	void drawDebug();
 

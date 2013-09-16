@@ -25,32 +25,42 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->graphicsView->setRenderHint(QPainter::HighQualityAntialiasing, true);
     ui->graphicsView->setRenderHint(QPainter::SmoothPixmapTransform, true);
 
+	this->connect(scene, SIGNAL(message(QString)), SLOT(message(QString)));
+	this->connect(scene, SIGNAL(keyUpEvent(QKeyEvent*)), SLOT(keyUpEvent(QKeyEvent*)));
+
     // Create controls
     control = new Controls;
     QGraphicsProxyWidget * proxy = scene->addWidget(control);
     proxy->setPos((scene->width() * 0.5) - (proxy->boundingRect().width() * 0.5),
                    scene->height() - proxy->boundingRect().height());
 
-    // Loading shapes
-    gallery = new ShapesGallery(scene, "Select two shapes");
-    gallery->loadDataset( getDataset() );
-    gallery->connect(scene, SIGNAL(wheelEvents(QGraphicsSceneWheelEvent*)), SLOT(wheelEvent(QGraphicsSceneWheelEvent*)));
+    /// Create [Shape gallery + Matcher + Blender]
+    ShapesGallery * gallery = new ShapesGallery(scene, "Select two shapes");
+	Matcher * matcher = new Matcher(scene, "Match parts");
+	Blender * blender = new Blender(scene, "Blended shapes");
 
-    // Match shapes
-    Matcher * matcher = new Matcher(scene, "Match parts");
+	// Connect all pages to logger
+	this->connect(gallery, SIGNAL(message(QString)), SLOT(message(QString)));
+	this->connect(matcher, SIGNAL(message(QString)), SLOT(message(QString)));
+	this->connect(blender, SIGNAL(message(QString)), SLOT(message(QString)));
 
-    // Create shapes
-    Blender * blender = new Blender(scene, "Blended shapes");
+	// Place log window nicely
+	this->ui->logWidget->setGeometry(geometry().x() - (width() * 0.21), geometry().y(), width() * 0.2, height() * 0.5);
 
 	// Connect matcher and blender
 	blender->connect(matcher, SIGNAL(corresponderCreated(GraphCorresponder *)), SLOT(setGraphCorresponder(GraphCorresponder *)));
+
+	// Connect
+    gallery->connect(scene, SIGNAL(wheelEvents(QGraphicsSceneWheelEvent*)), SLOT(wheelEvent(QGraphicsSceneWheelEvent*)));
 
     // Create session
     session = new Session(scene, gallery, control, matcher, blender, this);
     session->connect(gallery, SIGNAL(shapeChanged(int,QGraphicsItem*)), SLOT(shapeChanged(int,QGraphicsItem*)));
     scene->connect(session, SIGNAL(update()), SLOT(update()));
 
-    gallery->layout();
+	// Everything is ready, load shapes now:
+	gallery->loadDataset( getDataset() );
+	gallery->layout();
 }
 
 MainWindow::~MainWindow()
@@ -81,3 +91,17 @@ DatasetMap MainWindow::getDataset(QString datasetPath)
     return dataset;
 }
 
+void MainWindow::message(QString m)
+{
+	ui->logger->addItem(m);
+	ui->logger->scrollToBottom();
+}
+
+void MainWindow::keyUpEvent(QKeyEvent* keyEvent)
+{
+	// Toggle log window visibility
+	if(keyEvent->key() == Qt::Key_L)
+	{
+		ui->logWidget->setVisible(!ui->logWidget->isVisible());
+	}
+}

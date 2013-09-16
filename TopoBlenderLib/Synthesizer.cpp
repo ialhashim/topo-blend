@@ -80,13 +80,12 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsCurve( Structure::Curve * cur
 	kdtree.build();
 
 	// Project
-	const std::vector<Vector3d> curvePnts = curve->curve.mCtrlPoint;
 	int N = points.size();
 
 	#pragma omp parallel for
 	for(int i = 0; i < N; i++)
 	{
-		NURBS::NURBSCurved mycurve = NURBS::NURBSCurved::createCurveFromPoints( curvePnts );
+		NURBS::NURBSCurved mycurve = curve->curve;
 
 		float theta, psi;
 
@@ -134,14 +133,12 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * she
 	}
 	kdtree.build();
 
-
 	int N = points.size();
-	const Array2D_Vector3 sheetPnts = sheet->surface.mCtrlPoint;
 
 	#pragma omp parallel for
 	for(int i = 0; i < N; i++)
 	{
-		NURBS::NURBSRectangled r = NURBS::NURBSRectangled::createSheetFromPoints(sheetPnts);
+		NURBS::NURBSRectangled r = sheet->surface;
 
 		Vector3f point = points[i];
 

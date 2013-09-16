@@ -788,7 +788,13 @@ void SynthesisManager::drawSynthesis( Structure::Graph * activeGraph )
 		}
 	}
 
-	if(!vertices.size()) return;
+	if(!vertices.size()) 
+	{
+		activeGraph->property["showMeshes"] = false;
+		activeGraph->property["showNodes"] = true;
+		activeGraph->draw();
+		return;
+	}
 
 	glEnable(GL_LIGHTING);
 

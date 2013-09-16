@@ -24,7 +24,10 @@ private:
     QGLWidget * viewport;
 
     Scene * scene;
-    ShapesGallery * gallery;
     Session * session;
     Controls * control;
+
+public slots:
+	void message(QString m);
+	void keyUpEvent(QKeyEvent* keyEvent);
 };
