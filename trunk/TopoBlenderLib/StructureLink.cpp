@@ -12,9 +12,14 @@ Link::Link( Node * node1, Node * node2, LinkCoords coord_n1, LinkCoords coord_n2
 	this->type = link_type;
 	this->id = ID;
 
-	this->coord.resize(2);
-	this->coord[0] = coord_n1;
-	this->coord[1] = coord_n2;
+	this->coord.push_back( coord_n1 );
+	this->coord.push_back( coord_n2 );
+}
+
+Link::~Link()
+{
+	coord.clear();
+	property.clear();
 }
 
 void Link::setCoord( QString nodeID, Array1D_Vector4d newCoord )

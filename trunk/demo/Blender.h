@@ -5,6 +5,7 @@
 
 // Forward Declare
 class TopoBlender; class Scheduler; class ProgressItem; class SynthesisManager;
+class BlendPathRenderer;
 
 // Blend path container
 struct BlendPath{
@@ -12,8 +13,8 @@ struct BlendPath{
 	Structure::Graph * target;
 
 	GraphCorresponder * gcorr;
-	TopoBlender * blender;
-	Scheduler * scheduler;
+	QSharedPointer<Scheduler> scheduler;
+	QSharedPointer<TopoBlender> blender;
 };
 
 class Blender : public DemoPage
@@ -24,6 +25,8 @@ public:
     
 	int numSuggestions, numInBetweens;
 	int itemHeight;
+
+	friend class BlendPathRenderer;
 
 signals:
     void blendPathsReady();
@@ -53,5 +56,6 @@ private:
 	void computePath(int index);
 
 	GraphCorresponder * m_gcorr;
+	BlendPathRenderer * renderer;
 	ProgressItem * progress;
 };

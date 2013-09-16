@@ -241,7 +241,7 @@ void topoblend::decorate()
 				glPushMatrix();
 				glTranslated(posX, 0, 0);
 
-				SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
+				SurfaceMesh::Model* nodeMesh = g->getMesh(n->id);
 
 				if( !nodeMesh || !nodeMesh->n_vertices() || !viz_params["showMeshes"].toBool() )
 				{
@@ -578,7 +578,6 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		qglviewer::Vec q = drawArea()->camera()->revolveAroundPoint();
 		Vector3d p(q[0],q[1],q[2]);
 
-		double minDist = DBL_MAX;
 		QString sample_details = "";
 
 		for(int gi = 0; gi < (int) graphs.size(); gi++)
@@ -590,7 +589,9 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 			{
 				if(node->property.contains("cached_points"))
 				{
-					/*QVector<Eigen::Vector3f> & pnts = *(node->property["cached_points"].value< QVector<Eigen::Vector3f>* >());
+					/*
+					double minDist = DBL_MAX;
+					QVector<Eigen::Vector3f> & pnts = *(node->property["cached_points"].value< QVector<Eigen::Vector3f>* >());
 					QVector<ParameterCoord> & samples = *(node->property["samples"].value< QVector<ParameterCoord>* >());
 					QVector<float> & offsets = *(node->property["offsets"].value< QVector<float>* >());
 
@@ -871,14 +872,12 @@ bool topoblend::mouseMoveEvent( QMouseEvent * event )
 
 				for(int gID = 0; gID < (int) graphs.size(); gID++)
 				{
-					Structure::Graph *g = graphs[gID];
-
-					foreach(Node * n, g->nodes){
-						SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
-						double posX = g->property["posX"].toDouble();
-
-						
-					}
+					//Structure::Graph *g = graphs[gID];
+					//foreach(Node * n, g->nodes)
+					//{
+						//SurfaceMesh::Model* nodeMesh = g->getMesh(n->id);
+						//double posX = g->property["posX"].toDouble();
+					//}
 				}
 			}
 		}

@@ -22,6 +22,8 @@ SUBDIRS += nurbs_plugin
 SUBDIRS += demo         # Standalone demo
 SUBDIRS += topo-blend   # Main plugin for topo-blending
 
+#SUBDIRS += test         # Performance test
+
 # Dependecy map
 #dynamic_voxel.depends = DynamicVoxel
 nurbs_plugin.depends = NURBS

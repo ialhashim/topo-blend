@@ -101,6 +101,10 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 
 	itemHeight = blendPathHeight;
 
+	// Drawing results
+	renderer = new BlendPathRenderer(this, itemHeight);
+	this->connect( renderer, SIGNAL(itemReady(QGraphicsItem*)), SLOT(blendResultDone(QGraphicsItem*)) );
+
 	// Progress bar
 	progress = new ProgressItem("Working..", false, s);
 
@@ -143,7 +147,6 @@ void Blender::show()
 	DemoPage::show();
 
 	// Give time for animation
-	progress->show();
 	QTimer::singleShot(300, this, SLOT(preparePaths()));
 }
 
@@ -167,10 +170,13 @@ void Blender::setGraphCorresponder( GraphCorresponder * graphCorresponder )
 void Blender::preparePaths()
 {    
 	if(!s->isInputReady() || m_gcorr == NULL) return;
-	
+
+	progress->setExtra("Preparing paths - ");
+	progress->show();
+
 	qApp->setOverrideCursor(Qt::WaitCursor);
 	qApp->processEvents();
-
+	
 	// Generate blend paths
 	for(int i = 0; i < numSuggestions; i++)
 	{
@@ -180,18 +186,20 @@ void Blender::preparePaths()
 		bp.target = s->inputGraphs[1]->g;
 		bp.gcorr = this->m_gcorr;
 
-		bp.scheduler = new Scheduler;
-		bp.blender = new TopoBlender( bp.gcorr, bp.scheduler );
+		// Per-path data
+		bp.scheduler = QSharedPointer<Scheduler>( new Scheduler );
+		bp.blender = QSharedPointer<TopoBlender>( new TopoBlender( bp.gcorr, bp.scheduler.data() ) );
 
 		/// Different scheduling happens here...
 		if(i != 0) bp.scheduler->shuffleSchedule();
 
-		this->connect(bp.scheduler, SIGNAL(progressChanged(int)), SLOT(progressChanged()));
-		this->connect(bp.scheduler, SIGNAL(progressDone()), SLOT(pathDone()));
-
 		// Add blend path
 		blendPaths.push_back( bp );
-		
+
+		// Connections
+		this->connect(bp.scheduler.data(), SIGNAL(progressChanged(int)), SLOT(progressChanged()));
+		this->connect(bp.scheduler.data(), SIGNAL(progressDone()), SLOT(pathDone()));
+
 		// Synthesis requires a single instance of the blend process
 		if( !s_manager )
 		{
@@ -201,7 +209,7 @@ void Blender::preparePaths()
 				numSamples = 50;
 			#endif
 
-			s_manager = new SynthesisManager(m_gcorr, bp.scheduler, bp.blender, numSamples);
+			s_manager = new SynthesisManager(m_gcorr, bp.scheduler.data(), bp.blender.data(), numSamples);
 
 			QVariant p_camera;
 			p_camera.setValue( s->camera );
@@ -218,7 +226,12 @@ void Blender::preparePaths()
 	// Generate samples
 	progress->startProgress();
 	progress->setExtra("Generating samples - ");
-	s_manager->generateSynthesisData();
+
+	// [HEAVY] Generate synthesis data
+	if( true )
+		s_manager->generateSynthesisData();
+	else
+		emit( s_manager->emitSynthDataReady() );
 }
 
 void Blender::synthDataReady()
@@ -269,13 +282,9 @@ void Blender::blenderDone()
 	progress->stopProgress();
 	progress->hide();
 
-	// Draw results
-	BlendPathRenderer * renderer = new BlendPathRenderer(s_manager, itemHeight);
-	this->connect( renderer, SIGNAL(itemReady(QGraphicsItem*)), SLOT(blendResultDone(QGraphicsItem*)) );
-
 	for(int i = 0; i < numSuggestions; i++)
 	{
-		Scheduler * curSchedule = blendPaths[i].scheduler;
+		Scheduler * curSchedule = blendPaths[i].scheduler.data();
 
 		for(int j = 0; j < numInBetweens; j++)
 		{
@@ -322,16 +331,16 @@ void Blender::cleanUp()
 		delete resultItems[i];
 	}
 
-	// Clean up blending path data
-	{
-		blendPaths.clear();
-	}
-
 	// Clean up synthesis data
 	{
 		s_manager->clear();
 		delete s_manager;
 		s_manager = NULL;
+	}
+
+	// Clean up blending path data
+	{
+		blendPaths.clear();
 	}
 
 	resultItems.clear();

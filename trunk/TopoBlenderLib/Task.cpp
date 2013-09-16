@@ -529,10 +529,6 @@ void Task::execute( double t )
 		// Clean up:
 		n->property.remove("path");
 		n->property.remove("path2");
-		foreach(Structure::Link * l, property["edges"].value< QVector<Link*> >())
-		{
-			l->property.remove("path");
-		}
 	}
 
 	// Record current time
@@ -809,25 +805,30 @@ bool Task::isCrossing()
 
 bool Task::isCutting()
 {
-	Structure::Graph copyActive(*active);
+	bool result = false;
 
-	// Exclude nodes that is active and non-existing
-	QSet<QString>excludeNodes;
-	 
-	foreach(QString nid, active->property["activeTasks"].value< QVector<QString> >())
-		 excludeNodes.insert(nid);
-	
-	// Keep myself in graph for checking
-	excludeNodes.remove(nodeID);
-	foreach (QString nid, excludeNodes)	copyActive.removeNode(nid);
-	
-	return copyActive.isCutNode(nodeID);
+	{
+		Structure::Graph copyActive (*active);
+
+		// Exclude nodes that is active and non-existing
+		QSet<QString> excludeNodes;
+
+		foreach(QString nid, active->property["activeTasks"].value< QVector<QString> >())
+			excludeNodes.insert(nid);
+
+		// Keep myself in graph for checking
+		excludeNodes.remove(nodeID);
+		foreach (QString nid, excludeNodes)	copyActive.removeNode(nid);
+
+		result = copyActive.isCutNode(nodeID);
+	}
+
+	return result;
 }
-
 
 bool Task::isCuttingReal()
 {
-	Structure::Graph copyActive(*active);
+	Structure::Graph * copyActive = new Structure::Graph(*active);
 
 	// Exclude nodes that is active and non-existing
 	QSet<QString>excludeNodes;
@@ -835,15 +836,17 @@ bool Task::isCuttingReal()
 	foreach(QString nid, active->property["activeTasks"].value< QVector<QString> >())
 		excludeNodes.insert(nid);
 
-	// Skip ungrown nodes
+	// Skip un-grown nodes
 	foreach(Node* n, active->nodes)
 		if (ungrownNode(n->id)) excludeNodes.insert(n->id);
 
 	// Keep myself in graph for checking
 	excludeNodes.remove(nodeID);
-	foreach (QString nid, excludeNodes)	copyActive.removeNode(nid);
+	foreach (QString nid, excludeNodes)	copyActive->removeNode(nid);
 
-	return copyActive.isCutNode(nodeID);
+	bool result = copyActive->isCutNode(nodeID);
+	delete copyActive;
+	return result;
 }
 
 bool Task::ungrownNode( QString nid )

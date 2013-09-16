@@ -115,14 +115,14 @@ void GraphsManager::clearGraphs()
         scheduler->dock->close();
     }
 
-    // Delete all graphs
-    qDeleteAll(tb->graphs);
-    tb->graphs.clear();
-
 	// Delete corresponder, blender, and scheduler
 	if(tb->gcoor) delete tb->gcoor;
 	if(tb->blender) delete tb->blender;
 	if(tb->scheduler) delete tb->scheduler;
+
+	// Delete all graphs
+	if(tb->graphs.size() > 1) qDeleteAll(tb->graphs);
+	tb->graphs.clear();
 
 	tb->gcoor = NULL;
 	tb->blender = NULL;

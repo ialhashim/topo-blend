@@ -14,6 +14,7 @@ class Scheduler : public QGraphicsScene
 
 public:
 	Scheduler();
+	~Scheduler();
 	PropertyMap property;
 
 	// Input

@@ -22,6 +22,7 @@ class GraphDistance
 public:
     GraphDistance(Structure::Graph * graph, QVector<QString> exclude_nodes = QVector<QString>(), QVector<QString> exclude_edges = QVector<QString>());
 	GraphDistance(Structure::Node * n);
+	~GraphDistance();
 
 	int globalID;
 
@@ -33,6 +34,7 @@ public:
 
 	Structure::Graph * g;
 	double used_resolution;
+	bool isTemp;
 
 	adjacency_list_t adjacency_list;
 	std::vector<weight_t> min_distance;

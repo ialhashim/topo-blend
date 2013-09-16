@@ -8,21 +8,21 @@ Q_DECLARE_METATYPE(qglviewer::Camera*)
 #include <QGraphicsItem>
 
 // Forward declare
-class SynthesisManager;
+class Blender;
 namespace Structure { struct Graph; }
 
 class BlendPathRenderer : public QGLWidget
 {
     Q_OBJECT
 public:
-    explicit BlendPathRenderer(SynthesisManager * synthManager, int itemHeight, QWidget *parent = 0);
+    explicit BlendPathRenderer(Blender * blender, int itemHeight, QWidget *parent = 0);
     
 protected:
 	void initializeGL(); 
 	void paintGL();
 
 private:
-	SynthesisManager * s_manager;
+	Blender * blender;
 	Structure::Graph * activeGraph;
 
 signals:

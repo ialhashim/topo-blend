@@ -32,7 +32,7 @@ void CurveDraw::draw( NURBSCurved * nc, QColor curve_color, bool drawControl, do
     // Draw actual curve
     glColor4d(curve_color.redF(),curve_color.greenF(),curve_color.blueF(),curve_color.alphaF());
 
-    std::vector<Vector3d> points;
+    Array1D_Vector3 points;
 
     // Evaluate
     int nSteps = 60;

@@ -24,11 +24,7 @@ ParametricSurface<Real>::ParametricSurface (Real umin, Real umax,
     mVMax = vmax;
     mRectangular = rectangular;
 }
-//----------------------------------------------------------------------------
-template <typename Real>
-ParametricSurface<Real>::~ParametricSurface ()
-{
-}
+
 //----------------------------------------------------------------------------
 template <typename Real>
 Real ParametricSurface<Real>::GetUMin () const

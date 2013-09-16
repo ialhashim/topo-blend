@@ -48,6 +48,12 @@ TopoBlender::TopoBlender(GraphCorresponder * useCorresponder, Scheduler * useSch
 	scheduler->schedule();
 }
 
+TopoBlender::~TopoBlender()
+{
+	delete super_sg;
+	delete super_tg;
+}
+
 void TopoBlender::setupUI()
 {
 	scheduler->widget = new SchedulerWidget( scheduler );

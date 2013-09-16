@@ -90,7 +90,7 @@ void GraphItem::pick( int X, int Y )
 	
 	foreach(Structure::Node * n, g->nodes)
 	{
-		SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
+		SurfaceMesh::Model* nodeMesh = g->getMesh(n->id);
 		if(!nodeMesh) continue;
 
 		Vector3VertexProperty points = nodeMesh->vertex_property<Vector3>(VPOINT);

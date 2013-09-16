@@ -12,6 +12,7 @@
 
 namespace NURBS
 {
+
 //----------------------------------------------------------------------------
 template <typename Real>
 NURBSRectangle<Real>::NURBSRectangle (Array2D_Vector3 ctrlPoint, Array2D_Real ctrlWeight,
@@ -143,7 +144,7 @@ NURBSRectangle<Real> NURBSRectangle<Real>::createSheet(Scalar width, Scalar leng
     nV *= 1.0 / aspect_V;
 
     // Rectangular surface
-    std::vector< std::vector<Vector3d> > pts( nU, std::vector<Vector3d>( nV, Vector3(0,0,0) ) );
+    std::vector< Array1D_Vector3 > pts( nU, Array1D_Vector3( nV, Vector3(0,0,0) ) );
     std::vector< std::vector<Scalar> > weights( nU, std::vector<Scalar>( nV, 1.0 ) );
 
     Vector3 deltaU = (width  / (nU-1)) * dU;
@@ -227,7 +228,6 @@ void NURBSRectangle<Real>::CreateControl (Array2D_Vector3 ctrlPoint, Array2D_Rea
     int newNumVCtrlPoints = mNumVCtrlPoints + mVReplicate;
 
     mCtrlPoint = new2<Vector3>(newNumUCtrlPoints, newNumVCtrlPoints, Vector3(0,0,0));
-
     mCtrlWeight = new2<Real>(newNumUCtrlPoints, newNumVCtrlPoints, 1.0);
 
     for (int iu = 0; iu < newNumUCtrlPoints; iu++)
@@ -639,7 +639,7 @@ void NURBSRectangle<Real>::generateSurfaceQuads(double resolution)
     {
         for(int x = 0; x < (int)valU.size() - 1; x++)
         {
-            std::vector<Vector3> pos = std::vector<Vector3d>(4, Vector3(0,0,0));
+            std::vector<Vector3> pos = Array1D_Vector3(4, Vector3(0,0,0));
             std::vector<Vector3> dU = pos, dV = pos, normal = pos;
 
             GetFrame(valU[x]	, valV[y]	,	pos[0], dU[0], dV[0], normal[0]);
@@ -745,10 +745,10 @@ std::vector<Scalar> NURBS::NURBSRectangle<Real>::GetControlWeightsV( int vIndex 
 
 
 template <typename Real>
-std::vector<Vector3d> NURBSRectangle<Real>::intersect( NURBSRectangle<Real> & other, double resolution,
+Array1D_Vector3 NURBSRectangle<Real>::intersect( NURBSRectangle<Real> & other, double resolution,
     Array1D_Vector4d & coordMe, Array1D_Vector4d & coordOther )
 {
-    std::vector<Vector3d> samples;
+    Array1D_Vector3 samples;
 
     std::vector< std::vector<Vector3> > pnts1, pnts2;
     std::vector< std::vector< std::vector<Real> > > val( 2, std::vector< std::vector<Real> >(2) );
@@ -792,7 +792,7 @@ std::vector<Vector3d> NURBSRectangle<Real>::intersect( NURBSRectangle<Real> & ot
 
     // Project onto other surface
     Array1D_Vector4d otheruv = other.timeAt(samples, threshold);
-    std::vector<Vector3d> projectionOther;
+    Array1D_Vector3 projectionOther;
     for(int i = 0; i < (int)otheruv.size(); i++){
         other.Get(otheruv[i][0], otheruv[i][1], &p);
         projectionOther.push_back(p);
@@ -802,7 +802,7 @@ std::vector<Vector3d> NURBSRectangle<Real>::intersect( NURBSRectangle<Real> & ot
 
     // Project on me
     coordMe = this->timeAt(projectionOther, threshold);
-    std::vector<Vector3d> projectionMe;
+    Array1D_Vector3 projectionMe;
     for(int i = 0; i < (int)coordMe.size(); i++){
         this->Get(coordMe[i][0], coordMe[i][1], &p);
         samples.push_back(p);
@@ -836,7 +836,7 @@ std::vector<Vector3d> NURBSRectangle<Real>::intersect( NURBSRectangle<Real> & ot
 
     weld(samples, corner_xrefs, std::hash_Vector3d(), std::equal_to<Vector3d>());
 
-    std::vector<Vector3d> clusterdSamples = samples;
+    Array1D_Vector3 clusterdSamples = samples;
 
     if(samples.size() == 0)
         return samples;

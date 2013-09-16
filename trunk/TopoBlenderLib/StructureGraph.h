@@ -99,6 +99,7 @@ struct Graph
 	Vector3 position( QString nodeID, Vector4d& coord );
 	void replaceCoords( QString nodeA, QString nodeB, Array1D_Vector4d coordA, Array1D_Vector4d coordB );
 	int indexOfNode( Node * node );
+	SurfaceMesh::Model* getMesh( QString nodeID );
 
 	// Input / Output
 	void saveToFile(QString fileName) const;
@@ -150,5 +151,5 @@ struct Graph
 
 }
 
-Q_DECLARE_METATYPE(SurfaceMesh::Model *)
-Q_DECLARE_METATYPE(Structure::Graph *)
+Q_DECLARE_METATYPE( QSharedPointer<SurfaceMeshModel> )
+Q_DECLARE_METATYPE( Structure::Graph * )
