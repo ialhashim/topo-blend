@@ -20,6 +20,11 @@ BlendPathRenderer::BlendPathRenderer( Blender * blender, int itemHeight, QWidget
 	f.setSampleBuffers(true);
 	QGLFormat::setDefaultFormat(f);
 	this->setFormat(f);
+
+#ifdef Q_OS_WIN
+#else
+    show();
+#endif
 }
 
 void BlendPathRenderer::generateItem( Structure::Graph* newGraph, int pathID, int blendIDX )
