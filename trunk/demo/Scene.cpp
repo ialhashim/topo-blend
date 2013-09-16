@@ -293,3 +293,9 @@ void Scene::mouseDoubleClickEvent( QGraphicsSceneMouseEvent * mouseEvent )
 
 	QGraphicsScene::mouseDoubleClickEvent(mouseEvent);
 }
+
+void Scene::keyReleaseEvent( QKeyEvent * keyEvent )
+{
+	emit( keyUpEvent(keyEvent) );
+	QGraphicsScene::keyReleaseEvent(keyEvent);
+}

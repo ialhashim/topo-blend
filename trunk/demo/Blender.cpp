@@ -12,8 +12,11 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->numSuggestions = 4;
 	this->numInBetweens = 4;
 
+	this->graphItemWidth = s->width() * 0.2;
+	this->isSample = true;
+
 	// Create background items for each blend path
-	int padding = 0;
+	int padding = 4;
 	int blendPathHeight = (s->height() / (numSuggestions * 1.5)) * 0.99;
 
 	int totalHeight = numSuggestions * (blendPathHeight + padding);
@@ -21,9 +24,9 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 
 	for(int i = 0; i < numSuggestions; i++)
 	{
-		QGraphicsRectItem * blendPathBack = new QGraphicsRectItem (0,0,s->width() * 0.5, blendPathHeight);
-		blendPathBack->setBrush( QColor::fromRgbF(0,0,0.25,0.5) );
-		blendPathBack->setOpacity(0);
+		QGraphicsRectItem * blendPathBack = new QGraphicsRectItem (0,0,s->width() - (2 * graphItemWidth), blendPathHeight);
+		blendPathBack->setBrush( QColor (255, 180, 68) );
+		blendPathBack->setOpacity( 0.05 );
 
 		blendPathBack->setY( startY + (i * (blendPathHeight + padding)) );
 		blendPathBack->setX( 0.5*s->width() - 0.5*blendPathBack->boundingRect().width() );
@@ -37,8 +40,11 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 		scene->addItem(blendPathItem);
 	}
 
+	for(int i = 0; i < blendPathsItems.size(); i++)
+		items.push_back( blendPathsItems[i] );
+
 	// Show path indicators
-	QRectF r0(0,0,s->width() * 0.25,s->width() * 0.25);	r0.moveTop((s->height() * 0.5) - (r0.height() * 0.5));
+	QRectF r0(0,0,graphItemWidth,graphItemWidth);	r0.moveTop((s->height() * 0.5) - (r0.height() * 0.5));
 	QRectF r1 = r0; r1.moveRight(s->width());
 	QPointF lstart = r0.center() + QPoint(r0.width() * 0.3,0);
 	QPointF rstart = r1.center() - QPoint(r1.width() * 0.3,0);
@@ -85,19 +91,14 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 		}
 
 		QColor color( 255, 180, 68, 50 );
-
 		QGraphicsItem * litem = s->addPath(lpath, QPen(color, 1));
 		QGraphicsItem * ritem = s->addPath(rpath, QPen(color, 1));
-
 		litem->setVisible(false);
 		ritem->setVisible(false);
 
-		items.push_back(litem);
-		items.push_back(ritem);
+		auxItems.push_back(litem);
+		auxItems.push_back(ritem);
 	}
-
-	for(int i = 0; i < blendPathsItems.size(); i++)
-		items.push_back( blendPathsItems[i] );
 
 	itemHeight = blendPathHeight;
 
@@ -112,6 +113,7 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->connect(this, SIGNAL(blendPathsReady()), SLOT(computeBlendPaths()));
 	this->connect(this, SIGNAL(allPathsDone()), SLOT(blenderDone()));
 	this->connect(this, SIGNAL(becameHidden()), SLOT(cleanUp()));
+	this->connect(this, SIGNAL(keyUpEvent(QKeyEvent*)), SLOT(keyReleased(QKeyEvent*)));
 }
 
 void Blender::show()
@@ -128,7 +130,7 @@ void Blender::show()
     QPointF oldCenter0 = r0.center();
     QPointF oldCenter1 = r1.center();
 
-    double s_factor = (s->width() * 0.25) / r0.width();
+    double s_factor = graphItemWidth / r0.width();
 
     QMatrix m;
     m.scale(s_factor,s_factor);
@@ -154,6 +156,8 @@ void Blender::hide()
 {
     if(!s->isInputReady() || !property.contains("r0")) return;
 
+	foreach(QGraphicsItem * item, auxItems) item->setVisible(false);
+
     QParallelAnimationGroup * animGroup = new QParallelAnimationGroup;
     animGroup->addAnimation( s->inputGraphs[0]->animateTo( property["r0"].toRectF() ) );
     animGroup->addAnimation( s->inputGraphs[1]->animateTo( property["r1"].toRectF() ) );
@@ -171,16 +175,23 @@ void Blender::preparePaths()
 {    
 	if(!s->isInputReady() || m_gcorr == NULL) return;
 
-	progress->setExtra("Preparing paths - ");
-	progress->show();
+	isFinished = false;
 
-	qApp->setOverrideCursor(Qt::WaitCursor);
-	qApp->processEvents();
-	
+	// UI and logging
+	{	
+		progress->setExtra("Preparing paths - ");
+		progress->show();
+
+		qApp->setOverrideCursor(Qt::WaitCursor);
+		qApp->processEvents();
+		pathsTimer.start();
+	}
+
 	// Generate blend paths
 	for(int i = 0; i < numSuggestions; i++)
 	{
 		BlendPath bp;
+		bp.isReady = false;
 
 		bp.source = s->inputGraphs[0]->g;
 		bp.target = s->inputGraphs[1]->g;
@@ -198,16 +209,12 @@ void Blender::preparePaths()
 
 		// Connections
 		this->connect(bp.scheduler.data(), SIGNAL(progressChanged(int)), SLOT(progressChanged()));
-		this->connect(bp.scheduler.data(), SIGNAL(progressDone()), SLOT(pathDone()));
+		this->connect(bp.scheduler.data(), SIGNAL(progressDone()), SLOT(singlePathDone()));
 
 		// Synthesis requires a single instance of the blend process
 		if( !s_manager )
 		{
 			int numSamples = 5000;
-
-			#ifdef QT_DEBUG
-				numSamples = 50;
-			#endif
 
 			s_manager = new SynthesisManager(m_gcorr, bp.scheduler.data(), bp.blender.data(), numSamples);
 
@@ -221,14 +228,18 @@ void Blender::preparePaths()
 		}
 	}
 
-	qApp->restoreOverrideCursor();
+	// UI and logging
+	{	
+		qApp->restoreOverrideCursor();
+		progress->startProgress();
+		progress->setExtra("Generating samples - ");
+		emit( message(QString("Paths time [%1 ms]").arg(pathsTimer.elapsed())) );
+	}
 
-	// Generate samples
-	progress->startProgress();
-	progress->setExtra("Generating samples - ");
+	synthTimer.start();
 
 	// [HEAVY] Generate synthesis data
-	if( true )
+	if( isSample )
 		s_manager->generateSynthesisData();
 	else
 		emit( s_manager->emitSynthDataReady() );
@@ -237,23 +248,24 @@ void Blender::preparePaths()
 void Blender::synthDataReady()
 {
 	emit( blendPathsReady() );
-}
-
-void Blender::computePath( int index )
-{
-	blendPaths[index].scheduler->doBlend();
-	//blendPaths[index].blender->setupUI();
+	emit( message(QString("Synthesis time [%1 ms]").arg(synthTimer.elapsed())) );
 }
 
 void Blender::computeBlendPaths()
 {
 	progress->startProgress();
 	progress->setExtra("Blend paths - ");
+	blendTimer.start();
 
 	for(int i = 0; i < blendPaths.size(); i++)
 	{
 		computePath( i );
 	}
+}
+
+void Blender::computePath( int index )
+{
+	blendPaths[index].scheduler->doBlend();
 }
 
 void Blender::progressChanged()
@@ -262,26 +274,34 @@ void Blender::progressChanged()
 	for(int i = 0; i < blendPaths.size(); i++){
 		curProgress += blendPaths[i].scheduler->property["progress"].toInt();
 	}
-
 	int totalProgress = 100 * blendPaths.size();
 
 	progress->setProgress( double(curProgress) / totalProgress );
 }
 
-void Blender::pathDone()
+void Blender::singlePathDone()
 {
 	int numDone = 0;
 	for(int i = 0; i < blendPaths.size(); i++)
 		if(blendPaths[i].scheduler->property["progressDone"].toBool())
 			numDone++;
-	if(numDone == blendPaths.size()) emit( allPathsDone() );
+	if(numDone == blendPaths.size()) 
+	{
+		emit( allPathsDone() );
+		emit( message(QString("Blending time [%1 ms]").arg(blendTimer.elapsed())) );
+	}
 }
 
 void Blender::blenderDone()
 {
-	progress->stopProgress();
-	progress->hide();
+	// UI and logging
+	{
+		progress->setExtra("Rendering -");
+		progress->setProgress(0.0);
+		renderTimer.start();
+	}
 
+	// For each blend path, render 'k' in-betweens
 	for(int i = 0; i < numSuggestions; i++)
 	{
 		Scheduler * curSchedule = blendPaths[i].scheduler.data();
@@ -299,6 +319,8 @@ void Blender::blenderDone()
 			renderer->generateItem( curGraph, i, j );
 		}
 	}
+
+	foreach(QGraphicsItem * item, auxItems) item->setVisible(true);
 }
 
 void Blender::blendResultDone(QGraphicsItem* done_item)
@@ -309,19 +331,32 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 	int blendIDX = item->blendIDX;
 
 	resultItems.push_back(item);
-	//items.push_back(item);
 	s->addItem(item);
 
+	// Placement
 	QRectF pathRect = blendPathsItems[pathID]->boundingRect();
-
-	qDebug() << pathID;
-
 	int delta = 0.5 * ( (pathRect.width() / numInBetweens) - item->boundingRect().width() );
-
 	int x = pathRect.x() + (blendIDX * (pathRect.width() / numInBetweens)) + delta;
 	int y = pathRect.y();
-
 	item->setPos(x, y);
+
+	blendPaths[pathID].isReady = true;
+
+	// UI and logging
+	{
+		int numDone = 0;
+		for(int i = 0; i < blendPaths.size(); i++)
+			if(blendPaths[i].isReady) numDone++;
+		progress->setProgress( double(numDone) / blendPaths.size() );
+
+		if(numDone == blendPaths.size() && !isFinished)
+		{
+			isFinished = true;
+			progress->stopProgress();
+			progress->hide();
+			emit( message(QString("Render time [%1 ms]").arg(renderTimer.elapsed())) );
+		}
+	}
 }
 
 void Blender::cleanUp()
@@ -344,4 +379,13 @@ void Blender::cleanUp()
 	}
 
 	resultItems.clear();
+}
+
+void Blender::keyReleased( QKeyEvent* keyEvent )
+{
+	if(keyEvent->key() == Qt::Key_F)
+	{
+		this->isSample = !this->isSample;
+		emit( message( QString("Sampling toggled to: %1").arg(isSample) ) );
+	}
 }

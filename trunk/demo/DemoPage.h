@@ -19,6 +19,8 @@ public:
         titleItem->setDefaultTextColor(Qt::white);
         titleItem->setVisible(false);
         items.push_back(titleItem);
+
+		this->connect(s, SIGNAL(keyUpEvent(QKeyEvent*)), SLOT(keyUp(QKeyEvent*)));
     }
 
     PropertyMap property;
@@ -44,7 +46,11 @@ public slots:
 		emit( becameVisible() );
     }
 
+	void keyUp(QKeyEvent* keyEvent){ emit( keyUpEvent(keyEvent) ); }
+
 signals:
+	void keyUpEvent(QKeyEvent*);
 	void becameVisible();
 	void becameHidden();
+	void message(QString);
 };

@@ -76,7 +76,8 @@ void ShapesGallery::loadDataset(DatasetMap dataset)
     // Tell scene about item size
     s->setProperty("itemWidth", item->realWidth());
 
-    qDebug() << "Added [" << dataset.size() << "] shapes.";
+	QString log = QString("Added [%1] shapes.").arg(listA.size());
+	emit (message(log));
 }
 
 void ShapesGallery::layout()

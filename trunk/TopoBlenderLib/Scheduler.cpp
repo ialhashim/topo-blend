@@ -16,15 +16,13 @@
 
 Q_DECLARE_METATYPE( QSet<int> ) // for tags
 
-Scheduler::Scheduler()
+Scheduler::Scheduler() : globalStart(0.0), globalEnd(1.0), timeStep( 1.0 / 100.0 )
 {
 	rulerHeight = 25;
 
 	activeGraph = targetGraph = NULL;
 	slider = NULL;
 	widget = NULL;
-
-	time_step = 0.01;
 }
 
 Scheduler::~Scheduler()
@@ -310,7 +308,7 @@ void Scheduler::order()
 
 	// Add small spaces between tasks
 	{
-		int timeSpacing = totalExecutionTime() * time_step + 1;
+		int timeSpacing = totalExecutionTime() * timeStep + 1;
 
 		QVector<Task*> allTasks = tasksSortedByStart();
 
@@ -481,7 +479,6 @@ void Scheduler::shuffleSchedule()
 
 void Scheduler::executeAll()
 {
-	double timeStep = time_step;
 	int totalTime = totalExecutionTime();
 	QVector<Task*> allTasks = tasksSortedByStart();
 
@@ -573,7 +570,7 @@ void Scheduler::executeAll()
 	}
 
 	// Execute all tasks
-	for(double globalTime = 0; globalTime <= (1.0 + timeStep); globalTime += timeStep)
+	for(double globalTime = globalStart; globalTime <= (globalEnd + timeStep); globalTime += timeStep)
 	{
 		QElapsedTimer timer; timer.start();
 
@@ -906,7 +903,7 @@ void Scheduler::setGDResolution( double r)
 
 void Scheduler::setTimeStep( double dt )
 {
-	time_step = dt;
+	timeStep = dt;
 }
 
 void Scheduler::loadSchedule(QString filename)
