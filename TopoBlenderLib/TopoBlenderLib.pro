@@ -53,7 +53,6 @@ HEADERS += StructureNode.h \
     Scheduler.h \
     Task.h \
     SchedulerWidget.h \
-    FFD.h \
     TimelineSlider.h \
     StructureGlobal.h \
     Synthesizer.h \
@@ -77,7 +76,6 @@ SOURCES += StructureGraph.cpp \
     Scheduler.cpp \
     Task.cpp \
     SchedulerWidget.cpp \
-    FFD.cpp \
     TimelineSlider.cpp \
     Synthesizer.cpp \
     SynthesisManager.cpp \

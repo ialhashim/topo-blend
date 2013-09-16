@@ -98,7 +98,12 @@ Graph::Graph( const Graph & other )
 
 Graph::~Graph()
 {
-    //qDeleteAll( nodes );
+    qDeleteAll( nodes );
+	nodes.clear();
+
+	qDeleteAll( edges );
+	edges.clear();
+
     //nodes.clear();
 }
 
@@ -226,6 +231,8 @@ void Graph::removeEdge( Node * n1, Node * n2 )
 
 	if(edge_idx < 0) return;
 
+	delete edges[edge_idx];
+	edges[edge_idx] = NULL;
 	edges.remove(edge_idx);
 
 	adjacency(indexOfNode(n1), indexOfNode(n2)) = 0;
@@ -451,8 +458,7 @@ void Graph::draw( QGLViewer * drawArea )
 			{
 				if(n->property.contains("mesh"))
 				{
-					SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
-					//QuickMeshDraw::drawMeshWireFrame( nodeMesh );
+					QSharedPointer<SurfaceMeshModel> nodeMesh = n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >();
 
 					QColor meshColor(255,255,255,8);
 					if(!n->vis_property.contains("meshColor"))
@@ -463,7 +469,7 @@ void Graph::draw( QGLViewer * drawArea )
 					bool meshSolid = n->vis_property["meshSolid"].toBool();
 
 					if(!meshSolid) glDisable(GL_DEPTH_TEST);
-					QuickMeshDraw::drawMeshSolid( nodeMesh, meshColor );
+					QuickMeshDraw::drawMeshSolid( nodeMesh.data(), meshColor );
 					glEnable(GL_DEPTH_TEST);
 				}
 			}
@@ -597,12 +603,6 @@ void Graph::draw( QGLViewer * drawArea )
 			drawArea->renderText(proj.x,proj.y,n->id);
 		}
 	}
-
-	if( property.contains("reconMesh") )
-	{
-		QuickMeshDraw::drawMeshSolid( property["reconMesh"].value<SurfaceMesh::Model*>() );
-	}
-
 
 	if(property["showEdges"].toBool())
 	{
@@ -804,10 +804,12 @@ void Graph::drawNodeMeshNames( int & offSet )
 {
 	foreach(Node * n, nodes){
 		if(!n->property.contains("mesh")) continue;
-		SurfaceMesh::Model* nodeMesh = n->property["mesh"].value<SurfaceMesh::Model*>();
+
+		QSharedPointer<SurfaceMeshModel> nodeMesh = n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >();
+
 		n->property["meshSelectID"] = offSet;
 
-		QuickMeshDraw::drawMeshName( nodeMesh, offSet );
+		QuickMeshDraw::drawMeshName( nodeMesh.data(), offSet );
 
 		offSet++;
 	}
@@ -846,10 +848,10 @@ void Graph::saveToFile( QString fileName ) const
 			QString relativeFileName = meshesFolder + "/" + meshFileInfo.baseName() + ".obj";
 
 			// Save mesh from memory
-			SurfaceMesh::Model * mesh = n->property["mesh"].value<SurfaceMesh::Model*>();
+			QSharedPointer<SurfaceMeshModel> mesh = n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >();
 			if(mesh_filename.size() && mesh)
 			{
-				saveOBJ( mesh, graphDir.path() + "/" + relativeFileName );
+				saveOBJ( mesh.data(), graphDir.path() + "/" + relativeFileName );
 			}
 
 			out << QString("\t<mesh>%1</mesh>\n\n").arg( relativeFileName ); // relative
@@ -994,7 +996,8 @@ void Graph::loadFromFile( QString fileName )
 		// Load node's mesh and make it ready
 		if (mfile.exists())
 		{
-            SurfaceMesh::Model * nodeMesh = new SurfaceMesh::Model(mesh_filename, id);
+			QSharedPointer<SurfaceMeshModel> nodeMesh(new SurfaceMeshModel(mesh_filename, id));
+
 			nodeMesh->read( qPrintable(fullMeshPath) );
 			nodeMesh->update_face_normals();
 			nodeMesh->update_vertex_normals();
@@ -1009,8 +1012,8 @@ void Graph::loadFromFile( QString fileName )
 	if( hasMeshes ){
 		Eigen::AlignedBox3d shapeBox;
 		for(int i = 0; i < num_nodes; i++){
-			SurfaceMesh::Model * mesh = nodes[i]->property["mesh"].value<SurfaceMesh::Model*>();
-			shapeBox = shapeBox.merged( mesh->bbox() );
+			QSharedPointer<SurfaceMeshModel> nodeMesh = nodes[i]->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >();
+			shapeBox = shapeBox.merged( nodeMesh->bbox() );
 		}
 		property["shapeBox"].setValue( shapeBox );
 		property["hasMeshes"].setValue( hasMeshes );
@@ -1402,10 +1405,17 @@ Node * Graph::removeNode( QString nodeID )
 	Node * n = getNode(nodeID);
 
 	foreach(Link * e, getEdges(nodeID)){
-		edges.remove(edges.indexOf(e));
+		int edge_idx = edges.indexOf(e);
+
+		delete edges[edge_idx];
+		edges[edge_idx] = NULL;
+		edges.remove(edge_idx);
 	}
 
-	nodes.remove(nodes.indexOf(n));
+	int node_idx = nodes.indexOf(n);
+	delete nodes[node_idx];
+	nodes[node_idx] = NULL;
+	nodes.remove(node_idx);
 
 	return n;
 }
@@ -1580,6 +1590,15 @@ Vector3 Graph::position( QString nodeID, Vector4d& coord )
 	return node->position(coord);
 }
 
+SurfaceMesh::Model* Graph::getMesh( QString nodeID )
+{
+	Node * node = getNode(nodeID);
+
+	if(node) return node->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data();
+
+	return NULL;
+}
+
 void Graph::translate( Vector3 delta )
 {
 	foreach (Node * node, nodes)
@@ -1592,7 +1611,7 @@ void Graph::translate( Vector3 delta )
 
 		// Apply to actual geometry
 		if(!node->property.contains("mesh")) continue;
-		SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
+		SurfaceMesh::Model* model = getMesh(node->id);
 		Vector3VertexProperty points = model->vertex_property<Vector3d>("v:point");
 		foreach(Vertex v, model->vertices()) points[v] += delta;
 	}
@@ -1614,7 +1633,7 @@ void Graph::rotate( double angle, Vector3 axis )
 			((Sheet*)node)->surface.quads.clear();
 
 		// Move actual geometry
-        SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
+        SurfaceMesh::Model* model = getMesh(node->id);
 		Vector3VertexProperty points = model->vertex_property<Vector3d>("v:point");
 		model->updateBoundingBox();
 
@@ -1644,7 +1663,7 @@ void Graph::scale( double scaleFactor )
 		if(!node->property.contains("mesh")) continue;
 
 		// Move actual geometry
-        SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
+        SurfaceMesh::Model* model = getMesh(node->id);
 		Vector3VertexProperty points = model->vertex_property<Vector3d>("v:point");
 		foreach(Vertex v, model->vertices())
 			points[v] *= relative_scale;
@@ -1678,7 +1697,7 @@ void Graph::transform( QMatrix4x4 mat )
 		
 		// Transform actual geometry
 		if(!node->property.contains("mesh")) continue;
-		SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
+		SurfaceMesh::Model* model = getMesh( node->id );
 		Vector3VertexProperty points = model->vertex_property<Vector3d>("v:point");
 		foreach(Vertex v, model->vertices()) points[v] = QVector3(mat * QVector3(points[v]));
 	}
@@ -1713,7 +1732,7 @@ void Graph::normalize()
 
 		// Apply to actual geometry
 		if(!node->property.contains("mesh")) continue;
-		SurfaceMesh::Model* model = node->property["mesh"].value<SurfaceMesh::Model*>();
+		SurfaceMesh::Model* model = getMesh( node->id );
 		Vector3VertexProperty points = model->vertex_property<Vector3d>("v:point");
 		foreach(Vertex v, model->vertices())
 			points[v] *= scaleFactor;

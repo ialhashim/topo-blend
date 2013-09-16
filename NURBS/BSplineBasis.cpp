@@ -268,9 +268,7 @@ Array2D_Real BSplineBasis<Real>::Allocate()
 	int numRows = mDegree + 1;
 	int numCols = mNumCtrlPoints + mDegree;
 
-	Array2D_Real data = Array2D_Real( numRows, Array1D_Real( numCols, 0.0 ) );
-
-	return data;
+	return Array2D_Real( numRows, Array1D_Real( numCols, 0.0 ) );
 }
 
 //----------------------------------------------------------------------------

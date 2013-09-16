@@ -13,8 +13,6 @@ template <typename Real>
 class Surface
 {
 public:
-    // Abstract base class.
-    virtual ~Surface ();
 
 protected:
     Surface ();

@@ -175,7 +175,7 @@ QVector<ParameterCoord> Synthesizer::genPointCoordsSheet( Structure::Sheet * she
 // Different sampling methods to generate rays
 QVector<ParameterCoord> Synthesizer::genFeatureCoords( Structure::Node * node )
 {
-	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
+	SurfaceMesh::Model * model = node->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data();
 
 	// Collect original mesh points
 	Vector3VertexProperty points = model->vertex_property<Vector3>(VPOINT);
@@ -197,7 +197,7 @@ QVector<ParameterCoord> Synthesizer::genFeatureCoords( Structure::Node * node )
 
 QVector<ParameterCoord> Synthesizer::genEdgeCoords( Structure::Node * node)
 {
-	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
+	SurfaceMesh::Model * model = node->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data();
 
 	// Sample mesh surface
 	QVector<Vector3d> sample_normals;
@@ -218,7 +218,7 @@ QVector<ParameterCoord> Synthesizer::genEdgeCoords( Structure::Node * node)
 
 QVector<ParameterCoord> Synthesizer::genRandomCoords(Node *node, int samples_count)
 {
-	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
+	SurfaceMesh::Model * model = node->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data();
 
 	// Sample mesh surface
 	std::vector<Vector3d> samplePoints, sampleNormals;
@@ -237,7 +237,7 @@ QVector<ParameterCoord> Synthesizer::genRandomCoords(Node *node, int samples_cou
 
 QVector<ParameterCoord> Synthesizer::genUniformCoords(Node *node, float sampling_resolution)
 {
-    SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
+	SurfaceMesh::Model * model = node->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data();
 
     // Auto resolution
     if(sampling_resolution < 0) sampling_resolution = UNIFORM_RESOLUTION;
@@ -259,7 +259,7 @@ QVector<ParameterCoord> Synthesizer::genUniformCoords(Node *node, float sampling
 
 QVector<ParameterCoord> Synthesizer::genRemeshCoords( Structure::Node * node )
 {
-	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
+	SurfaceMesh::Model * model = node->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data();
 	SurfaceMesh::Model copyModel;
 
 	std::vector<Vector3f> samplePoints, sampleNormals;
@@ -306,7 +306,7 @@ QVector<ParameterCoord> Synthesizer::genRemeshCoords( Structure::Node * node )
 
 QVector<ParameterCoord> Synthesizer::genUniformTrisCoords( Structure::Node * node )
 {
-	SurfaceMesh::Model * model = node->property["mesh"].value<SurfaceMesh::Model*>();
+	SurfaceMesh::Model * model = node->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data();
 
 	// Sample mesh surface
 	QVector<Vector3d> sample_normals;
@@ -404,7 +404,8 @@ QVector<ParameterCoord> Synthesizer::genSampleCoordsSheet( Structure::Sheet * sh
 // Compute offset and normal for each ray
 void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structure::Curve * curve, QVector<float> &offsets, QVector<Vec2f> &normals )
 {
-	SurfaceMesh::Model * model = curve->property["mesh"].value<SurfaceMesh::Model*>();
+	SurfaceMesh::Model * model = curve->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data();
+
 	model->update_face_normals();
 	Vector3FaceProperty fnormals = model->face_property<Vector3d>("f:normal");
     Octree octree(model, OCTREE_NODE_SIZE);
@@ -475,7 +476,8 @@ void Synthesizer::sampleGeometryCurve( QVector<ParameterCoord> samples, Structur
 
 void Synthesizer::sampleGeometrySheet( QVector<ParameterCoord> samples, Structure::Sheet * sheet, QVector<float> &offsets, QVector<Vec2f> &normals )
 {
-	SurfaceMesh::Model * model = sheet->property["mesh"].value<SurfaceMesh::Model*>();
+	SurfaceMesh::Model * model = sheet->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data();
+
 	model->update_face_normals();
 	Vector3FaceProperty fnormals = model->face_property<Vector3d>("f:normal");
     Octree octree(model, OCTREE_NODE_SIZE);

@@ -16,6 +16,7 @@ class NURBSRectangle : public ParametricSurface<Real>
 {
 public:
     NURBSRectangle() {}
+	virtual ~NURBSRectangle() {} 
 
     // Construction and destruction.   The caller is responsible for deleting
     // the input arrays if they were dynamically allocated.  Internal copies
@@ -128,7 +129,7 @@ public:
 	std::vector<Scalar> GetControlWeightsU(int uIndex);
 	std::vector<Scalar> GetControlWeightsV(int vIndex);
 
-    std::vector<Vector3d> intersect(NURBSRectangle<Real> &other, double resolution, Array1D_Vector4d &coordMe, Array1D_Vector4d &coordOther);
+    Array1D_Vector3 intersect(NURBSRectangle<Real> &other, double resolution, Array1D_Vector4d &coordMe, Array1D_Vector4d &coordOther);
 
     Vector4d timeAt(const Vector3 &pos);
     Vector4d timeAt(const Vector3 &pos, Vector4d &bestUV, Vector4d &minRange, Vector4d &maxRange, Real currentDist, Real threshold = 1e-4 );
@@ -151,9 +152,6 @@ public:
     std::vector<bool> mLoop;
     std::vector< BSplineBasis<Real> > mBasis;
     int mUReplicate, mVReplicate;
-
-	// Misc
-	Array1D_Vector3 misc_points;
 };
 
 typedef NURBSRectangle<float> NURBSRectanglef;

@@ -10,12 +10,12 @@ namespace NURBS
 {
 
 template <typename Real>
-class ParametricSurface : public Surface<Real>
+class ParametricSurface
 {
 public:
     // Abstract base class.
     ParametricSurface() {}
-    virtual ~ParametricSurface ();
+	virtual ~ParametricSurface() {} 
 
     // The parametric domain is either rectangular or triangular.  Valid (u,v)
     // values for a rectangular domain satisfy

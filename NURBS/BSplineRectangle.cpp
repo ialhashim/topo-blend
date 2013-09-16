@@ -127,8 +127,7 @@ void BSplineRectangle<Real>::CreateControl (Vector3** ctrlPoint)
 {
     int newNumUCtrlPoints = mNumUCtrlPoints + mUReplicate;
     int newNumVCtrlPoints = mNumVCtrlPoints + mVReplicate;
-    mCtrlPoint = new2<Vector3 >(newNumVCtrlPoints,
-        newNumUCtrlPoints);
+    mCtrlPoint = new2< Vector3 >(newNumVCtrlPoints, newNumUCtrlPoints);
 
     for (int u = 0; u < newNumUCtrlPoints; ++u)
     {

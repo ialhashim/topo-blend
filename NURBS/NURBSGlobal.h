@@ -19,8 +19,7 @@ typedef std::vector< Array1D_Vector3 > Array2D_Vector3;
 typedef std::vector< Scalar > Array1D_Real;
 typedef std::vector< Array1D_Real > Array2D_Real;
 
-//typedef std::vector< Vector4d > Array1D_Vector4d;
-typedef std::vector<Vector4d, Eigen::aligned_allocator<Vector4d> > Array1D_Vector4d;
+typedef std::vector< Vector4d, Eigen::aligned_allocator<Vector4d> > Array1D_Vector4d;
 typedef std::vector< Array1D_Vector4d > Array2D_Vector4d;
 
 Q_DECLARE_METATYPE(Array1D_Vector3)
@@ -269,7 +268,7 @@ inline static bool sphereTest(Vector3d & p1, Vector3d & p2, double r1, double r2
     return dist <= minDist * minDist;
 }
 
-inline static bool intersectRayTri(const std::vector<Vector3d> & tri, const Vector3d & rayOrigin,
+inline static bool intersectRayTri(const Array1D_Vector3 & tri, const Vector3d & rayOrigin,
     const Vector3d & rayDirection, Vector3d & intersectionPoint)
 {
     double u, v, t;

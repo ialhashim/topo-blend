@@ -19,8 +19,9 @@ class Curve
 public:
     // Abstract base class.
     Curve () {}
+	virtual ~Curve () {}
+
     Curve (Real tmin, Real tmax);
-    virtual ~Curve ();
 
     // Interval on which curve parameter is defined.  If you are interested
     // in only a subinterval of the actual domain of the curve, you may set

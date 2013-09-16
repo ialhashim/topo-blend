@@ -471,7 +471,7 @@ void topo_blend_widget::exportAsOBJ()
 
 		out << "# Starting mesh " << n->id << "\n";
 		
-		SurfaceMesh::Model * m = n->property["mesh"].value<SurfaceMesh::Model*>();
+		SurfaceMesh::Model* m = g->getMesh(n->id);
 
 		// Write out vertices
 		Vector3VertexProperty points = m->vertex_property<Vector3>(VPOINT);

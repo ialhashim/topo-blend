@@ -211,7 +211,7 @@ void nurbs_plugin::saveAll()
 
 		// Assign sub-mesh to node
 		n->property["mesh_filename"] = entireMesh->name + "/" + nodeID + ".obj";
-		n->property["mesh"].setValue( nodeMesh );
+		n->property["mesh"].setValue( QSharedPointer<SurfaceMeshModel>(nodeMesh) );
 	}
 
 	QString folderPath = QFileDialog::getExistingDirectory();

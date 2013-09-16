@@ -45,7 +45,8 @@ struct Link
 	// Constructors
     Link(Node * node1, Node * node2, LinkCoords coord_n1, LinkCoords coord_n2, QString link_type, QString ID);
 	Link(){	n1 = n2 = NULL; coord.resize(2); }
-	
+	~Link();
+
 	// Accessors
 	bool hasNode(QString nodeID);
 	bool hasNodeProperty(QString propertyName, QVariant propertyValue);

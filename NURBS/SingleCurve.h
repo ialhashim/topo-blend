@@ -16,6 +16,8 @@ class SingleCurve : public Curve<Real>
 public:
     // Abstract base class.
     SingleCurve () {}
+	virtual ~SingleCurve () {}
+
     SingleCurve (Real tmin, Real tmax);
 
     // Length-from-time and time-from-length.

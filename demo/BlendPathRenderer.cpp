@@ -3,10 +3,11 @@
 
 #include "BlendPathRenderer.h"
 #include "BlenderRenderItem.h"
+#include "Blender.h"
 #include "SynthesisManager.h"
 
-BlendPathRenderer::BlendPathRenderer( SynthesisManager * synthManager, int itemHeight, QWidget *parent ) 
-	: QGLWidget(parent), s_manager(synthManager), activeGraph(NULL)
+BlendPathRenderer::BlendPathRenderer( Blender * blender, int itemHeight, QWidget *parent ) 
+	: QGLWidget(parent), blender(blender), activeGraph(NULL)
 {
 	int w = itemHeight;
 	int h = itemHeight;
@@ -69,6 +70,7 @@ void BlendPathRenderer::paintGL()
 	glEnable(GL_DEPTH_TEST);
 
 	// Get camera
+	SynthesisManager * s_manager = blender->s_manager;
 	qglviewer::Camera * sceneCamera = s_manager->property("camera").value<qglviewer::Camera*>();
 	if(!sceneCamera) return;
 

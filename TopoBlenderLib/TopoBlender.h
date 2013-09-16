@@ -19,7 +19,8 @@ class TopoBlender : public QObject
     Q_OBJECT
 public:
     explicit TopoBlender(GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent = 0);
-    
+    ~TopoBlender();
+
 	Structure::Graph * sg;
     Structure::Graph * tg;
 	GraphCorresponder * gcoor;

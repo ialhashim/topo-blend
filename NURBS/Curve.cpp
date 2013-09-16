@@ -29,11 +29,7 @@ Curve<Real>::Curve (Real tmin, Real tmax)
     mTMin = tmin;
     mTMax = tmax;
 }
-//----------------------------------------------------------------------------
-template <typename Real>
-Curve<Real>::~Curve ()
-{
-}
+
 //----------------------------------------------------------------------------
 template <typename Real>
 Real Curve<Real>::GetMinTime ()
@@ -181,7 +177,7 @@ template <typename Real>
 void Curve<Real>::SubdivideByLength (int numPoints, Array1D_Vector3& points)
 {
     assertion(numPoints >= 2, "Subdivision requires at least two points\n");
-    points = new1<Vector3 >(numPoints);
+    points = new1<Vector3>(numPoints);
 
     Real delta = GetTotalLength()/(numPoints - 1);
 

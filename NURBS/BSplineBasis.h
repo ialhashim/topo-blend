@@ -68,15 +68,10 @@ public:
 
 	Array2D_Real Allocate();
 
+	static Array1D_Real uniformKnotVector(int num_ctrl_points, int degree = 3);
+
     // Determine knot index i for which knot[i] <= rfTime < knot[i+1].
     int GetKey (Real& t) const;
-
-    int mNumCtrlPoints;   // n+1
-    int mDegree;          // d
-    Array1D_Real mKnot;          // knot[n+d+2]
-    bool mOpen, mUniform;
-
-	static Array1D_Real uniformKnotVector(int num_ctrl_points, int degree = 3);
 
     // Storage for the basis functions and their derivatives first three
     // derivatives.  The basis array is always allocated by the constructor
@@ -86,6 +81,12 @@ public:
     Array2D_Real mBD1;  // bd1[d+1][n+d+1]
     Array2D_Real mBD2;  // bd2[d+1][n+d+1]
     Array2D_Real mBD3;  // bd3[d+1][n+d+1]
+
+	Array1D_Real mKnot;   // knot[n+d+2]
+	int mNumCtrlPoints;   // n+1
+	int mDegree;          // d
+
+	bool mOpen, mUniform;
 };
 
 typedef BSplineBasis<float> BSplineBasisf;

@@ -11,6 +11,7 @@ struct Node
 {
 	// Constructors
 	virtual Node * clone() = 0;
+	virtual ~Node(){}
 
 	// Properties
 	QString id;

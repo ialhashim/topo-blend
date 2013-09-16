@@ -16,6 +16,7 @@ GraphDistance::GraphDistance( Structure::Graph * graph, QVector<QString> exclude
 	this->excludeEdges = exclude_edges;
 	this->isReady = false;
 	this->globalID = 0;
+	this->isTemp = false;
 
 	if(g->nodes.size() < 2) return;
 
@@ -31,8 +32,18 @@ GraphDistance::GraphDistance( Structure::Node * n )
 	this->isReady = false;
 	this->globalID = 0;
 
+	this->isTemp = true;
 	this->g = new Structure::Graph();
 	g->addNode( n->clone() );
+}
+
+GraphDistance::~GraphDistance()
+{
+	if(isTemp) 
+	{
+		delete g;
+		g = NULL;
+	}
 }
 
 void GraphDistance::prepareNodes( Scalar resolution, const std::vector<Vector3> & startingPoints, CloseMap & closestStart,

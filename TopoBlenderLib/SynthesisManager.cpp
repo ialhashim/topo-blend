@@ -260,14 +260,6 @@ void SynthesisManager::renderCurrent(Structure::Graph * currentGraph)
     Structure::Graph lastGraph = *currentGraph;
     renderGraph(lastGraph, filename, false, reconLevel, true);
 
-    // Load and display as mesh in viewer
-    if( false )
-    {
-        SurfaceMesh::SurfaceMeshModel * m = new SurfaceMesh::SurfaceMeshModel(filename + ".obj", "reconMesh");
-        m->read( qPrintable(filename+".obj") );
-        currentGraph->property["reconMesh"].setValue( m );
-    }
-
     updateViewer();
 
     qDebug() << QString("Current graph rendered [%1 ms]").arg(timer.elapsed());
@@ -395,7 +387,7 @@ void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bo
 		{
 			// Replace node mesh with reconstructed
 			QString node_filename = node->id + ".obj";
-			node->property["mesh"].setValue( reconMeshes[node->id] );
+			node->property["mesh"].setValue( QSharedPointer<SurfaceMeshModel> (reconMeshes[node->id]) );
 			node->property["mesh_filename"].setValue( "meshes/" + node_filename );
 		}
     }
@@ -857,4 +849,9 @@ bool SynthesisManager::samplesAvailable( QString graph, QString nodeID )
 		synthData[graph].contains(nodeID) &&
 		synthData[graph][nodeID].contains("samples") &&
 		synthData[graph][nodeID]["samplesCount"].toInt() > 0 ;
+}
+
+void SynthesisManager::emitSynthDataReady()
+{
+	emit( synthDataReady() );
 }

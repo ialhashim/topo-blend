@@ -176,7 +176,7 @@ void Matcher::graphHit( GraphItem::HitResult hit )
 	// Add only if not there
 	if(!group.contains(n->id)) group.push_back(n->id);
 	
-	item->marker.addSphere( hit.ipoint, 0.04, QColor(211, 50, 118) );
+	item->marker.addSphere( hit.ipoint, 0.04f, QColor(211, 50, 118) );
 }
 
 void Matcher::autoMode()

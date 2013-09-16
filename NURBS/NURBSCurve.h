@@ -44,6 +44,8 @@ public:
     // knot array is calculated accordingly.
 
     NURBSCurve (){}
+	virtual ~NURBSCurve() {} 
+
     NURBSCurve (const Array1D_Vector3 & ctrlPoint, const Array1D_Real & ctrlWeight, int degree = 3, bool loop = false, bool open = true);
 
 	static Array1D_Real uniformWeights(int n){ return Array1D_Real(n,1.0); }

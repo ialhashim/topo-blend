@@ -27,6 +27,27 @@ Scheduler::Scheduler()
 	time_step = 0.01;
 }
 
+Scheduler::~Scheduler()
+{
+	qDeleteAll(allGraphs);
+	allGraphs.clear();
+
+	qDeleteAll(tasks);
+	tasks.clear();
+
+	if(widget) delete widget;
+	if(slider) delete slider;
+
+	if(property.contains("prevActiveGraph"))
+	{
+		this->activeGraph = property["prevActiveGraph"].value<Structure::Graph*>();
+		this->targetGraph = property["prevTargetGraph"].value<Structure::Graph*>();
+
+		delete activeGraph;
+		delete targetGraph;
+	}
+}
+
 void Scheduler::drawBackground( QPainter * painter, const QRectF & rect )
 {
 	QGraphicsScene::drawBackground(painter,rect);
@@ -464,7 +485,7 @@ void Scheduler::executeAll()
 	int totalTime = totalExecutionTime();
 	QVector<Task*> allTasks = tasksSortedByStart();
 
-	// Re-execution
+	// Save for re-execution
 	if( !allGraphs.size() )
 	{
 		property["prevActiveGraph"].setValue( new Structure::Graph(*activeGraph) );
