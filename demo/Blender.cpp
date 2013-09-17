@@ -1,7 +1,8 @@
 #include "Blender.h"
 #include "ProgressItem.h"
-#include "BlendPathRenderer.h"
 #include "BlenderRenderItem.h"
+#include "BlendPathRenderer.h"
+#include "BlendPathSub.h"
 
 #include "TopoBlender.h"
 #include "Scheduler.h"
@@ -12,8 +13,11 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->numSuggestions = 4;
 	this->numInBetweens = 4;
 
+	this->resultItems = QVector< QVector<QGraphicsItem*> >(numSuggestions, QVector<QGraphicsItem*>(numInBetweens, NULL) );
+	this->blendSubItems = QVector< QVector<BlendPathSub*> >(numSuggestions, QVector<BlendPathSub*>(numInBetweens, NULL) );
+
+	this->isSample = false;
 	this->graphItemWidth = s->width() * 0.2;
-	this->isSample = true;
 
 	// Create background items for each blend path
 	int padding = 4;
@@ -26,7 +30,7 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	{
 		QGraphicsRectItem * blendPathBack = new QGraphicsRectItem (0,0,s->width() - (2 * graphItemWidth), blendPathHeight);
 		blendPathBack->setBrush( QColor (255, 180, 68) );
-		blendPathBack->setOpacity( 0.05 );
+		blendPathBack->setOpacity( 0.02 );
 
 		blendPathBack->setY( startY + (i * (blendPathHeight + padding)) );
 		blendPathBack->setX( 0.5*s->width() - 0.5*blendPathBack->boundingRect().width() );
@@ -114,6 +118,7 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->connect(this, SIGNAL(allPathsDone()), SLOT(blenderDone()));
 	this->connect(this, SIGNAL(becameHidden()), SLOT(cleanUp()));
 	this->connect(this, SIGNAL(keyUpEvent(QKeyEvent*)), SLOT(keyReleased(QKeyEvent*)));
+	this->connect(this, SIGNAL(blendDone()), SLOT(blenderAllResultsDone()));
 }
 
 void Blender::show()
@@ -176,6 +181,7 @@ void Blender::preparePaths()
 	if(!s->isInputReady() || m_gcorr == NULL) return;
 
 	isFinished = false;
+	emit( blendStarted() );
 
 	// UI and logging
 	{	
@@ -191,7 +197,6 @@ void Blender::preparePaths()
 	for(int i = 0; i < numSuggestions; i++)
 	{
 		BlendPath bp;
-		bp.isReady = false;
 
 		bp.source = s->inputGraphs[0]->g;
 		bp.target = s->inputGraphs[1]->g;
@@ -323,6 +328,15 @@ void Blender::blenderDone()
 	foreach(QGraphicsItem * item, auxItems) item->setVisible(true);
 }
 
+void Blender::keyReleased( QKeyEvent* keyEvent )
+{
+	if(keyEvent->key() == Qt::Key_F)
+	{
+		this->isSample = !this->isSample;
+		emit( message( QString("Sampling toggled to: %1").arg(isSample) ) );
+	}
+}
+
 void Blender::blendResultDone(QGraphicsItem* done_item)
 {
 	BlenderRenderItem * item = (BlenderRenderItem*) done_item;
@@ -330,28 +344,32 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 	int pathID = item->pathID;
 	int blendIDX = item->blendIDX;
 
-	resultItems.push_back(item);
-	s->addItem(item);
+	resultItems[pathID][blendIDX] = item;
+	s->addItem(resultItems[pathID][blendIDX]);
 
 	// Placement
 	QRectF pathRect = blendPathsItems[pathID]->boundingRect();
-	int delta = 0.5 * ( (pathRect.width() / numInBetweens) - item->boundingRect().width() );
-	int x = pathRect.x() + (blendIDX * (pathRect.width() / numInBetweens)) + delta;
+	double outterWidth = (pathRect.width() / numInBetweens);
+	int delta = 0.5 * (outterWidth  - item->boundingRect().width() );
+	int x = pathRect.x() + (blendIDX * outterWidth) + delta;
 	int y = pathRect.y();
 	item->setPos(x, y);
-
-	blendPaths[pathID].isReady = true;
 
 	// UI and logging
 	{
 		int numDone = 0;
-		for(int i = 0; i < blendPaths.size(); i++)
-			if(blendPaths[i].isReady) numDone++;
-		progress->setProgress( double(numDone) / blendPaths.size() );
+		for(int i = 0; i < numSuggestions; i++)
+			for(int j = 0; j < numInBetweens; j++)
+				if(resultItems[i][j]) numDone++;
 
-		if(numDone == blendPaths.size() && !isFinished)
+		int N = (numSuggestions * numInBetweens);
+		progress->setProgress( double(numDone) / N );
+
+		if(numDone == N)
 		{
 			isFinished = true;
+			emit( blendDone() );
+
 			progress->stopProgress();
 			progress->hide();
 			emit( message(QString("Render time [%1 ms]").arg(renderTimer.elapsed())) );
@@ -361,11 +379,22 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 
 void Blender::cleanUp()
 {
-	for(int i = 0; i < resultItems.size(); i++){
-		s->removeItem(resultItems[i]);
-		delete resultItems[i];
-	}
+	for(int i = 0; i < numSuggestions; i++){
+		for(int j = 0; j < numInBetweens; j++)
+		{
+			s->removeItem(resultItems[i][j]);
+			delete resultItems[i][j];
+			resultItems[i][j] = NULL;
 
+			if(j+1 < numInBetweens)
+			{
+				s->removeItem(blendSubItems[i][j]);
+				delete blendSubItems[i][j];
+				blendSubItems[i][j] = NULL;
+			}
+		}
+	}
+	
 	// Clean up synthesis data
 	{
 		s_manager->clear();
@@ -377,15 +406,26 @@ void Blender::cleanUp()
 	{
 		blendPaths.clear();
 	}
-
-	resultItems.clear();
 }
 
-void Blender::keyReleased( QKeyEvent* keyEvent )
+void Blender::blenderAllResultsDone()
 {
-	if(keyEvent->key() == Qt::Key_F)
+	// Expand blend sequence near two items
+	for(int i = 0; i < numSuggestions; i++)
 	{
-		this->isSample = !this->isSample;
-		emit( message( QString("Sampling toggled to: %1").arg(isSample) ) );
+		QRectF pathRect = blendPathsItems[i]->boundingRect();
+		double outterWidth = (pathRect.width() / numInBetweens);
+
+		for(int j = 0; j + 1 < numInBetweens; j++)
+		{
+			BlendPathSub * subItem = new BlendPathSub(itemHeight * 0.5, itemHeight, this);
+			subItem->setPos( QPointF(pathRect.x() + ((j+1) * outterWidth) - (subItem->boundingRect().width() * 0.5), pathRect.y()) );
+			
+			blendSubItems[i][j]  = subItem;
+			blendSubItems[i][j]->property["i"] = i;
+			blendSubItems[i][j]->property["j"] = j;
+
+			s->addItem( blendSubItems[i][j] );
+		}
 	}
 }

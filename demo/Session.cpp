@@ -15,6 +15,10 @@ Session::Session(   Scene *scene, ShapesGallery *gallery, Controls * control,
 	control->connect(matcher, SIGNAL(correspondenceFromFile()), SLOT(forceManualMatch()));
 	m->connect(control->ui->autoButton, SIGNAL(clicked()), SLOT(autoMode()));
 	m->connect(control->ui->manualButton, SIGNAL(clicked()), SLOT(manualMode()));
+
+	// Blender:
+	control->connect(blender, SIGNAL(blendStarted()), SLOT(disableTabs()));
+	control->connect(blender, SIGNAL(blendDone()), SLOT(enableTabs()));
 }
 
 void Session::shapeChanged(int i, QGraphicsItem * shapeItem)

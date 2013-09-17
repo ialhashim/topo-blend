@@ -1,7 +1,7 @@
 #include "Matcher.h"
 using namespace Structure;
 
-Matcher::Matcher(Scene * scene, QString title) : prevItem(NULL), DemoPage(scene,title)
+Matcher::Matcher(Scene * scene, QString title) : gcorr(NULL), prevItem(NULL), DemoPage(scene,title)
 {
 	// Fill in color sets
 	for(int i = 0; i < 20; i++)
@@ -54,6 +54,21 @@ void Matcher::show()
 	animGroup->addAnimation( s->inputGraphs[0]->animateTo(r0) );
 	animGroup->addAnimation( s->inputGraphs[1]->animateTo(r1) );
 	animGroup->start( QAbstractAnimation::DeleteWhenStopped );
+	
+	if( gcorr )
+	{
+		bool isSameSource = gcorr->sg == s->inputGraphs[0]->g;
+		bool isSameTarget = gcorr->tg == s->inputGraphs[1]->g;
+
+		if( isSameSource && isSameTarget )
+		{
+			manualMode();
+
+			emit( corresponderCreated(gcorr) );
+			DemoPage::show();
+			return;
+		}
+	}
 
 	// Make corresponder
 	gcorr = new GraphCorresponder(s->inputGraphs[0]->g, s->inputGraphs[1]->g);
@@ -87,7 +102,6 @@ void Matcher::show()
 	}
 
 	emit( corresponderCreated(gcorr) );
-
 	DemoPage::show();
 }
 
@@ -106,6 +120,10 @@ void Matcher::hide()
 	if(!s->isInputReady() || !property.contains("r0")) return;
 
 	resetColors();
+
+	// Remove any markers
+	s->inputGraphs[0]->marker.clear();
+	s->inputGraphs[1]->marker.clear();
 
 	// Disable graph picking
 	s->setProperty("graph-pick", false);

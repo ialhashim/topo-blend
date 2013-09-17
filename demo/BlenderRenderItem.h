@@ -1,11 +1,17 @@
 #pragma once
 
-#include <QGraphicsPixmapItem>
+#include <QGraphicsObject>
 #include <QMap>
 
-class BlenderRenderItem : public QGraphicsPixmapItem {
+class BlenderRenderItem : public QGraphicsObject {
+	Q_OBJECT
 public:
-	BlenderRenderItem(QPixmap pixmap) : QGraphicsPixmapItem(pixmap) {  }
+    BlenderRenderItem(QPixmap pixmap);
+
 	int pathID, blendIDX;
+	QPixmap pixmap;
 	QMap<QString, QVariant> property;
+
+    QRectF boundingRect() const { return pixmap.rect(); }
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
 };

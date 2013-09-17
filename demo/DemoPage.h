@@ -25,6 +25,7 @@ public:
 
     PropertyMap property;
     bool isVisible() { return visible; }
+	Scene * scene() { return s; }
 
 protected:
     Scene * s;

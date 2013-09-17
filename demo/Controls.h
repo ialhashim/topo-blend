@@ -13,6 +13,9 @@ public:
 
 public slots:
     void tabChanged(int index);
+	void disableTabs();
+	void enableTabs();
+
 	void forceManualMatch();
 
 signals:
@@ -20,7 +23,6 @@ signals:
     void showSelect();
     void showMatch();
     void showCreate();
-
 public:
     Ui::Controls *ui;
 };

@@ -64,14 +64,17 @@ void ShapesGallery::loadDataset(DatasetMap dataset)
     foreach(QGraphicsItem * item, listA) s->addItem(item);
     foreach(QGraphicsItem * item, listB) s->addItem(item);
 
-    // Add selection boxes
-    ShapeItem * item = (ShapeItem *)listA[0];
-    int center = (s->height() * 0.5) - (item->realHeight() * 0.5);
+	// Default item
+	ShapeItem * item = (ShapeItem *)listA[0];
 
-    int penWidth = 5;
-    QPen pen(Qt::yellow, penWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
-    items.push_back( s->addRect(  (penWidth*0.5) + 0, center, item->realWidth(), item->realHeight(), pen ) );
-    items.push_back( s->addRect( -(penWidth*0.5) + s->width() - item->realWidth(), center, item->realWidth(), item->realHeight(), pen ) );
+    // Add selection boxes
+	{
+		int center = (s->height() * 0.5) - (item->realHeight() * 0.5);
+		int penWidth = 5;
+		QPen pen(Qt::yellow, penWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+		items.push_back( s->addRect(  (penWidth*0.5) + 0, center, item->realWidth(), item->realHeight(), pen ) );
+		items.push_back( s->addRect( -(penWidth*0.5) + s->width() - item->realWidth(), center, item->realWidth(), item->realHeight(), pen ) );
+	}
 
     // Tell scene about item size
     s->setProperty("itemWidth", item->realWidth());
@@ -85,8 +88,8 @@ void ShapesGallery::layout()
     arrangeList(listA, 0);
     arrangeList(listB, -1);
 
-    indexA = 2;
-    indexB = 3;
+    indexA = 3;
+    indexB = 4;
 
 	if(!listA.size()) return;
 
