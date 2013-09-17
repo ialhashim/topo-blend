@@ -5,7 +5,7 @@
 
 // Forward Declare
 class TopoBlender; class Scheduler; class ProgressItem; class SynthesisManager;
-class BlendPathRenderer;
+class BlendPathRenderer; class BlendPathSub;
 
 // Blend path container
 struct BlendPath{
@@ -14,7 +14,6 @@ struct BlendPath{
 	GraphCorresponder * gcorr;
 	QSharedPointer<Scheduler> scheduler;
 	QSharedPointer<TopoBlender> blender;
-	bool isReady;
 };
 
 class Blender : public DemoPage
@@ -28,10 +27,13 @@ public:
 	int graphItemWidth;
 
 	friend class BlendPathRenderer;
+	friend class BlendPathSub;
 
 signals:
     void blendPathsReady();
 	void allPathsDone();
+	void blendStarted();
+	void blendDone();
 
 public slots:
     void show();
@@ -47,14 +49,17 @@ public slots:
 	void singlePathDone();
 	void blenderDone();
 	void blendResultDone(QGraphicsItem* item);
+	void blenderAllResultsDone();
 
 	void keyReleased(QKeyEvent* keyEvent);
 
 private:
-	QVector<BlendPath> blendPaths;
-	QVector<QGraphicsItemGroup*> blendPathsItems;
-	QVector<QGraphicsItem*> resultItems;
-	QVector<QGraphicsItem*> auxItems;
+	QVector< BlendPath > blendPaths;
+	QVector< QGraphicsItemGroup* > blendPathsItems;
+	QVector< QVector<QGraphicsItem*> > resultItems;
+	QVector< QVector<BlendPathSub*> > blendSubItems;
+	QVector< QGraphicsItem* > auxItems;
+	
 	SynthesisManager * s_manager;
 
 	bool isSample;

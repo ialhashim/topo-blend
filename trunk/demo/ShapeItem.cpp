@@ -3,7 +3,7 @@
 ShapeItem::ShapeItem(QObject *parent)
 {
     Q_UNUSED(parent);
-
+	
     width = 10;
     height = 10;
 
@@ -19,9 +19,9 @@ void ShapeItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
 {
     Q_UNUSED(option)
     Q_UNUSED(widget)
-
+	
+	//painter->drawRect(0, 0, width, height);
     painter->drawPixmap(0, 0, width, height, property["image"].value<QPixmap>());
-    //painter->drawRect(0, 0, width, height);
 }
 
 int ShapeItem::realHeight()

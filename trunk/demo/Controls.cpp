@@ -50,3 +50,13 @@ void Controls::forceManualMatch()
 {
 	ui->manualButton->setChecked(true);
 }
+
+void Controls::disableTabs()
+{
+	ui->tabWidget->setEnabled(false);
+}
+
+void Controls::enableTabs()
+{
+	ui->tabWidget->setEnabled(true);
+}
