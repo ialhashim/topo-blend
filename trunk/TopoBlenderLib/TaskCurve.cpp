@@ -181,7 +181,7 @@ void TaskCurve::prepareGrowCurve()
 		return;
 	}
 
-	if (isCutting())
+	if (tedges.size() && isCutting())
 	{
 		property["isCutNode"] = true;
 

@@ -258,22 +258,22 @@ void Blender::synthDataReady()
 	emit( message(QString("Synthesis time [%1 ms]").arg(synthTimer.elapsed())) );
 }
 
-void executeJob( const QSharedPointer<Scheduler> & scheduler )
-{
-    scheduler->executeAll();
-}
-
 void Blender::runComputeBlendPaths()
-{
-    QtConcurrent::run( this, &Blender::computeBlendPaths );
-}
-
-void Blender::computeBlendPaths()
 {
 	progress->startProgress();
 	progress->setExtra("Blend paths - ");
 	blendTimer.start();
 
+    QtConcurrent::run( this, &Blender::computeBlendPaths );
+}
+
+void executeJob( const QSharedPointer<Scheduler> & scheduler )
+{
+	scheduler->executeAll();
+}
+
+void Blender::computeBlendPaths()
+{
     jobs.clear();
     for(int i = 0; i < blendPaths.size(); i++) jobs.push_back( blendPaths[i].scheduler );
 
@@ -378,6 +378,8 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 			progress->hide();
 			emit( message(QString("Render time [%1 ms]").arg(renderTimer.elapsed())) );
 		}
+
+		qApp->processEvents();
 	}
 }
 
