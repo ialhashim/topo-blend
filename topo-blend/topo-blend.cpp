@@ -751,6 +751,7 @@ void topoblend::doBlend()
 	scheduler = new Scheduler( );
     blender = new TopoBlender( gcoor, scheduler );
 
+    blender->parentWidget = mainWindow();
 	blender->setupUI();
 
 	// Update active graph

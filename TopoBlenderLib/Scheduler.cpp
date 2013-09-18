@@ -636,7 +636,7 @@ void Scheduler::executeAll()
 	qApp->restoreOverrideCursor();
 	property["progressDone"] = true;
 
-	QCursor::setPos(QCursor::pos());
+    QCursor::setPos(QCursor::pos());
 }
 
 bool Scheduler::isPartOfGrowingBranch( Task* t )
@@ -689,7 +689,7 @@ void Scheduler::doBlend()
 		reset();
 
 	/// Execute the tasks on a new thread
-	QtConcurrent::run( this, &Scheduler::executeAll ); // scheduler->executeAll();
+    QtConcurrent::run( this, &Scheduler::executeAll ); // scheduler->executeAll();
 }
 
 QVector<Task*> Scheduler::tasksSortedByStart()

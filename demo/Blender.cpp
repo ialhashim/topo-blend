@@ -8,6 +8,9 @@
 #include "Scheduler.h"
 #include "SynthesisManager.h"
 
+QVector< BlendPath > blendPaths;
+QList< QSharedPointer<Scheduler> > jobs;
+
 Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL)
 {
 	this->numSuggestions = 4;
@@ -29,8 +32,8 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	progress = new ProgressItem("Working..", false, s);
 
 	// Connections
-	this->connect(this, SIGNAL(blendPathsReady()), SLOT(computeBlendPaths()));
-	this->connect(this, SIGNAL(allPathsDone()), SLOT(blenderDone()));
+    this->connect(this, SIGNAL(blendPathsReady()), SLOT(runComputeBlendPaths()));
+    this->connect(this, SIGNAL(blendPathsDone()), SLOT(blenderDone()));
 	this->connect(this, SIGNAL(becameHidden()), SLOT(cleanUp()));
 	this->connect(this, SIGNAL(keyUpEvent(QKeyEvent*)), SLOT(keyReleased(QKeyEvent*)));
 	this->connect(this, SIGNAL(blendDone()), SLOT(blenderAllResultsDone()));
@@ -213,8 +216,7 @@ void Blender::preparePaths()
 		blendPaths.push_back( bp );
 
 		// Connections
-		this->connect(bp.scheduler.data(), SIGNAL(progressChanged(int)), SLOT(progressChanged()));
-		this->connect(bp.scheduler.data(), SIGNAL(progressDone()), SLOT(singlePathDone()));
+        this->connect(bp.scheduler.data(), SIGNAL(progressChanged(int)), SLOT(progressChanged()));
 
 		// Synthesis requires a single instance of the blend process
 		if( s_manager.isNull() )
@@ -256,21 +258,34 @@ void Blender::synthDataReady()
 	emit( message(QString("Synthesis time [%1 ms]").arg(synthTimer.elapsed())) );
 }
 
+void executeJob( const QSharedPointer<Scheduler> & scheduler )
+{
+    scheduler->executeAll();
+}
+
+void Blender::runComputeBlendPaths()
+{
+    QtConcurrent::run( this, &Blender::computeBlendPaths );
+}
+
 void Blender::computeBlendPaths()
 {
 	progress->startProgress();
 	progress->setExtra("Blend paths - ");
 	blendTimer.start();
 
-	for(int i = 0; i < blendPaths.size(); i++)
-	{
-		computePath( i );
-	}
+    jobs.clear();
+    for(int i = 0; i < blendPaths.size(); i++) jobs.push_back( blendPaths[i].scheduler );
+
+    QFuture<void> future = QtConcurrent::map(jobs, executeJob);
+    future.waitForFinished();
+
+    emit( blendPathsDone() );
 }
 
-void Blender::computePath( int index )
+void Blender::computePath( const int & index )
 {
-	blendPaths[index].scheduler->doBlend();
+    blendPaths[index].scheduler->executeAll();
 }
 
 void Blender::progressChanged()
@@ -284,23 +299,12 @@ void Blender::progressChanged()
 	progress->setProgress( double(curProgress) / totalProgress );
 }
 
-void Blender::singlePathDone()
-{
-	int numDone = 0;
-	for(int i = 0; i < blendPaths.size(); i++)
-		if(blendPaths[i].scheduler->property["progressDone"].toBool())
-			numDone++;
-	if(numDone == blendPaths.size()) 
-	{
-		emit( allPathsDone() );
-		emit( message(QString("Blending time [%1 ms]").arg(blendTimer.elapsed())) );
-	}
-}
-
 void Blender::blenderDone()
 {
 	// UI and logging
 	{
+        emit( message(QString("Blending time [%1 ms]").arg(blendTimer.elapsed())) );
+
 		progress->setExtra("Rendering -");
 		progress->setProgress(0.0);
 		renderTimer.start();

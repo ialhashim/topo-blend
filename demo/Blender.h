@@ -32,7 +32,7 @@ public:
 
 signals:
     void blendPathsReady();
-	void allPathsDone();
+    void blendPathsDone();
 	void blendStarted();
 	void blendDone();
 
@@ -44,10 +44,11 @@ public slots:
 	void setGraphCorresponder(GraphCorresponder *);
 	void preparePaths();
 	void synthDataReady();
+
+    void runComputeBlendPaths();
 	void computeBlendPaths();
 
-	void progressChanged();
-	void singlePathDone();
+    void progressChanged();
 	void blenderDone();
 	void blendResultDone(QGraphicsItem* item);
 	void blenderAllResultsDone();
@@ -55,7 +56,6 @@ public slots:
 	void keyReleased(QKeyEvent* keyEvent);
 
 private:
-	QVector< BlendPath > blendPaths;
 	QVector< QGraphicsItemGroup* > blendPathsItems;
 	QVector< QVector< QSharedPointer<BlenderRenderItem> > > resultItems;
 	QVector< QVector< QSharedPointer<BlendPathSub> > > blendSubItems;
@@ -66,7 +66,7 @@ private:
 	bool isSample;
 	bool isFinished;
 
-	void computePath(int index);
+    void computePath(const int &index);
 
 	GraphCorresponder * m_gcorr;
 	BlendPathRenderer * renderer;

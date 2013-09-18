@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QWidget>
 
 #include "DynamicGraph.h"
 #include "StructureGraph.h"
@@ -20,6 +21,7 @@ class TopoBlender : public QObject
 public:
     explicit TopoBlender(GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent = 0);
     ~TopoBlender();
+    QWidget * parentWidget;
 
 	Structure::Graph * sg;
     Structure::Graph * tg;

@@ -35,7 +35,7 @@ public:
 	void generateTasks();
 	void schedule();
 	void order();
-	void executeAll();
+    void executeAll();
 	void reset();
 
 	void blendDeltas( double globalTime, double timeStep );
@@ -88,8 +88,8 @@ protected:
 
 public slots:
 	void timeChanged(int newTime);
-	void doBlend();
 	void stopExecution();
+    void doBlend();
 
 	void startAllSameTime();
 	void startDiffTime();
