@@ -74,7 +74,7 @@ void BlendPathRenderer::paintGL()
 	glEnable(GL_DEPTH_TEST);
 
 	// Get camera
-	SynthesisManager * s_manager = blender->s_manager;
+	SynthesisManager * s_manager = blender->s_manager.data();
 	qglviewer::Camera * sceneCamera = s_manager->property("camera").value<qglviewer::Camera*>();
 	if(!sceneCamera) return;
 
