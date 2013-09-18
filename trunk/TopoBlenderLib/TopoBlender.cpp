@@ -2,7 +2,6 @@
 #include <QStack>
 #include <QFileSystemModel>
 #include <QDockWidget>
-#include <QApplication>
 #include <QMainWindow>
 
 #include "TopoBlender.h"
@@ -25,7 +24,7 @@ typedef std::pair<QString, QString> PairQString;
 Q_DECLARE_METATYPE( Structure::Sheet* )
 Q_DECLARE_METATYPE( QSet<Structure::Node*> )
 
-TopoBlender::TopoBlender(GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent ) : QObject(parent)
+TopoBlender::TopoBlender(GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent ) : QObject(parent), parentWidget(NULL)
 {
 	scheduler = useScheduler;
 
@@ -59,7 +58,7 @@ void TopoBlender::setupUI()
 	scheduler->widget = new SchedulerWidget( scheduler );
 	scheduler->dock = new QDockWidget( "Scheduler" );
 	scheduler->dock->setWidget( scheduler->widget );
-	QMainWindow * win = (QMainWindow *) qApp->activeWindow();
+    QMainWindow * win = (QMainWindow *) parentWidget;
 	win->addDockWidget(Qt::BottomDockWidgetArea, scheduler->dock);
 }
 
