@@ -5,7 +5,7 @@
 
 // Forward Declare
 class TopoBlender; class Scheduler; class ProgressItem; class SynthesisManager;
-class BlendPathRenderer; class BlendPathSub;
+class BlendPathRenderer; class BlenderRenderItem; class BlendPathSub;
 
 // Blend path container
 struct BlendPath{
@@ -21,7 +21,8 @@ class Blender : public DemoPage
     Q_OBJECT
 public:
     explicit Blender(Scene * scene, QString title);
-    
+    void setupBlendPathItems();
+
 	int numSuggestions, numInBetweens;
 	int itemHeight;
 	int graphItemWidth;
@@ -56,11 +57,11 @@ public slots:
 private:
 	QVector< BlendPath > blendPaths;
 	QVector< QGraphicsItemGroup* > blendPathsItems;
-	QVector< QVector<QGraphicsItem*> > resultItems;
-	QVector< QVector<BlendPathSub*> > blendSubItems;
+	QVector< QVector< QSharedPointer<BlenderRenderItem> > > resultItems;
+	QVector< QVector< QSharedPointer<BlendPathSub> > > blendSubItems;
 	QVector< QGraphicsItem* > auxItems;
 	
-	SynthesisManager * s_manager;
+	QSharedPointer<SynthesisManager> s_manager;
 
 	bool isSample;
 	bool isFinished;
