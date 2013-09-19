@@ -80,6 +80,6 @@ void BlendPathSubButton::mousePressEvent( QGraphicsSceneMouseEvent * event )
 	}
 	this->property["pos"] = QPointF(x,y);
 	
-    BlendPathSub * subPath = new BlendPathSub(x, y, r.height(), 4, this);
+    BlendPathSub * subPath = new BlendPathSub(x, y, r.height(), 3, this);
     blender->s->addItem( subPath );
 }
