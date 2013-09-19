@@ -12,8 +12,7 @@ public:
 private:
     QVector<QGraphicsItem*> listA, listB;
     int indexA, indexB;
-    ShapeItem *makeShapeItem(QString name, PropertyMap info);
-
+	ShapeItem *makeShapeItem( QString name, PropertyMap info, int idx, bool isRight );
     void arrangeList(QVector<QGraphicsItem *> &list, int x);
     void scrollTo(QVector<QGraphicsItem *> &list, int & index);
 
@@ -28,4 +27,5 @@ public slots:
     void layout();
 
     void wheelEvent(QGraphicsSceneWheelEvent*);
+	void scrollToItem(ShapeItem* item);
 };

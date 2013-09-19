@@ -2,10 +2,11 @@
 #include <QElapsedTimer>
 #include "DemoPage.h"
 #include "GraphCorresponder.h"
+#include "TopoBlender.h"
 
 // Forward Declare
-class TopoBlender; class Scheduler; class ProgressItem; class SynthesisManager;
-class BlendPathRenderer; class BlenderRenderItem; class BlendPathSub;
+class Scheduler; class ProgressItem; class SynthesisManager;
+class BlendPathRenderer; class BlendRenderItem; class BlendPathSubButton;
 
 // Blend path container
 struct BlendPath{
@@ -15,6 +16,8 @@ struct BlendPath{
 	QSharedPointer<Scheduler> scheduler;
 	QSharedPointer<TopoBlender> blender;
 };
+
+extern QVector< BlendPath > blendPaths;
 
 class Blender : public DemoPage
 {
@@ -28,6 +31,7 @@ public:
 	int graphItemWidth;
 
 	friend class BlendPathRenderer;
+	friend class BlendPathSubButton;
 	friend class BlendPathSub;
 
 signals:
@@ -57,8 +61,8 @@ public slots:
 
 private:
 	QVector< QGraphicsItemGroup* > blendPathsItems;
-	QVector< QVector< QSharedPointer<BlenderRenderItem> > > resultItems;
-	QVector< QVector< QSharedPointer<BlendPathSub> > > blendSubItems;
+	QVector< QVector< QSharedPointer<BlendRenderItem> > > resultItems;
+	QVector< QVector< QSharedPointer<BlendPathSubButton> > > blendSubItems;
 	QVector< QGraphicsItem* > auxItems;
 	
 	QSharedPointer<SynthesisManager> s_manager;

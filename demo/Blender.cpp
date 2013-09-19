@@ -1,6 +1,6 @@
 #include "Blender.h"
 #include "ProgressItem.h"
-#include "BlenderRenderItem.h"
+#include "BlendRenderItem.h"
 #include "BlendPathRenderer.h"
 #include "BlendPathSub.h"
 
@@ -16,8 +16,8 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->numSuggestions = 4;
 	this->numInBetweens = 4;
 
-	this->resultItems = QVector< QVector< QSharedPointer<BlenderRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlenderRenderItem> >(numInBetweens) );
-	this->blendSubItems = QVector< QVector< QSharedPointer<BlendPathSub> > >(numSuggestions, QVector< QSharedPointer<BlendPathSub> >(numInBetweens) );
+	this->resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
+	this->blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
 
 	this->isSample = false;
 	this->graphItemWidth = s->width() * 0.2;
@@ -26,10 +26,11 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 
 	// Results renderer
 	renderer = new BlendPathRenderer(this, itemHeight);
-	this->connect( renderer, SIGNAL(itemReady(QGraphicsItem*)), SLOT(blendResultDone(QGraphicsItem*)), Qt::QueuedConnection );
+	this->connect( renderer, SIGNAL(itemReady(QGraphicsItem*)), SLOT(blendResultDone(QGraphicsItem*)), Qt::DirectConnection );
 
 	// Progress bar
 	progress = new ProgressItem("Working..", false, s);
+	progress->setZValue(999);
 
 	// Connections
     this->connect(this, SIGNAL(blendPathsReady()), SLOT(runComputeBlendPaths()));
@@ -54,10 +55,11 @@ void Blender::setupBlendPathItems()
 		blendPathBack->setOpacity( 0.02 );
 		blendPathBack->setY( startY + (i * (blendPathHeight + padding)) );
 		blendPathBack->setX( 0.5*s->width() - 0.5*blendPathBack->boundingRect().width() );
-		blendPathBack->setZValue(-999);
+
 		QGraphicsItemGroup * blendPathItem = new QGraphicsItemGroup;
 		blendPathItem->addToGroup(blendPathBack);
 		blendPathItem->setVisible(false);
+		blendPathItem->setZValue(-999);
 
 		blendPathsItems.push_back( blendPathItem );
 		s->addItem(blendPathItem);
@@ -111,7 +113,7 @@ void Blender::setupBlendPathItems()
 			}
 		}
 
-		QColor color( 255, 180, 68, 50 );
+		QColor color( 255, 180, 68, 100 );
 		QGraphicsItem * litem = s->addPath(lpath, QPen(color, 1));
 		QGraphicsItem * ritem = s->addPath(rpath, QPen(color, 1));
 		litem->setVisible(false);
@@ -216,7 +218,7 @@ void Blender::preparePaths()
 		blendPaths.push_back( bp );
 
 		// Connections
-        this->connect(bp.scheduler.data(), SIGNAL(progressChanged(int)), SLOT(progressChanged()));
+        this->connect(bp.scheduler.data(), SIGNAL(progressChanged(int)), SLOT(progressChanged()), Qt::DirectConnection);
 
 		// Synthesis requires a single instance of the blend process
 		if( s_manager.isNull() )
@@ -269,6 +271,10 @@ void Blender::runComputeBlendPaths()
 
 void executeJob( const QSharedPointer<Scheduler> & scheduler )
 {
+#ifdef QT_DEBUG
+	scheduler->timeStep = 0.2;
+#endif
+
 	scheduler->executeAll();
 }
 
@@ -343,12 +349,13 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 
 void Blender::blendResultDone(QGraphicsItem* done_item)
 {
-	BlenderRenderItem * item = (BlenderRenderItem*) done_item;
+	BlendRenderItem * item = (BlendRenderItem*) done_item;
 
-	int pathID = item->pathID;
-	int blendIDX = item->blendIDX;
+	int pathID = item->property["pathID"].toInt();
+	int blendIDX = item->property["blendIDX"].toInt();
 
-	resultItems[pathID][blendIDX] = QSharedPointer<BlenderRenderItem>(item);
+	resultItems[pathID][blendIDX] = QSharedPointer<BlendRenderItem>(item);
+
 	s->addItem( resultItems[pathID][blendIDX].data() );
 
 	// Placement
@@ -387,8 +394,8 @@ void Blender::cleanUp()
 {
 	// Clear results
 	{
-		resultItems = QVector< QVector< QSharedPointer<BlenderRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlenderRenderItem> >(numInBetweens) );
-		blendSubItems = QVector< QVector< QSharedPointer<BlendPathSub> > >(numSuggestions, QVector< QSharedPointer<BlendPathSub> >(numInBetweens) );
+		resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
+		blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
 	}
 	
 	// Clean up synthesis data
@@ -412,12 +419,14 @@ void Blender::blenderAllResultsDone()
 
 		for(int j = 0; j + 1 < numInBetweens; j++)
 		{
-			BlendPathSub * subItem = new BlendPathSub(itemHeight * 0.5, itemHeight, this);
-			subItem->setPos( QPointF(pathRect.x() + ((j+1) * outterWidth) - (subItem->boundingRect().width() * 0.5), pathRect.y()) );
+			BlendPathSubButton * subItemButton = new BlendPathSubButton(itemHeight * 0.5, itemHeight, this);
+			subItemButton->setPos( QPointF(pathRect.x() + ((j+1) * outterWidth) - (subItemButton->boundingRect().width() * 0.5), pathRect.y()) );
 			
-			blendSubItems[i][j] = QSharedPointer<BlendPathSub>(subItem);
-			blendSubItems[i][j]->property["i"] = i;
-			blendSubItems[i][j]->property["j"] = j;
+			blendSubItems[i][j] = QSharedPointer<BlendPathSubButton>(subItemButton);
+
+			blendSubItems[i][j]->property["pathIDX"] = i;
+			blendSubItems[i][j]->property["start"].setValue( resultItems[i][j]->property["graph"].value<Structure::Graph*>()->property["t"].toDouble() );
+			blendSubItems[i][j]->property["end"].setValue( resultItems[i][j+1]->property["graph"].value<Structure::Graph*>()->property["t"].toDouble() );
 
 			s->addItem( blendSubItems[i][j].data() );
 		}

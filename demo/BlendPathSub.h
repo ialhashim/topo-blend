@@ -1,28 +1,31 @@
 #pragma once
 
-#include <QGraphicsObject>
-#include "Blender.h"
+#include "BlendPathSubButton.h"
 
 class BlendPathSub : public QGraphicsObject
 {
     Q_OBJECT
 public:
-    explicit BlendPathSub(int width, int height, Blender * blender);
+    BlendPathSub(int x, int y, int height, int count, BlendPathSubButton * origin);
 
     QRectF boundingRect() const { return m_geometry; }
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
 
-	PropertyMap property;
+	void setup();
+
+	BlendPathSubButton * origin;
 
 protected:
-	virtual void mousePressEvent(QGraphicsSceneMouseEvent * event);
 
 private:
-    Blender * blender;
+    int height;
+    int count;
     QRectF m_geometry;
+	QTimer *timer;
+	QWidget *viewer;
 
-signals:
-    
+	QVector<QGraphicsObject*> items;
+
 public slots:
-    
+	void hideWhenInactive();
 };

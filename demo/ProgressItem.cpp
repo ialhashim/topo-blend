@@ -40,7 +40,6 @@ void ProgressItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
     Q_UNUSED(widget)
 
     painter->setFont(QFont("", 20));
-    painter->setPen(Qt::white);
 
     if(message != oldMessage)
     {
@@ -55,6 +54,12 @@ void ProgressItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
         oldMessage = message;
     }
 
+	painter->translate(1,1);
+	painter->setPen(Qt::black);
+	painter->drawText(messageRect, message);
+	painter->translate(-1,-1);
+
+	painter->setPen(Qt::white);
     painter->drawText(messageRect, message);
 
     //painter->drawRect(boundingRect()); // DEBUG
