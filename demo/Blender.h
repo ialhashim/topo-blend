@@ -43,21 +43,21 @@ signals:
 public slots:
     void show();
     void hide();
+	void keyReleased(QKeyEvent* keyEvent);
 	void cleanUp();
 
 	void setGraphCorresponder(GraphCorresponder *);
 	void preparePaths();
+	void pathProgressChanged();
 	void synthDataReady();
-
     void runComputeBlendPaths();
 	void computeBlendPaths();
 
-    void progressChanged();
 	void blenderDone();
 	void blendResultDone(QGraphicsItem* item);
 	void blenderAllResultsDone();
 
-	void keyReleased(QKeyEvent* keyEvent);
+	void exportSelected();
 
 private:
 	QVector< QGraphicsItemGroup* > blendPathsItems;

@@ -20,6 +20,10 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
 
 	this->isSample = true;
+#ifdef QT_DEBUG
+	this->isSample = false;
+#endif
+
 	this->graphItemWidth = s->width() * 0.2;
 
 	setupBlendPathItems();
@@ -52,7 +56,7 @@ void Blender::setupBlendPathItems()
 	{
 		QGraphicsRectItem * blendPathBack = new QGraphicsRectItem (0,0,s->width() - (2 * graphItemWidth), blendPathHeight);
 		blendPathBack->setBrush( QColor (255, 180, 68) );
-		blendPathBack->setOpacity( 0.02 );
+		blendPathBack->setOpacity( 0.04 );
 		blendPathBack->setY( startY + (i * (blendPathHeight + padding)) );
 		blendPathBack->setX( 0.5*s->width() - 0.5*blendPathBack->boundingRect().width() );
 
@@ -218,12 +222,12 @@ void Blender::preparePaths()
 		blendPaths.push_back( bp );
 
 		// Connections
-        this->connect(bp.scheduler.data(), SIGNAL(progressChanged(int)), SLOT(progressChanged()), Qt::DirectConnection);
+        this->connect(bp.scheduler.data(), SIGNAL(progressChanged(int)), SLOT(pathProgressChanged()), Qt::DirectConnection);
 
 		// Synthesis requires a single instance of the blend process
 		if( s_manager.isNull() )
 		{
-			int numSamples = 5000;
+			int numSamples = 8000;
 
 			s_manager = QSharedPointer<SynthesisManager>(new SynthesisManager(m_gcorr, bp.scheduler.data(), bp.blender.data(), numSamples));
 
@@ -238,7 +242,7 @@ void Blender::preparePaths()
 	}
 
 	// UI and logging
-	{	
+	{
 		qApp->restoreOverrideCursor();
 		progress->startProgress();
 		progress->setExtra("Generating samples - ");
@@ -256,6 +260,9 @@ void Blender::preparePaths()
 
 void Blender::synthDataReady()
 {
+	for(int i = 0; i < numSuggestions; i++)
+		this->disconnect( blendPaths[i].scheduler.data() );
+
 	emit( blendPathsReady() );
 	emit( message(QString("Synthesis time [%1 ms]").arg(synthTimer.elapsed())) );
 }
@@ -294,7 +301,7 @@ void Blender::computePath( const int & index )
     blendPaths[index].scheduler->executeAll();
 }
 
-void Blender::progressChanged()
+void Blender::pathProgressChanged()
 {
 	int curProgress = 0;
 	for(int i = 0; i < blendPaths.size(); i++){
@@ -431,4 +438,46 @@ void Blender::blenderAllResultsDone()
 			s->addItem( blendSubItems[i][j].data() );
 		}
 	}
+}
+
+void Blender::exportSelected()
+{
+	qApp->setOverrideCursor(Qt::WaitCursor);
+
+	QString msg = "nothing selected.";
+	
+	foreach(QGraphicsItem * item, s->selectedItems())
+	{
+		BlendRenderItem * renderItem = qobject_cast<BlendRenderItem *>(item->toGraphicsObject());
+		if(renderItem)
+		{
+			Structure::Graph * g = renderItem->property["graph"].value<Structure::Graph*>();
+			int idx = int(g->property["t"].toDouble() * 100);
+			
+			QString sname = g->property["sourceName"].toString();
+			QString tname = g->property["sourceName"].toString();
+			QString filename = sname + tname;
+
+			// Create folder
+			QDir d("dataset");	
+			d.mkpath( filename );
+
+			// Set it as current
+			QDir::setCurrent( d.absolutePath() + "/" + filename );
+
+			// Generate the geometry and export the structure graph
+			s_manager->renderGraph(*g, filename + ".obj", false, 6, true);
+
+			// Generate thumbnail
+			// draw OpenGL and save to transparent .png here...
+
+			// Restore
+			QDir::setCurrent( d.absolutePath() + "/.." );
+		}
+	}
+
+	emit( message("Exporting: " + msg) );
+
+	qApp->restoreOverrideCursor();
+	QCursor::setPos(QCursor::pos());
 }

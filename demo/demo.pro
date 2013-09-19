@@ -47,7 +47,7 @@ SOURCES +=  main.cpp\
             BlendPathRenderer.cpp \
             BlendPathSubButton.cpp \
             BlendRenderItem.cpp \
-    BlendPathSub.cpp
+            BlendPathSub.cpp
 
 HEADERS  += mainwindow.h \
             Scene.h \
@@ -65,10 +65,16 @@ HEADERS  += mainwindow.h \
             BlendPathRenderer.h \
             BlendPathSubButton.h \
             BlendRenderItem.h \
-    BlendPathSub.h
+            BlendPathSub.h
 
 FORMS    += mainwindow.ui \
             Controls.ui
 
+# Icons and images
+RESOURCES += resources.qrc
+win32:RC_FILE = demo.rc
+mac:ICON = images/appIcon.icns
+
+# Mac specific
 mac:LIBS += -framework CoreFoundation # We need this for GLee..
 mac:QMAKE_LFLAGS += -fopenmp
