@@ -45,6 +45,8 @@ void BlendPathSub::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
 
 void BlendPathSub::setup()
 {
+	qApp->setOverrideCursor(Qt::WaitCursor);
+
 	int pathIDX = origin->property["pathIDX"].toInt();
 	double start = origin->property["start"].toDouble();
 	double end = origin->property["end"].toDouble();
@@ -96,13 +98,21 @@ void BlendPathSub::setup()
 			items.push_back( button );
 		}
 	}
+
+	qApp->restoreOverrideCursor();
+	QCursor::setPos(QCursor::pos());
 }
 
 void BlendPathSub::hideWhenInactive()
 {
+	// Don't hide if an item is selected
+	foreach(QGraphicsObject* item, items) if(item->isSelected()) return;
+
+	// Don't hide if mouse cursor is on item
 	QPoint p = viewer->mapFromGlobal(QCursor::pos());
 	if(mapRectToScene(boundingRect()).contains(p)) return;
 
+	// Clean up to hide
 	foreach(QGraphicsObject* item, items) item->deleteLater();
 	this->deleteLater();
 }

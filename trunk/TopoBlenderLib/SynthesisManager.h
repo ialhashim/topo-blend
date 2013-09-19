@@ -58,7 +58,7 @@ public slots:
 
     void doRenderAll();
     void renderAll();
-	void renderCurrent( Structure::Graph * currentGraph );
+	void renderCurrent( Structure::Graph * currentGraph, QString path = "" );
 	void renderGraph( Structure::Graph graph, QString filename, bool isOutPointCloud, int reconLevel, bool isOutGraph = false );
 
 	void drawSampled();

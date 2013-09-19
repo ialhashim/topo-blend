@@ -7,7 +7,7 @@ BlendPathSubButton::BlendPathSubButton(int width, int height, Blender * blender,
 
     m_geometry = QRectF(0, 0, width, height);
 
-	property["opacity"] = 0.05;
+	property["opacity"] = 0.1;
 }
 
 bool BlendPathSubButton::isOnTop()

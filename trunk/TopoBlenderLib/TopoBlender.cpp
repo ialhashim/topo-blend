@@ -674,6 +674,9 @@ void TopoBlender::generateSuperGraphs()
 	super_sg = new Structure::Graph(*sg);
 	super_tg = new Structure::Graph(*tg);
 
+	super_sg->property["sourceName"] = gcoor->sgName();
+	super_sg->property["targetName"] = gcoor->tgName();
+
 	/// NODES:
 	// Correspond nodes in super graphs
 	correspondSuperNodes();

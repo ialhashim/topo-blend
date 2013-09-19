@@ -239,7 +239,7 @@ void SynthesisManager::doRenderAll()
     qDebug() << QString("Sequence rendered [%1 ms]").arg(timer.elapsed());
 }
 
-void SynthesisManager::renderCurrent(Structure::Graph * currentGraph)
+void SynthesisManager::renderCurrent(Structure::Graph * currentGraph, QString path)
 {
     if(!scheduler) return;
 
@@ -252,13 +252,16 @@ void SynthesisManager::renderCurrent(Structure::Graph * currentGraph)
 
     setMessage(QString("Rendering current frame [depth=%1]..").arg(reconLevel));
 
-    QDir dir("");
-    dir.setCurrent(QFileDialog::getExistingDirectory());
+	if(!path.size())
+	{
+		QDir dir("");
+		dir.setCurrent(QFileDialog::getExistingDirectory());
+	}
 
     // Reconstruct
     QString filename = "currentGraph";
     Structure::Graph lastGraph = *currentGraph;
-    renderGraph(lastGraph, filename, false, reconLevel, true);
+    renderGraph(lastGraph, path + filename, false, reconLevel, true);
 
     updateViewer();
 

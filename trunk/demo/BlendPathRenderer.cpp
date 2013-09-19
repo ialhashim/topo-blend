@@ -37,7 +37,7 @@ BlendRenderItem * BlendPathRenderer::genItem( Structure::Graph* newGraph, int pa
 	pixmapItem->property["pathID"].setValue( pathID );
 	pixmapItem->property["blendIDX"].setValue( blendIDX );
 	pixmapItem->property["graph"].setValue( newGraph );
-	pixmapItem->setFlags( QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemIsSelectable ); // DEBUG
+	pixmapItem->setFlags( QGraphicsItem::ItemIsSelectable );
 
 	return pixmapItem;
 }

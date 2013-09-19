@@ -19,6 +19,7 @@ Session::Session(   Scene *scene, ShapesGallery *gallery, Controls * control,
 	// Blender:
 	control->connect(blender, SIGNAL(blendStarted()), SLOT(disableTabs()));
 	control->connect(blender, SIGNAL(blendDone()), SLOT(enableTabs()));
+	blender->connect(control->ui->exportButton, SIGNAL(clicked()), SLOT(exportSelected()));
 }
 
 void Session::shapeChanged(int i, QGraphicsItem * shapeItem)
