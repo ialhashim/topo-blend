@@ -1,12 +1,27 @@
 #include "BlendPathSub.h"
+#include "BlendPathRenderer.h"
+#include "BlendRenderItem.h"
+#include "Scheduler.h"
 
-BlendPathSub::BlendPathSub(int width, int height, Blender * blender) : blender(blender)
+BlendPathSub::BlendPathSub(int x, int y, int height, int count, BlendPathSubButton *origin)
+    : height(height), count(count), origin(origin)
 {
 	setAcceptHoverEvents(true);
+	setZValue( origin->zValue() + 10 );
 
+    int width = (count * height) + ((count-1) * 0.5 * height);
     m_geometry = QRectF(0,0,width,height);
 
-	property["opacity"] = 0.05;
+	x -= m_geometry.width() * 0.5;
+	y -= m_geometry.height() * 0.5;
+	this->setPos(x,y);
+
+	setup();
+
+	viewer = origin->blender->scene()->views().front();
+	timer = new QTimer(this);
+	connect(timer, SIGNAL(timeout()), this, SLOT(hideWhenInactive()));
+	timer->start(300);
 }
 
 void BlendPathSub::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
@@ -14,44 +29,80 @@ void BlendPathSub::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
     Q_UNUSED(option)
     Q_UNUSED(widget)
 
-	QRectF r = boundingRect();
-	QPointF center = r.center();
-	double radius = r.height() * 0.03;
-
-	// DEBUG:
-	//painter->drawRect( r );
-
-	if(!this->isUnderMouse())
-		painter->setOpacity( property["opacity"].toDouble() );
-
 	// Shadow
-	painter->setPen(QPen(QColor(0,0,0,50),2));
-	painter->setBrush(QColor(0,0,0,128));
-	painter->translate(2,2);
-	painter->drawEllipse(center - QPointF(radius * 3,0), radius, radius);
-	painter->drawEllipse(center, radius, radius);
-	painter->drawEllipse(center + QPointF(radius * 3,0), radius, radius);
+	QRectF r = boundingRect();
+	r.adjust(4,4,-4,-4);
+	painter->setPen(Qt::NoPen);
+    painter->setBrush(QColor::fromRgbF(0, 0, 0, 0.4));
+	painter->drawRoundedRect(r, 4, 4);
 
-	// Big dots
-	QColor color = QColor ( 255, 180, 68 );
-	painter->setPen(QPen( color, 1 ));
-	painter->setBrush( color );
-	painter->translate(-2,-2);
-	painter->drawEllipse(center - QPointF(radius * 3,0), radius, radius);
-	painter->drawEllipse(center, radius, radius);
-	painter->drawEllipse(center + QPointF(radius * 3,0), radius, radius);
+	// Background
+	r.translate(QPointF(-4,-4));
+	painter->setPen(QPen(QColor( 255, 180, 68, 50 ), 2));
+	painter->setBrush(QColor(30,29,26,253).lighter());
+	painter->drawRoundedRect(r, 4, 4);
 }
 
-void BlendPathSub::mousePressEvent( QGraphicsSceneMouseEvent * event )
+void BlendPathSub::setup()
 {
-	int i = property["i"].toInt();
-	int j = property["j"].toInt();
+	int pathIDX = origin->property["pathIDX"].toInt();
+	double start = origin->property["start"].toDouble();
+	double end = origin->property["end"].toDouble();
 
-	QPointF p = scenePos();
-	QPointF p_rect = blender->blendPathsItems[i]->scenePos();
-	QRectF r = blender->blendPathsItems[i]->boundingRect();
+	BlendPathRenderer * renderer = origin->blender->renderer;
+	Scheduler * scheduler = blendPaths[pathIDX].scheduler.data();
+	int N = scheduler->allGraphs.size();
 
-	r.setWidth(r.width() * 0.5);
+	double step = (end - start) / count;
 
-	blender->s->addRect(p.x() - (r.width() * 0.5), p.y() - 20, r.width(), r.height(), QPen(Qt::black,1), QColor( 255, 180, 68 ).darker());
+	for(int i = 0; i < count; i++)
+	{
+		double t = start + (step * i);
+		Structure::Graph * g = scheduler->allGraphs[t * N];
+
+		BlendRenderItem * item = renderer->genItem(g, -1, -1);
+		item->pixmap = item->pixmap.copy(item->pixmap.rect().adjusted(0,0,0,-9));
+		item->setZValue( zValue() + 10 );
+
+		origin->blender->s->addItem( item );
+		items.push_back( item );
+		
+		// Placement
+		QRectF r = boundingRect();
+		double outterWidth = (r.width() / count);
+		int delta = 0.5 * (outterWidth  - item->boundingRect().width() );
+		int x = scenePos().x() + (i * outterWidth) + delta;
+		int y = scenePos().y();
+		item->setPos(x, y);
+
+		// Add sub button
+		if (i+1 < count)
+		{
+			QRectF pathRect = mapRectToScene(boundingRect());
+			double outterWidth = (pathRect.width() / count);
+			int itemHeight = pathRect.height();
+
+			BlendPathSubButton * button = new BlendPathSubButton(itemHeight * 0.5, itemHeight, origin->blender, zValue() + 10);
+			button->setPos( QPointF(pathRect.x() + ((i+1) * outterWidth) - (button->boundingRect().width() * 0.5), pathRect.y()) );
+
+			button->property["pathIDX"] = pathIDX;
+			button->property["start"].setValue( t );
+			button->property["end"].setValue( t + step );
+
+			button->property["level"].setValue( origin->property["level"].toInt() + 1 );
+			button->property["pos"] = origin->property["pos"];
+
+			origin->blender->s->addItem( button );
+			items.push_back( button );
+		}
+	}
+}
+
+void BlendPathSub::hideWhenInactive()
+{
+	QPoint p = viewer->mapFromGlobal(QCursor::pos());
+	if(mapRectToScene(boundingRect()).contains(p)) return;
+
+	foreach(QGraphicsObject* item, items) item->deleteLater();
+	this->deleteLater();
 }

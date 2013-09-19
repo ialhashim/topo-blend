@@ -39,14 +39,15 @@ SOURCES +=  main.cpp\
             ShapesGallery.cpp \
             ShapeItem.cpp \
             Session.cpp \
-    Controls.cpp \
-    GraphItem.cpp \
-    Matcher.cpp \
-    Blender.cpp \
-    ProgressItem.cpp \
-    BlendPathRenderer.cpp \
-    BlendPathSub.cpp \
-    BlenderRenderItem.cpp
+            Controls.cpp \
+            GraphItem.cpp \
+            Matcher.cpp \
+            Blender.cpp \
+            ProgressItem.cpp \
+            BlendPathRenderer.cpp \
+            BlendPathSubButton.cpp \
+            BlendRenderItem.cpp \
+    BlendPathSub.cpp
 
 HEADERS  += mainwindow.h \
             Scene.h \
@@ -54,19 +55,20 @@ HEADERS  += mainwindow.h \
             ShapeItem.h \
             Session.h \
             DemoGlobal.h \
-    Controls.h \
-    GraphItem.h \
-    Matcher.h \
-    Blender.h \
-    DemoPage.h \
-    ProgressItem.h \
-    SpinnerItem.h \
-    BlendPathRenderer.h \
-    BlendPathSub.h \
-    BlenderRenderItem.h
+            Controls.h \
+            GraphItem.h \
+            Matcher.h \
+            Blender.h \
+            DemoPage.h \
+            ProgressItem.h \
+            SpinnerItem.h \
+            BlendPathRenderer.h \
+            BlendPathSubButton.h \
+            BlendRenderItem.h \
+    BlendPathSub.h
 
 FORMS    += mainwindow.ui \
-    Controls.ui
+            Controls.ui
 
 mac:LIBS += -framework CoreFoundation # We need this for GLee..
 mac:QMAKE_LFLAGS += -fopenmp

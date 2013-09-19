@@ -6,7 +6,8 @@ ShapeItem::ShapeItem(QObject *parent)
 	
     width = 10;
     height = 10;
-
+	
+	setAcceptHoverEvents(true);
     //setFlags( QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemIsSelectable );
 }
 
@@ -22,6 +23,13 @@ void ShapeItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
 	
 	//painter->drawRect(0, 0, width, height);
     painter->drawPixmap(0, 0, width, height, property["image"].value<QPixmap>());
+
+	if( isUnderMouse() )
+	{
+		painter->setBrush( Qt::NoBrush );
+		painter->setPen( QPen(QColor(255,255,0,128), 20) );
+		painter->drawRect( boundingRect() );
+	}
 }
 
 int ShapeItem::realHeight()
@@ -32,4 +40,16 @@ int ShapeItem::realHeight()
 int ShapeItem::realWidth()
 {
     return width * scale();
+}
+
+void ShapeItem::mousePressEvent( QGraphicsSceneMouseEvent * event )
+{
+	Q_UNUSED(event);
+	emit( scrollToMe(this) );
+}
+
+void ShapeItem::hoverLeaveEvent( QGraphicsSceneHoverEvent * event )
+{
+	Q_UNUSED(event);
+	update();
 }

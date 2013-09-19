@@ -33,7 +33,7 @@ void ShapesGallery::show()
     animGroup->start( QAbstractAnimation::DeleteWhenStopped );
 }
 
-ShapeItem *ShapesGallery::makeShapeItem( QString name, PropertyMap info )
+ShapeItem *ShapesGallery::makeShapeItem( QString name, PropertyMap info, int idx, bool isRight )
 {
     ShapeItem * item = new ShapeItem;
 
@@ -41,10 +41,14 @@ ShapeItem *ShapesGallery::makeShapeItem( QString name, PropertyMap info )
     item->property["graph"] = info["graphFile"];
 
     // Thumbnail
-    QPixmap thumbnail( info["thumbFile"].toString() );
-    item->property["image"].setValue(thumbnail);
+	QPixmap thumbnail( info["thumbFile"].toString() );
+	item->property["image"].setValue(thumbnail);
     item->width = thumbnail.width();
     item->height = thumbnail.height();
+
+	item->property["idx"] = idx;
+	item->property["isRight"] = isRight;
+	this->connect(item, SIGNAL(scrollToMe(ShapeItem*)), SLOT(scrollToItem(ShapeItem*)));
 
     item->setScale(0.2);
 
@@ -55,8 +59,8 @@ void ShapesGallery::loadDataset(DatasetMap dataset)
 {
     foreach(QString shape, dataset.keys())
     {
-        listA.push_back( makeShapeItem(shape, dataset[shape]) );
-        listB.push_back( makeShapeItem(shape, dataset[shape]) );
+        listA.push_back( makeShapeItem(shape, dataset[shape], listA.size(), false) );
+        listB.push_back( makeShapeItem(shape, dataset[shape], listB.size(), true) );
     }
 
 	if(!listA.size()) return;
@@ -157,4 +161,18 @@ void ShapesGallery::scrollTo( QVector<QGraphicsItem*> & list, int & index )
     }
 
     animGroup->start( QAbstractAnimation::DeleteWhenStopped );
+}
+
+void ShapesGallery::scrollToItem(ShapeItem* item)
+{
+	bool isRight = item->property["isRight"].toBool();
+
+	int * idx = isRight ? &indexB : &indexA;
+	QVector<QGraphicsItem*> * list = isRight ? &listB : &listA;
+
+	// Set index to item selected
+	*idx = item->property["idx"].toInt();
+
+	scrollTo(*list, *idx);
+	emit( shapeChanged(isRight, list->at(*idx)) );
 }

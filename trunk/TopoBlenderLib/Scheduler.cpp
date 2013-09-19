@@ -580,6 +580,7 @@ void Scheduler::executeAll()
 		// active tasks
 		QVector<QString> aTs = activeTasks(globalTime * totalTime);
 		activeGraph->property["activeTasks"].setValue( aTs );
+		activeGraph->property["t"] = globalTime;
 
 		// For visualization
 		activeGraph->setPropertyAll("isActive", false);

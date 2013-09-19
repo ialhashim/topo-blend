@@ -2,7 +2,7 @@
 #include <QGraphicsPixmapItem>
 
 #include "BlendPathRenderer.h"
-#include "BlenderRenderItem.h"
+#include "BlendRenderItem.h"
 #include "Blender.h"
 #include "SynthesisManager.h"
 
@@ -26,21 +26,25 @@ BlendPathRenderer::BlendPathRenderer( Blender * blender, int itemHeight, QWidget
 #endif
 }
 
-void BlendPathRenderer::generateItem( Structure::Graph* newGraph, int pathID, int blendIDX )
+BlendRenderItem * BlendPathRenderer::genItem( Structure::Graph* newGraph, int pathID, int blendIDX )
 {
 	this->makeCurrent();
 	this->activeGraph = newGraph;
-
 	this->updateGL();
 
 	// Extract an image and create a QGraphicsPixmapItem
-	BlenderRenderItem * pixmapItem = new BlenderRenderItem( QPixmap::fromImage(grabFrameBuffer(true)) );
-
-	pixmapItem->pathID = pathID;
-	pixmapItem->blendIDX = blendIDX;
+	BlendRenderItem * pixmapItem = new BlendRenderItem( QPixmap::fromImage(grabFrameBuffer(true)) );
+	pixmapItem->property["pathID"].setValue( pathID );
+	pixmapItem->property["blendIDX"].setValue( blendIDX );
+	pixmapItem->property["graph"].setValue( newGraph );
 	pixmapItem->setFlags( QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemIsSelectable ); // DEBUG
 
-	emit( itemReady( pixmapItem ) );
+	return pixmapItem;
+}
+
+void BlendPathRenderer::generateItem( Structure::Graph* newGraph, int pathID, int blendIDX )
+{
+	emit( itemReady( genItem(newGraph, pathID, blendIDX) ) );
 }
 
 void BlendPathRenderer::initializeGL()
