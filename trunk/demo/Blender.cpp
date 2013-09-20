@@ -7,6 +7,7 @@
 #include "TopoBlender.h"
 #include "Scheduler.h"
 #include "SynthesisManager.h"
+#include "ShapeRenderer.h"
 
 QVector< BlendPath > blendPaths;
 QList< QSharedPointer<Scheduler> > jobs;
@@ -456,7 +457,7 @@ void Blender::exportSelected()
 			
 			QString sname = g->property["sourceName"].toString();
 			QString tname = g->property["sourceName"].toString();
-			QString filename = sname + tname;
+			QString filename = sname + tname + "." + QString::number(idx);
 
 			// Create folder
 			QDir d("dataset");	
@@ -466,10 +467,21 @@ void Blender::exportSelected()
 			QDir::setCurrent( d.absolutePath() + "/" + filename );
 
 			// Generate the geometry and export the structure graph
-			s_manager->renderGraph(*g, filename + ".obj", false, 6, true);
+			s_manager->renderGraph(*g, filename, false, 5, true);
 
 			// Generate thumbnail
-			// draw OpenGL and save to transparent .png here...
+			QString objFile = d.absolutePath() + "/" + filename + "/" + filename + ".obj";
+			QString thumbnailFile = d.absolutePath() + "/" + filename + "/" + filename + ".png";
+			ShapeRenderer::render( objFile ).save( thumbnailFile );
+
+			// Send to gallery
+			PropertyMap info;
+			info["Name"] = filename;
+			info["graphFile"] = d.absolutePath() + "/" + filename + "/" + filename + ".xml";
+			info["thumbFile"] = d.absolutePath() + "/" + filename + "/" + filename + ".png";
+			info["objFile"] = d.absolutePath() + "/" + filename + "/" + filename + ".obj";
+
+			emit( exportShape(filename, info) );
 
 			// Restore
 			QDir::setCurrent( d.absolutePath() + "/.." );

@@ -40,6 +40,8 @@ signals:
 	void blendStarted();
 	void blendDone();
 
+	void exportShape(QString name, PropertyMap data);
+
 public slots:
     void show();
     void hide();

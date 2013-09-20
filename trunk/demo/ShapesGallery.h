@@ -28,4 +28,6 @@ public slots:
 
     void wheelEvent(QGraphicsSceneWheelEvent*);
 	void scrollToItem(ShapeItem* item);
+
+	void appendShape(QString name, PropertyMap data);
 };

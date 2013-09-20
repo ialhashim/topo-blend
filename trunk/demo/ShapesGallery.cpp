@@ -87,6 +87,32 @@ void ShapesGallery::loadDataset(DatasetMap dataset)
 	emit (message(log));
 }
 
+void ShapesGallery::appendShape(QString name, PropertyMap data)
+{
+	ShapeItem * prevA = (ShapeItem *) listA.back();
+	ShapeItem * prevB = (ShapeItem *) listB.back();
+
+	listA.push_back( makeShapeItem(name, data, listA.size(), false) );
+	listB.push_back( makeShapeItem(name, data, listB.size(), true) );
+
+	QGraphicsItem * itemA = listA.back();
+	QGraphicsItem * itemB = listB.back();
+
+	// Add to scene
+	s->addItem( itemA );
+	s->addItem( itemB );
+
+	// Placement
+	itemA->setPos(prevA->scenePos());
+	itemA->moveBy(0, prevA->realHeight());
+
+	itemB->setPos(prevB->scenePos());
+	itemB->moveBy(0, prevB->realHeight());
+
+	itemA->setVisible( false );
+	itemB->setVisible( false );
+}
+
 void ShapesGallery::layout()
 {
     arrangeList(listA, 0);
