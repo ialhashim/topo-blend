@@ -47,7 +47,8 @@ SOURCES +=  main.cpp\
             BlendPathRenderer.cpp \
             BlendPathSubButton.cpp \
             BlendRenderItem.cpp \
-            BlendPathSub.cpp
+            BlendPathSub.cpp \
+    ShapeRenderer.cpp
 
 HEADERS  += mainwindow.h \
             Scene.h \
@@ -65,7 +66,8 @@ HEADERS  += mainwindow.h \
             BlendPathRenderer.h \
             BlendPathSubButton.h \
             BlendRenderItem.h \
-            BlendPathSub.h
+            BlendPathSub.h \
+    ShapeRenderer.h
 
 FORMS    += mainwindow.ui \
             Controls.ui
