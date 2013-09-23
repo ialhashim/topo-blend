@@ -91,6 +91,7 @@ void BlendPathRenderer::paintGL()
 	sceneCamera->loadModelViewMatrix();
 
 	// Draw current graph
+	s_manager->scheduler->property["progressDone"] = true;
 	s_manager->pointSize = 1.0;
 	s_manager->color = QColor( 255, 180, 68 );
 	s_manager->drawSynthesis( activeGraph );

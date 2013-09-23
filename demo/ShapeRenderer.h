@@ -7,7 +7,7 @@ class ShapeRenderer : public QGLWidget
 {
     Q_OBJECT
 public:
-    explicit ShapeRenderer(QString filename, QColor color = QColor(203, 127, 92), int resolution = 512);
+    explicit ShapeRenderer(QString filename, QColor color, int resolution);
     static QPixmap render(QString filename);
 
 protected:

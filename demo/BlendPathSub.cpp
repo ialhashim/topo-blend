@@ -18,7 +18,7 @@ BlendPathSub::BlendPathSub(int x, int y, int height, int count, BlendPathSubButt
 
 	setup();
 
-	viewer = origin->blender->scene()->views().front();
+	viewer = origin->blender->viewer();
 	timer = new QTimer(this);
 	connect(timer, SIGNAL(timeout()), this, SLOT(hideWhenInactive()));
 	timer->start(300);
@@ -55,12 +55,12 @@ void BlendPathSub::setup()
 	Scheduler * scheduler = blendPaths[pathIDX].scheduler.data();
 	int N = scheduler->allGraphs.size();
 
-	double step = (end - start) / count;
+	double step = (end - start) / (count-1);
 
 	for(int i = 0; i < count; i++)
 	{
 		double t = start + (step * i);
-		Structure::Graph * g = scheduler->allGraphs[t * N];
+		Structure::Graph * g = scheduler->allGraphs[qMin(N-1, int(t * N))];
 
 		BlendRenderItem * item = renderer->genItem(g, -1, -1);
 		item->pixmap = item->pixmap.copy(item->pixmap.rect().adjusted(0,0,0,-9));

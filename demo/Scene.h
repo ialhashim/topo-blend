@@ -15,6 +15,8 @@ public:
 
     QRect graphRect(bool isRight);
 
+	QGraphicsProxyWidget * addButton( int x, int y, QString text, QImage icon = QImage() );
+
 protected:
     void drawBackground ( QPainter * painter, const QRectF & rect );
     void drawForeground ( QPainter * painter, const QRectF & rect );

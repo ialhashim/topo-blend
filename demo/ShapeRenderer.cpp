@@ -11,6 +11,11 @@ ShapeRenderer::ShapeRenderer(QString filename, QColor color, int resolution) : c
     setMinimumSize(w,h);
     setMaximumSize(w,h);
 
+	// Placement off-screen
+	int x = -w * 1.2;
+	int y = 0;
+	this->setGeometry(x,y,w,h);
+
     QGLFormat f;
     f.setAlpha(true);
     f.setSampleBuffers(true);
@@ -47,7 +52,7 @@ ShapeRenderer::ShapeRenderer(QString filename, QColor color, int resolution) : c
 void ShapeRenderer::initializeGL()
 {
     // Setup lights and material
-	GLfloat ambientLightColor[] = {0.1f,0.1f,0.1f,1};
+	GLfloat ambientLightColor[] = {0.2f,0.2f,0.2f,1};
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLightColor);
 
     GLfloat diffuseLightColor[] = {0.9f,0.9f,0.9f,1};
@@ -171,7 +176,7 @@ void ShapeRenderer::paintGL()
 
 QPixmap ShapeRenderer::render(QString filename)
 {
-   ShapeRenderer renderer(filename);
+   ShapeRenderer renderer(filename, QColor(203, 127, 92), 512);
    renderer.show();
    renderer.updateGL();
    return QPixmap::fromImage( renderer.grabFrameBuffer(true) );

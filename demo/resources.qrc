@@ -1,7 +1,9 @@
 <RCC>
-  <qresource prefix="/">
-    <file>images/appIcon.ico</file>
-    <file>images/exportIcon.ico</file>
-    <file>images/exportImage.png</file>
-  </qresource>
+    <qresource prefix="/">
+        <file>images/appIcon.ico</file>
+        <file>images/exportIcon.ico</file>
+        <file>images/exportImage.png</file>
+        <file>images/arrowDown.png</file>
+        <file>images/arrowUp.png</file>
+    </qresource>
 </RCC>
