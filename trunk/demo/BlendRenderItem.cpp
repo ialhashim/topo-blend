@@ -2,6 +2,7 @@
 #include <QPainter>
 #include <QGraphicsScene>
 #include "BlendRenderItem.h"
+#include "StructureGraph.h"
 
 BlendRenderItem::BlendRenderItem(QPixmap pixmap) : pixmap(pixmap)
 {
@@ -22,11 +23,17 @@ void BlendRenderItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *o
 		painter->setPen( QPen(Qt::yellow, 2) );
 		painter->drawRect( pixmap.rect() );
 	}
+
+	/// DEBUG:
+	//Structure::Graph * graph = property["graph"].value<Structure::Graph*>();
+	//painter->drawText(0,0, QString::number(graph->property["t"].toDouble()) );
 }
 
 bool BlendRenderItem::isOnTop()
 {
-	QRectF r = mapRectToScene(boundingRect().adjusted(10,10,-10,-10));
+	int padding = 20;
+
+	QRectF r = mapRectToScene(boundingRect().adjusted(padding,padding,-padding,-padding));
 	QList<QGraphicsItem*> itemsAtRect = scene()->items(r, Qt::IntersectsItemBoundingRect, Qt::DescendingOrder);
 
 	foreach(QGraphicsItem * i, itemsAtRect){

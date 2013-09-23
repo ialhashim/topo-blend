@@ -52,6 +52,9 @@ void TaskCurve::prepareShrinkCurve()
 {
     Node *n = node();
 	QVector<Link*> edges = filterEdges( n, active->getEdges(n->id) );
+
+	if(!edges.size()) return; // Something went wrong
+
 	Curve* curve = ((Curve*)n);
 
 	// Save edges used

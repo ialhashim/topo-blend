@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>356</width>
-    <height>135</height>
+    <width>347</width>
+    <height>112</height>
    </rect>
   </property>
   <property name="styleSheet">
@@ -22,7 +22,7 @@ QTabBar::tab:hover:!pressed { background:rgb(255,192,98); color:white;  }
 QPushButton { 
 	background:rgb(90,90,90);
 	border: 3px solid rgb(90,90,90);
-	padding: 9px;
+	padding: 5px;
     color: white;
 	font-size: 12px;
 }
@@ -101,6 +101,12 @@ QPushButton:checked#manualButton{ background:#d33276; border-color: #982153; col
           <enum>QFrame::Raised</enum>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_2">
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
           <item>
            <layout class="QGridLayout" name="gridLayout_3">
             <item row="0" column="1">
@@ -209,9 +215,41 @@ QPushButton:checked#manualButton{ background:#d33276; border-color: #982153; col
           <enum>QFrame::Raised</enum>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
           <item>
            <layout class="QGridLayout" name="gridLayout_4">
+            <item row="0" column="0">
+             <spacer name="horizontalSpacer_4">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
             <item row="0" column="2">
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="0" column="1">
              <widget class="QPushButton" name="exportButton">
               <property name="text">
                <string>Export</string>
@@ -227,32 +265,6 @@ QPushButton:checked#manualButton{ background:#d33276; border-color: #982153; col
                </size>
               </property>
              </widget>
-            </item>
-            <item row="0" column="0">
-             <spacer name="horizontalSpacer_4">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>40</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item row="0" column="1">
-             <spacer name="horizontalSpacer">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>40</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
             </item>
            </layout>
           </item>

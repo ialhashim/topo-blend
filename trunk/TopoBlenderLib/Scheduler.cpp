@@ -46,6 +46,37 @@ Scheduler::~Scheduler()
 	}
 }
 
+Scheduler::Scheduler( const Scheduler& other )
+{
+	// Properties
+	rulerHeight = other.rulerHeight;
+	isForceStop = other.isForceStop;
+	property = other.property;
+
+	// UI elements
+	widget = NULL;
+	slider = NULL;
+	dock = NULL;
+
+	// Execution parameters
+	timeStep = other.timeStep;
+	globalStart = other.globalStart;
+	globalEnd = other.globalEnd;
+
+	// Input
+	activeGraph = other.activeGraph;
+	targetGraph = other.targetGraph;
+
+	superNodeCorr = other.superNodeCorr;
+	this->generateTasks();
+	this->schedule();
+}
+
+QSharedPointer<Scheduler> Scheduler::clone()
+{
+	return QSharedPointer<Scheduler>( new Scheduler(*this) );
+}
+
 void Scheduler::drawBackground( QPainter * painter, const QRectF & rect )
 {
 	QGraphicsScene::drawBackground(painter,rect);
@@ -129,6 +160,11 @@ void Scheduler::drawForeground( QPainter * painter, const QRectF & rect )
 
 void Scheduler::generateTasks()
 {
+	tasks.clear();
+
+	// Possible memory leak
+	activeGraph = new Structure::Graph(*activeGraph);
+
 	foreach(QString snodeID, superNodeCorr.keys())
 	{
 		QString tnodeID = superNodeCorr[snodeID];
@@ -445,36 +481,6 @@ void Scheduler::reset()
 	this->setSchedule( curSchedule );
 	emit( progressChanged(0) );
 	emit( hasReset() );
-}
-
-void Scheduler::shuffleSchedule()
-{
-	if(allGraphs.size()) reset();
-
-	QMap< int, QVector<Task*> > startTask;
-
-	foreach(Task * t, this->tasks)
-		startTask[t->start].push_back(t);
-	
-	// These keys are sorted in increasing order
-	QVector<int> originalTimes = startTask.keys().toVector();
-
-	// Shuffle them
-	QVector<int> startTimes = originalTimes;
-	std::random_shuffle(startTimes.begin(), startTimes.end());
-
-	for(int i = 0; i < (int)startTimes.size(); i++)
-	{
-		int oldStart = originalTimes[i];
-		int newStart = startTimes[i];
-
-		QVector<Task*> curTasks = startTask[oldStart];
-
-		foreach(Task * t, curTasks)
-		{
-			t->setStart( newStart );
-		}
-	}
 }
 
 void Scheduler::executeAll()
@@ -948,14 +954,14 @@ void Scheduler::saveSchedule(QString filename)
 	file.close();
 }
 
-QMap< QString, QPair<int,int> > Scheduler::getSchedule()
+ScheduleType Scheduler::getSchedule()
 {
-	QMap< QString, QPair<int,int> > result;
+	ScheduleType result;
 	foreach(Task * t, tasks) result[t->nodeID] = qMakePair( t->start, t->length );
 	return result;
 }
 
-void Scheduler::setSchedule( QMap< QString, QPair<int,int> > fromSchedule )
+void Scheduler::setSchedule( ScheduleType fromSchedule )
 {
 	Task * t = NULL;
 	foreach(QString nodeID, fromSchedule.keys())
@@ -1025,4 +1031,98 @@ void Scheduler::emitProgressChanged( int val )
 void Scheduler::emitProgressedDone()
 {
 	emit( progressDone() );
+}
+
+void Scheduler::shuffleSchedule()
+{
+	if(allGraphs.size()) reset();
+
+	QMap< int, QVector<Task*> > startTask;
+
+	foreach(Task * t, this->tasks)
+		startTask[t->start].push_back(t);
+
+	// These keys are sorted in increasing order
+	QVector<int> originalTimes = startTask.keys().toVector();
+
+	// Shuffle them
+	QVector<int> startTimes = originalTimes;
+	std::random_shuffle(startTimes.begin(), startTimes.end());
+
+	for(int i = 0; i < (int)startTimes.size(); i++)
+	{
+		int oldStart = originalTimes[i];
+		int newStart = startTimes[i];
+
+		QVector<Task*> curTasks = startTask[oldStart];
+
+		foreach(Task * t, curTasks)
+		{
+			t->setStart( newStart );
+		}
+	}
+}
+
+QVector<ScheduleType> Scheduler::manyRandomSchedules(int N)
+{
+	QVector<ScheduleType> schedules;
+
+	if(allGraphs.size()) reset();
+	QMap< int, QVector<Task*> > startTask;
+	foreach(Task * t, this->tasks)	startTask[t->start].push_back(t);
+	QVector<int> originalTimes = startTask.keys().toVector();
+	QVector<int> startTimes = originalTimes;
+
+	// Add the default scheduling as first possibility
+	schedules.push_back( getSchedule() );
+
+	for(int itr = 1; itr < N; itr++)
+	{
+		std::random_shuffle(startTimes.begin(), startTimes.end());
+
+		ScheduleType s;
+
+		for(int i = 0; i < (int)startTimes.size(); i++)
+		{
+			int oldStart = originalTimes[i];
+			int newStart = startTimes[i];
+
+			QVector<Task*> curTasks = startTask[oldStart];
+
+			foreach(Task * t, curTasks)
+				s[ t->nodeID ] = qMakePair(newStart, t->length);
+		}
+
+		schedules.push_back( s );
+	}
+
+	return schedules;
+}
+
+QVector<ScheduleType> Scheduler::allSchedules()
+{
+	QVector<ScheduleType> schedules;
+
+	if(allGraphs.size()) reset();
+	QMap< int, QVector<Task*> > startTask;
+	foreach(Task * t, this->tasks)	startTask[t->start].push_back(t);
+	QVector<int> originalTimes = startTask.keys().toVector();
+	QVector<int> startTimes = originalTimes;
+
+	do {
+		ScheduleType s;
+
+		for(int i = 0; i < (int)startTimes.size(); i++){
+			int oldStart = originalTimes[i];
+			int newStart = startTimes[i];
+			QVector<Task*> curTasks = startTask[oldStart];
+
+			foreach(Task * t, curTasks)
+				s[ t->nodeID ] = qMakePair(newStart, t->length);
+		}
+
+		schedules.push_back( s );
+	} while( std::next_permutation(startTimes.begin(), startTimes.end()) );
+
+	return schedules;
 }

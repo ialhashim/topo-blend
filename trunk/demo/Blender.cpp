@@ -25,7 +25,7 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->isSample = false;
 #endif
 
-	this->graphItemWidth = s->width() * 0.2;
+	this->graphItemWidth = s->width() * 0.15;
 
 	setupBlendPathItems();
 
@@ -51,13 +51,18 @@ void Blender::setupBlendPathItems()
 	int padding = 4;
 	int blendPathHeight = (s->height() / (numSuggestions * 1.5)) * 0.99;
 	int totalHeight = numSuggestions * (blendPathHeight + padding);
-	int startY = (s->height() * 0.5 - totalHeight * 0.5) - 45;
+
+	int startY = (s->height() * 0.5 - totalHeight * 0.5) - 30;
+
+	QColor color( 255, 180, 68, 100 );
 
 	for(int i = 0; i < numSuggestions; i++)
 	{
 		QGraphicsRectItem * blendPathBack = new QGraphicsRectItem (0,0,s->width() - (2 * graphItemWidth), blendPathHeight);
-		blendPathBack->setBrush( QColor (255, 180, 68) );
-		blendPathBack->setOpacity( 0.04 );
+
+		blendPathBack->setPen( Qt::NoPen );
+		blendPathBack->setBrush( QColor (255, 255, 255, 10) );
+
 		blendPathBack->setY( startY + (i * (blendPathHeight + padding)) );
 		blendPathBack->setX( 0.5*s->width() - 0.5*blendPathBack->boundingRect().width() );
 
@@ -118,7 +123,6 @@ void Blender::setupBlendPathItems()
 			}
 		}
 
-		QColor color( 255, 180, 68, 100 );
 		QGraphicsItem * litem = s->addPath(lpath, QPen(color, 1));
 		QGraphicsItem * ritem = s->addPath(rpath, QPen(color, 1));
 		litem->setVisible(false);
@@ -129,6 +133,25 @@ void Blender::setupBlendPathItems()
 	}
 
 	itemHeight = blendPathHeight;
+
+	// Add paths navigation buttons
+	QRectF firstGroup = blendPathsItems.front()->sceneBoundingRect();
+	QRectF lastGroup = blendPathsItems.back()->sceneBoundingRect();
+
+	QGraphicsProxyWidget * prevButton = s->addButton(0,0, "prev", colorize( QImage(":/images/arrowUp.png"), QColor(255,153,0), 2 ) );
+	QGraphicsProxyWidget * nextButton = s->addButton(0,0, "next", colorize( QImage(":/images/arrowDown.png"), QColor(255,153,0), 2 ) );
+
+	prevButton->setPos(firstGroup.right() - prevButton->boundingRect().width(), firstGroup.top() - padding - prevButton->boundingRect().height());
+	nextButton->setPos(lastGroup.right() - nextButton->boundingRect().width(), lastGroup.bottom() + padding);
+	prevButton->setVisible(false);
+	nextButton->setVisible(false);
+
+	auxItems.push_back(prevButton);
+	auxItems.push_back(nextButton);
+
+	// Connections
+	this->connect(prevButton->widget(), SIGNAL(clicked()), SLOT(showPrevResults()));
+	this->connect(nextButton->widget(), SIGNAL(clicked()), SLOT(showNextResults()));
 }
 
 void Blender::show()
@@ -186,12 +209,39 @@ void Blender::setGraphCorresponder( GraphCorresponder * graphCorresponder )
 	this->m_gcorr = graphCorresponder;
 }
 
+void Blender::schedulePaths( const QSharedPointer<Scheduler> & scheduler, const QSharedPointer<TopoBlender> & blender )
+{
+	blendPaths.clear();
+	blendPaths.resize(numSuggestions);
+
+	for(int i = 0; i < numSuggestions; i++)
+	{
+		// Shared properties
+		BlendPath bp;
+		bp.source = s->inputGraphs[0]->g;
+		bp.target = s->inputGraphs[1]->g;
+		bp.gcorr = this->m_gcorr;
+		bp.blender = blender;
+
+		// Per-path properties
+		bp.scheduler = scheduler->clone();
+		int idx = qMax(0, qMin(allSchedules.size() - 1, (resultsPage * numSuggestions) + i) );
+		bp.scheduler->setSchedule( allSchedules[ idx ] );
+
+		// Add blend path
+		blendPaths[i] = bp;
+
+		// Connections
+		this->connect(bp.scheduler.data(), SIGNAL(progressChanged(int)), SLOT(pathProgressChanged()), Qt::DirectConnection);
+	}
+}
+
 void Blender::preparePaths()
 {    
 	if(!s->isInputReady() || m_gcorr == NULL) return;
+	emit( blendStarted() );
 
 	isFinished = false;
-	emit( blendStarted() );
 
 	// UI and logging
 	{	
@@ -203,43 +253,30 @@ void Blender::preparePaths()
 		pathsTimer.start();
 	}
 
+	// Blending setup
+	m_scheduler = QSharedPointer<Scheduler>( new Scheduler );
+	m_blender = QSharedPointer<TopoBlender>( new TopoBlender( m_gcorr, m_scheduler.data() ) );
+	
+	allSchedules = m_scheduler->manyRandomSchedules(100);
+	resultsPage = 0;
+
 	// Generate blend paths
-	for(int i = 0; i < numSuggestions; i++)
+	schedulePaths( m_scheduler, m_blender );
+
+	// Synthesis requires a single instance of the blend process
+	if( s_manager.isNull() )
 	{
-		BlendPath bp;
+		int numSamples = 8000;
 
-		bp.source = s->inputGraphs[0]->g;
-		bp.target = s->inputGraphs[1]->g;
-		bp.gcorr = this->m_gcorr;
+		s_manager = QSharedPointer<SynthesisManager>(new SynthesisManager(m_gcorr, m_scheduler.data(), m_blender.data(), numSamples));
 
-		// Per-path data
-		bp.scheduler = QSharedPointer<Scheduler>( new Scheduler );
-		bp.blender = QSharedPointer<TopoBlender>( new TopoBlender( bp.gcorr, bp.scheduler.data() ) );
+		QVariant p_camera;
+		p_camera.setValue( s->camera );
+		s_manager->setProperty("camera", p_camera);
 
-		/// Different scheduling happens here...
-		if(i != 0) bp.scheduler->shuffleSchedule();
-
-		// Add blend path
-		blendPaths.push_back( bp );
-
-		// Connections
-        this->connect(bp.scheduler.data(), SIGNAL(progressChanged(int)), SLOT(pathProgressChanged()), Qt::DirectConnection);
-
-		// Synthesis requires a single instance of the blend process
-		if( s_manager.isNull() )
-		{
-			int numSamples = 8000;
-
-			s_manager = QSharedPointer<SynthesisManager>(new SynthesisManager(m_gcorr, bp.scheduler.data(), bp.blender.data(), numSamples));
-
-			QVariant p_camera;
-			p_camera.setValue( s->camera );
-			s_manager->setProperty("camera", p_camera);
-
-			// Progress connections
-			progress->connect(s_manager.data(), SIGNAL(progressChanged(double)), SLOT(setProgress(double)));
-			this->connect(s_manager.data(), SIGNAL(synthDataReady()), SLOT(synthDataReady()));
-		}
+		// Progress connections
+		progress->connect(s_manager.data(), SIGNAL(progressChanged(double)), SLOT(setProgress(double)));
+		this->connect(s_manager.data(), SIGNAL(synthDataReady()), SLOT(synthDataReady()));
 	}
 
 	// UI and logging
@@ -342,8 +379,6 @@ void Blender::blenderDone()
 			renderer->generateItem( curGraph, i, j );
 		}
 	}
-
-	foreach(QGraphicsItem * item, auxItems) item->setVisible(true);
 }
 
 void Blender::keyReleased( QKeyEvent* keyEvent )
@@ -398,27 +433,11 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 	}
 }
 
-void Blender::cleanUp()
-{
-	// Clear results
-	{
-		resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
-		blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
-	}
-	
-	// Clean up synthesis data
-	{
-		s_manager.clear();
-	}
-
-	// Clean up blending path data
-	{
-		blendPaths.clear();
-	}
-}
-
 void Blender::blenderAllResultsDone()
 {
+	// Show UI elements
+	foreach(QGraphicsItem * item, auxItems) item->setVisible(true);
+
 	// Expand blend sequence near two items
 	for(int i = 0; i < numSuggestions; i++)
 	{
@@ -492,4 +511,64 @@ void Blender::exportSelected()
 
 	qApp->restoreOverrideCursor();
 	QCursor::setPos(QCursor::pos());
+}
+
+void Blender::cleanUp()
+{
+	// Clear results
+	{
+		resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
+		blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
+	}
+
+	// Clean up synthesis data
+	{
+		s_manager.clear();
+	}
+
+	// Clean up blending path data
+	{
+		blendPaths.clear();
+	}
+}
+
+QWidget * Blender::viewer()
+{
+	return scene()->views().front();
+}
+
+void Blender::showPrevResults()
+{
+	if(!blendPaths.size()) return;
+
+	resultsPage--;
+	if(resultsPage < 0) 
+	{
+		resultsPage = 0;
+		return;
+	}
+
+	schedulePaths( m_scheduler, m_blender );
+
+	// Clear generated items
+	resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
+	blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
+
+	// Generate more items
+	emit( blendPathsReady() );
+}
+
+void Blender::showNextResults()
+{
+	if(!blendPaths.size()) return;
+
+	resultsPage++;
+	schedulePaths( m_scheduler, m_blender );
+
+	// Clear generated items
+	resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
+	blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
+
+	// Generate more items
+	emit( blendPathsReady() );
 }

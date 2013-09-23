@@ -3,9 +3,10 @@
 #include "DemoPage.h"
 #include "GraphCorresponder.h"
 #include "TopoBlender.h"
+#include "Scheduler.h"
 
 // Forward Declare
-class Scheduler; class ProgressItem; class SynthesisManager;
+class ProgressItem; class SynthesisManager;
 class BlendPathRenderer; class BlendRenderItem; class BlendPathSubButton;
 
 // Blend path container
@@ -30,6 +31,11 @@ public:
 	int itemHeight;
 	int graphItemWidth;
 
+	int resultsPage;
+	QVector<ScheduleType> allSchedules;
+	QSharedPointer<Scheduler> m_scheduler;
+	QSharedPointer<TopoBlender> m_blender;
+
 	friend class BlendPathRenderer;
 	friend class BlendPathSubButton;
 	friend class BlendPathSub;
@@ -50,6 +56,7 @@ public slots:
 
 	void setGraphCorresponder(GraphCorresponder *);
 	void preparePaths();
+	void schedulePaths( const QSharedPointer<Scheduler> & scheduler, const QSharedPointer<TopoBlender> & blender );
 	void pathProgressChanged();
 	void synthDataReady();
     void runComputeBlendPaths();
@@ -59,7 +66,11 @@ public slots:
 	void blendResultDone(QGraphicsItem* item);
 	void blenderAllResultsDone();
 
+	void showPrevResults();
+	void showNextResults();
+
 	void exportSelected();
+	QWidget * viewer();
 
 private:
 	QVector< QGraphicsItemGroup* > blendPathsItems;

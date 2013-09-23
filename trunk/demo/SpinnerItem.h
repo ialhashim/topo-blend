@@ -20,7 +20,7 @@ public:
         Q_UNUSED(widget)
 
         QColor backColor = color;
-        backColor.setAlphaF(0.25);
+        backColor.setAlphaF(0.15);
 
         int radius = width * 0.5;
         painter->setPen(QPen(backColor, lineWidth));
