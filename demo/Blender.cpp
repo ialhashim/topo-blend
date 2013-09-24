@@ -14,12 +14,6 @@ QList< QSharedPointer<Scheduler> > jobs;
 
 Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL)
 {
-	this->numSuggestions = 4;
-	this->numInBetweens = 4;
-
-	this->resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
-	this->blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
-
 	this->isSample = true;
 #ifdef QT_DEBUG
 	this->isSample = false;
@@ -27,11 +21,10 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 
 	this->graphItemWidth = s->width() * 0.15;
 
-	setupBlendPathItems();
+	this->numSuggestions = 4;
+	this->numInBetweens = 4;
 
-	// Results renderer
-	renderer = new BlendPathRenderer(this, itemHeight);
-	this->connect( renderer, SIGNAL(itemReady(QGraphicsItem*)), SLOT(blendResultDone(QGraphicsItem*)), Qt::DirectConnection );
+	setupBlendPathItems();
 
 	// Progress bar
 	progress = new ProgressItem("Working..", false, s);
@@ -47,6 +40,9 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 
 void Blender::setupBlendPathItems()
 {
+	this->resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
+	this->blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
+
 	// Create background items for each blend path
 	int padding = 4;
 	int blendPathHeight = (s->height() / (numSuggestions * 1.5)) * 0.99;
@@ -56,6 +52,10 @@ void Blender::setupBlendPathItems()
 
 	QColor color( 255, 180, 68, 100 );
 
+	// Clear previously set items
+	foreach(QGraphicsItemGroup * grp, blendPathsItems) s->removeItem(grp);
+	blendPathsItems.clear();
+	
 	for(int i = 0; i < numSuggestions; i++)
 	{
 		QGraphicsRectItem * blendPathBack = new QGraphicsRectItem (0,0,s->width() - (2 * graphItemWidth), blendPathHeight);
@@ -82,6 +82,9 @@ void Blender::setupBlendPathItems()
 	QPointF lstart = r0.center() + QPoint(r0.width() * 0.3,0);
 	QPointF rstart = r1.center() - QPoint(r1.width() * 0.3,0);
 	double tension = 0.5;
+
+	foreach(QGraphicsItem * item, auxItems) s->removeItem(item);
+	auxItems.clear();
 
 	for(int i = 0; i < numSuggestions; i++)
 	{
@@ -152,6 +155,10 @@ void Blender::setupBlendPathItems()
 	// Connections
 	this->connect(prevButton->widget(), SIGNAL(clicked()), SLOT(showPrevResults()));
 	this->connect(nextButton->widget(), SIGNAL(clicked()), SLOT(showNextResults()));
+
+	// Results renderer
+	renderer = new BlendPathRenderer(this, itemHeight);
+	this->connect( renderer, SIGNAL(itemReady(QGraphicsItem*)), SLOT(blendResultDone(QGraphicsItem*)), Qt::DirectConnection );
 }
 
 void Blender::show()
@@ -387,7 +394,71 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 	{
 		this->isSample = !this->isSample;
 		emit( message( QString("Sampling toggled to: %1").arg(isSample) ) );
+		return;
 	}
+
+	if(keyEvent->key() == Qt::Key_M)
+	{
+		QRectF R;
+		
+		foreach(QGraphicsItemGroup * g, blendPathsItems) {g->hide(); R = R.united(g->sceneBoundingRect());}
+		foreach(QGraphicsItem * item, auxItems)	item->hide();
+
+		R.setSize(QSizeF(R.width() * 0.8, R.height() * 0.8));
+		R.moveCenter(s->sceneRect().center());
+
+		int columns = 20;
+		int rows = numSuggestions;
+
+		QVector< QVector<QPointF> > allPoints = QVector< QVector<QPointF> >(rows, QVector<QPointF>(columns));
+		
+		for(int y = 0; y < rows; y++){	
+			for(int x = 0; x < columns; x++){
+				double dx = double(x) / (columns-1);
+				double dy = double(y) / (rows-1);
+				int deltaY = (R.height() * 0.25) * pow((2 * abs(dx - 0.5)),3);
+				QRectF r = R;
+				r.adjust(0,deltaY,0,-deltaY);
+				allPoints[y][x] = QPointF(	AlphaBlend(dx, r.topLeft().x(), r.topRight().x()),
+											AlphaBlend(dy, r.topLeft().y(), r.bottomLeft().y()));
+			}
+		}
+
+		QVector<QPainterPath> ellipPaths;
+
+		foreach( QVector<QPointF> points, allPoints ){
+			QPainterPath path;
+			path.moveTo(points.at(0));
+			for(int i = 1; i + 2 < points.size(); i++)
+				path.cubicTo(points.at(i), points.at(i+1), points.at(i+2));
+			ellipPaths.push_back(path);
+		}
+
+		// Re-arrange result items
+		for(int i = 0; i < numSuggestions; i++){
+			for(int j = 0; j < numInBetweens; j++){
+				double t = double(j) / (numInBetweens - 1);
+
+				int w = resultItems[i][j]->boundingRect().width() * 0.5;
+				int h = resultItems[i][j]->boundingRect().height() * 0.5;
+
+				QPointF p = ellipPaths[i].pointAtPercent(t);
+				p.setX( (AlphaBlend(t, R.topLeft(), R.topRight())).x() );
+				resultItems[i][j]->setPos(p.x() - w, p.y() - h);
+			}
+		}
+
+		return;
+	}
+
+	if(keyEvent->key() == Qt::Key_Equal) numSuggestions++;
+	if(keyEvent->key() == Qt::Key_Minus) numSuggestions--;
+	if(keyEvent->key() == Qt::Key_0) numInBetweens++;
+	if(keyEvent->key() == Qt::Key_9) numInBetweens--;
+
+	setupBlendPathItems();
+
+	emit( message( QString("Paths [%1] / In-betweens [%2]").arg(numSuggestions).arg(numInBetweens) ) );
 }
 
 void Blender::blendResultDone(QGraphicsItem* done_item)
@@ -446,7 +517,7 @@ void Blender::blenderAllResultsDone()
 
 		for(int j = 0; j + 1 < numInBetweens; j++)
 		{
-			BlendPathSubButton * subItemButton = new BlendPathSubButton(itemHeight * 0.5, itemHeight, this);
+			BlendPathSubButton * subItemButton = new BlendPathSubButton(itemHeight * 0.5, itemHeight, this, 10);
 			subItemButton->setPos( QPointF(pathRect.x() + ((j+1) * outterWidth) - (subItemButton->boundingRect().width() * 0.5), pathRect.y()) );
 			
 			blendSubItems[i][j] = QSharedPointer<BlendPathSubButton>(subItemButton);
