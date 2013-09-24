@@ -22,7 +22,7 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->graphItemWidth = s->width() * 0.15;
 
 	this->numSuggestions = 4;
-	this->numInBetweens = 4;
+	this->numInBetweens = 5;
 
 	setupBlendPathItems();
 
@@ -386,7 +386,7 @@ void Blender::blenderDone()
 			renderer->generateItem( curGraph, i, j );
 		}
 	}
-}
+} 
 
 void Blender::keyReleased( QKeyEvent* keyEvent )
 {
