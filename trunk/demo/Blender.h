@@ -18,8 +18,6 @@ struct BlendPath{
 	QSharedPointer<TopoBlender> blender;
 };
 
-extern QVector< BlendPath > blendPaths;
-
 class Blender : public DemoPage
 {
     Q_OBJECT
@@ -33,8 +31,10 @@ public:
 
 	int resultsPage;
 	QVector<ScheduleType> allSchedules;
+
 	QSharedPointer<Scheduler> m_scheduler;
 	QSharedPointer<TopoBlender> m_blender;
+	QVector< BlendPath > blendPaths;
 
 	friend class BlendPathRenderer;
 	friend class BlendPathSubButton;
