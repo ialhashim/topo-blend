@@ -52,7 +52,7 @@ void BlendPathSub::setup()
 	double end = origin->property["end"].toDouble();
 
 	BlendPathRenderer * renderer = origin->blender->renderer;
-	Scheduler * scheduler = blendPaths[pathIDX].scheduler.data();
+	Scheduler * scheduler = origin->blender->blendPaths[pathIDX].scheduler.data();
 	int N = scheduler->allGraphs.size();
 
 	double step = (end - start) / (count-1);

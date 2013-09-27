@@ -1126,3 +1126,36 @@ QVector<ScheduleType> Scheduler::allSchedules()
 
 	return schedules;
 }
+
+QVector<Structure::Graph*> Scheduler::interestingInBetweens(int N)
+{
+	QVector<Structure::Graph*> result;
+	if(!allGraphs.size()) return;
+
+	QSet<int> tags = property["timeTags"].value< QSet<int> >();
+	int totalTime = totalExecutionTime();
+
+	QVector<double> times;
+
+	foreach(int tag, tags){
+		double t = double(tag) / totalTime;
+		times.push_back(t);
+	}
+
+	qSort(times);
+
+	if(times.size() < N)
+	{
+
+	}
+	
+	if(times.size() > N)
+	{
+
+	}
+
+	foreach(double t, times)
+		result.push_back( allGraphs[ t * (allGraphs.size() - 1) ] );
+	
+	return result;
+}

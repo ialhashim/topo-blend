@@ -103,15 +103,16 @@ public slots:
 	void startAllSameTime();
 	void startDiffTime();
 
-	void defaultSchedule();
-	void shuffleSchedule();
-	QVector<ScheduleType> manyRandomSchedules(int N);
-	QVector<ScheduleType> allSchedules();
-
 	void loadSchedule(QString filename);
 	void saveSchedule(QString filename);
 	void setSchedule( ScheduleType fromSchedule );
 	ScheduleType getSchedule();
+
+	void defaultSchedule();
+	void shuffleSchedule();
+	QVector<ScheduleType> manyRandomSchedules(int N);
+	QVector<ScheduleType> allSchedules();
+	QVector<Structure::Graph*> interestingInBetweens(int N);
 
 	void emitUpdateExternalViewer();
 	void emitProgressStarted();
