@@ -19,7 +19,7 @@ public:
 	~Scheduler();
 
 	Scheduler(const Scheduler& other);
-	QSharedPointer<Scheduler> clone();
+	Scheduler * clone();
 
 	// Properties
 	int rulerHeight;

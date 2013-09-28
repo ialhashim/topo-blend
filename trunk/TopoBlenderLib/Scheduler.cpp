@@ -72,9 +72,9 @@ Scheduler::Scheduler( const Scheduler& other )
 	this->schedule();
 }
 
-QSharedPointer<Scheduler> Scheduler::clone()
+Scheduler * Scheduler::clone()
 {
-	return QSharedPointer<Scheduler>( new Scheduler(*this) );
+	return new Scheduler(*this);
 }
 
 void Scheduler::drawBackground( QPainter * painter, const QRectF & rect )

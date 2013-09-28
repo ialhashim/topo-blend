@@ -9,9 +9,6 @@
 #include "SynthesisManager.h"
 #include "ShapeRenderer.h"
 
-QVector< BlendPath > blendPaths;
-QList< QSharedPointer<Scheduler> > jobs;
-
 Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL)
 {
 	this->isSample = true;
@@ -31,7 +28,7 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	progress->setZValue(999);
 
 	// Connections
-    this->connect(this, SIGNAL(blendPathsReady()), SLOT(runComputeBlendPaths()));
+    this->connect(this, SIGNAL(blendPathsReady()), SLOT(computeBlendPaths()));
     this->connect(this, SIGNAL(blendPathsDone()), SLOT(blenderDone()));
 	this->connect(this, SIGNAL(becameHidden()), SLOT(cleanUp()));
 	this->connect(this, SIGNAL(keyUpEvent(QKeyEvent*)), SLOT(keyReleased(QKeyEvent*)));
@@ -231,7 +228,7 @@ void Blender::schedulePaths( const QSharedPointer<Scheduler> & scheduler, const 
 		bp.blender = blender;
 
 		// Per-path properties
-		bp.scheduler = scheduler->clone();
+		bp.scheduler = QSharedPointer<Scheduler>( scheduler->clone() );
 		int idx = qMax(0, qMin(allSchedules.size() - 1, (resultsPage * numSuggestions) + i) );
 		bp.scheduler->setSchedule( allSchedules[ idx ] );
 
@@ -308,17 +305,8 @@ void Blender::synthDataReady()
 	for(int i = 0; i < numSuggestions; i++)
 		this->disconnect( blendPaths[i].scheduler.data() );
 
-	emit( blendPathsReady() );
 	emit( message(QString("Synthesis time [%1 ms]").arg(synthTimer.elapsed())) );
-}
-
-void Blender::runComputeBlendPaths()
-{
-	progress->startProgress();
-	progress->setExtra("Blend paths - ");
-	blendTimer.start();
-
-    QtConcurrent::run( this, &Blender::computeBlendPaths );
+	emit( blendPathsReady() );
 }
 
 void executeJob( const QSharedPointer<Scheduler> & scheduler )
@@ -332,13 +320,23 @@ void executeJob( const QSharedPointer<Scheduler> & scheduler )
 
 void Blender::computeBlendPaths()
 {
-    jobs.clear();
-    for(int i = 0; i < blendPaths.size(); i++) jobs.push_back( blendPaths[i].scheduler );
+	progress->startProgress();
+	progress->setExtra("Blend paths - ");
+	blendTimer.start();
 
-    QFuture<void> future = QtConcurrent::map(jobs, executeJob);
-    future.waitForFinished();
+	jobs.clear();
 
-    emit( blendPathsDone() );
+	QtConcurrent::run(this, &Blender::computeBlendPathsThread);
+}
+
+void Blender::computeBlendPathsThread()
+{
+	for(int i = 0; i < blendPaths.size(); i++) jobs.push_back( blendPaths[i].scheduler );
+
+	QFuture<void> future = QtConcurrent::map(jobs, executeJob);
+	future.waitForFinished();
+
+	emit( blendPathsDone() );
 }
 
 void Blender::computePath( const int & index )

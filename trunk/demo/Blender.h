@@ -35,6 +35,7 @@ public:
 	QSharedPointer<Scheduler> m_scheduler;
 	QSharedPointer<TopoBlender> m_blender;
 	QVector< BlendPath > blendPaths;
+	QList< QSharedPointer<Scheduler> > jobs;
 
 	friend class BlendPathRenderer;
 	friend class BlendPathSubButton;
@@ -59,8 +60,8 @@ public slots:
 	void schedulePaths( const QSharedPointer<Scheduler> & scheduler, const QSharedPointer<TopoBlender> & blender );
 	void pathProgressChanged();
 	void synthDataReady();
-    void runComputeBlendPaths();
 	void computeBlendPaths();
+	void computeBlendPathsThread();
 
 	void blenderDone();
 	void blendResultDone(QGraphicsItem* item);
