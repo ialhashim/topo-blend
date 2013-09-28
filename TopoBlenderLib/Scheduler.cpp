@@ -1130,7 +1130,7 @@ QVector<ScheduleType> Scheduler::allSchedules()
 QVector<Structure::Graph*> Scheduler::interestingInBetweens(int N)
 {
 	QVector<Structure::Graph*> result;
-	if(!allGraphs.size()) return;
+	if(!allGraphs.size()) return result;
 
 	QSet<int> tags = property["timeTags"].value< QSet<int> >();
 	int totalTime = totalExecutionTime();
@@ -1141,17 +1141,34 @@ QVector<Structure::Graph*> Scheduler::interestingInBetweens(int N)
 		double t = double(tag) / totalTime;
 		times.push_back(t);
 	}
-
 	qSort(times);
 
-	if(times.size() < N)
+	// Missing some more samples
+	while(times.size() < N)
 	{
+		QMap<double, int> intervals;
+		for(int i = 0; i + 1 < times.size(); i++)
+			intervals[times[i+1] - times[i]] = i;
 
+		int selected = intervals[intervals.keys().back()];
+		double length = times[ selected + 1 ] - times[ selected ];
+		double midTime = (length * 0.5) + times[selected];
+
+		times.push_back(midTime);
+		qSort(times);
 	}
 	
-	if(times.size() > N)
+	// Having a lot more samples
+	while(times.size() > N)
 	{
+		QMap<double, int> intervals;
 
+		// Note we start from '1'
+		for(int i = 1; i + 1 < times.size(); i++)
+			intervals[times[i+1] - times[i]] = i;
+
+		int selected = intervals[intervals.keys().front()];
+		times.remove(selected + 1);
 	}
 
 	foreach(double t, times)

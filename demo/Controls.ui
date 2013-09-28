@@ -236,7 +236,7 @@ QPushButton:checked#manualButton{ background:#d33276; border-color: #982153; col
               </property>
              </spacer>
             </item>
-            <item row="0" column="2">
+            <item row="0" column="4">
              <spacer name="horizontalSpacer">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
@@ -249,7 +249,7 @@ QPushButton:checked#manualButton{ background:#d33276; border-color: #982153; col
               </property>
              </spacer>
             </item>
-            <item row="0" column="1">
+            <item row="0" column="3">
              <widget class="QPushButton" name="exportButton">
               <property name="text">
                <string>Export</string>
@@ -265,6 +265,36 @@ QPushButton:checked#manualButton{ background:#d33276; border-color: #982153; col
                </size>
               </property>
              </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QPushButton" name="jobButton">
+              <property name="text">
+               <string>Save Job</string>
+              </property>
+              <property name="icon">
+               <iconset resource="resources.qrc">
+                <normaloff>:/images/jobImage.png</normaloff>:/images/jobImage.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>24</width>
+                <height>24</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <spacer name="horizontalSpacer_5">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
             </item>
            </layout>
           </item>

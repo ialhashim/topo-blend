@@ -20,6 +20,7 @@ Session::Session(   Scene *scene, ShapesGallery *gallery, Controls * control,
 	control->connect(blender, SIGNAL(blendStarted()), SLOT(disableTabs()));
 	control->connect(blender, SIGNAL(blendDone()), SLOT(enableTabs()));
 	blender->connect(control->ui->exportButton, SIGNAL(clicked()), SLOT(exportSelected()));
+	blender->connect(control->ui->jobButton, SIGNAL(clicked()), SLOT(saveJob()));
 
 	// Gallery:
 	gallery->connect(blender, SIGNAL(exportShape(QString,PropertyMap)), SLOT(appendShape(QString,PropertyMap)));

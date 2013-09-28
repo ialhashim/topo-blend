@@ -372,18 +372,11 @@ void Blender::blenderDone()
 	for(int i = 0; i < numSuggestions; i++)
 	{
 		Scheduler * curSchedule = blendPaths[i].scheduler.data();
+		QVector<Structure::Graph*> inBetweens = curSchedule->interestingInBetweens( numInBetweens );
 
 		for(int j = 0; j < numInBetweens; j++)
 		{
-			double start = 1.0 / (numInBetweens+2);
-			double range = 1.0 - (2.0 * start);
-
-			double t = ((double(j) / (numInBetweens-1)) * range) + start;
-
-			int idx = t * (curSchedule->allGraphs.size() - 1);
-			Structure::Graph * curGraph = curSchedule->allGraphs[idx];
-
-			renderer->generateItem( curGraph, i, j );
+			renderer->generateItem( inBetweens[j], i, j );
 		}
 	}
 } 
@@ -582,6 +575,73 @@ void Blender::exportSelected()
 
 	qApp->restoreOverrideCursor();
 	QCursor::setPos(QCursor::pos());
+}
+
+void Blender::saveJob()
+{
+	foreach(QGraphicsItem * item, s->selectedItems())
+	{
+		BlendRenderItem * renderItem = qobject_cast<BlendRenderItem *>(item->toGraphicsObject());
+		if(!renderItem) continue;
+		
+		int pathID = renderItem->property["pathID"].toInt();
+
+		Structure::Graph * g = renderItem->property["graph"].value<Structure::Graph*>();
+		QString sname = g->property["sourceName"].toString();
+		QString tname = g->property["sourceName"].toString();
+		QString filename = sname + "." + tname;
+		blendPaths[pathID].scheduler->saveSchedule(filename);
+
+		QString sGraphName = m_gcorr->sgName();
+		QString tGraphName = m_gcorr->tgName();
+		QString graph_names = ( sGraphName + "_" + tGraphName ) + ".job";
+		QString job_filename = QFileDialog::getSaveFileName(0, tr("Save Job"), graph_names, tr("Job Files (*.job)"));
+
+		QFile job_file( job_filename );
+		if (!job_file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+		QFileInfo jobFileInfo(job_file.fileName());
+		QTextStream out(&job_file);
+
+		// Create folders
+		QDir jobDir( jobFileInfo.absolutePath() );
+
+		QString sDir = jobDir.path() + "/Source/";
+		QString tDir = jobDir.path() + "/Target/";
+		jobDir.mkdir( sDir ); 
+		jobDir.mkdir( tDir );
+
+		// Save source and target graphs
+		QString sRelative = "Source/" + sGraphName + ".xml";
+		QString sgFileName = jobDir.path() + "/" + sRelative;
+		m_blender->sg->saveToFile( sgFileName );
+
+		QString tRelative = "Target/" + tGraphName + ".xml";
+		QString tgFileName = jobDir.path() + "/"  + tRelative;
+		m_blender->tg->saveToFile( tgFileName );
+
+		// Save correspondence file
+		QString correspondRelative = "correspondence.txt";
+		QString correspondenceFileName = jobDir.path() + "/" + correspondRelative;
+		m_gcorr->saveCorrespondences( correspondenceFileName, true );
+
+		// Save the scheduler
+		QString scheduleRelative = "schedule.txt";
+		QString scheduleFileName = jobDir.path() + "/" + scheduleRelative;
+		blendPaths[pathID].scheduler->saveSchedule( scheduleFileName );
+
+		// Save paths & parameters
+		out << sRelative << "\n";
+		out << tRelative << "\n";
+		out << correspondRelative << "\n";
+		out << scheduleRelative << "\n";
+		out << s_manager->samplesCount << "\t";
+		out << DIST_RESOLUTION << "\t" << m_scheduler->timeStep << "\n";
+		out << 7 << "\t" << numInBetweens << "\n";
+		job_file.close();
+
+		// Save samples
+		//s_manager->saveSynthesisData( jobDir.path() + "/" );
+	}
 }
 
 void Blender::cleanUp()
