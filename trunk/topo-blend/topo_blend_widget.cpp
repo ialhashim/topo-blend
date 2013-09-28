@@ -193,13 +193,16 @@ void topo_blend_widget::loadJobFile(QString job_filename)
 
 void topo_blend_widget::saveJob()
 {
-	if(!tb->scheduler) return;
+	topo_blend_widget::saveJob( tb->gcoor, tb->scheduler, tb->blender, tb->s_manager );
+}
 
-	QString sGraphName = tb->gcoor->sgName();
-	QString tGraphName = tb->gcoor->tgName();
+void topo_blend_widget::saveJob(GraphCorresponder * gcoor, Scheduler * scheduler, TopoBlender * blender, SynthesisManager * s_manager)
+{
+	if(!scheduler) return;
 
+	QString sGraphName = gcoor->sgName();
+	QString tGraphName = gcoor->tgName();
 	QString graph_names = ( sGraphName + "_" + tGraphName ) + ".job";
-
 	QString job_filename = QFileDialog::getSaveFileName(0, tr("Save Job"), graph_names, tr("Job Files (*.job)"));
 
 	QFile job_file( job_filename );
@@ -218,21 +221,21 @@ void topo_blend_widget::saveJob()
 	// Save source and target graphs
 	QString sRelative = "Source/" + sGraphName + ".xml";
 	QString sgFileName = jobDir.path() + "/" + sRelative;
-	tb->blender->sg->saveToFile( sgFileName );
+	blender->sg->saveToFile( sgFileName );
 
 	QString tRelative = "Target/" + tGraphName + ".xml";
 	QString tgFileName = jobDir.path() + "/"  + tRelative;
-	tb->blender->tg->saveToFile( tgFileName );
+	blender->tg->saveToFile( tgFileName );
 
 	// Save correspondence file
 	QString correspondRelative = "correspondence.txt";
 	QString correspondenceFileName = jobDir.path() + "/" + correspondRelative;
-	tb->gcoor->saveCorrespondences( correspondenceFileName, true );
+	gcoor->saveCorrespondences( correspondenceFileName, true );
 
 	// Save the scheduler
 	QString scheduleRelative = "schedule.txt";
 	QString scheduleFileName = jobDir.path() + "/" + scheduleRelative;
-	tb->scheduler->saveSchedule( scheduleFileName );
+	scheduler->saveSchedule( scheduleFileName );
 
 	// Save paths & parameters
 	out << sRelative << "\n";
@@ -241,18 +244,18 @@ void topo_blend_widget::saveJob()
 	out << scheduleRelative << "\n";
 
 	// Synthesis
-	out << ui->synthesisSamplesCount->value() << "\t";
+	out << s_manager->samplesCount << "\t";
 
 	// Discretization 
-	out << tb->scheduler->widget->gdResolution() << "\t" << tb->scheduler->widget->timeStep() << "\n";
+	out << scheduler->widget->gdResolution() << "\t" << scheduler->widget->timeStep() << "\n";
 
 	// Reconstruction
-	out << tb->scheduler->widget->reconLevel() << "\t" << tb->scheduler->widget->renderCount() << "\n";
+	out << scheduler->widget->reconLevel() << "\t" << scheduler->widget->renderCount() << "\n";
 
 	job_file.close();
 
 	// Save samples
-    tb->s_manager->saveSynthesisData( jobDir.path() + "/" );
+    s_manager->saveSynthesisData( jobDir.path() + "/" );
 }
 
 void topo_blend_widget::showGroupingDialog()

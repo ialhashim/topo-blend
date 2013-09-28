@@ -8,6 +8,10 @@ class topo_blend_widget;
 }
 
 class topoblend;
+class GraphCorresponder;
+class Scheduler;
+class TopoBlender;
+class SynthesisManager;
 
 class topo_blend_widget : public QWidget
 {
@@ -54,6 +58,7 @@ public slots:
 	void loadJob();
 	void loadJobFile(QString job_filename);
     QString loadJobFileName();
+	static void saveJob(GraphCorresponder * gcoor, Scheduler * scheduler, TopoBlender * blender, SynthesisManager * s_manager);
 
 private:
 	Ui::topo_blend_widget *ui;

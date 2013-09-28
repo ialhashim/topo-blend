@@ -70,6 +70,7 @@ public slots:
 	void showNextResults();
 
 	void exportSelected();
+	void saveJob();
 	QWidget * viewer();
 
 private:
