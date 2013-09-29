@@ -53,6 +53,7 @@ LandmarksDialog::LandmarksDialog(topoblend *topo_blender, QWidget *parent) :  QD
 	// I/O
 	this->connect(ui->loadButton, SIGNAL(clicked()), SLOT(loadLandmarks()));
 	this->connect(ui->saveButton, SIGNAL(clicked()), SLOT(saveLandmarks()));
+	this->connect(ui->loadCorrButton, SIGNAL(clicked()), SLOT(loadCorrespondenceFile()));
 
 	/// Alignment
 	this->connect(ui->showAABB, SIGNAL(stateChanged(int)), SLOT(showAABB(int)));
@@ -315,14 +316,14 @@ void LandmarksDialog::visualizeLandmark()
 
 void LandmarksDialog::saveLandmarks()
 {
-	QString filename = QFileDialog::getSaveFileName(NULL,"Save Lanmarks","./", "Test file (*.txt)");
+	QString filename = QFileDialog::getSaveFileName(NULL,"Save Lanmarks","./", "Text file (*.txt)");
 
 	gcorr->saveLandmarks(filename);
 }
 
 void LandmarksDialog::loadLandmarks()
 {
-	QString filename = QFileDialog::getOpenFileName(NULL,"Load Lanmarks","./", "Test file (*.txt)");
+	QString filename = QFileDialog::getOpenFileName(NULL,"Load Lanmarks","./", "Text file (*.txt)");
 	gcorr->loadLandmarks(filename);
 
 	updateLandmarksTab();
@@ -696,4 +697,9 @@ void LandmarksDialog::visualizeCorr( int row, int column )
 
 		tb->updateDrawArea();
 	}
+}
+
+void LandmarksDialog::loadCorrespondenceFile()
+{
+	gcorr->loadCorrespondences(QFileDialog::getOpenFileName(NULL,"Load Correspondence","./", "Text file (*.txt)"));
 }

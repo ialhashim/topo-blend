@@ -243,81 +243,33 @@ void Scheduler::order()
 	{
 		QList<Task*> curTasks = tasksByType.values(Task::TaskType(i));
 
-		if(false)
-		{
-			// Special case: Remove already set tasks during GROW
-			{
-				QMutableListIterator<Task*> itr(curTasks);
-				while (itr.hasNext()) 
-					if (itr.next()->property.contains("isTaskAlreadyOrdered")) 
-						itr.remove();
-			}
-		}
-
 		int futureStart = curStart;
 		Structure::Graph * g = NULL;
 
-		if(curTasks.size()) 
+		if(!curTasks.size()) continue;
+
+		// Sort tasks by priority
+		curTasks = sortTasksByPriority( curTasks );
+
+		if(i == Task::MORPH)
 		{
-			// Sort tasks by priority
-			curTasks = sortTasksByPriority( curTasks );
-
-			if(i == Task::MORPH)
-			{
-				foreach(Task* t, curTasks){
-					t->setStart(curStart);
-					futureStart = qMax(futureStart, t->endTime());
-					curStart = futureStart;
-				}
-			}
-			else
-			{
-				curTasks = sortTasksAsLayers( curTasks, curStart );
-				foreach(Task* t, curTasks) futureStart = qMax(futureStart, t->endTime());
-			}
-
-			// Group events in same group
-			g = (i == Task::SHRINK) ? activeGraph : targetGraph;
-			groupStart(g, curTasks, curStart, futureStart);		
-
-			curStart = futureStart;
-		}
-
-		if(false)
-		{
-			// Special case: growing cut null groups
-			if(i == Task::SHRINK)
-			{
-				curTasks = tasksByType.values(Task::GROW);
-				if(!curTasks.size()) continue;
-
-				QMutableListIterator<Task*> itr(curTasks);
-				while (itr.hasNext()) 
-				{
-					Structure::Node * n = itr.next()->node();
-					if (!n->property.contains("isCutGroup")) itr.remove();
-				}
-				if(!curTasks.size()) continue;
-
-				curTasks = sortTasksAsLayers( curTasks, curStart );
-				foreach(Task* t, curTasks) 
-				{
-					futureStart = qMax(futureStart, t->endTime());
-					t->property["isTaskAlreadyOrdered"] = true;
-				}
-
-				g = targetGraph;
-				groupStart(g, curTasks, curStart, futureStart);
-
+			foreach(Task* t, curTasks){
+				t->setStart(curStart);
+				futureStart = qMax(futureStart, t->endTime());
 				curStart = futureStart;
-
-				// Experiment:
-				//foreach(Task* t, curTasks) 
-				//{
-				//	addMorphTask( t->node()->id );
-				//}
 			}
 		}
+		else
+		{
+			curTasks = sortTasksAsLayers( curTasks, curStart );
+			foreach(Task* t, curTasks) futureStart = qMax(futureStart, t->endTime());
+		}
+
+		// Group events in same group
+		g = (i == Task::SHRINK) ? activeGraph : targetGraph;
+		groupStart(g, curTasks, curStart, futureStart);		
+
+		curStart = futureStart;
 	}
 
 	// Remove large empty spaces between tasks [inefficient?]
@@ -375,6 +327,7 @@ void Scheduler::groupStart( Structure::Graph * g, QList<Task*> curTasks, int cur
 	foreach(QVector<QString> group, g->groups)
 	{
 		QVector<Task*> tasksInGroup;
+		QVector<QString> groupTarget;
 
 		// Check which tasks are in a group
 		foreach(Task * t, curTasks){
@@ -382,6 +335,20 @@ void Scheduler::groupStart( Structure::Graph * g, QList<Task*> curTasks, int cur
 
 			if(group.contains(n->id))
 				tasksInGroup.push_back(t);
+		}
+
+		// Check grouping from target graph
+		if(!tasksInGroup.isEmpty()){
+			Structure::Graph * tg = (i == Task::SHRINK) ? tasksInGroup.front()->target : tasksInGroup.front()->active;
+			groupTarget = tg->groupOf( tasksInGroup.front()->node()->id );
+
+			if(!groupTarget.isEmpty()){
+				foreach(Task * t, curTasks){
+					Structure::Node * n = (i == Task::SHRINK) ? t->targetNode() : t->node();
+					if(groupTarget.contains(n->id) && !tasksInGroup.contains(t))
+						tasksInGroup.push_back(t);
+				}
+			}
 		}
 
 		curStart = futureStart;

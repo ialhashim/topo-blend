@@ -64,13 +64,35 @@
    <item row="1" column="0">
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
        <string>Landmarks</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_4">
+       <item row="8" column="0">
+        <widget class="QPushButton" name="loadButton">
+         <property name="text">
+          <string>Load</string>
+         </property>
+         <property name="icon">
+          <iconset resource="topo-blend.qrc">
+           <normaloff>:/images/openGraph.png</normaloff>:/images/openGraph.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="1">
+        <widget class="QPushButton" name="saveButton">
+         <property name="text">
+          <string>Save</string>
+         </property>
+         <property name="icon">
+          <iconset resource="topo-blend.qrc">
+           <normaloff>:/images/saveGraph.png</normaloff>:/images/saveGraph.png</iconset>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="0" colspan="2">
         <widget class="QGroupBox" name="groupBox_2">
          <property name="title">
@@ -112,15 +134,33 @@
          </layout>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="label_8">
+       <item row="7" column="0">
+        <widget class="QLabel" name="label_3">
          <property name="text">
-          <string>Part landmarks</string>
+          <string>File I/O</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
-        <widget class="QPushButton" name="sClearButton">
+       <item row="6" column="0" colspan="2">
+        <widget class="QTableWidget" name="landmarksTable">
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SingleSelection</enum>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <property name="horizontalScrollMode">
+          <enum>QAbstractItemView::ScrollPerPixel</enum>
+         </property>
+         <property name="columnCount">
+          <number>2</number>
+         </property>
+         <column/>
+         <column/>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QPushButton" name="tClearButton">
          <property name="text">
           <string>Clear Selections</string>
          </property>
@@ -130,8 +170,15 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
-        <widget class="QPushButton" name="tClearButton">
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_8">
+         <property name="text">
+          <string>Part landmarks</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QPushButton" name="sClearButton">
          <property name="text">
           <string>Clear Selections</string>
          </property>
@@ -174,53 +221,6 @@
          <property name="icon">
           <iconset resource="topo-blend.qrc">
            <normaloff>:/images/uparrow.png</normaloff>:/images/uparrow.png</iconset>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="0" colspan="2">
-        <widget class="QTableWidget" name="landmarksTable">
-         <property name="selectionMode">
-          <enum>QAbstractItemView::SingleSelection</enum>
-         </property>
-         <property name="selectionBehavior">
-          <enum>QAbstractItemView::SelectRows</enum>
-         </property>
-         <property name="horizontalScrollMode">
-          <enum>QAbstractItemView::ScrollPerPixel</enum>
-         </property>
-         <property name="columnCount">
-          <number>2</number>
-         </property>
-         <column/>
-         <column/>
-        </widget>
-       </item>
-       <item row="7" column="0">
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>File I/O</string>
-         </property>
-        </widget>
-       </item>
-       <item row="8" column="0">
-        <widget class="QPushButton" name="loadButton">
-         <property name="text">
-          <string>Load</string>
-         </property>
-         <property name="icon">
-          <iconset resource="topo-blend.qrc">
-           <normaloff>:/images/openGraph.png</normaloff>:/images/openGraph.png</iconset>
-         </property>
-        </widget>
-       </item>
-       <item row="8" column="1">
-        <widget class="QPushButton" name="saveButton">
-         <property name="text">
-          <string>Save</string>
-         </property>
-         <property name="icon">
-          <iconset resource="topo-blend.qrc">
-           <normaloff>:/images/saveGraph.png</normaloff>:/images/saveGraph.png</iconset>
          </property>
         </widget>
        </item>
@@ -612,6 +612,13 @@
         <widget class="QPushButton" name="prepareButton">
          <property name="text">
           <string>Prepare Matrices</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="3">
+        <widget class="QPushButton" name="loadCorrButton">
+         <property name="text">
+          <string>Load...</string>
          </property>
         </widget>
        </item>

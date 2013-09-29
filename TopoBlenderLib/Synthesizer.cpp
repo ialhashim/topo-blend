@@ -667,6 +667,8 @@ void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, const
 		int steps = 100;
 		foreach(Vector4d p, base_curve->discretizedPoints( base_curve->curve.GetTotalLength() / steps).front())
 			proxy.push_back( base_curve->position(p).cast<float>() );
+
+		if(!proxy.size()) isApprox = false;
 	}
 
 	const std::vector<Vector3d> curvePnts = base_curve->curve.mCtrlPoint;
@@ -729,15 +731,21 @@ void Synthesizer::reconstructGeometrySheet( Structure::Sheet * base_sheet, const
 		int steps = 100;
 		double res = base_sheet->bbox().diagonal().norm() / steps;
 		Array2D_Vector4d pnts = base_sheet->discretizedPoints( res );
-		proxy.resize(pnts.size(), std::vector< std::vector<Vector3> >(pnts[0].size(), std::vector<Vector3>(4,Vector3(0,0,0))));
 
-		// Fill proxy
-		for(int u = 0; u < (int)pnts.size(); u++){
-			for(int v = 0; v < (int)pnts[0].size(); v++){
-				base_sheet->surface.GetFrame(pnts[u][v][0],pnts[u][v][1],
-											 proxy[u][v][0],proxy[u][v][1],proxy[u][v][2],proxy[u][v][3]);
+		if(pnts.size())
+		{
+			proxy.resize(pnts.size(), std::vector< std::vector<Vector3> >(pnts[0].size(), std::vector<Vector3>(4,Vector3(0,0,0))));
+
+			// Fill proxy
+			for(int u = 0; u < (int)pnts.size(); u++){
+				for(int v = 0; v < (int)pnts[0].size(); v++){
+					base_sheet->surface.GetFrame(pnts[u][v][0],pnts[u][v][1],
+						proxy[u][v][0],proxy[u][v][1],proxy[u][v][2],proxy[u][v][3]);
+				}
 			}
 		}
+		else
+			isApprox = false;
 	}
 
 	const Array2D_Vector3 sheetPnts = base_sheet->surface.mCtrlPoint;

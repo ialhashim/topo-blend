@@ -864,3 +864,9 @@ void SynthesisManager::emitSynthDataReady()
 {
 	emit( synthDataReady() );
 }
+
+void SynthesisManager::bufferCleanup()
+{
+	GLuint VertexVBOID = this->currentGraph["vboID"].toUInt();
+	glDeleteBuffers(1, &VertexVBOID);
+}

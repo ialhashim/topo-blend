@@ -65,6 +65,8 @@ public slots:
 	void geometryMorph( SynthData & data, Structure::Graph * graph, bool isApprox, int limit = -1 );
 	void drawSynthesis( Structure::Graph * activeGraph );
 
+	void bufferCleanup();
+
 	void emitSynthDataReady();
 
 signals:
