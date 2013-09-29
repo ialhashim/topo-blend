@@ -15,6 +15,11 @@ BlendPathRenderer::BlendPathRenderer( Blender * blender, int itemHeight, QWidget
 	setMinimumSize(w,h);
 	setMaximumSize(w,h);
 
+	// Placement off-screen
+	int x = -w * 1.2;
+	int y = 0;
+	this->setGeometry(x,y,w,h);
+
 	QGLFormat f;
 	f.setAlpha(true);
 	f.setSampleBuffers(true);
@@ -95,4 +100,6 @@ void BlendPathRenderer::paintGL()
 	s_manager->pointSize = 1.0;
 	s_manager->color = QColor( 255, 180, 68 );
 	s_manager->drawSynthesis( activeGraph );
+
+	s_manager->bufferCleanup();
 }

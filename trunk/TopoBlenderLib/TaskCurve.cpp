@@ -88,6 +88,8 @@ void TaskCurve::prepareShrinkCurve()
 		gd.computeDistances( pointA, DIST_RESOLUTION );
 		gd.smoothPathCoordTo(pointB, path);
 
+		if(path.size() == 0) return;
+
 		// Use the center of the path as the end point
 		GraphDistance::PathPointPair endPointCoord = path[path.size() / 2];
 		Vector3d endPoint = endPointCoord.position(active);

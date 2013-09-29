@@ -15,8 +15,10 @@ ProgressItem::ProgressItem(QString message, bool isLoading, QGraphicsScene * sce
     int spinnerX = (scene->width() * 0.5) - (spinner->boundingRect().width() * 0.5);
     int spinnerY = (scene->height() * 0.5) - (spinner->boundingRect().height() * 0.5);
     spinner->setPos( spinnerX, spinnerY );
-    spinner->setZValue(-100);
     items->addToGroup(spinner);
+
+	items->setZValue(10000);
+	this->setZValue(100000);
 
     isSmoothAnimation = false;
 

@@ -64,6 +64,7 @@ public slots:
 
 	void saveLandmarks();
 	void loadLandmarks();
+	void loadCorrespondenceFile();
 
 	// Alignment
 	void showAABB(int state);
@@ -89,7 +90,6 @@ public slots:
 	void visualizeCorr(int row, int column);
 
 	void visualizePart2PartDistance(int id);
-
 };
 
 #endif // LANDMARKS_DIALOG_H

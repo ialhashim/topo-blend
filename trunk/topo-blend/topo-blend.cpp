@@ -734,6 +734,7 @@ void topoblend::doBlend()
 		this->disconnect(scheduler);
 		scheduler->dock->close();
 		scheduler = NULL;
+		if(s_manager) s_manager->scheduler = scheduler;
 	}
 
 	if( !gcoor )
@@ -749,8 +750,10 @@ void topoblend::doBlend()
 	c_manager->exitCorrespondenceMode(true);
 
 	scheduler = new Scheduler( );
-    blender = new TopoBlender( gcoor, scheduler );
+	if(s_manager) s_manager->scheduler = scheduler;
 
+    blender = new TopoBlender( gcoor, scheduler );
+	
     blender->parentWidget = mainWindow();
 	blender->setupUI();
 

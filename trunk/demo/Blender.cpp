@@ -8,6 +8,7 @@
 #include "Scheduler.h"
 #include "SynthesisManager.h"
 #include "ShapeRenderer.h"
+#include "SchedulerWidget.h"
 
 Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL)
 {
@@ -25,7 +26,6 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 
 	// Progress bar
 	progress = new ProgressItem("Working..", false, s);
-	progress->setZValue(999);
 
 	// Connections
     this->connect(this, SIGNAL(blendPathsReady()), SLOT(computeBlendPaths()));
@@ -249,7 +249,7 @@ void Blender::preparePaths()
 
 	// UI and logging
 	{	
-		progress->setExtra("Preparing paths - ");
+		progress->setExtra("Preparing paths ");
 		progress->show();
 
 		qApp->setOverrideCursor(Qt::WaitCursor);
@@ -261,6 +261,7 @@ void Blender::preparePaths()
 	m_scheduler = QSharedPointer<Scheduler>( new Scheduler );
 	m_blender = QSharedPointer<TopoBlender>( new TopoBlender( m_gcorr, m_scheduler.data() ) );
 	
+	srand(0);
 	allSchedules = m_scheduler->manyRandomSchedules(100);
 	resultsPage = 0;
 
@@ -312,29 +313,38 @@ void Blender::synthDataReady()
 void executeJob( const QSharedPointer<Scheduler> & scheduler )
 {
 #ifdef QT_DEBUG
-	scheduler->timeStep = 0.2;
+	//scheduler->timeStep = 0.2;
 #endif
 
-	scheduler->executeAll();
+	try{
+		scheduler->executeAll();
+	}
+	catch (std::exception e)
+	{
+		
+	}
 }
 
 void Blender::computeBlendPaths()
 {
 	progress->startProgress();
-	progress->setExtra("Blend paths - ");
+	progress->setExtra("Blend paths ");
 	blendTimer.start();
-
-	jobs.clear();
 
 	QtConcurrent::run(this, &Blender::computeBlendPathsThread);
 }
 
 void Blender::computeBlendPathsThread()
 {
-	for(int i = 0; i < blendPaths.size(); i++) jobs.push_back( blendPaths[i].scheduler );
+	#pragma omp parallel for
+	for(int i = 0; i < blendPaths.size(); i++) 
+	{
+		jobs.push_back( blendPaths[i].scheduler );
+		executeJob( blendPaths[i].scheduler );
+	}
 
-	QFuture<void> future = QtConcurrent::map(jobs, executeJob);
-	future.waitForFinished();
+	//QFuture<void> future = QtConcurrent::map(jobs, executeJob);
+	//future.waitForFinished();
 
 	emit( blendPathsDone() );
 }
@@ -361,7 +371,7 @@ void Blender::blenderDone()
 	{
         emit( message(QString("Blending time [%1 ms]").arg(blendTimer.elapsed())) );
 
-		progress->setExtra("Rendering -");
+		progress->setExtra("Rendering ");
 		progress->setProgress(0.0);
 		renderTimer.start();
 	}
@@ -442,14 +452,34 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 		return;
 	}
 
-	if(keyEvent->key() == Qt::Key_Equal) numSuggestions++;
-	if(keyEvent->key() == Qt::Key_Minus) numSuggestions--;
-	if(keyEvent->key() == Qt::Key_0) numInBetweens++;
-	if(keyEvent->key() == Qt::Key_9) numInBetweens--;
+	if(keyEvent->key() == Qt::Key_Space)
+	{
+		foreach(QGraphicsItem * item, s->selectedItems())
+		{
+			BlendRenderItem * renderItem = qobject_cast<BlendRenderItem *>(item->toGraphicsObject());
+			if(!renderItem) continue;
 
-	setupBlendPathItems();
+			int pathID = renderItem->property["pathID"].toInt();
 
-	emit( message( QString("Paths [%1] / In-betweens [%2]").arg(numSuggestions).arg(numInBetweens) ) );
+			SchedulerWidget * widget = new SchedulerWidget( blendPaths[pathID].scheduler.data() );
+			widget->setAttribute(Qt::WA_DeleteOnClose);
+			widget->show();
+		}
+
+		return;
+	}
+
+	// Changing number of results
+	{
+		if(keyEvent->key() == Qt::Key_Equal) numSuggestions++;
+		if(keyEvent->key() == Qt::Key_Minus) numSuggestions--;
+		if(keyEvent->key() == Qt::Key_0) numInBetweens++;
+		if(keyEvent->key() == Qt::Key_9) numInBetweens--;
+
+		setupBlendPathItems();
+
+		emit( message( QString("Paths [%1] / In-betweens [%2]").arg(numSuggestions).arg(numInBetweens) ) );
+	}
 }
 
 void Blender::blendResultDone(QGraphicsItem* done_item)
@@ -677,11 +707,12 @@ void Blender::showPrevResults()
 		return;
 	}
 
-	schedulePaths( m_scheduler, m_blender );
-
 	// Clear generated items
+	jobs.clear();
 	resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
 	blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
+
+	schedulePaths( m_scheduler, m_blender );
 
 	// Generate more items
 	emit( blendPathsReady() );
@@ -692,11 +723,13 @@ void Blender::showNextResults()
 	if(!blendPaths.size()) return;
 
 	resultsPage++;
-	schedulePaths( m_scheduler, m_blender );
 
 	// Clear generated items
+	jobs.clear();
 	resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
 	blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
+	
+	schedulePaths( m_scheduler, m_blender );
 
 	// Generate more items
 	emit( blendPathsReady() );

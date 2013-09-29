@@ -19,10 +19,16 @@ public:
         Q_UNUSED(option)
         Q_UNUSED(widget)
 
+		int radius = width * 0.5;
+
+		painter->translate(1,1);
+		painter->setPen(QPen(QColor(0,0,0,60), lineWidth));
+		painter->drawEllipse(boundingRect().center(), radius, radius);
+		painter->translate(-1,-1);
+
         QColor backColor = color;
         backColor.setAlphaF(0.15);
 
-        int radius = width * 0.5;
         painter->setPen(QPen(backColor, lineWidth));
         painter->drawEllipse(boundingRect().center(), radius, radius);
 
