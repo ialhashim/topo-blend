@@ -70,7 +70,7 @@ void TopoBlender::drawDebug()
 // Super graphs
 bool TopoBlender::isExtraNode( Structure::Node *node )
 {
-	return node->property["correspond"].toString().contains("null");
+	return node->property["correspond"].toString().contains("_null");
 }
 
 void TopoBlender::tagEdge( Structure::Link *link, QString tag )
@@ -351,7 +351,7 @@ void TopoBlender::correspondSimilarType( Structure::Graph * source, Structure::G
 			*tn2 = target->getNode(sn2->property["correspond"].toString());
 
 		// We are only looking for missing edges
-		if(!(tn1->id.contains("null") && tn2->id.contains("null"))) continue;
+		if(!(tn1->id.contains("_null") && tn2->id.contains("_null"))) continue;
 
 		Structure::Link * tlink = addMissingLink(target, slink);
 		correspondTwoEdges(slink, tlink, false, source);
@@ -362,7 +362,7 @@ void TopoBlender::connectNullNodes( Structure::Graph * source, Structure::Graph 
 {
 	foreach(Structure::Node * snode, source->nodes)
 	{
-		if (!snode->id.contains("null")) continue;
+		if (!snode->id.contains("_null")) continue;
 
 		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
 
@@ -462,7 +462,7 @@ void TopoBlender::correspondRemainingOfNull( Structure::Graph * source, Structur
 {
 	foreach(Structure::Node * snode, source->nodes)
 	{
-		if (!snode->id.contains("null")) continue;
+		if (!snode->id.contains("_null")) continue;
 		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
 
 		// Get un-corresponded of target
@@ -482,7 +482,7 @@ void TopoBlender::connectFloatingRealNodes( Structure::Graph * source, Structure
 {
 	foreach(Structure::Node * snode, source->nodes)
 	{
-		if (snode->id.contains("null")) continue;
+		if (snode->id.contains("_null")) continue;
 
 		QVector<Link*> alledges = source->getEdges(snode->id);
 		QVector<Link*> sedges = edgesNotContain(alledges, "correspond");
@@ -513,7 +513,7 @@ void TopoBlender::removeRedundantEdges( Structure::Graph * source )
 {
 	foreach(Structure::Node * snode, source->nodes)
 	{
-		if (snode->id.contains("null")) continue;
+		if (snode->id.contains("_null")) continue;
 
 		foreach(Link* link, edgesNotContain( source->getEdges(snode->id), "correspond" ))
 			source->removeEdge(link->n1, link->n2);
@@ -553,7 +553,7 @@ void TopoBlender::checkIntermediateCuts(Structure::Graph * original, Structure::
 				Node * tn = super_t->getNode(p->id);
 				if(!tn) continue;
 				QString sid = tn->property["correspond"].toString();
-				if(sid.contains("null")) null_count++;
+				if(sid.contains("_null")) null_count++;
 			}
 			if(null_count == part.size()){
 				snode->property.remove("isPossibleCut");
@@ -600,7 +600,7 @@ QVector< SetNodes > TopoBlender::nullNodeSets( Structure::Graph * sgraph, Struct
 
 			visited.insert( node );
 
-			if( node->id.contains("null") )
+			if( node->id.contains("_null") )
 			{
 				nodesToVisit.push( node );
 				curSet.set.insert( node );
@@ -616,7 +616,7 @@ QVector< SetNodes > TopoBlender::nullNodeSets( Structure::Graph * sgraph, Struct
 
 			foreach( Structure::Node * adj, sgraph->adjNodes(cur) ){
 				if( !visited.contains(adj) && !curSet.set.contains(adj) ){
-					if(adj->id.contains("null"))
+					if(adj->id.contains("_null"))
 						nodesToVisit.push( adj );
 				}
 			}
@@ -715,7 +715,7 @@ void TopoBlender::postprocessSuperEdges()
 	// >> More real: put null at the centoid of relative joint to all real neighbours
 	//               and the delta is computed thus from there
 	foreach (Node* n, super_sg->nodes){
-		if (n->id.contains("null")){
+		if (n->id.contains("_null")){
 			foreach(Link* sl, super_sg->getEdges( n->id )) {
 				//Link* tl = super_tg->getEdge(sl->property["correspond"].toInt());
 				sl->property["delta"].setValue( Vector3d(0,0,0) );
@@ -723,7 +723,7 @@ void TopoBlender::postprocessSuperEdges()
 		}
 	}
 	foreach (Node* n, super_tg->nodes){
-		if (n->id.contains("null")){
+		if (n->id.contains("_null")){
 			foreach(Link* tl, super_tg->getEdges(n->id)) {
 				Link* sl = super_sg->getEdge(tl->property["correspond"].toInt());
 				tl->property["delta"].setValue( sl->delta() );
@@ -742,7 +742,7 @@ void TopoBlender::equalizeSuperNodeResolutions()
 		QString tnodeID = superNodeCorr[snodeID];
 
 		// skip non-corresponded nodes
-		if (snodeID.contains("null") || tnodeID.contains("null"))
+		if (snodeID.contains("_null") || tnodeID.contains("_null"))
 			continue;
 
 		Structure::Node* snode = super_sg->getNode(snodeID);

@@ -165,7 +165,7 @@ void TaskCurve::prepareGrowCurve()
 		Node * other = active->getNode( tother->property["correspond"].toString() );
 
 		// Skip not grown others
-		if( ungrownNode(other->id) )	continue;
+		if( all_tedges.size() > 1 && ungrownNode(other->id) )	continue;
 
 		tedges.push_back(edge);		
 	}

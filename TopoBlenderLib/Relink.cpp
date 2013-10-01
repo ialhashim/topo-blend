@@ -56,6 +56,33 @@ void Relink::fixTask( Task* task )
 
 	QVector<LinkConstraint> consts;
 	if ( constraints.contains(task) ) consts = constraints[task];
+
+	// Useful for debugging:
+	QStringList listRelinks;
+	foreach(LinkConstraint c, consts) listRelinks << c.link->otherNode(n->id)->id;
+	n->property["listRelinks"].setValue( listRelinks );
+
+	bool fixedSize = false;
+	if (task->type == Task::MORPH && task->isDone && !task->property["isCrossing"].toBool())
+		fixedSize = true;
+
+	// Ignore constraints that will cause large distortions
+	{
+		QVector<LinkConstraint> keep;
+		foreach(LinkConstraint c, consts){
+			QVector< GraphDistance::PathPointPair > path = c.link->property["path"].value< QVector< GraphDistance::PathPointPair > >();
+			if((path.size() && c.task->isDone) || !path.size())
+				keep.push_back(c);
+		}
+
+		if(!keep.size()) 
+			fixedSize = true;
+		else if (keep.size() != consts.size())
+			consts = keep;
+	}
+	
+	n->property["fixedSize"] = fixedSize;
+
 	int N = consts.size();
 
 	// No constraints for task
@@ -63,10 +90,6 @@ void Relink::fixTask( Task* task )
 
 	// Crossing node is still fixable 
 	// Translate done tasks
-
-	bool fixedSize = false;
-	if (task->type == Task::MORPH && task->isDone && !task->property["isCrossing"].toBool())
-		fixedSize = true;
 
 	if ( fixedSize && N > 0 )
 	{
@@ -120,9 +143,9 @@ void Relink::fixTask( Task* task )
 		// Deform future tasks by two handles if multiple constrains exist
 		else if ( N > 1 )
 		{
-			// Pickup two constrains to deform the node
-			LinkConstraint cA = consts.front();
-			LinkConstraint cB = consts.back();
+			/// Pickup two constrains to deform the node:
+			LinkConstraint cA = consts[0];
+			LinkConstraint cB = consts[1];
 			Structure::Link *linkA = cA.link, *linkB = cB.link;
 
 			// Two Handles and newPos:
@@ -201,7 +224,12 @@ void Relink::propagateFrom( Task* task )
 
 		// generate constrains to unfixed task
 		if ( !otherTask->property["relinked"].toBool() )
-			constraints[ otherTask ].push_back( LinkConstraint(link, task, otherTask) );
+		{
+			if(task->isReady && !task->isDone)
+				constraints[ otherTask ].push_back( LinkConstraint(link, task, otherTask) );
+			else
+				constraints[ otherTask ].push_front( LinkConstraint(link, task, otherTask) );
+		}
 	}
 }
 
