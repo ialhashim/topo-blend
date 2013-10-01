@@ -210,6 +210,9 @@ void TaskCurve::prepareGrowCurve()
 		// Corresponding stuff on ACTIVE
 		Link *linkA = active->getEdge( tlinkA->property["correspond"].toInt() );
 		Link *linkB = active->getEdge( tlinkB->property["correspond"].toInt() );
+
+		if(!linkA || !linkB) return;
+
 		Node *otherA = active->getNode( totherA->property["correspond"].toString() );
 		Node *otherB = active->getNode( totherB->property["correspond"].toString() );
 		Vector3d pointA = otherA->position(othercoordA);
