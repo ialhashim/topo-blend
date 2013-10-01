@@ -254,6 +254,8 @@ void GraphExplorer::fillInfoItem( QMap<QString,QVariant> prop, QTreeWidgetItem *
 			QString vec_str = QString("[ %1, %2, %3 ]").arg(vec[0]).arg(vec[1]).arg(vec[2]);
 			p->setText(1, vec_str);
 		}
+		else if(typeName == "QStringList")
+			p->setText(1, val.value<QStringList>().join(", "));
 		else
 			p->setText(1, typeName);
 

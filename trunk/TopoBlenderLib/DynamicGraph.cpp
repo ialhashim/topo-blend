@@ -44,7 +44,7 @@ int DynamicGraph::addNode(Properties properties, int index)
 
 int DynamicGraph::addEdge(int fromNode, int toNode)
 {
-    if(fromNode == toNode) assert(0);
+    //if(fromNode == toNode) assert(0);
 
     SimpleEdge e(fromNode, toNode);
 

@@ -86,6 +86,8 @@ void topoblend::create()
 	// Change camera type
 	drawArea()->camera()->setType(qglviewer::Camera::PERSPECTIVE);
 	setSceneBounds();
+
+	mainWindow()->showMaximized();
 }
 
 void topoblend::drawFancyBackground()

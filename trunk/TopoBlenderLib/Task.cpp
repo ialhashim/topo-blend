@@ -511,6 +511,15 @@ void Task::execute( double t )
 		this->isDone = true;
 		n->property["taskIsDone"] = true;
 
+		// Remove paths for edges
+		QVector<Structure::Link*> edges = property["edges"].value< QVector<Structure::Link*> >();
+		foreach (Structure::Link* link, edges){
+			QVector< GraphDistance::PathPointPair > path = link->property["path"].value< QVector< GraphDistance::PathPointPair > >();
+			if(path.size()) 
+				link->property.remove("path");
+		}
+
+		// Post shrinking
 		if(type == SHRINK)
 		{
 			n->property["shrunk"] = true;
@@ -657,12 +666,12 @@ void Task::setNode( QString node_ID )
 
 	node()->property["taskTypeReal"] = type;
 
-	if( snID.contains("_") && !snID.contains("null") ) 
+	if( snID.contains("_") && !snID.contains("_null") ) 
 	{
 		mycolor = TaskColors[Task::SPLIT];
 		node()->property["taskTypeReal"] = Task::SPLIT;
 	}
-	if( tnID.contains("_") && !tnID.contains("null") ) 
+	if( tnID.contains("_") && !tnID.contains("_null") ) 
 	{
 		mycolor = TaskColors[Task::MERGE];
 		node()->property["taskTypeReal"] = Task::MERGE;
@@ -763,6 +772,11 @@ void Task::executeMorphEdges( double t )
 {
 	Node * n = node();
 
+	if(n->id.contains("LegCenter"))
+	{
+		qDebug() << "Test";
+	}
+
 	QVector<Structure::Link*> edges = property["edges"].value< QVector<Structure::Link*> >();
 	foreach (Structure::Link* link, edges)
 	{
@@ -784,18 +798,22 @@ bool Task::isCrossing()
 	Structure::Node *n = node(), *tn = targetNode();
 
 	bool isCross = false;
-	foreach(Link * l, active->getEdges(n->id))
-	{
-		if(l->property["modified"].toBool())
-			continue;
 
-		// check if my neighbor will change
-		Structure::Link* tl = target->getEdge(l->property["correspond"].toInt());
-		Structure::Node* sNb = l->otherNode(n->id);
-		QString tNbID = tl->otherNode(tn->id)->id;
-		if (sNb->property["correspond"].toString() != tNbID){
-			isCross = true;
-			break;
+	if( isReady && !isDone )
+	{
+		foreach(Link * l, active->getEdges(n->id))
+		{
+			if(l->property["modified"].toBool())
+				continue;
+
+			// check if my neighbor will change
+			Structure::Link* tl = target->getEdge(l->property["correspond"].toInt());
+			Structure::Node* sNb = l->otherNode(n->id);
+			QString tNbID = tl->otherNode(tn->id)->id;
+			if (sNb->property["correspond"].toString() != tNbID){
+				isCross = true;
+				break;
+			}
 		}
 	}
 

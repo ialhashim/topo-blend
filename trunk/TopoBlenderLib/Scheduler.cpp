@@ -173,9 +173,9 @@ void Scheduler::generateTasks()
 
 		if(activeGraph->getNode(snodeID)->type() == Structure::CURVE)
 		{
-			if (snodeID.contains("null"))  // Grow
+			if (snodeID.contains("_null"))  // Grow
 				task = new TaskCurve( activeGraph, targetGraph, Task::GROW, tasks.size() );
-			else if (tnodeID.contains("null")) // Shrink
+			else if (tnodeID.contains("_null")) // Shrink
 				task = new TaskCurve( activeGraph, targetGraph, Task::SHRINK, tasks.size() );
 			else
 				task = new TaskCurve( activeGraph, targetGraph, Task::MORPH, tasks.size() );
@@ -183,9 +183,9 @@ void Scheduler::generateTasks()
 
 		if(activeGraph->getNode(snodeID)->type() == Structure::SHEET)
 		{
-			if (snodeID.contains("null"))  // Grow
+			if (snodeID.contains("_null"))  // Grow
 				task = new TaskSheet( activeGraph, targetGraph, Task::GROW, tasks.size() );
-			else if (tnodeID.contains("null")) // Shrink
+			else if (tnodeID.contains("_null")) // Shrink
 				task = new TaskSheet( activeGraph, targetGraph, Task::SHRINK, tasks.size() );
 			else
 				task = new TaskSheet( activeGraph, targetGraph, Task::MORPH, tasks.size() );
@@ -492,7 +492,7 @@ void Scheduler::executeAll()
 		foreach(Structure::Node * snode, activeGraph->nodes)
 		{
 			QString sid = snode->id;
-			if (!sid.contains("null")) continue;
+			if (!sid.contains("_null")) continue;
 			snode->setControlPoints( Array1D_Vector3(snode->numCtrlPnts(), Vector3(0,0,0)) );
 			snode->property["zeroGeometry"] = true;
 
@@ -502,7 +502,7 @@ void Scheduler::executeAll()
 				QMap<Link *,int> existValence;
 				foreach(Link * edge, activeGraph->getEdges(sid)){
 					QString otherID = edge->otherNode(sid)->id;
-					if(otherID.contains("null")) continue;
+					if(otherID.contains("_null")) continue;
 					existValence[edge] = activeGraph->valence(activeGraph->getNode(otherID));
 				}
 

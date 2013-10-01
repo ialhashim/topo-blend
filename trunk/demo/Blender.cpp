@@ -313,16 +313,10 @@ void Blender::synthDataReady()
 void executeJob( const QSharedPointer<Scheduler> & scheduler )
 {
 #ifdef QT_DEBUG
-	//scheduler->timeStep = 0.2;
+	scheduler->timeStep = 0.2;
 #endif
 
-	try{
-		scheduler->executeAll();
-	}
-	catch (std::exception e)
-	{
-		
-	}
+	scheduler->executeAll();
 }
 
 void Blender::computeBlendPaths()
@@ -331,7 +325,11 @@ void Blender::computeBlendPaths()
 	progress->setExtra("Blend paths ");
 	blendTimer.start();
 
+	for(int i = 0; i < blendPaths.size(); i++) 
+		jobs.push_back( blendPaths[i].scheduler );
+
 	QtConcurrent::run(this, &Blender::computeBlendPathsThread);
+	//computeBlendPathsThread();
 }
 
 void Blender::computeBlendPathsThread()
@@ -339,7 +337,6 @@ void Blender::computeBlendPathsThread()
 	#pragma omp parallel for
 	for(int i = 0; i < blendPaths.size(); i++) 
 	{
-		jobs.push_back( blendPaths[i].scheduler );
 		executeJob( blendPaths[i].scheduler );
 	}
 
@@ -466,6 +463,14 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 			widget->show();
 		}
 
+		return;
+	}
+
+	if(keyEvent->key() == Qt::Key_B)
+	{
+		SchedulerWidget * widget = new SchedulerWidget( m_scheduler.data() );
+		widget->setAttribute(Qt::WA_DeleteOnClose);
+		widget->show();
 		return;
 	}
 
