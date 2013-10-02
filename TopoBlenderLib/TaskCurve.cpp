@@ -288,7 +288,7 @@ void TaskCurve::prepareMorphCurve()
 	property["cpCoordsT"].setValue( Structure::Curve::encodeCurve((Curve*)tn, targetA, targetB) );
 
 	// Check crossing
-	if ( isCrossing() ) 
+	if ( (isReady = true) && isCrossing() ) 
 		prepareCrossingMorphCurve();
 	else			  
 		prepareMorphEdges();

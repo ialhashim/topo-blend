@@ -25,6 +25,8 @@ Curve::Curve(const NURBS::NURBSCurved & newCurve, QString newID, QColor color)
 
 Node * Curve::clone()
 {
+	if(!this) return NULL;
+
 	Curve * cloneCurve = new Curve( this->curve, this->id );
 	cloneCurve->property = this->property;
 	cloneCurve->vis_property = this->vis_property;
