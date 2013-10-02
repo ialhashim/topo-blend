@@ -18,7 +18,7 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 #endif
 
 	this->graphItemWidth = s->width() * 0.15;
-
+	
 	this->numSuggestions = 4;
 	this->numInBetweens = 5;
 
@@ -334,7 +334,7 @@ void Blender::computeBlendPaths()
 
 void Blender::computeBlendPathsThread()
 {
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(int i = 0; i < blendPaths.size(); i++) 
 	{
 		executeJob( blendPaths[i].scheduler );

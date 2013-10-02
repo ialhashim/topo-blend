@@ -366,7 +366,7 @@ void Task::prepare()
 				l->popState();
 		}
 	}
-
+	
 	if (node()->type() == Structure::CURVE)
 	{
         prepareCurve();
@@ -771,11 +771,6 @@ void Task::prepareMorphEdges()
 void Task::executeMorphEdges( double t )
 {
 	Node * n = node();
-
-	if(n->id.contains("LegCenter"))
-	{
-		qDebug() << "Test";
-	}
 
 	QVector<Structure::Link*> edges = property["edges"].value< QVector<Structure::Link*> >();
 	foreach (Structure::Link* link, edges)

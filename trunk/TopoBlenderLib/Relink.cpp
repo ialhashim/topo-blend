@@ -67,11 +67,12 @@ void Relink::fixTask( Task* task )
 		fixedSize = true;
 
 	// Ignore constraints that will cause large distortions
+	// CASE: link is moving around parts
 	{
 		QVector<LinkConstraint> keep;
 		foreach(LinkConstraint c, consts){
 			QVector< GraphDistance::PathPointPair > path = c.link->property["path"].value< QVector< GraphDistance::PathPointPair > >();
-			if((path.size() && c.task->isDone) || !path.size())
+			if((path.size() && c.task->isDone) || (path.size() < 3))
 				keep.push_back(c);
 		}
 
@@ -226,9 +227,9 @@ void Relink::propagateFrom( Task* task )
 		if ( !otherTask->property["relinked"].toBool() )
 		{
 			if(task->isReady && !task->isDone)
-				constraints[ otherTask ].push_back( LinkConstraint(link, task, otherTask) );
-			else
 				constraints[ otherTask ].push_front( LinkConstraint(link, task, otherTask) );
+			else
+				constraints[ otherTask ].push_back( LinkConstraint(link, task, otherTask) );
 		}
 	}
 }
