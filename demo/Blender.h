@@ -54,6 +54,7 @@ public slots:
     void hide();
 	void keyReleased(QKeyEvent* keyEvent);
 	void cleanUp();
+	void clearResults();
 
 	void setGraphCorresponder(GraphCorresponder *);
 	void preparePaths();
@@ -69,6 +70,7 @@ public slots:
 
 	void showPrevResults();
 	void showNextResults();
+	void showResultsPage();
 
 	void exportSelected();
 	void saveJob();
@@ -86,6 +88,8 @@ private:
 	bool isFinished;
 
     void computePath(const int &index);
+
+	void addBlendSubItem(double x, double y, double w, double h, int i, int j);
 
 	GraphCorresponder * m_gcorr;
 	BlendPathRenderer * renderer;

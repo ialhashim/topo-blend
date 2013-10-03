@@ -366,7 +366,7 @@ void Task::prepare()
 				l->popState();
 		}
 	}
-	
+
 	if (node()->type() == Structure::CURVE)
 	{
         prepareCurve();
@@ -676,8 +676,6 @@ void Task::setNode( QString node_ID )
 		mycolor = TaskColors[Task::MERGE];
 		node()->property["taskTypeReal"] = Task::MERGE;
 	}
-
-	targetNode()->property["taskTypeReal"] = node()->property["taskTypeReal"];
 }
 
 std::vector<RMF::Frame> Task::smoothRotateFrame( RMF::Frame sframe, Eigen::Quaterniond & rotation, int steps )

@@ -3,6 +3,8 @@
 #include <QGraphicsObject>
 #include <QMap>
 
+#include "StructureGraph.h"
+
 class BlendRenderItem : public QGraphicsObject {
 	Q_OBJECT
 public:
@@ -15,6 +17,8 @@ public:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
 
 	bool isOnTop();
+
+	Structure::Graph * graph();
 
 protected:
 	virtual void mousePressEvent(QGraphicsSceneMouseEvent * event);

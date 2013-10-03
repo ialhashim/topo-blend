@@ -27,7 +27,7 @@ BlendPathRenderer::BlendPathRenderer( Blender * blender, int itemHeight, QWidget
 	this->setFormat(f);
 
 #ifndef Q_OS_WIN
-    show();
+	show();
 #endif
 }
 
