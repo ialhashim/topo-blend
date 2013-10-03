@@ -190,11 +190,8 @@ void TaskCurve::prepareGrowCurve()
 	{
 		property["isCutNode"] = true;
 
-		if (isCuttingReal())
-		{
-			prepareGrowCurveOneEdge( tedges.front() );
-			return;
-		}
+		prepareGrowCurveOneEdge( tedges.front() );
+		return;
 	}
 
 	if (tedges.size() > 1)

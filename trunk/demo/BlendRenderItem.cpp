@@ -2,7 +2,6 @@
 #include <QPainter>
 #include <QGraphicsScene>
 #include "BlendRenderItem.h"
-#include "StructureGraph.h"
 
 BlendRenderItem::BlendRenderItem(QPixmap pixmap) : pixmap(pixmap)
 {
@@ -55,4 +54,9 @@ void BlendRenderItem::mouseMoveEvent( QGraphicsSceneMouseEvent * event )
 {
 	if(!isOnTop()) return;
 	QGraphicsObject::mouseMoveEvent(event);
+}
+
+Structure::Graph * BlendRenderItem::graph()
+{
+	return property["graph"].value<Structure::Graph*>();
 }

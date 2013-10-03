@@ -37,8 +37,7 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 
 void Blender::setupBlendPathItems()
 {
-	this->resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
-	this->blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
+	clearResults();
 
 	// Create background items for each blend path
 	int padding = 4;
@@ -334,7 +333,7 @@ void Blender::computeBlendPaths()
 
 void Blender::computeBlendPathsThread()
 {
-	//#pragma omp parallel for
+	#pragma omp parallel for
 	for(int i = 0; i < blendPaths.size(); i++) 
 	{
 		executeJob( blendPaths[i].scheduler );
@@ -388,6 +387,12 @@ void Blender::blenderDone()
 
 void Blender::keyReleased( QKeyEvent* keyEvent )
 {
+	if(keyEvent->key() == Qt::Key_R)
+	{
+		showResultsPage();
+		return;
+	}
+
 	if(keyEvent->key() == Qt::Key_F)
 	{
 		this->isSample = !this->isSample;
@@ -500,7 +505,7 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 
 	// Placement
 	QRectF pathRect = blendPathsItems[pathID]->boundingRect();
-	double outterWidth = (pathRect.width() / numInBetweens);
+	double outterWidth = pathRect.width() / numInBetweens;
 	int delta = 0.5 * (outterWidth  - item->boundingRect().width() );
 	int x = pathRect.x() + (blendIDX * outterWidth) + delta;
 	int y = pathRect.y();
@@ -516,6 +521,8 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 		int N = (numSuggestions * numInBetweens);
 		progress->setProgress( double(numDone) / N );
 
+		qApp->processEvents();
+
 		if(numDone == N)
 		{
 			isFinished = true;
@@ -525,8 +532,6 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 			progress->hide();
 			emit( message(QString("Render time [%1 ms]").arg(renderTimer.elapsed())) );
 		}
-
-		qApp->processEvents();
 	}
 }
 
@@ -541,20 +546,37 @@ void Blender::blenderAllResultsDone()
 		QRectF pathRect = blendPathsItems[i]->boundingRect();
 		double outterWidth = (pathRect.width() / numInBetweens);
 
-		for(int j = 0; j + 1 < numInBetweens; j++)
+		double w = itemHeight * 0.5;
+		double h = itemHeight;
+
+		for(int j = 0; j < numInBetweens + 1; j++)
 		{
-			BlendPathSubButton * subItemButton = new BlendPathSubButton(itemHeight * 0.5, itemHeight, this, 10);
-			subItemButton->setPos( QPointF(pathRect.x() + ((j+1) * outterWidth) - (subItemButton->boundingRect().width() * 0.5), pathRect.y()) );
-			
-			blendSubItems[i][j] = QSharedPointer<BlendPathSubButton>(subItemButton);
-
-			blendSubItems[i][j]->property["pathIDX"] = i;
-			blendSubItems[i][j]->property["start"].setValue( resultItems[i][j]->property["graph"].value<Structure::Graph*>()->property["t"].toDouble() );
-			blendSubItems[i][j]->property["end"].setValue( resultItems[i][j+1]->property["graph"].value<Structure::Graph*>()->property["t"].toDouble() );
-
-			s->addItem( blendSubItems[i][j].data() );
+			addBlendSubItem(pathRect.x() + ((j) * outterWidth) - (w * 0.5), pathRect.y(), w, h, i, j);
 		}
 	}
+}
+
+void Blender::addBlendSubItem(double x, double y, double w, double h, int i, int j)
+{
+	if(j == 0) x += w*0.5;
+	if(j == numInBetweens) x -= w*0.5;
+
+	BlendPathSubButton * subItemButton = new BlendPathSubButton(w, h, this, 20);
+	subItemButton->setPos( QPointF(x, y) );
+
+	blendSubItems[i][j] = QSharedPointer<BlendPathSubButton>(subItemButton);
+	blendSubItems[i][j]->property["pathIDX"] = i;
+
+	double start = 0;
+	double end = 1.0; 
+
+	if(j > 0) start = resultItems[i][j-1]->graph()->property["t"].toDouble();
+	if(j + 1 < numInBetweens) end = resultItems[i][j]->graph()->property["t"].toDouble();
+
+	blendSubItems[i][j]->property["start"].setValue( start );
+	blendSubItems[i][j]->property["end"].setValue( end );
+
+	s->addItem( blendSubItems[i][j].data() );
 }
 
 void Blender::exportSelected()
@@ -568,7 +590,7 @@ void Blender::exportSelected()
 		BlendRenderItem * renderItem = qobject_cast<BlendRenderItem *>(item->toGraphicsObject());
 		if(renderItem)
 		{
-			Structure::Graph * g = renderItem->property["graph"].value<Structure::Graph*>();
+			Structure::Graph * g = renderItem->graph();
 			int idx = int(g->property["t"].toDouble() * 100);
 			
 			QString sname = g->property["sourceName"].toString();
@@ -619,7 +641,7 @@ void Blender::saveJob()
 		
 		int pathID = renderItem->property["pathID"].toInt();
 
-		Structure::Graph * g = renderItem->property["graph"].value<Structure::Graph*>();
+		Structure::Graph * g = renderItem->graph();
 		QString sname = g->property["sourceName"].toString();
 		QString tname = g->property["sourceName"].toString();
 		QString filename = sname + "." + tname;
@@ -677,12 +699,19 @@ void Blender::saveJob()
 	}
 }
 
+void Blender::clearResults()
+{
+	// Clear generated items
+	jobs.clear();
+	resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
+	blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens + 2) );
+}
+
 void Blender::cleanUp()
 {
 	// Clear results
 	{
-		resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
-		blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
+		clearResults();
 	}
 
 	// Clean up synthesis data
@@ -706,34 +735,24 @@ void Blender::showPrevResults()
 	if(!blendPaths.size()) return;
 
 	resultsPage--;
-	if(resultsPage < 0) 
-	{
+	if(resultsPage < 0){
 		resultsPage = 0;
 		return;
 	}
-
-	// Clear generated items
-	jobs.clear();
-	resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
-	blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
-
-	schedulePaths( m_scheduler, m_blender );
-
-	// Generate more items
-	emit( blendPathsReady() );
+	showResultsPage();
 }
 
 void Blender::showNextResults()
 {
 	if(!blendPaths.size()) return;
-
 	resultsPage++;
+	showResultsPage();
+}
 
-	// Clear generated items
-	jobs.clear();
-	resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
-	blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens) );
-	
+void Blender::showResultsPage()
+{
+	clearResults();
+
 	schedulePaths( m_scheduler, m_blender );
 
 	// Generate more items

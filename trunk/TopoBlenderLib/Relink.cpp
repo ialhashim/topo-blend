@@ -1,3 +1,5 @@
+#include <QStack>
+
 #include "Relink.h"
 #include "Scheduler.h"
 
@@ -66,13 +68,13 @@ void Relink::fixTask( Task* task )
 	if (task->type == Task::MORPH && task->isDone && !task->property["isCrossing"].toBool())
 		fixedSize = true;
 
-	// Ignore constraints that will cause large distortions
+	/// Ignore constraints that will cause large distortions
 	// CASE: link is moving around parts
 	{
 		QVector<LinkConstraint> keep;
 		foreach(LinkConstraint c, consts){
 			QVector< GraphDistance::PathPointPair > path = c.link->property["path"].value< QVector< GraphDistance::PathPointPair > >();
-			if((path.size() && c.task->isDone) || (path.size() < 3))
+			if((path.size() && c.task->isDone) || (path.size() < 4))
 				keep.push_back(c);
 		}
 
@@ -81,7 +83,17 @@ void Relink::fixTask( Task* task )
 		else if (keep.size() != consts.size())
 			consts = keep;
 	}
-	
+
+	// CASE: try to avoid using constraints that are not point based
+	{
+		QStack<int> toSwap;
+		for(int i = 0; i < consts.size(); i++){
+			if(consts[i].link->type == Structure::POINT_EDGE && !toSwap.isEmpty())
+				std::swap( consts[i], consts[toSwap.pop()] );
+			if(i < 2 && (consts[i].link->type == Structure::LINE_EDGE)) toSwap.push(i);
+		}
+	}
+
 	n->property["fixedSize"] = fixedSize;
 
 	int N = consts.size();
@@ -161,9 +173,9 @@ void Relink::fixTask( Task* task )
 			Vector3 newPosB = linkPosOtherB + deltaB;
 
 			// In case two handles or two new positions are two close
-			double handleDiff = (handleA - handleB).norm();
+			//double handleDiff = (handleA - handleB).norm();
 			double newPosDiff = (newPosA - newPosB).norm();
-			if (handleDiff < 0.1 || newPosDiff < 0.05)
+			if (newPosDiff < 0.05)
 			{
 				// Pick first one only
 				Vector3d oldPos = linkA->position(n->id);
@@ -203,18 +215,10 @@ void Relink::propagateFrom( Task* task )
 	Structure::Node * n = task->node();
 	QVector<Structure::Link*> edges = activeGraph->getEdges(n->id);
 
-	// Virtual cut node
-	//bool virtualCutting = task->isCutting() && !task->isCuttingReal();
-
 	foreach(Structure::Link* link, edges)
 	{
 		Structure::Node * other = link->otherNode(n->id);
 		Task * otherTask = s->getTaskFromNodeID(other->id);
-
-		// Virtual cut node
-		// Don't propagate to its real neighbours
-		//if (virtualCutting && !task->ungrownNode(otherTask->nodeID)) 
-		//	continue;
 
 		// Add to queue
 		if ( !otherTask->property["propagated"].toBool() )
@@ -226,7 +230,9 @@ void Relink::propagateFrom( Task* task )
 		// generate constrains to unfixed task
 		if ( !otherTask->property["relinked"].toBool() )
 		{
-			if(task->isReady && !task->isDone)
+			bool taskIsActive = task->isReady && !task->isDone;
+
+			if(taskIsActive)
 				constraints[ otherTask ].push_front( LinkConstraint(link, task, otherTask) );
 			else
 				constraints[ otherTask ].push_back( LinkConstraint(link, task, otherTask) );

@@ -164,6 +164,7 @@ void Scheduler::generateTasks()
 
 	// Possible memory leak
 	activeGraph = new Structure::Graph(*activeGraph);
+	targetGraph = new Structure::Graph(*targetGraph);
 
 	foreach(QString snodeID, superNodeCorr.keys())
 	{
@@ -1131,11 +1132,11 @@ QVector<Structure::Graph*> Scheduler::interestingInBetweens(int N)
 		QMap<double, int> intervals;
 
 		// Note we start from '1'
-		for(int i = 1; i + 1 < times.size(); i++)
+		for(int i = 1; i + 1 < times.size() - 1; i++)
 			intervals[times[i+1] - times[i]] = i;
 
 		int selected = intervals[intervals.keys().front()];
-		times.remove(selected + 1);
+		times.remove( selected );
 	}
 
 	foreach(double t, times)
