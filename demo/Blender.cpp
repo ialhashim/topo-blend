@@ -10,7 +10,7 @@
 #include "ShapeRenderer.h"
 #include "SchedulerWidget.h"
 
-Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL)
+Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL), renderer(NULL), resultViewer(NULL)
 {
 	this->isSample = true;
 #ifdef QT_DEBUG
@@ -153,8 +153,13 @@ void Blender::setupBlendPathItems()
 	this->connect(nextButton->widget(), SIGNAL(clicked()), SLOT(showNextResults()));
 
 	// Results renderer
+	if( renderer ) delete renderer;
 	renderer = new BlendPathRenderer(this, itemHeight);
 	this->connect( renderer, SIGNAL(itemReady(QGraphicsItem*)), SLOT(blendResultDone(QGraphicsItem*)), Qt::DirectConnection );
+
+	// Results viewer
+	if( resultViewer ) delete resultViewer;
+	resultViewer = new BlendPathRenderer(this, itemHeight * 2, true );
 }
 
 void Blender::show()
@@ -503,6 +508,8 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 
 	s->addItem( resultItems[pathID][blendIDX].data() );
 
+	this->connect(item, SIGNAL(doubleClicked(BlendRenderItem*)), SLOT(previewItem(BlendRenderItem*)));
+
 	// Placement
 	QRectF pathRect = blendPathsItems[pathID]->boundingRect();
 	double outterWidth = pathRect.width() / numInBetweens;
@@ -757,4 +764,16 @@ void Blender::showResultsPage()
 
 	// Generate more items
 	emit( blendPathsReady() );
+}
+
+void Blender::previewItem( BlendRenderItem* item )
+{
+	resultViewer->activeGraph = item->graph();
+
+	// Placement
+	QRectF viewerRect = resultViewer->geometry();
+	viewerRect.moveCenter( QCursor::pos() );
+	resultViewer->setGeometry( viewerRect.toRect() );
+
+	resultViewer->show();
 }

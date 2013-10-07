@@ -1,8 +1,5 @@
 #include "Scene.h"
 
-Q_DECLARE_METATYPE(qglviewer::Quaternion)
-	Q_DECLARE_METATYPE(qglviewer::Vec)
-
 	Scene::Scene(QObject *parent) : QGraphicsScene(parent)
 {
 	inputGraphs[0] = inputGraphs[1] = NULL;
@@ -65,7 +62,7 @@ void Scene::drawBackground(QPainter *painter, const QRectF &rect)
 		glDisable(GL_LIGHTING);
 		glBegin(GL_QUADS);
 		glColor3d(0,0,0); glVertex2d(0,0); glVertex2d(width,0);
-		glColor3d(0.2,0.2,0.2); glVertex2d(width,height); glVertex2d(0,height);
+		glColor3d(0.15,0.15,0.15); glVertex2d(width,height); glVertex2d(0,height);
 		glEnd();
 
 		// End 2D
@@ -180,31 +177,6 @@ void Scene::testScene()
 	glColor3f(1, 1, 1); glVertex3f(0, 0, 2);
 	glColor3f(1, 0, 0); glVertex3f(-1, 1, 0);
 	glEnd();
-}
-
-// Trackball code
-static float projectOnBall(float x, float y)
-{
-	const float size       = 1.0f;
-	const float size2      = size*size;
-	const float size_limit = size2*0.5;
-	const float d = x*x + y*y;
-	return d < size_limit ? sqrt(size2 - d) : size_limit/sqrt(d);
-}
-static qglviewer::Quaternion deformedBallQuaternion(int prevX, int prevY, int x, int y, float cx, float cy,
-	int viewportWidth, int viewportHeight, float rotationSensitivity = 1.0)
-{
-	// Points on the deformed ball
-	float px = rotationSensitivity * (prevX  - cx) / viewportWidth;
-	float py = rotationSensitivity * (cy - prevY)  / viewportHeight;
-	float dx = rotationSensitivity * (x - cx)	   / viewportWidth;
-	float dy = rotationSensitivity * (cy - y)	   / viewportHeight;
-
-	const qglviewer::Vec p1(px, py, projectOnBall(px, py));
-	const qglviewer::Vec p2(dx, dy, projectOnBall(dx, dy));
-	const qglviewer::Vec axis = cross(p2,p1);
-	const float angle = 2.0 * asin(sqrt(axis.squaredNorm() / p1.squaredNorm() / p2.squaredNorm()));
-	return qglviewer::Quaternion(axis, angle);
 }
 
 void Scene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)

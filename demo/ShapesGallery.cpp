@@ -50,7 +50,9 @@ ShapeItem *ShapesGallery::makeShapeItem( QString name, PropertyMap info, int idx
 	item->property["isRight"] = isRight;
 	this->connect(item, SIGNAL(scrollToMe(ShapeItem*)), SLOT(scrollToItem(ShapeItem*)));
 
-    item->setScale(0.2);
+	double s = 128.0 / item->width;
+
+    item->setScale( s );
 
     return item;
 }
@@ -74,10 +76,21 @@ void ShapesGallery::loadDataset(DatasetMap dataset)
     // Add selection boxes
 	{
 		int center = (s->height() * 0.5) - (item->realHeight() * 0.5);
-		int penWidth = 5;
+		int penWidth = 3;
 		QPen pen(Qt::yellow, penWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
-		items.push_back( s->addRect(  (penWidth*0.5) + 0, center, item->realWidth(), item->realHeight(), pen ) );
-		items.push_back( s->addRect( -(penWidth*0.5) + s->width() - item->realWidth(), center, item->realWidth(), item->realHeight(), pen ) );
+		QGraphicsItem * r1 = s->addRect(  (penWidth*0.5) + 0, center, item->realWidth(), item->realHeight(), pen );
+		QGraphicsItem * r2 = s->addRect( -(penWidth*0.5) + s->width() - item->realWidth(), center, item->realWidth(), item->realHeight(), pen );
+
+		QGraphicsDropShadowEffect * shadow = new QGraphicsDropShadowEffect;
+		shadow->setColor( QColor(0,0,0,200) );
+		shadow->setOffset(2);
+		shadow->setBlurRadius(4);
+
+		r1->setGraphicsEffect(shadow);
+		r2->setGraphicsEffect(shadow);
+
+		items.push_back( r1 );
+		items.push_back( r2 );
 	}
 
     // Tell scene about item size
@@ -113,13 +126,28 @@ void ShapesGallery::appendShape(QString name, PropertyMap data)
 	itemB->setVisible( false );
 }
 
+int ShapesGallery::indexOf( QString graphName )
+{
+	int foundIDX = -1;
+
+	for(int i = 0; i < listA.size(); i++){
+		ShapeItem * item = (ShapeItem *)listA[i];
+		if(item->property["name"] == graphName){
+			foundIDX = i;
+			break;
+		}
+	}
+
+	return foundIDX;
+}
+
 void ShapesGallery::layout()
 {
     arrangeList(listA, 0);
     arrangeList(listB, -1);
 
-    indexA = 3;
-    indexB = 4;
+    indexA = qMax(0, indexOf("ChairBasic1"));
+    indexB = qMax(0, indexOf("ChairBasic2"));
 
 	if(!listA.size()) return;
 

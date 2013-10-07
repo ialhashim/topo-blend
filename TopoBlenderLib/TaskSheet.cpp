@@ -45,13 +45,15 @@ void TaskSheet::prepareSheetOneEdge( Structure::Link * l )
     Structure::Node * n = node(), *tn = targetNode();
     Structure::Node * base = l->otherNode(n->id);
     Structure::Sheet* structure_sheet = ((Structure::Sheet*)n);
+	Vector4d coord = l->getCoord(n->id).front();
+	Vector4d otherCoord = l->getCoordOther(n->id).front();
 
     // Placement:
-    structure_sheet->moveBy( l->position( base->id ) - l->position( n->id ) );
+    structure_sheet->moveBy( base->position(otherCoord) - n->position(coord) );
 
     // Sheet folding:
 	Structure::Sheet targetCopy (*((Structure::Sheet*)tn));
-    Array2D_Vector3 deltas = targetCopy.foldTo( l->getCoord(n->id), (this->type == GROW) );
+    Array2D_Vector3 deltas = targetCopy.foldTo( Array1D_Vector4d(1, coord), (this->type == GROW) );
     if (this->type != GROW) deltas = inverseVectors3(deltas);
 
     // Growing / shrinking instructions

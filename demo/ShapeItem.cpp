@@ -27,7 +27,7 @@ void ShapeItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
 	if( isUnderMouse() )
 	{
 		painter->setBrush( Qt::NoBrush );
-		painter->setPen( QPen(QColor(255,255,0,128), 20) );
+		painter->setPen( QPen(QColor(255,255,0,128), 10) );
 		painter->drawRect( boundingRect() );
 	}
 }

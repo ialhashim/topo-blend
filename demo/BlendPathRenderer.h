@@ -15,18 +15,24 @@ class BlendPathRenderer : public QGLWidget
 {
     Q_OBJECT
 public:
-    explicit BlendPathRenderer(Blender * blender, int itemHeight, QWidget *parent = 0);
+    explicit BlendPathRenderer(Blender * blender, int itemHeight, bool isViewer = false, QWidget *parent = 0);
     
 	friend class BlendPathSub;
+	friend class Blender;
 
 protected:
 	void initializeGL(); 
 	void paintGL();
+	
+	void mouseMoveEvent(QMouseEvent *event);
+	void mousePressEvent(QMouseEvent *event);
 
 private:
 	Blender * blender;
 	Structure::Graph * activeGraph;
 	BlendRenderItem * genItem( Structure::Graph* newGraph, int pathID, int blendIDX );
+
+	bool isViewerMode;
 
 signals:
     void itemReady(QGraphicsItem *);
