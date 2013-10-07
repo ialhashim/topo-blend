@@ -56,6 +56,12 @@ void BlendRenderItem::mouseMoveEvent( QGraphicsSceneMouseEvent * event )
 	QGraphicsObject::mouseMoveEvent(event);
 }
 
+void BlendRenderItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event)
+{
+	emit( doubleClicked(this) );
+	QGraphicsObject::mouseDoubleClickEvent(event);
+}
+
 Structure::Graph * BlendRenderItem::graph()
 {
 	return property["graph"].value<Structure::Graph*>();

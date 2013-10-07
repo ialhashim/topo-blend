@@ -6,6 +6,11 @@ GraphItem::GraphItem(Structure::Graph *graph, QRectF region, qglviewer::Camera *
     connect(this, SIGNAL(geometryChanged()), SLOT(geometryHasChanged()));
 }
 
+GraphItem::~GraphItem()
+{
+	delete g;
+}
+
 void GraphItem::setGeometry(QRectF newGeometry)
 {
     m_geometry = newGeometry;
@@ -32,7 +37,7 @@ QRectF GraphItem::setCamera()
 
 	Eigen::AlignedBox3d graphBBox = g->cached_bbox();
 
-	double distance = graphBBox.diagonal().size() * 0.9;
+	double distance = graphBBox.sizes().maxCoeff() * 2;
 	Vector3 center = graphBBox.center();
 	Vector3 newPos = center - (distance * Vector3(viewDir[0], viewDir[1], viewDir[2]));
 

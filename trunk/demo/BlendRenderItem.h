@@ -23,5 +23,8 @@ public:
 protected:
 	virtual void mousePressEvent(QGraphicsSceneMouseEvent * event);
 	virtual void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
+	virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event);
 
+signals:
+	void doubleClicked(BlendRenderItem*);
 };

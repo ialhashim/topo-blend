@@ -76,6 +76,8 @@ public slots:
 	void saveJob();
 	QWidget * viewer();
 
+	void previewItem(BlendRenderItem*);
+
 private:
 	QVector< QGraphicsItemGroup* > blendPathsItems;
 	QVector< QVector< QSharedPointer<BlendRenderItem> > > resultItems;
@@ -93,6 +95,7 @@ private:
 
 	GraphCorresponder * m_gcorr;
 	BlendPathRenderer * renderer;
+	BlendPathRenderer * resultViewer;
 	ProgressItem * progress;
 
 	QElapsedTimer pathsTimer;

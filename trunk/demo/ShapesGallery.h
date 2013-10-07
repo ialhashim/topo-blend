@@ -16,6 +16,8 @@ private:
     void arrangeList(QVector<QGraphicsItem *> &list, int x);
     void scrollTo(QVector<QGraphicsItem *> &list, int & index);
 
+	int indexOf(QString graphName);
+
 signals:
     void shapeChanged(int,QGraphicsItem*);
 

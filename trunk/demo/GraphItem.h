@@ -13,6 +13,8 @@ class GraphItem : public QGraphicsObject{
     Q_PROPERTY(QRectF geometry READ boundingRect WRITE setGeometry NOTIFY geometryChanged)
 public:
 	GraphItem(Structure::Graph *graph, QRectF region, qglviewer::Camera * camera);
+	~GraphItem();
+
     Structure::Graph* g;
 	QString name;
 	SphereSoup marker;

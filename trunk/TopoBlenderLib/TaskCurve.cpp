@@ -196,9 +196,27 @@ void TaskCurve::prepareGrowCurve()
 
 	if (tedges.size() > 1)
 	{
+		// Make sure the edges are reasonable for curve encoding
+		QMap< double, QPair<int,int> > edgePairs;
+		for(int i = 0; i < tedges.size(); i++){
+			Link *tlinkA = tedges[i];
+			for(int j = i + 1; j < tedges.size(); j++){
+				Link *tlinkB = tedges[j];
+				double dist = (tlinkA->position(tn->id) - tlinkB->position(tn->id)).norm();
+				edgePairs[dist] = qMakePair(i,j);
+			}
+		}
+
+		// Prefer most distant edges
+		double largestDist = edgePairs.keys().last();
+		if( largestDist < 1e-6 ){
+			prepareGrowCurveOneEdge( tedges.front() );
+			return;
+		}
+
 		// Links, nodes and positions on the TARGET
-		Link *tlinkA = tedges.front();
-		Link *tlinkB = tedges.back();
+		Link *tlinkA = tedges[ edgePairs[largestDist].first ];
+		Link *tlinkB = tedges[ edgePairs[largestDist].second ];
 		Node *totherA = tlinkA->otherNode( tn->id );
 		Node *totherB = tlinkB->otherNode( tn->id );
 		Vector4d othercoordA = tlinkA->getCoord(totherA->id).front();
@@ -453,9 +471,7 @@ void TaskCurve::executeCrossingCurve( double t )
 
 		// Visualize
 		active->vs.addVector(point, delta);
-
 	}
-
 
 	// Walk along using two edges
 	if(property.contains("pathA") && property.contains("pathB"))

@@ -6,8 +6,8 @@
 #include "Blender.h"
 #include "SynthesisManager.h"
 
-BlendPathRenderer::BlendPathRenderer( Blender * blender, int itemHeight, QWidget *parent ) 
-	: QGLWidget(parent), blender(blender), activeGraph(NULL)
+BlendPathRenderer::BlendPathRenderer( Blender * blender, int itemHeight, bool isViewer, QWidget *parent ) 
+	: QGLWidget(parent), blender(blender), isViewerMode(isViewer), activeGraph(NULL)
 {
 	int w = itemHeight;
 	int h = itemHeight;
@@ -19,6 +19,8 @@ BlendPathRenderer::BlendPathRenderer( Blender * blender, int itemHeight, QWidget
 	int x = -w * 1.2;
 	int y = 0;
 	this->setGeometry(x,y,w,h);
+	this->setWindowFlags( Qt::Popup );
+	this->setMouseTracking( true );
 
 	QGLFormat f;
 	f.setAlpha(true);
@@ -78,7 +80,11 @@ void BlendPathRenderer::paintGL()
 {
 	if(!activeGraph) return;
 
-	glClearColor(0, 0, 0, 0);
+	if( !isViewerMode ) 
+		glClearColor(0, 0, 0, 0);
+	else
+		glClearColor(0.15f, 0.15f, 0.15f, 1);
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
@@ -89,6 +95,7 @@ void BlendPathRenderer::paintGL()
 
 	// Setup viewport and camera
 	if(sceneCamera->type() != qglviewer::Camera::ORTHOGRAPHIC) sceneCamera->setType(qglviewer::Camera::ORTHOGRAPHIC);
+
 	int w = width(), h = height();
 	glViewport( 0, 0, w, h );
 	sceneCamera->setScreenWidthAndHeight(w,h);
@@ -97,9 +104,82 @@ void BlendPathRenderer::paintGL()
 
 	// Draw current graph
 	s_manager->scheduler->property["progressDone"] = true;
-	s_manager->pointSize = 1.0;
+	
+	if( !isViewerMode ) s_manager->pointSize = 1.0;
+	else s_manager->pointSize = 2.5;
+
 	s_manager->color = QColor( 255, 180, 68 );
 	s_manager->drawSynthesis( activeGraph );
 
-	s_manager->bufferCleanup();
+	if( !isViewerMode ) 
+		s_manager->bufferCleanup();
+	else{
+		// Setup 2D
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();	glLoadIdentity();
+		glOrtho(0, w, h, 0, 0.0, -1.0);
+		glMatrixMode(GL_MODELVIEW);	glPushMatrix();	glLoadIdentity();
+
+		// Draw border
+		glLineWidth(5);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glDisable(GL_LIGHTING);
+		glBegin(GL_QUADS);
+		glColorQt( QColor(255, 180, 68) ); 
+		glVertex2d(0,0); glVertex2d(w,0); glVertex2d(w,h); glVertex2d(0,h);
+		glEnd();
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		// End 2D
+		glMatrixMode(GL_PROJECTION); glPopMatrix();
+		glMatrixMode(GL_MODELVIEW); glPopMatrix();
+	}
+}
+
+void BlendPathRenderer::mouseMoveEvent(QMouseEvent *event)
+{
+	QRect r(0, 0, width(), height());
+
+	if(event->buttons() == Qt::NoButton) 
+	{
+		if(!r.contains(event->pos())) { hide(); return; }
+	}
+	else
+	{
+		SynthesisManager * s_manager = blender->s_manager.data();
+		qglviewer::Camera * sceneCamera = s_manager->property("camera").value<qglviewer::Camera*>();
+
+		QPointF startPos = property("buttonDownPos").toPointF();
+		QPointF currentPos = event->posF();
+
+		// Reset
+		sceneCamera->frame()->setPosition( sceneCamera->property("startPos").value<qglviewer::Vec>() );
+		sceneCamera->frame()->setOrientation( sceneCamera->property("startOrientation").value<qglviewer::Quaternion>() );
+
+		// Rotate to new view
+		qglviewer::Quaternion rot = deformedBallQuaternion(startPos.x(), startPos.y(),
+			currentPos.x(), currentPos.y(),	r.center().x(), r.center().y(), r.width(), r.height());
+		sceneCamera->frame()->rotateAroundPoint(rot, sceneCamera->revolveAroundPoint());
+
+		update();
+	}
+
+	blender->s->update();
+
+	QGLWidget::mouseMoveEvent(event);
+}
+
+void BlendPathRenderer::mousePressEvent(QMouseEvent *event)
+{
+	SynthesisManager * s_manager = blender->s_manager.data();
+	qglviewer::Camera * sceneCamera = s_manager->property("camera").value<qglviewer::Camera*>();
+
+	QVariant pos, orient;
+	pos.setValue( sceneCamera->frame()->position() );
+	orient.setValue( sceneCamera->frame()->orientation() );
+	sceneCamera->setProperty("startPos", pos);
+	sceneCamera->setProperty("startOrientation", orient);
+
+	setProperty("buttonDownPos", event->posF());
+
+	QGLWidget::mousePressEvent(event);
 }
