@@ -20,6 +20,9 @@ GlSplatRenderer * splat_renderer = NULL;
 #include "TopoBlender.h"
 #include "Task.h"
 
+// The following depends on the power of the GPU
+#define POINTS_LIMIT 600000
+
 Q_DECLARE_METATYPE( std::vector<bool> )
 
 QStack<double> nurbsQuality;
@@ -774,7 +777,7 @@ void SynthesisManager::drawSynthesis( Structure::Graph * activeGraph )
 		}
 
 		beginFastNURBS();
-		geometryMorph( currentData, activeGraph, true, 600000 );
+		geometryMorph( currentData, activeGraph, true, POINTS_LIMIT );
 		endFastNURBS();
 
 		vertices.clear();
