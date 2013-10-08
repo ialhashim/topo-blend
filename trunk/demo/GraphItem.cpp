@@ -37,7 +37,7 @@ QRectF GraphItem::setCamera()
 
 	Eigen::AlignedBox3d graphBBox = g->cached_bbox();
 
-	double distance = graphBBox.sizes().maxCoeff() * 2;
+	double distance = graphBBox.sizes().maxCoeff() * 2.5;
 	Vector3 center = graphBBox.center();
 	Vector3 newPos = center - (distance * Vector3(viewDir[0], viewDir[1], viewDir[2]));
 
