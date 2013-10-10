@@ -5,8 +5,11 @@
 
 #include "StructureGraph.h"
 
-class BlendRenderItem : public QGraphicsObject {
+class BlendRenderItem : public QGraphicsObject 
+{
 	Q_OBJECT
+	Q_PROPERTY(QPointF pos READ pos WRITE setPos)
+
 public:
     BlendRenderItem(QPixmap pixmap);
 
@@ -15,14 +18,10 @@ public:
 
     QRectF boundingRect() const { return pixmap.rect(); }
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
-
-	bool isOnTop();
-
+		
 	Structure::Graph * graph();
 
 protected:
-	virtual void mousePressEvent(QGraphicsSceneMouseEvent * event);
-	virtual void mouseMoveEvent(QGraphicsSceneMouseEvent * event);
 	virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event);
 
 signals:

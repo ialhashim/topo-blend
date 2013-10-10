@@ -6,10 +6,11 @@
 class BlendPathSubButton : public QGraphicsObject
 {
     Q_OBJECT
+	Q_PROPERTY(QPointF pos READ pos WRITE setPos)
+
 public:
     explicit BlendPathSubButton(int width, int height, Blender * blender, int z_order = 0);
 
-	bool isOnTop();
     QRectF boundingRect() const { return m_geometry; }
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
 

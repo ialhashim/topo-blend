@@ -1,6 +1,6 @@
 #include "Scene.h"
 
-	Scene::Scene(QObject *parent) : QGraphicsScene(parent)
+Scene::Scene(QObject *parent) : QGraphicsScene(parent)
 {
 	inputGraphs[0] = inputGraphs[1] = NULL;
 
@@ -183,7 +183,10 @@ void Scene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
 	if(event->buttons() & Qt::LeftButton)
 	{
-		if(property("camera-rotate").toBool())
+		QList<QGraphicsItem*> underMouse = items(event->scenePos());
+		bool isGraphUnderMouse = underMouse.contains(inputGraphs[0]) || underMouse.contains(inputGraphs[1]);
+
+		if(property("camera-rotate").toBool() && isGraphUnderMouse)
 		{
 			QPointF startPos = event->buttonDownScenePos(Qt::LeftButton);
 			QPointF currentPos = event->scenePos();

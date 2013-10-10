@@ -3,6 +3,7 @@
 #include "BlendRenderItem.h"
 #include "BlendPathRenderer.h"
 #include "BlendPathSub.h"
+#include "BlendPathWidget.h"
 
 #include "TopoBlender.h"
 #include "Scheduler.h"
@@ -40,8 +41,10 @@ void Blender::setupBlendPathItems()
 	clearResults();
 
 	// Create background items for each blend path
+	blendPathWidth = s->width() - (2 * graphItemWidth);
+	blendPathHeight = (s->height() / (numSuggestions * 1.5)) * 0.99;
+
 	int padding = 4;
-	int blendPathHeight = (s->height() / (numSuggestions * 1.5)) * 0.99;
 	int totalHeight = numSuggestions * (blendPathHeight + padding);
 
 	int startY = (s->height() * 0.5 - totalHeight * 0.5) - 30;
@@ -49,27 +52,25 @@ void Blender::setupBlendPathItems()
 	QColor color( 255, 180, 68, 100 );
 
 	// Clear previously set items
-	foreach(QGraphicsItemGroup * grp, blendPathsItems) s->removeItem(grp);
-	blendPathsItems.clear();
-	
+	foreach(QGraphicsProxyWidget * grp, blendPathsWidgets) s->removeItem(grp);
+	blendPathsWidgets.clear();
+
+	double w = blendPathWidth;
+	double h = blendPathHeight;
+
 	for(int i = 0; i < numSuggestions; i++)
 	{
-		QGraphicsRectItem * blendPathBack = new QGraphicsRectItem (0,0,s->width() - (2 * graphItemWidth), blendPathHeight);
-
-		blendPathBack->setPen( Qt::NoPen );
-		blendPathBack->setBrush( QColor (255, 255, 255, 10) );
-
-		blendPathBack->setY( startY + (i * (blendPathHeight + padding)) );
-		blendPathBack->setX( 0.5*s->width() - 0.5*blendPathBack->boundingRect().width() );
-
-		QGraphicsItemGroup * blendPathItem = new QGraphicsItemGroup;
-		blendPathItem->addToGroup(blendPathBack);
-		blendPathItem->setVisible(false);
-		blendPathItem->setZValue(-999);
-
-		blendPathsItems.push_back( blendPathItem );
-		s->addItem(blendPathItem);
-		items.push_back(blendPathItem);
+		double x = 0.5*s->width() - 0.5*w;
+		double y = startY + (i * (blendPathHeight + padding));
+		BlendPathWidget * widget = new BlendPathWidget(w,h);
+		widget->setBackgroundColor( QColor (255, 255, 255, 5) );
+		QGraphicsProxyWidget * witem = s->addWidget(widget);
+		witem->setPos(x, y);
+		witem->setVisible(false);
+		witem->setAcceptHoverEvents(true);
+		blendPathsWidgets.push_back(witem);
+		widget->proxy = witem;
+		items.push_back(witem);
 	}
 
 	// Show path indicators
@@ -84,7 +85,7 @@ void Blender::setupBlendPathItems()
 
 	for(int i = 0; i < numSuggestions; i++)
 	{
-		QRectF r = blendPathsItems[i]->boundingRect();
+		QRectF r = blendPathsWidgets[i]->sceneBoundingRect();
 		QPointF lend = QPointF(r.x(), r.center().y());
 		QPointF rend = QPointF(r.x() + r.width(), r.center().y());
 		double lmidX = (lend.x() - lstart.x()) * tension;
@@ -134,8 +135,8 @@ void Blender::setupBlendPathItems()
 	itemHeight = blendPathHeight;
 
 	// Add paths navigation buttons
-	QRectF firstGroup = blendPathsItems.front()->sceneBoundingRect();
-	QRectF lastGroup = blendPathsItems.back()->sceneBoundingRect();
+	QRectF firstGroup = blendPathsWidgets.front()->sceneBoundingRect();
+	QRectF lastGroup = blendPathsWidgets.back()->sceneBoundingRect();
 
 	QGraphicsProxyWidget * prevButton = s->addButton(0,0, "prev", colorize( QImage(":/images/arrowUp.png"), QColor(255,153,0), 2 ) );
 	QGraphicsProxyWidget * nextButton = s->addButton(0,0, "next", colorize( QImage(":/images/arrowDown.png"), QColor(255,153,0), 2 ) );
@@ -317,7 +318,7 @@ void Blender::synthDataReady()
 void executeJob( const QSharedPointer<Scheduler> & scheduler )
 {
 #ifdef QT_DEBUG
-	scheduler->timeStep = 0.2;
+	scheduler->timeStep = 0.3;
 #endif
 
 	scheduler->executeAll();
@@ -409,7 +410,7 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 	{
 		QRectF R;
 		
-		foreach(QGraphicsItemGroup * g, blendPathsItems) {g->hide(); R = R.united(g->sceneBoundingRect());}
+		foreach(QGraphicsProxyWidget * g, blendPathsWidgets) {g->hide(); R = R.united(g->sceneBoundingRect());}
 		foreach(QGraphicsItem * item, auxItems)	item->hide();
 
 		R.setSize(QSizeF(R.width() * 0.8, R.height() * 0.8));
@@ -506,12 +507,14 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 
 	resultItems[pathID][blendIDX] = QSharedPointer<BlendRenderItem>(item);
 
-	s->addItem( resultItems[pathID][blendIDX].data() );
+	//s->addItem( resultItems[pathID][blendIDX].data() );
+	QGraphicsScene * scene = ((BlendPathWidget*)blendPathsWidgets[pathID]->widget())->scene;
+	scene->addItem( resultItems[pathID][blendIDX].data() );
 
 	this->connect(item, SIGNAL(doubleClicked(BlendRenderItem*)), SLOT(previewItem(BlendRenderItem*)));
 
 	// Placement
-	QRectF pathRect = blendPathsItems[pathID]->boundingRect();
+	QRectF pathRect = blendPathsWidgets[pathID]->boundingRect();
 	double outterWidth = pathRect.width() / numInBetweens;
 	int delta = 0.5 * (outterWidth  - item->boundingRect().width() );
 	int x = pathRect.x() + (blendIDX * outterWidth) + delta;
@@ -550,7 +553,7 @@ void Blender::blenderAllResultsDone()
 	// Expand blend sequence near two items
 	for(int i = 0; i < numSuggestions; i++)
 	{
-		QRectF pathRect = blendPathsItems[i]->boundingRect();
+		QRectF pathRect = blendPathsWidgets[i]->boundingRect();
 		double outterWidth = (pathRect.width() / numInBetweens);
 
 		double w = itemHeight * 0.5;
@@ -583,7 +586,9 @@ void Blender::addBlendSubItem(double x, double y, double w, double h, int i, int
 	blendSubItems[i][j]->property["start"].setValue( start );
 	blendSubItems[i][j]->property["end"].setValue( end );
 
-	s->addItem( blendSubItems[i][j].data() );
+	//s->addItem( blendSubItems[i][j].data() );
+	QGraphicsScene * scene = ((BlendPathWidget*)blendPathsWidgets[i]->widget())->scene;
+	scene->addItem( blendSubItems[i][j].data() );
 }
 
 void Blender::exportSelected()
@@ -712,6 +717,12 @@ void Blender::clearResults()
 	jobs.clear();
 	resultItems = QVector< QVector< QSharedPointer<BlendRenderItem> > >(numSuggestions, QVector< QSharedPointer<BlendRenderItem> >(numInBetweens) );
 	blendSubItems = QVector< QVector< QSharedPointer<BlendPathSubButton> > >(numSuggestions, QVector< QSharedPointer<BlendPathSubButton> >(numInBetweens + 2) );
+
+	for(int i = 0; i < blendPathsWidgets.size(); i++)
+	{
+		BlendPathWidget * oldWidget = (BlendPathWidget*)blendPathsWidgets[i]->widget();
+		oldWidget->buildScene(blendPathWidth, blendPathHeight);
+	}
 }
 
 void Blender::cleanUp()

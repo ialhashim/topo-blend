@@ -44,7 +44,6 @@ BlendRenderItem * BlendPathRenderer::genItem( Structure::Graph* newGraph, int pa
 	pixmapItem->property["pathID"].setValue( pathID );
 	pixmapItem->property["blendIDX"].setValue( blendIDX );
 	pixmapItem->property["graph"].setValue( newGraph );
-	pixmapItem->setFlags( QGraphicsItem::ItemIsSelectable );
 
 	return pixmapItem;
 }
@@ -123,8 +122,8 @@ void BlendPathRenderer::paintGL()
 		// Draw border
 		glLineWidth(5);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); glDisable(GL_LIGHTING);
+		glColorQt( QColor(255, 180, 68).darker() ); 
 		glBegin(GL_QUADS);
-		glColorQt( QColor(255, 180, 68) ); 
 		glVertex2d(0,0); glVertex2d(w,0); glVertex2d(w,h); glVertex2d(0,h);
 		glEnd();
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
