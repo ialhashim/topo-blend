@@ -8,6 +8,7 @@
 // Forward Declare
 class ProgressItem; class SynthesisManager;
 class BlendPathRenderer; class BlendRenderItem; class BlendPathSubButton;
+class BlendPathWidget;
 
 // Blend path container
 struct BlendPath{
@@ -28,6 +29,7 @@ public:
 	int numSuggestions, numInBetweens;
 	int itemHeight;
 	int graphItemWidth;
+	int blendPathWidth, blendPathHeight;
 
 	int resultsPage;
 	QVector<ScheduleType> allSchedules;
@@ -79,7 +81,7 @@ public slots:
 	void previewItem(BlendRenderItem*);
 
 private:
-	QVector< QGraphicsItemGroup* > blendPathsItems;
+	QVector< QGraphicsProxyWidget* > blendPathsWidgets;
 	QVector< QVector< QSharedPointer<BlendRenderItem> > > resultItems;
 	QVector< QVector< QSharedPointer<BlendPathSubButton> > > blendSubItems;
 	QVector< QGraphicsItem* > auxItems;

@@ -17,6 +17,7 @@ class BlendPathRenderer : public QGLWidget
 public:
     explicit BlendPathRenderer(Blender * blender, int itemHeight, bool isViewer = false, QWidget *parent = 0);
     
+	friend class BlendPathSubButton;
 	friend class BlendPathSub;
 	friend class Blender;
 

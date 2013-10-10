@@ -1,12 +1,18 @@
 #include <QDebug>
 #include <QPainter>
 #include <QGraphicsScene>
+#include <QGraphicsView>
+#include <QGraphicsWidget>
+#include <QGraphicsSceneMouseEvent>
+#include <QGraphicsProxyWidget>
 #include "BlendRenderItem.h"
+#include "BlendPathWidget.h"
 
 BlendRenderItem::BlendRenderItem(QPixmap pixmap) : pixmap(pixmap)
 {
-	setAcceptHoverEvents(true);
-	setZValue(10);
+	setAcceptHoverEvents( true );
+	setZValue( 10 );
+	setFlags( QGraphicsItem::ItemIsSelectable );
 }
 
 void BlendRenderItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
@@ -16,7 +22,14 @@ void BlendRenderItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *o
 
 	painter->drawPixmap(pixmap.rect(), pixmap);
 
-	if( (isUnderMouse() && isOnTop()) || isSelected() )
+	BlendPathWidget * w = (BlendPathWidget *)scene()->views().front()->parentWidget();
+	QPointF mouseInsideMainScene = w->proxy->scene()->views().front()->mapFromGlobal(QCursor::pos());
+
+	double pad = 20;
+	QRectF rectInsideMainScene = sceneBoundingRect().adjusted(pad,0,-pad,0).translated(w->proxy->pos());
+	QPointF p = scene()->views().front()->mapToScene(0,0);
+
+	if( isSelected() || rectInsideMainScene.contains(mouseInsideMainScene + p) )
 	{
 		painter->setBrush( Qt::NoBrush );
 		painter->setPen( QPen(Qt::yellow, 2) );
@@ -24,36 +37,7 @@ void BlendRenderItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *o
 	}
 
 	/// DEBUG:
-	//Structure::Graph * graph = property["graph"].value<Structure::Graph*>();
-	//painter->drawText(0,0, QString::number(graph->property["t"].toDouble()) );
-}
-
-bool BlendRenderItem::isOnTop()
-{
-	int padding = 20;
-
-	QRectF r = mapRectToScene(boundingRect().adjusted(padding,padding,-padding,-padding));
-	QList<QGraphicsItem*> itemsAtRect = scene()->items(r, Qt::IntersectsItemBoundingRect, Qt::DescendingOrder);
-
-	foreach(QGraphicsItem * i, itemsAtRect){
-		if(i == this) return true;
-		if(i->zValue() == zValue()) continue;
-		break;
-	}
-
-	return false;
-}
-
-void BlendRenderItem::mousePressEvent( QGraphicsSceneMouseEvent * event )
-{
-	if(!isOnTop()) return;
-	QGraphicsObject::mousePressEvent(event);
-}
-
-void BlendRenderItem::mouseMoveEvent( QGraphicsSceneMouseEvent * event )
-{
-	if(!isOnTop()) return;
-	QGraphicsObject::mouseMoveEvent(event);
+	//painter->drawText(10,20, QString::number(graph()->property["t"].toDouble()) );
 }
 
 void BlendRenderItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event)
