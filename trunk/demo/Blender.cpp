@@ -1,4 +1,5 @@
 #include "Blender.h"
+#include "Controls.h"
 #include "ProgressItem.h"
 #include "BlendRenderItem.h"
 #include "BlendPathRenderer.h"
@@ -21,7 +22,7 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->graphItemWidth = s->width() * 0.15;
 	
 	this->numSuggestions = 4;
-	this->numInBetweens = 5;
+	this->numInBetweens = 6;
 
 	setupBlendPathItems();
 
@@ -42,12 +43,12 @@ void Blender::setupBlendPathItems()
 
 	// Create background items for each blend path
 	blendPathWidth = s->width() - (2 * graphItemWidth);
-	blendPathHeight = (s->height() / (numSuggestions * 1.5)) * 0.99;
+	blendPathHeight = ((s->height()-200) / numSuggestions);
 
-	int padding = 4;
+	int padding = 3;
 	int totalHeight = numSuggestions * (blendPathHeight + padding);
 
-	int startY = (s->height() * 0.5 - totalHeight * 0.5) - 30;
+	int startY = (s->height() * 0.5 - totalHeight * 0.5) - 25;
 
 	QColor color( 255, 180, 68, 100 );
 
@@ -391,14 +392,26 @@ void Blender::blenderDone()
 	}
 } 
 
-void Blender::keyReleased( QKeyEvent* keyEvent )
+void Blender::mousePress( QGraphicsSceneMouseEvent* mouseEvent )
 {
-	if(keyEvent->key() == Qt::Key_R)
-	{
-		showResultsPage();
-		return;
+	if(!visible) return;
+
+	// Block when controller is clicked
+	foreach(QGraphicsItem * i, s->items(mouseEvent->scenePos())){
+		QGraphicsProxyWidget * proxy = dynamic_cast<QGraphicsProxyWidget *>(i);
+		if(!proxy) continue; else if(qobject_cast<Controls*>(proxy->widget())) return;
 	}
 
+	foreach(QGraphicsProxyWidget * proxy, blendPathsWidgets) 
+	{
+		if(proxy->sceneBoundingRect().contains(mouseEvent->scenePos())) continue;
+		QGraphicsScene * s = ((BlendPathWidget*)proxy->widget())->scene;
+		s->clearSelection();
+	}
+}
+
+void Blender::keyReleased( QKeyEvent* keyEvent )
+{
 	if(keyEvent->key() == Qt::Key_F)
 	{
 		this->isSample = !this->isSample;
@@ -406,63 +419,21 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 		return;
 	}
 
-	if(keyEvent->key() == Qt::Key_M)
-	{
-		QRectF R;
-		
-		foreach(QGraphicsProxyWidget * g, blendPathsWidgets) {g->hide(); R = R.united(g->sceneBoundingRect());}
-		foreach(QGraphicsItem * item, auxItems)	item->hide();
+	if(!visible) return;
 
-		R.setSize(QSizeF(R.width() * 0.8, R.height() * 0.8));
-		R.moveCenter(s->sceneRect().center());
-
-		int columns = 20;
-		int rows = numSuggestions;
-
-		QVector< QVector<QPointF> > allPoints = QVector< QVector<QPointF> >(rows, QVector<QPointF>(columns));
-		
-		for(int y = 0; y < rows; y++){	
-			for(int x = 0; x < columns; x++){
-				double dx = double(x) / (columns-1);
-				double dy = double(y) / (rows-1);
-				int deltaY = (R.height() * 0.25) * pow((2 * abs(dx - 0.5)),3);
-				QRectF r = R;
-				r.adjust(0,deltaY,0,-deltaY);
-				allPoints[y][x] = QPointF(	AlphaBlend(dx, r.topLeft().x(), r.topRight().x()),
-											AlphaBlend(dy, r.topLeft().y(), r.bottomLeft().y()));
-			}
-		}
-
-		QVector<QPainterPath> ellipPaths;
-
-		foreach( QVector<QPointF> points, allPoints ){
-			QPainterPath path;
-			path.moveTo(points.at(0));
-			for(int i = 1; i + 2 < points.size(); i++)
-				path.cubicTo(points.at(i), points.at(i+1), points.at(i+2));
-			ellipPaths.push_back(path);
-		}
-
-		// Re-arrange result items
-		for(int i = 0; i < numSuggestions; i++){
-			for(int j = 0; j < numInBetweens; j++){
-				double t = double(j) / (numInBetweens - 1);
-
-				int w = resultItems[i][j]->boundingRect().width() * 0.5;
-				int h = resultItems[i][j]->boundingRect().height() * 0.5;
-
-				QPointF p = ellipPaths[i].pointAtPercent(t);
-				p.setX( (AlphaBlend(t, R.topLeft(), R.topRight())).x() );
-				resultItems[i][j]->setPos(p.x() - w, p.y() - h);
-			}
-		}
-
+	// Re-draw results
+	if(keyEvent->key() == Qt::Key_R){
+		showResultsPage();
 		return;
 	}
 
+	// Show full schedule for selected item
 	if(keyEvent->key() == Qt::Key_Space)
 	{
-		foreach(QGraphicsItem * item, s->selectedItems())
+		QList<QGraphicsItem*> allSelected;
+		foreach(QGraphicsProxyWidget * proxy, blendPathsWidgets) allSelected << ((BlendPathWidget*)proxy->widget())->scene->selectedItems();
+
+		foreach(QGraphicsItem * item, allSelected)
 		{
 			BlendRenderItem * renderItem = qobject_cast<BlendRenderItem *>(item->toGraphicsObject());
 			if(!renderItem) continue;
@@ -477,6 +448,7 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 		return;
 	}
 
+	// Show initial schedule
 	if(keyEvent->key() == Qt::Key_B)
 	{
 		SchedulerWidget * widget = new SchedulerWidget( m_scheduler.data() );
@@ -487,14 +459,17 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 
 	// Changing number of results
 	{
-		if(keyEvent->key() == Qt::Key_Equal) numSuggestions++;
-		if(keyEvent->key() == Qt::Key_Minus) numSuggestions--;
-		if(keyEvent->key() == Qt::Key_0) numInBetweens++;
-		if(keyEvent->key() == Qt::Key_9) numInBetweens--;
+		bool paramChanged = false;
 
-		setupBlendPathItems();
+		if(keyEvent->key() == Qt::Key_Equal) {numSuggestions++; paramChanged = true;}
+		if(keyEvent->key() == Qt::Key_Minus) {numSuggestions--; paramChanged = true;}
+		if(keyEvent->key() == Qt::Key_0) {numInBetweens++; paramChanged = true;}
+		if(keyEvent->key() == Qt::Key_9) {numInBetweens--; paramChanged = true;}
 
-		emit( message( QString("Paths [%1] / In-betweens [%2]").arg(numSuggestions).arg(numInBetweens) ) );
+		if(paramChanged){
+			setupBlendPathItems();
+			emit( message( QString("Paths [%1] / In-betweens [%2]").arg(numSuggestions).arg(numInBetweens) ) );
+		}
 	}
 }
 
@@ -597,45 +572,47 @@ void Blender::exportSelected()
 
 	QString msg = "nothing selected.";
 	
-	foreach(QGraphicsItem * item, s->selectedItems())
+	QList<QGraphicsItem*> allSelected;
+	foreach(QGraphicsProxyWidget * proxy, blendPathsWidgets) allSelected << ((BlendPathWidget*)proxy->widget())->scene->selectedItems();
+
+	foreach(QGraphicsItem * item, allSelected)
 	{
 		BlendRenderItem * renderItem = qobject_cast<BlendRenderItem *>(item->toGraphicsObject());
-		if(renderItem)
-		{
-			Structure::Graph * g = renderItem->graph();
-			int idx = int(g->property["t"].toDouble() * 100);
+		if(!renderItem) continue;
+		
+		Structure::Graph * g = renderItem->graph();
+		int idx = int(g->property["t"].toDouble() * 100);
 			
-			QString sname = g->property["sourceName"].toString();
-			QString tname = g->property["sourceName"].toString();
-			QString filename = sname + tname + "." + QString::number(idx);
+		QString sname = g->property["sourceName"].toString();
+		QString tname = g->property["sourceName"].toString();
+		QString filename = sname + tname + "." + QString::number(idx);
 
-			// Create folder
-			QDir d("dataset");	
-			d.mkpath( filename );
+		// Create folder
+		QDir d("dataset");	
+		d.mkpath( filename );
 
-			// Set it as current
-			QDir::setCurrent( d.absolutePath() + "/" + filename );
+		// Set it as current
+		QDir::setCurrent( d.absolutePath() + "/" + filename );
 
-			// Generate the geometry and export the structure graph
-			s_manager->renderGraph(*g, filename, false, 5, true);
+		// Generate the geometry and export the structure graph
+		s_manager->renderGraph(*g, filename, false, 5, true);
 
-			// Generate thumbnail
-			QString objFile = d.absolutePath() + "/" + filename + "/" + filename + ".obj";
-			QString thumbnailFile = d.absolutePath() + "/" + filename + "/" + filename + ".png";
-			ShapeRenderer::render( objFile ).save( thumbnailFile );
+		// Generate thumbnail
+		QString objFile = d.absolutePath() + "/" + filename + "/" + filename + ".obj";
+		QString thumbnailFile = d.absolutePath() + "/" + filename + "/" + filename + ".png";
+		ShapeRenderer::render( objFile ).save( thumbnailFile );
 
-			// Send to gallery
-			PropertyMap info;
-			info["Name"] = filename;
-			info["graphFile"] = d.absolutePath() + "/" + filename + "/" + filename + ".xml";
-			info["thumbFile"] = d.absolutePath() + "/" + filename + "/" + filename + ".png";
-			info["objFile"] = d.absolutePath() + "/" + filename + "/" + filename + ".obj";
+		// Send to gallery
+		PropertyMap info;
+		info["Name"] = filename;
+		info["graphFile"] = d.absolutePath() + "/" + filename + "/" + filename + ".xml";
+		info["thumbFile"] = d.absolutePath() + "/" + filename + "/" + filename + ".png";
+		info["objFile"] = d.absolutePath() + "/" + filename + "/" + filename + ".obj";
 
-			emit( exportShape(filename, info) );
+		emit( exportShape(filename, info) );
 
-			// Restore
-			QDir::setCurrent( d.absolutePath() + "/.." );
-		}
+		// Restore
+		QDir::setCurrent( d.absolutePath() + "/.." );
 	}
 
 	emit( message("Exporting: " + msg) );
@@ -646,7 +623,10 @@ void Blender::exportSelected()
 
 void Blender::saveJob()
 {
-	foreach(QGraphicsItem * item, s->selectedItems())
+	QList<QGraphicsItem*> allSelected;
+	foreach(QGraphicsProxyWidget * proxy, blendPathsWidgets) allSelected << ((BlendPathWidget*)proxy->widget())->scene->selectedItems();
+
+	foreach(QGraphicsItem * item, allSelected)
 	{
 		BlendRenderItem * renderItem = qobject_cast<BlendRenderItem *>(item->toGraphicsObject());
 		if(!renderItem) continue;

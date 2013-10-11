@@ -23,7 +23,7 @@ public:
 
 protected:
 	virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event);
-
+	bool isUnderMouse();
 signals:
 	void doubleClicked(BlendRenderItem*);
 };

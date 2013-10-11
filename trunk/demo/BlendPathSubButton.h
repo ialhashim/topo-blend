@@ -19,6 +19,7 @@ public:
 
 protected:
 	virtual void mousePressEvent(QGraphicsSceneMouseEvent * event);
+	bool isUnderMouse();
 
 private:
     QRectF m_geometry;

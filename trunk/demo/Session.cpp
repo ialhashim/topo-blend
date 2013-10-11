@@ -12,15 +12,16 @@ Session::Session(   Scene *scene, ShapesGallery *gallery, Controls * control,
 
 	/// per-page connections
 	// Matcher:
+	matcher->connect(control->ui->autoButton, SIGNAL(clicked()), SLOT(autoMode()));
+	matcher->connect(control->ui->manualButton, SIGNAL(clicked()), SLOT(manualMode()));
 	control->connect(matcher, SIGNAL(correspondenceFromFile()), SLOT(forceManualMatch()));
-	m->connect(control->ui->autoButton, SIGNAL(clicked()), SLOT(autoMode()));
-	m->connect(control->ui->manualButton, SIGNAL(clicked()), SLOT(manualMode()));
 
 	// Blender:
-	control->connect(blender, SIGNAL(blendStarted()), SLOT(disableTabs()));
-	control->connect(blender, SIGNAL(blendDone()), SLOT(enableTabs()));
 	blender->connect(control->ui->exportButton, SIGNAL(clicked()), SLOT(exportSelected()));
 	blender->connect(control->ui->jobButton, SIGNAL(clicked()), SLOT(saveJob()));
+	blender->connect(scene, SIGNAL(mousePressDownEvent(QGraphicsSceneMouseEvent*)), SLOT(mousePress(QGraphicsSceneMouseEvent*)));
+	control->connect(blender, SIGNAL(blendStarted()), SLOT(disableTabs()));
+	control->connect(blender, SIGNAL(blendDone()), SLOT(enableTabs()));
 
 	// Gallery:
 	gallery->connect(blender, SIGNAL(exportShape(QString,PropertyMap)), SLOT(appendShape(QString,PropertyMap)));
