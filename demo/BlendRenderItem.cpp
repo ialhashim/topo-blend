@@ -22,18 +22,11 @@ void BlendRenderItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *o
 
 	painter->drawPixmap(pixmap.rect(), pixmap);
 
-	BlendPathWidget * w = (BlendPathWidget *)scene()->views().front()->parentWidget();
-	QPointF mouseInsideMainScene = w->proxy->scene()->views().front()->mapFromGlobal(QCursor::pos());
-
-	double pad = 20;
-	QRectF rectInsideMainScene = sceneBoundingRect().adjusted(pad,0,-pad,0).translated(w->proxy->pos());
-	QPointF p = scene()->views().front()->mapToScene(0,0);
-
-	if( isSelected() || rectInsideMainScene.contains(mouseInsideMainScene + p) )
+	if( isSelected() || isUnderMouse() )
 	{
 		painter->setBrush( Qt::NoBrush );
 		painter->setPen( QPen(Qt::yellow, 2) );
-		painter->drawRect( pixmap.rect() );
+		painter->drawRect( pixmap.rect().adjusted(10,10,-10,-10) );
 	}
 
 	/// DEBUG:
@@ -49,4 +42,16 @@ void BlendRenderItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event)
 Structure::Graph * BlendRenderItem::graph()
 {
 	return property["graph"].value<Structure::Graph*>();
+}
+
+bool BlendRenderItem::isUnderMouse()
+{
+	double width = boundingRect().width();
+	double pad = width * 0.25;
+
+	BlendPathWidget * w = (BlendPathWidget *)scene()->views().front()->parentWidget();
+	QPointF mouseInsideMainScene = w->proxy->scene()->views().front()->mapFromGlobal(QCursor::pos());
+	QRectF rectInsideMainScene = sceneBoundingRect().adjusted(pad,0,-pad,0).translated(w->proxy->pos());
+	QPointF p = scene()->views().front()->mapToScene(0,0);
+	return rectInsideMainScene.contains(mouseInsideMainScene + p);
 }

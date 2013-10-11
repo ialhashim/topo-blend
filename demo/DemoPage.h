@@ -13,7 +13,7 @@ public:
     {
         visible = false;
 
-        QFont titleFont("", 25);
+        QFont titleFont("", 22);
         QGraphicsTextItem * titleItem = s->addText(title, titleFont);
         titleItem->setPos( (s->width()  * 0.50) - (titleItem->boundingRect().width() * 0.5), 15);
         titleItem->setDefaultTextColor(Qt::white);

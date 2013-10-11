@@ -22,19 +22,14 @@ void BlendPathSubButton::paint(QPainter *painter, const QStyleOptionGraphicsItem
 
 	QRectF r = boundingRect();
 	QPointF center = r.center();
-	double radius = r.height() * 0.03;
+	double radius = r.height() * 0.025;
 
 	// DEBUG:
 	//if( isOnTop() )	painter->drawRect( r );
 
 	painter->setOpacity( property["opacity"].toDouble() );
 
-	BlendPathWidget * w = (BlendPathWidget *)scene()->views().front()->parentWidget();
-	QPointF mouseInsideMainScene = w->proxy->scene()->views().front()->mapFromGlobal(QCursor::pos());
-	QRectF rectInsideMainScene = sceneBoundingRect().translated(w->proxy->pos());
-	QPointF p = scene()->views().front()->mapToScene(0,0);
-
-	if( rectInsideMainScene.contains(mouseInsideMainScene + p) )
+	if( isUnderMouse() )
 		painter->setOpacity( 1.0 );
 
 	// Shadow
@@ -55,9 +50,21 @@ void BlendPathSubButton::paint(QPainter *painter, const QStyleOptionGraphicsItem
 	painter->drawEllipse(center + QPointF(radius * 3,0), radius, radius);
 }
 
+bool BlendPathSubButton::isUnderMouse()
+{
+	double h = boundingRect().height();
+	BlendPathWidget * w = (BlendPathWidget *)scene()->views().front()->parentWidget();
+	QPointF mouseInsideMainScene = w->proxy->scene()->views().front()->mapFromGlobal(QCursor::pos());
+	QRectF rectInsideMainScene = sceneBoundingRect().translated(w->proxy->pos()).adjusted(0,h*0.25,0,-h*0.25);
+	QPointF p = scene()->views().front()->mapToScene(0,0);
+	return rectInsideMainScene.contains(mouseInsideMainScene + p);
+}
+
 void BlendPathSubButton::mousePressEvent( QGraphicsSceneMouseEvent * event )
 {
-	Q_UNUSED(event)
+	Q_UNUSED(event);
+	if(!isUnderMouse()) return;
+
 	qApp->setOverrideCursor(Qt::WaitCursor);
 
 	int pathIDX = property["pathIDX"].toInt();
@@ -108,7 +115,7 @@ void BlendPathSubButton::mousePressEvent( QGraphicsSceneMouseEvent * event )
 		Structure::Graph * g = scheduler->allGraphs[qMin(N-1, int(t * N))];
 
 		BlendRenderItem * item = renderer->genItem(g, -1, -1);
-		item->pixmap = item->pixmap.copy(item->pixmap.rect().adjusted(0,0,0,-9));
+		item->pixmap = item->pixmap.copy(item->pixmap.rect());
 
 		scene()->addItem( item );
 		newItems.push_back( item );

@@ -241,6 +241,7 @@ void Scene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 		update();
 	}
 
+	emit( mousePressDownEvent(event) );
 	QGraphicsScene::mousePressEvent(event);
 }
 

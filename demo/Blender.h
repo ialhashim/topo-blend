@@ -55,6 +55,7 @@ public slots:
     void show();
     void hide();
 	void keyReleased(QKeyEvent* keyEvent);
+	void mousePress(QGraphicsSceneMouseEvent* mouseEvent);
 	void cleanUp();
 	void clearResults();
 

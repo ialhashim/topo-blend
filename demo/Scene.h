@@ -36,6 +36,7 @@ private:
     void setupLights();
 
 signals:
+	void mousePressDownEvent(QGraphicsSceneMouseEvent * event);
 	void keyUpEvent(QKeyEvent*);
     void wheelEvents(QGraphicsSceneWheelEvent*);
 	void doubleClick();
