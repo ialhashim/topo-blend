@@ -62,10 +62,11 @@ void Matcher::show()
 
 		if( isSameSource && isSameTarget )
 		{
-			manualMode();
-
 			emit( corresponderCreated(gcorr) );
+
+			manualMode();
 			DemoPage::show();
+
 			return;
 		}
 	}
