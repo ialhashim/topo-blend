@@ -39,6 +39,7 @@ public:
 	QVector< BlendPath > blendPaths;
 	QList< QSharedPointer<Scheduler> > jobs;
 
+	friend class Session;
 	friend class BlendPathRenderer;
 	friend class BlendPathSubButton;
 	friend class BlendPathSub;

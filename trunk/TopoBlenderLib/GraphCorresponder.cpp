@@ -1044,6 +1044,8 @@ void GraphCorresponder::computeCorrespondences()
 	sIsCorresponded.resize(sg->nodes.size(), false);
 	tIsCorresponded.resize(tg->nodes.size(), false);
 
+	if(correspondences.empty()) doHopelessCorrespondence();
+
 	// Mark the corresponded nodes
 	foreach (PART_LANDMARK vector2vector, correspondences)
 	{
@@ -1061,6 +1063,32 @@ void GraphCorresponder::computeCorrespondences()
 	}
 }
 
+void GraphCorresponder::doHopelessCorrespondence()
+{
+	double maxVolS = -1, maxVolT = -1;
+	QString maxS, maxT;
+
+	// Get parts with maximum volume on both graphs
+	foreach(Structure::Node* n, sg->nodes){
+		double volume = n->bbox().volume();
+		if(volume > maxVolS){
+			maxVolS = volume;
+			maxS = n->id;
+		}
+	}
+	foreach(Structure::Node* n, tg->nodes){
+		double volume = n->bbox().volume();
+		if(volume > maxVolT){
+			maxVolT = volume;
+			maxT = n->id;
+		}
+	}
+
+	// Force a correspondence
+	this->addCorrespondences(QVector<QString>() << maxS, QVector<QString>() << maxT, -1);
+
+	qDebug() << "WARNING: forced correspondence between [" << maxS << "] and [" << maxT << "].";
+}
 
 // Others
 std::vector<QString> GraphCorresponder::nonCorresSource()

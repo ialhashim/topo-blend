@@ -62,7 +62,12 @@ void Session::shapeChanged(int i, QGraphicsItem * shapeItem)
     emit( update() );
 }
 
-void Session::showSelect(){
+void Session::showSelect()
+{
+	// Invalidate the corresponder
+	m->gcorr->deleteLater();
+	m->gcorr = NULL;
+
 	g->show();
 }
 

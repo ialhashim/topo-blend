@@ -48,6 +48,8 @@ public:
 
 	void clear();
 	void clearFor( QString sID, bool isSource );
+	
+	void doHopelessCorrespondence();
 
 	// Distance matrices
 	std::vector< std::vector<bool> > validM;
@@ -100,4 +102,5 @@ public slots:
 	void computeCorrespondences();
 signals:
 	void cleared();
+
 };
