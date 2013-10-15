@@ -95,6 +95,8 @@ public:
 	std::vector<bool> sIsCorresponded, tIsCorresponded;
 	QMap< PART_LANDMARK, std::vector<float> > corrScores;
 	QVector< PART_LANDMARK > correspondences;
+	
+	void insertCorrespondence( PART_LANDMARK vector2vector );
 
 	QSet<int> nonCorresS;
 	QSet<int> nonCorresT;
