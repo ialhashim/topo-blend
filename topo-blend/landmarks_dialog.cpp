@@ -341,7 +341,7 @@ void LandmarksDialog::updateCorrTableWidget()
 	{
 		// Correspondences and scores
 		PART_LANDMARK vec2vec = gcorr->correspondences[i];
-		std::vector<float> scores = gcorr->corrScores[i];
+		std::vector<float> scores = gcorr->corrScores[vec2vec];
 
 		// One to many
 		if (vec2vec.first.size() == 1)

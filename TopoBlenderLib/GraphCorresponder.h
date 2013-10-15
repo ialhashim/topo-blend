@@ -4,6 +4,8 @@
 #include "StructureGraph.h"
 
 #include <vector>
+#include <QVector>
+#include <QMap>
 
 typedef std::vector< std::vector<float> > MATRIX;
 
@@ -91,8 +93,8 @@ public:
 	// Results
 	bool isReady;
 	std::vector<bool> sIsCorresponded, tIsCorresponded;
-	std::vector<PART_LANDMARK> correspondences;
-	std::vector<std::vector<float> > corrScores;
+	QMap< PART_LANDMARK, std::vector<float> > corrScores;
+	QVector< PART_LANDMARK > correspondences;
 
 	QSet<int> nonCorresS;
 	QSet<int> nonCorresT;

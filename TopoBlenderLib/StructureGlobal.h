@@ -162,6 +162,12 @@ typedef std::pair< QVector<QString>, QVector<QString> > PART_LANDMARK;
 typedef std::pair< int, int > POINT_ID;
 typedef std::pair< QVector<POINT_ID>, QVector<POINT_ID> > POINT_LANDMARK;
 
+static bool operator<(const PART_LANDMARK & a, const PART_LANDMARK & b){
+	QString keyA = a.first.front() + a.second.front();
+	QString keyB = b.first.front() + b.second.front();
+	return keyA < keyB;
+}
+
 #define AlphaBlend(alpha, start, end) ( ((1-alpha) * start) + (alpha * end) )
 
 // Spatial Hausdorff distance

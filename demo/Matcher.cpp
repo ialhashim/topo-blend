@@ -4,11 +4,11 @@ using namespace Structure;
 Matcher::Matcher(Scene * scene, QString title) : gcorr(NULL), prevItem(NULL), DemoPage(scene,title)
 {
 	// Fill in color sets
-	for(int i = 0; i < 20; i++)
+	for(int i = 0; i < 40; i++)
 	{
 		double blueH = 7.0 / 12.0;
 		double redH = 0;
-		double range = 0.1;
+		double range = 0.12;
 
 		double coldH = fmod(1.0 + uniformRand( -range + blueH, range + blueH ), 1.0);
 		double warmH = fmod(1.0 + uniformRand( -range + redH , range + redH  ), 1.0);
@@ -106,21 +106,20 @@ void Matcher::show()
 	DemoPage::show();
 }
 
-void Matcher::resetColors()
+void Matcher::hide()
 {
+	if(!s->isInputReady() || !property.contains("r0")) return;
+
+	// reset colors
 	QVector<Structure::Graph*> graphs; 
 	graphs << s->inputGraphs[0]->g << s->inputGraphs[1]->g;
 	foreach(Structure::Graph * g, graphs){
 		foreach(Node * n, g->nodes)
 			n->vis_property["meshColor"].setValue( QColor(180,180,180) );
 	}
-}
 
-void Matcher::hide()
-{
-	if(!s->isInputReady() || !property.contains("r0")) return;
-
-	resetColors();
+	prevCorrAuto.clear();
+	prevCorrManual.clear();
 
 	// Remove any markers
 	s->inputGraphs[0]->marker.clear();
@@ -137,51 +136,85 @@ void Matcher::hide()
 	DemoPage::hide();
 }
 
-void Matcher::visualize()
+void Matcher::resetColors()
 {
+	QSet<QString> snodes, tnodes;
+
+	foreach(Node * n, s->inputGraphs[0]->g->nodes)	snodes.insert(n->id);
+	foreach(Node * n, s->inputGraphs[1]->g->nodes)	tnodes.insert(n->id);
+
+	// Skip modified nodes
+	foreach(PART_LANDMARK vector2vector, gcorr->correspondences << gcorr->landmarks){
+		foreach (QString strID, vector2vector.first) snodes.remove(strID);
+		foreach (QString strID, vector2vector.second) tnodes.remove(strID);
+	}
+
+	foreach(QString sid, snodes){
+		Node * n = s->inputGraphs[0]->g->getNode(sid);
+		n->vis_property["meshColor"].setValue( QColor(180,180,180) );
+	}
+
+	foreach(QString sid, tnodes){
+		Node * n = s->inputGraphs[1]->g->getNode(sid);
+		n->vis_property["meshColor"].setValue( QColor(180,180,180) );
+	}
+}
+
+void Matcher::visualize()
+{	
+	if( !gcorr ) return; 
+
 	// Clear colors
 	resetColors();
 
-	c_cold = 0;
-	c_warm = 0;
+	Graph * sourceGraph = s->inputGraphs[0]->g;
+	Graph * targetGraph = s->inputGraphs[1]->g;
 
-	// Color previously assigned correspondences
-	if( gcorr ) {
-		Graph * sourceGraph = s->inputGraphs[0]->g;
-		Graph * targetGraph = s->inputGraphs[1]->g;
+	// Automatic correspondence
+	for(int i = 0; i < (int)gcorr->correspondences.size(); i++)
+	{
+		PART_LANDMARK vector2vector = gcorr->correspondences[i];
 
-		int i = 0;
+		// Don't change color if same as before
+		if(prevCorrAuto.contains(vector2vector)) continue;
+		
+		QColor curColor = coldColors[c_cold++ % coldColors.size()];
 
-		// Automatic correspondence
-		foreach (PART_LANDMARK vector2vector, gcorr->correspondences){
-			QColor curColor = coldColors[c_cold++ % coldColors.size()];
+		// User defined correspondence uses warm colors
+		if(gcorr->corrScores[vector2vector].front() < 0) 
+			curColor = warmColors[c_warm++ % warmColors.size()];
 
-			// User defined correspondence uses warm colors
-			if(gcorr->corrScores[i++].front() < 0) curColor = warmColors[c_warm++ % warmColors.size()];
+		foreach (QString strID, vector2vector.first)
+			sourceGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
 
-			foreach (QString strID, vector2vector.first)
-				sourceGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
-
-			foreach (QString strID, vector2vector.second)
-				targetGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
-		}
-
-		// User specified correspondence
-		foreach (PART_LANDMARK vector2vector, gcorr->landmarks){
-			QColor curColor = warmColors[c_warm++ % warmColors.size()];
-
-			foreach (QString strID, vector2vector.first)
-				sourceGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
-
-			foreach (QString strID, vector2vector.second)
-				targetGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
-		}
-
-		// Non-nodes
-		QColor nonColor (180,180,180);
-		foreach(int nidx, gcorr->nonCorresS)	sourceGraph->nodes[nidx]->vis_property["meshColor"].setValue( nonColor );
-		foreach(int nidx, gcorr->nonCorresT)	targetGraph->nodes[nidx]->vis_property["meshColor"].setValue( nonColor );
+		foreach (QString strID, vector2vector.second)
+			targetGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
 	}
+
+	// User specified correspondence
+	for(int i = 0; i < (int)gcorr->landmarks.size(); i++)
+	{
+		PART_LANDMARK vector2vector = gcorr->landmarks[i];
+
+		// Don't change color if same as before
+		if(prevCorrManual.contains(vector2vector)) continue;
+
+		QColor curColor = warmColors[c_warm++ % warmColors.size()];
+
+		foreach (QString strID, vector2vector.first)
+			sourceGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
+
+		foreach (QString strID, vector2vector.second)
+			targetGraph->getNode( strID )->vis_property["meshColor"].setValue( curColor );
+	}
+
+	// Non-nodes
+	QColor nonColor (180,180,180);
+	foreach(int nidx, gcorr->nonCorresS)	sourceGraph->nodes[nidx]->vis_property["meshColor"].setValue( nonColor );
+	foreach(int nidx, gcorr->nonCorresT)	targetGraph->nodes[nidx]->vis_property["meshColor"].setValue( nonColor );
+	
+	prevCorrAuto = gcorr->correspondences;
+	prevCorrManual = gcorr->landmarks;
 }
 
 void Matcher::graphHit( GraphItem::HitResult hit )
@@ -195,7 +228,9 @@ void Matcher::graphHit( GraphItem::HitResult hit )
 	// Add only if not there
 	if(!group.contains(n->id)) group.push_back(n->id);
 	
-	item->marker.addSphere( hit.ipoint, 0.04f, QColor(211, 50, 118) );
+	double markerRadius = g->bbox().diagonal().norm() * 0.03;
+
+	item->marker.addSphere( hit.ipoint, markerRadius, QColor(211, 50, 118) );
 }
 
 void Matcher::autoMode()
@@ -205,6 +240,9 @@ void Matcher::autoMode()
 
 	gcorr->clear();
 	gcorr->computeCorrespondences();
+
+	prevCorrAuto.clear();
+	prevCorrManual.clear();
 
 	// Remove any markers
 	s->inputGraphs[0]->marker.clear();
@@ -221,6 +259,9 @@ void Matcher::manualMode()
 		gcorr->clear();
 		gcorr->loadCorrespondences( property["corrFile"].toString(), property["corrReversed"].toBool() );
 	}
+
+	prevCorrAuto.clear();
+	prevCorrManual.clear();
 
 	// Enable graph picking
 	s->setProperty("graph-pick", true);

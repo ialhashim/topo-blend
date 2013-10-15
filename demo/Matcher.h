@@ -17,6 +17,8 @@ public:
 	QVector<QColor> coldColors, warmColors;
 	int c_cold, c_warm;
 
+	QVector<PART_LANDMARK> prevCorrAuto, prevCorrManual;
+
 private:
 	MatcherState state;
 	QVector<QString> groupA, groupB;
