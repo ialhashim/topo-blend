@@ -334,11 +334,12 @@ void GraphCorresponder::addCorrespondences( QVector<QString> sParts, QVector<QSt
 	}
 
 	// Store correspondence
-	correspondences.push_back(std::make_pair(sParts, tParts));
+	PART_LANDMARK vector2vector = std::make_pair(sParts, tParts);
+	correspondences.push_back( vector2vector );
 
 	// Set to specific score
 	int N = qMax(sParts.size(), tParts.size());
-	corrScores.push_back( std::vector<float>(N, presetScore) );
+	corrScores[vector2vector] = std::vector<float>(N, presetScore);
 }
 
 void GraphCorresponder::removeLandmark( int id )
@@ -752,11 +753,10 @@ void GraphCorresponder::computePartToPartCorrespondences()
 			scores.insert(scores.end(), r_scores.begin(), r_scores.end());
 		}
 
-		
-
 		// Save results
-		this->correspondences.push_back(std::make_pair(sVector, tVector));
-		this->corrScores.push_back(scores);
+		PART_LANDMARK vector2vector = std::make_pair(sVector, tVector);
+		this->correspondences.push_back(vector2vector);
+		this->corrScores[vector2vector] = scores;
 		
 		// Remove r and c in the disMatrix
 		for (int i = 0; i < sN; i++) // Column c
@@ -771,7 +771,7 @@ void GraphCorresponder::computePartToPartCorrespondences()
 		correspondences.push_back(landmark);
 		int n = qMax(landmark.first.size(),landmark.second.size());
 		std::vector<float> fake_score(n, -1);
-		corrScores.push_back(fake_score);
+		corrScores[landmark] = fake_score;
 	}
 }
 
@@ -1026,6 +1026,8 @@ void GraphCorresponder::computeCorrespondences()
 {
 	if (isReady) return;
 
+	corrScores.clear();
+
 	// Prepare
 	prepareAllMatrices();
 
@@ -1173,7 +1175,7 @@ void GraphCorresponder::saveCorrespondences( QString filename, bool isWithScores
 	{
 		// Correspondences and scores
 		PART_LANDMARK vec2vec = correspondences[i];
-		std::vector<float> scores = corrScores[i];
+		std::vector<float> scores = corrScores[vec2vec];
 
 		outF << vec2vec.first.size() << '\t';;
 		foreach (QString strID, vec2vec.first)
