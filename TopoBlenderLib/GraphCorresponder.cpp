@@ -335,7 +335,7 @@ void GraphCorresponder::addCorrespondences( QVector<QString> sParts, QVector<QSt
 
 	// Store correspondence
 	PART_LANDMARK vector2vector = std::make_pair(sParts, tParts);
-	correspondences.push_back( vector2vector );
+	insertCorrespondence( vector2vector );
 
 	// Set to specific score
 	int N = qMax(sParts.size(), tParts.size());
@@ -622,6 +622,19 @@ void GraphCorresponder::computeOrientationDiffMatrix( MATRIX & M )
 	normalizeMatrix(M);
 }
 
+void GraphCorresponder::insertCorrespondence( PART_LANDMARK vector2vector )
+{
+	// Check for existing ones
+	for(int i = 0; i < (int)correspondences.size(); i++)
+	{
+		if(correspondences[i] == vector2vector)
+		{
+			qDebug() << "Problem!";
+		}
+	}
+
+	correspondences.push_back(vector2vector);
+}
 
 // Final disM
 void GraphCorresponder::prepareAllMatrices()
@@ -755,7 +768,7 @@ void GraphCorresponder::computePartToPartCorrespondences()
 
 		// Save results
 		PART_LANDMARK vector2vector = std::make_pair(sVector, tVector);
-		this->correspondences.push_back(vector2vector);
+		this->insertCorrespondence( vector2vector );
 		this->corrScores[vector2vector] = scores;
 		
 		// Remove r and c in the disMatrix
@@ -768,7 +781,7 @@ void GraphCorresponder::computePartToPartCorrespondences()
 	// Add the part landmarks as correspondences too
 	foreach(PART_LANDMARK landmark, landmarks)
 	{
-		correspondences.push_back(landmark);
+		insertCorrespondence( landmark );
 		int n = qMax(landmark.first.size(),landmark.second.size());
 		std::vector<float> fake_score(n, -1);
 		corrScores[landmark] = fake_score;

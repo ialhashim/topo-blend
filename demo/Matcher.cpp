@@ -144,7 +144,7 @@ void Matcher::resetColors()
 	foreach(Node * n, s->inputGraphs[1]->g->nodes)	tnodes.insert(n->id);
 
 	// Skip modified nodes
-	foreach(PART_LANDMARK vector2vector, gcorr->correspondences << gcorr->landmarks){
+	foreach(PART_LANDMARK vector2vector, gcorr->correspondences + gcorr->landmarks){
 		foreach (QString strID, vector2vector.first) snodes.remove(strID);
 		foreach (QString strID, vector2vector.second) tnodes.remove(strID);
 	}
