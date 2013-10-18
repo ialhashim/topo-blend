@@ -561,5 +561,5 @@ void topo_blend_widget::setSynthSamplesCount( int samplesCount )
 
 void topo_blend_widget::addTab( QWidget * widget )
 {
-	ui->tabWidget->addTab(widget, widget->windowTitle());
+	ui->tabWidget->insertTab(1, widget, widget->windowTitle());
 }
