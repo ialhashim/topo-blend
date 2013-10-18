@@ -2,7 +2,8 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 # Libraries
-SUBDIRS += NURBS
+SUBDIRS += NURBS \
+    RelationDetectorLib
 SUBDIRS += DynamicVoxel
 SUBDIRS += Voxeler
 SUBDIRS += TopoBlenderLib

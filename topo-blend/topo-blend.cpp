@@ -13,6 +13,7 @@
 #include "graph_modify_dialog.h"
 #include "QuickAlignment.h"
 #include "GraphExplorer.h"
+#include "RelationWidget.h"
 
 using namespace NURBS;
 using namespace Structure;
@@ -75,6 +76,9 @@ void topoblend::create()
 
 		// Explore graph and its properties
 		this->graph_explorer = new GraphExplorer;
+
+		// Add relation detector widget
+		this->widget->addTab( new RelationWidget(this, NULL) );
 	}
 
 	drawArea()->setSelectRegionHeight( 20 );

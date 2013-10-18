@@ -25,6 +25,8 @@ public:
 	
 	QWidget * simpleWidget();
 
+	void addTab( QWidget * widget );
+
 public slots:
     void renderViewer();
     void renderAnimation();

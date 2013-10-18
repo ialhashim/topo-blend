@@ -39,6 +39,10 @@ INCLUDEPATH += ../TopoBlenderLib
 LIBS += -L$$PWD/../GLSplatRendererLib/$$CFG/lib -lGLSplatRendererLib
 INCLUDEPATH += ../GLSplatRendererLib
 
+# Relation detection library
+LIBS += -L$$PWD/../RelationDetectorLib/$$CFG/lib -lRelationDetectorLib
+INCLUDEPATH += ../RelationDetectorLib
+
 HEADERS +=  topo-blend.h \
             QuickMesh.h \
             QuickViewer.h \
