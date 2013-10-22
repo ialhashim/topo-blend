@@ -21,7 +21,7 @@ Task::Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, Task
 	this->target = targetGraph;
 
 	this->start = 0;
-	this->length = 80;
+	this->length = Task::DEFAULT_LENGTH;
 
 	this->type = taskType;
 	this->taskID = ID;
@@ -211,6 +211,12 @@ void Task::drawDebug()
 	foreach(Vector3 p, debugPoints2) glVector3(p);
 	glEnd();
 
+	vs1.draw(3);
+	vs2.draw(6);
+
+	ls1.draw();
+	ls2.draw();
+
 	glEnable(GL_LIGHTING);
 }
 
@@ -301,7 +307,7 @@ bool Task::isActive( double t )
 NodeCoord Task::futureOtherNodeCoord( Structure::Link *link )
 {
 	Structure::Node *tn = targetNode();
-	Structure::Link * tlink = target->getEdge( link->property["correspond"].toInt());
+	Structure::Link * tlink = target->getEdge( link->property["correspond"].toInt() );
 
 	Structure::Node * tfutureOther = tlink->otherNode(tn->id);
 	QString futureOtherID = tfutureOther->property["correspond"].toString();
@@ -384,6 +390,23 @@ void Task::prepare()
 
 QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Structure::Link*> allEdges )
 {
+	// Check edge's real ownership
+	Node * tn = target->getNode(n->property["correspond"].toString());
+	if( tn ){
+		QVector<Link*> keepEdges;
+		foreach(Link * sl, allEdges)
+		{
+			Link * tl = target->getEdge( sl->property["correspond"].toInt() );
+
+			// Skip target edges that are not related to current node
+			if(!tl->hasNode(tn->id))
+				continue;
+			else
+				keepEdges.push_back(sl);
+		}
+		allEdges = keepEdges;
+	}
+
 	QVector<Structure::Link*> edges;
 
 	for(int i = 0; i < (int)allEdges.size(); i++){
@@ -676,6 +699,8 @@ void Task::setNode( QString node_ID )
 		mycolor = TaskColors[Task::MERGE];
 		node()->property["taskTypeReal"] = Task::MERGE;
 	}
+
+	targetNode()->property["taskTypeReal"] = node()->property["taskTypeReal"];
 }
 
 std::vector<RMF::Frame> Task::smoothRotateFrame( RMF::Frame sframe, Eigen::Quaterniond & rotation, int steps )
@@ -762,7 +787,7 @@ void Task::prepareMorphEdges()
 		// End of path should be exactly as in target
 		path.back() = GraphDistance::PathPointPair( PathPoint(futureNodeCord.first, futureNodeCord.second)  );
 
-		link->property["path"].setValue( path );
+		link->setProperty("path", path);
 	}
 }
 

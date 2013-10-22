@@ -8,6 +8,7 @@ class Task : public QGraphicsObject
 {
 public:
 	enum TaskType{ SHRINK, MERGE, MORPH, SPLIT, GROW };
+	static int const DEFAULT_LENGTH = 80;
 
 	Task( Structure::Graph * activeGraph, Structure::Graph * targetGraph, TaskType taskType, int ID );
     QRectF boundingRect() const;
@@ -110,6 +111,8 @@ public:
 
 	// DEBUG:
 	std::vector<Vector3d> debugPoints, debugPoints2;
+	VectorSoup vs1, vs2;
+	LineSegments ls1, ls2;
 	void drawDebug();
 
 protected:

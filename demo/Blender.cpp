@@ -536,16 +536,18 @@ void Blender::blenderAllResultsDone()
 
 		for(int j = 0; j < numInBetweens + 1; j++)
 		{
-			addBlendSubItem(pathRect.x() + ((j) * outterWidth) - (w * 0.5), pathRect.y(), w, h, i, j);
+			double x = pathRect.x() + ((j) * outterWidth) - (w * 0.5);
+
+			if(j == 0) x = 0;
+			if(j == numInBetweens) x = pathRect.width() - w;
+
+			addBlendSubItem(x, pathRect.y(), w, h, i, j);
 		}
 	}
 }
 
 void Blender::addBlendSubItem(double x, double y, double w, double h, int i, int j)
 {
-	if(j == 0) x += w*0.5;
-	if(j == numInBetweens) x -= w*0.5;
-
 	BlendPathSubButton * subItemButton = new BlendPathSubButton(w, h, this, 20);
 	subItemButton->setPos( QPointF(x, y) );
 

@@ -119,7 +119,10 @@ struct Graph
     // Analysis
     Node * rootBySize();
     Node * rootByValence();
+
+	QList<QString> nodesCanVisit( Node * node );
 	int numCanVisit( Structure::Node * node );
+
 	bool isConnected();
 	bool isCutNode(QString nodeID);
 	bool isBridgeEdge( Structure::Link * link );

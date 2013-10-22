@@ -173,9 +173,9 @@ void Relink::fixTask( Task* task )
 			Vector3 newPosB = linkPosOtherB + deltaB;
 
 			// In case two handles or two new positions are two close
-			//double handleDiff = (handleA - handleB).norm();
+			double handleDiff = (handleA - handleB).norm();
 			double newPosDiff = (newPosA - newPosB).norm();
-			if (newPosDiff < 0.05)
+			if (newPosDiff < 0.05 || handleDiff < 0.25)
 			{
 				// Pick first one only
 				Vector3d oldPos = linkA->position(n->id);

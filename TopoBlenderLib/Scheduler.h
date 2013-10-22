@@ -35,6 +35,7 @@ public:
 	double timeStep;
 	double globalStart;
 	double globalEnd;
+	double overTime;
 
 	// Input
 	Structure::Graph * activeGraph;
@@ -49,6 +50,7 @@ public:
 	void schedule();
 	void order();
     void executeAll();
+	void finalize();
 	void reset();
 
 	void blendDeltas( double globalTime, double timeStep );
