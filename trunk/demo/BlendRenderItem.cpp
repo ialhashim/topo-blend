@@ -31,6 +31,7 @@ void BlendRenderItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *o
 
 	/// DEBUG:
 	//painter->drawText(10,20, QString::number(graph()->property["t"].toDouble()) );
+	//painter->drawRect( pixmap.rect() );
 }
 
 void BlendRenderItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event)

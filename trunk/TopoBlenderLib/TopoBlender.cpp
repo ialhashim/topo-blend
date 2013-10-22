@@ -277,19 +277,18 @@ void TopoBlender::correspondSuperEdges()
 		correspondSimilarType( super_sg, super_tg );
 		correspondSimilarType( super_tg, super_sg );
 	}
-	
+
 	/// Creating one edge for floating null nodes [has heuristic]
 	if (CASE_3)
 	{
 		connectNullNodes( super_sg, super_tg );
 		connectNullNodes( super_tg, super_sg );
 	}
-
+	
 	/// Correspond edges with changed ends
 	if( CASE_4 )
 	{
 		correspondChangedEnds( super_sg, super_tg );
-		correspondChangedEnds( super_tg, super_sg );
 	}
 
 	/// Do remaining edges of null nodes
@@ -312,7 +311,7 @@ void TopoBlender::correspondSuperEdges()
 		removeRedundantEdges( super_sg );
 		removeRedundantEdges( super_tg );
 	}
-	
+
 	// Visualization: assign global unique ids
 	int viz_uid = 0;
 	foreach(Structure::Link * slink, super_sg->edges){
@@ -370,13 +369,17 @@ void TopoBlender::connectNullNodes( Structure::Graph * source, Structure::Graph 
 		QVector<Structure::Link*> tedges = edgesNotContain( target->getEdges(tnode->id), "correspond" );
 		if(tedges.isEmpty()) continue;
 
+		// Make sure our connected sub-graph is in fact disconnected
+		bool isConnectedViaOthers = false;
+		foreach(QString nid, source->nodesCanVisit(snode))	if(!nid.contains("_null")) { isConnectedViaOthers = true; break; }
+		if( isConnectedViaOthers ) continue;
+
 		if (tedges.size() == 1)
 		{
 			Link* tlink = tedges.front();
 			Link* slink = addMissingLink(source, tlink);
 			correspondTwoEdges(slink, tlink, false, source);
 		}
-
 		else if (tedges.size() == 2)
 		{
 			foreach( Link* tlink, tedges)
@@ -385,8 +388,6 @@ void TopoBlender::connectNullNodes( Structure::Graph * source, Structure::Graph 
 				correspondTwoEdges(slink, tlink, false, source);
 			}
 		}
-
-		
 		else
 		{
 			// Collect names, in source, of target's neighboring nodes
@@ -454,6 +455,16 @@ void TopoBlender::correspondChangedEnds( Structure::Graph * source, Structure::G
 
 				isRunning = true;
 			}
+			// Source has been duplicated ?
+			else if(tedges.size() == 1 && sedges.size() > 1)
+			{
+				Link* slink = sedges.front(), *tlink = tedges.front();
+				bool sFromMe = ( slink->n1->id == snode->id );
+				bool tFromMe = ( tlink->n1->id == tnode->id );
+				bool isFlip = (sFromMe != tFromMe);
+
+				correspondTwoEdges(slink, tlink, isFlip, source);
+			}
 		}
 	} while (isRunning);
 }
@@ -519,9 +530,6 @@ void TopoBlender::removeRedundantEdges( Structure::Graph * source )
 			source->removeEdge(link->n1, link->n2);
 	}
 }
-
-
-
 
 void TopoBlender::removeUncorrespondedEdges( Structure::Graph * graph )
 {
@@ -849,7 +857,7 @@ bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structu
 	Structure::Sheet *sheet1 = (Structure::Sheet*)node1;
 	Structure::Curve *curve2 = (Structure::Curve*)node2;
 
-	// Find a for-sure link(links with corresponded ends) to determine the new curve skeleton
+	// Find a for-sure link (links with corresponded ends) to determine the new curve skeleton
 	bool converted = false;
 	foreach(Structure::Link* link2, superG2->getEdges(nodeID2))
 	{
@@ -887,9 +895,15 @@ bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structu
 				converted = true;
 			}
 
+			// Get real coordinates
+			Node * n1 = superG1->getNode(otherID1);
+			Node * n2 = superG1->getNode(nodeID1);
+			Array1D_Vector4d c1 = link2->getCoord(n1->property["correspond"].toString());
+			Array1D_Vector4d c2 = link2->getCoord(n2->property["correspond"].toString());
+
 			// relink only the type-equalized neighbours
 			// Other neighbors will be relinked in future
-			superG1->addEdge(otherID1, nodeID1);
+			superG1->addEdge(n1, n2, c1, c2, superG1->linkName(n1,n2));
 		}
 	}
 
@@ -948,4 +962,10 @@ QString TopoBlender::correspondingNode( Structure::Link *link, int i )
 {
 	if(i == 0)	return link->n1->property["correspond"].toString();
 	else		return link->n2->property["correspond"].toString();
+}
+
+void TopoBlender::debugSuperGraphs( QString info )
+{
+	toGraphviz(super_sg, info + "_SourceSuper", true);
+	toGraphviz(super_tg, info + "_TargetSuper", true);
 }

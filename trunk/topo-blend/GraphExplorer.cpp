@@ -195,6 +195,14 @@ void GraphExplorer::fillEdgesInfo()
 		QTreeWidgetItem * eitem = new QTreeWidgetItem;
 		eitem->setText(0, e->id);
 		eitem->setText(1, "");
+
+		// Also display link coordinates
+		{
+			Vec4d c1 = e->coord[0].front();
+			Vec4d c2 = e->coord[1].front();
+			e->property["coordinates"] = QString("C1 ( %1, %2 )   C2 ( %3, %4 )").arg(c1.x()).arg(c1.y()).arg(c2.x()).arg(c2.y());
+		}
+
 		fillInfoItem(e->property, eitem);
 		ui->edgesTree->addTopLevelItem(eitem);
 	}

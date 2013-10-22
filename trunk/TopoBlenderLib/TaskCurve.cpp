@@ -112,8 +112,8 @@ void TaskCurve::prepareShrinkCurve()
 		// Encode curve
 		property["cpCoords"].setValue( Curve::encodeCurve(curve, linkA->position(n->id), linkB->position(n->id)) );
 
-		linkA->property["path"].setValue( pathA );
-		linkB->property["path"].setValue( pathB );
+		linkA->setProperty("path", pathA);
+		linkB->setProperty("path", pathB);
 
 		// Visualization
 		n->property["path"].setValue( GraphDistance::positionalPath(active, pathA) );
@@ -124,7 +124,7 @@ void TaskCurve::prepareShrinkCurve()
 void TaskCurve::prepareGrowCurveOneEdge( Structure::Link * tlink )
 {
     Node *tn = targetNode();
-	Structure::Curve * curve = (Structure::Curve *)tn;
+	Structure::Curve tcurve (*((Structure::Curve *)tn));
 
 	// Get base
 	Node * tbase = tlink->otherNode(tn->id);
@@ -136,17 +136,17 @@ void TaskCurve::prepareGrowCurveOneEdge( Structure::Link * tlink )
 	Vector4d coordSelf = tlink->getCoord(tn->id).front();
 
 	/// Place curve:
-	int cpIDX = curve->controlPointIndexFromCoord( coordSelf );
+	int cpIDX = tcurve.controlPointIndexFromCoord( coordSelf );
 
 	// Make origin the position on me in which I will grow from
-	curve->moveBy( -curve->controlPoints()[cpIDX] + base->position(coordBase) );
+	tcurve.moveBy( -tcurve.controlPoints()[cpIDX] + base->position(coordBase) );
 
 	// Curve folding
-	Array1D_Vector3 deltas = curve->foldTo( coordSelf, true );
+	Array1D_Vector3 deltas = tcurve.foldTo( coordSelf, true );
 
 	// Growing instructions
 	property["deltas"].setValue( deltas );
-	property["orgCtrlPoints"].setValue( curve->curve.mCtrlPoint );
+	property["orgCtrlPoints"].setValue( tcurve.curve.mCtrlPoint );
 }
 
 void TaskCurve::prepareGrowCurve()
@@ -275,8 +275,8 @@ void TaskCurve::prepareGrowCurve()
 		curve->foldTo(midCoord, true);
 		curve->curve.translate(startPoint - curve->position(midCoord));
 
-		linkA->property["path"].setValue( pathA );
-		linkB->property["path"].setValue( pathB );
+		linkA->setProperty("path", pathA);
+		linkB->setProperty("path", pathB);
 
 		// Visualization
 		n->property["path"].setValue( GraphDistance::positionalPath(active, pathA) );
@@ -337,7 +337,7 @@ void TaskCurve::prepareCrossingMorphCurve()
 
 		// Save links paths
 		path.back() = GraphDistance::PathPointPair( PathPoint(futureNodeCord.first, futureNodeCord.second)  );
-		link->property["path"].setValue( path );
+		link->setProperty("path", path);
 	}
 
 	if( edges.size() == 2 )
@@ -372,8 +372,8 @@ void TaskCurve::prepareCrossingMorphCurve()
 		pathA.back() = GraphDistance::PathPointPair( PathPoint(futureNodeCordA.first, futureNodeCordA.second)  );
 		pathB.back() = GraphDistance::PathPointPair( PathPoint(futureNodeCordB.first, futureNodeCordB.second)  );
 		
-		linkA->property["path"].setValue( pathA );
-		linkB->property["path"].setValue( pathB );
+		linkA->setProperty("path", pathA);
+		linkB->setProperty("path", pathB);
 	}
 
 	property["edges"].setValue( edges );

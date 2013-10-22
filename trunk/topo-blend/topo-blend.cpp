@@ -768,7 +768,7 @@ void topoblend::doBlend()
 
 	// Render connections
 	this->s_manager->connect(scheduler, SIGNAL(renderAll()), SLOT(renderAll()), Qt::UniqueConnection);
-	this->s_manager->connect(scheduler, SIGNAL(renderCurrent()), SLOT(renderCurrent()), Qt::UniqueConnection);
+	//this->s_manager->connect(scheduler, SIGNAL(renderCurrent()), SLOT(renderCurrent()), Qt::UniqueConnection);
 
 	// Other connections
 	this->connect(scheduler, SIGNAL(updateExternalViewer()), SLOT(updateDrawArea()));

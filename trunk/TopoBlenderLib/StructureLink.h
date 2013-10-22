@@ -27,6 +27,11 @@ struct Link
 
 	bool hasProperty(QString propertyName) { return property.contains(propertyName); }
 
+	template<typename T>
+	void setProperty( QString propertyName, T propertyValue ){
+		property[propertyName].setValue( propertyValue );
+	}
+
 	void setCoord( QString nodeID, Array1D_Vector4d newCoord );
 	void setCoordOther( QString nodeID, Array1D_Vector4d newCoord );
 

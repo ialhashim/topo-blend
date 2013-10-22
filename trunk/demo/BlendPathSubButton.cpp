@@ -25,7 +25,7 @@ void BlendPathSubButton::paint(QPainter *painter, const QStyleOptionGraphicsItem
 	double radius = r.height() * 0.025;
 
 	// DEBUG:
-	//if( isOnTop() )	painter->drawRect( r );
+	//painter->drawRect( r );
 
 	painter->setOpacity( property["opacity"].toDouble() );
 
@@ -79,8 +79,8 @@ void BlendPathSubButton::mousePressEvent( QGraphicsSceneMouseEvent * event )
 
 	double step = (end - start) / (count+1);
 
-	int iwidth = blender->itemHeight;
-	QRectF r (0,0,(iwidth*count) + (count * iwidth*0.5),iwidth);
+	int iwidth = blender->itemHeight * 0.8;
+	QRectF r (0, 0, (iwidth*count) + (count * iwidth*0.5), blender->itemHeight);
 	r.moveCenter(sceneBoundingRect().center());
 
 	// 1) Hide the button
@@ -100,7 +100,10 @@ void BlendPathSubButton::mousePressEvent( QGraphicsSceneMouseEvent * event )
 		QPropertyAnimation * anim = new QPropertyAnimation(obj, "pos");
 		anim->setDuration( 300 );
 		anim->setStartValue( obj->pos() );
-		anim->setEndValue( obj->pos() + ((obj->x() >= r.center().x() ? 1 : -1) * QPointF(r.width() * 0.5,0)) );
+
+		double direction = (obj->x() >= this->sceneBoundingRect().center().x() - this->boundingRect().width() ? 1 : -1);
+
+		anim->setEndValue( obj->pos() + (direction * QPointF(r.width() * 0.5,0)) );
 		anim->setEasingCurve( QEasingCurve::InOutQuad );
 		prevItemsGroup->addAnimation( anim );
 	}

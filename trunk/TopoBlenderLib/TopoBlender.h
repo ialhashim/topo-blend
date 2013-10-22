@@ -91,4 +91,5 @@ public:
 	std::vector< Vector3 > debugPoints;
 	std::vector< PairVector3 > debugLines;
 	void drawDebug();
+	void debugSuperGraphs(QString info);
 };

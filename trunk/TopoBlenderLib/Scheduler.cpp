@@ -16,7 +16,7 @@
 
 Q_DECLARE_METATYPE( QSet<int> ) // for tags
 
-Scheduler::Scheduler() : globalStart(0.0), globalEnd(1.0), timeStep( 1.0 / 100.0 )
+Scheduler::Scheduler() : globalStart(0.0), globalEnd(1.0), timeStep( 1.0 / 100.0 ), overTime(0.0)
 {
 	rulerHeight = 25;
 
@@ -62,6 +62,7 @@ Scheduler::Scheduler( const Scheduler& other )
 	timeStep = other.timeStep;
 	globalStart = other.globalStart;
 	globalEnd = other.globalEnd;
+	overTime = other.overTime;
 
 	// Input
 	activeGraph = other.activeGraph;
@@ -127,6 +128,20 @@ void Scheduler::drawForeground( QPainter * painter, const QRectF & rect )
 	int minorTicks = 5;
 	painter->setPen(Qt::gray);
 	QFontMetrics fm(painter->font());
+
+	if(overTime)
+	{
+		QRectF rect(0, 0, tasks.size() * tasks.front()->height, Task::DEFAULT_LENGTH);
+		QPointF startPos = rect.topLeft() + QPointF(totalTime - overTime + rect.height(),0);
+
+		painter->save();
+		painter->translate(startPos);
+		painter->rotate(90);
+		painter->setBrush(QColor(255,255,0,20));
+		painter->drawRect(rect);
+		painter->drawText(rect, Qt::AlignCenter, "OVERTIME");
+		painter->restore();
+	}
 
 	for(int i = 0; i <= timeEnd; i++)
 	{
@@ -604,6 +619,8 @@ void Scheduler::executeAll()
 		if( isForceStop ) break;
 	}
 
+	finalize();
+
 	slider->enable();
 
 	emit( progressDone() );
@@ -612,6 +629,64 @@ void Scheduler::executeAll()
 	property["progressDone"] = true;
 
     QCursor::setPos(QCursor::pos());
+}
+
+void Scheduler::finalize()
+{
+	double sumDistortion = 0;
+
+	double distThreshold = activeGraph->bbox().diagonal().norm() * 0.1;
+
+	foreach(Node * n, activeGraph->nodes){
+		if(n->property["shrunk"].toBool()) continue;
+
+		Node * tn = targetGraph->getNode( n->property["correspond"].toString() );
+		double curDistortion = n->distortion( tn );
+		sumDistortion += curDistortion;
+	}
+
+	// Make sure we exactly get the target, no constraints here
+	if(sumDistortion > distThreshold){
+		double finalizeDuration = double(Task::DEFAULT_LENGTH) / totalExecutionTime();
+
+		// Reassign 't' values for generated graphs
+		double stretch = (totalExecutionTime() - overTime) / totalExecutionTime();
+		for(int i = 0; i < (int)allGraphs.size(); i++)
+			allGraphs[i]->property["t"] = stretch * (allGraphs[i]->property["t"].toDouble());
+
+		QMap<Node*, Array1D_Vector3> curGeometry;
+		foreach(Node * n, activeGraph->nodes)
+			curGeometry[n] = n->controlPoints();
+
+		int steps = int(finalizeDuration / timeStep);
+
+		for(int u = 0; u <= steps; u++){
+			double t = double(u) / steps;
+
+			// Morph nodes
+			foreach(Node * n, activeGraph->nodes){
+				Node * tn = targetGraph->getNode( n->property["correspond"].toString() );
+				Array1D_Vector3 finalGeometry = tn->controlPoints();
+				Array1D_Vector3 newGeometry;
+
+				for(int i = 0; i < (int) finalGeometry.size(); i++)
+					newGeometry.push_back( AlphaBlend(t, curGeometry[n][i], Vector3(finalGeometry[i])) );
+				
+				n->setControlPoints( newGeometry );
+			}
+
+			allGraphs.push_back(  new Structure::Graph( *activeGraph )  );
+		}
+
+		overTime = Task::DEFAULT_LENGTH;
+
+		// Move last tag to overtime
+		QSet<int> modfiedTags = property["timeTags"].value< QSet<int> >();
+		int lastVal = modfiedTags.values().back();
+		modfiedTags.remove(lastVal);
+		modfiedTags.insert(totalExecutionTime() - (0.5 * Task::DEFAULT_LENGTH));
+		property["timeTags"].setValue(modfiedTags);
+	}
 }
 
 bool Scheduler::isPartOfGrowingBranch( Task* t )
@@ -630,7 +705,9 @@ QVector<Task*> Scheduler::getEntireBranch( Task * t )
 void Scheduler::drawDebug()
 {
 	foreach(Task * t, tasks)
+	{
 		t->drawDebug();
+	}
 }
 
 int Scheduler::totalExecutionTime()
@@ -640,7 +717,7 @@ int Scheduler::totalExecutionTime()
 	foreach(Task * t, tasks)
 		endTime = qMax(endTime, t->endTime());
 
-	return endTime;
+	return endTime + overTime;
 }
 
 void Scheduler::timeChanged( int newTime )

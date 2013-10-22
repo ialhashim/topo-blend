@@ -1432,7 +1432,7 @@ QList<Link*> Graph::furthermostEdges( QString nodeID )
 	return sortedLinks.values();
 }
 
-int Graph::numCanVisit( Node * node )
+QList<QString> Graph::nodesCanVisit( Node * node )
 {
 	QMap<QString, bool> visitedNodes;
 	QStack<QString> nodesToVisit;
@@ -1454,7 +1454,12 @@ int Graph::numCanVisit( Node * node )
 		}
 	}
 
-	return visitedNodes.size();
+	return visitedNodes.keys();
+}
+
+int Graph::numCanVisit( Node * node )
+{
+	return nodesCanVisit( node ).size();
 }
 
 bool Graph::isConnected()

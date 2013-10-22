@@ -856,7 +856,10 @@ void GraphCorresponder::correspondTwoCurves( Structure::Curve *sCurve, Structure
 	float f2f = (sfront - tfront).norm();
 	float f2b = (sfront - tback).norm();
 
-	if (f2f > f2b)
+	float diff = std::abs(f2f-f2b);
+	float threshold = 0.1;
+
+	if (f2f > f2b && diff > threshold)
 	{
 		// Flip the target
 		std::vector<Scalar> tCtrlWeight = tCurve->controlWeights();

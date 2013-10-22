@@ -67,6 +67,19 @@ struct Node
 		}
 		return result;
 	}
+	virtual Scalar distortion( Structure::Node * other ){
+		if(!other) return 0;
+		Array1D_Vector3 cp1 = controlPoints(), cp2 = other->controlPoints();
+		if(cp1.size() != cp2.size()) return 0;
+		Vector3 mean1(0,0,0), mean2(0,0,0);
+		foreach(Vector3 p, cp1) mean1 += p;
+		foreach(Vector3 p, cp2) mean2 += p;
+		mean1 /= cp1.size();
+		mean2 /= cp2.size();
+		double maxDistort = 0;
+		for(int i = 0; i < (int)cp1.size(); i++) maxDistort = qMax(maxDistort, (cp1[i] - cp2[i]).norm());
+		return maxDistort;
+	}
 
 	// Selections
 	QMap<int, QColor> selections;
