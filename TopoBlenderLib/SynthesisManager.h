@@ -14,6 +14,9 @@ class Scheduler;
 class TopoBlender;
 typedef QMap<QString, QMap<QString, QVariant> > SynthData;
 
+static inline void beginFastNURBS();
+static inline void endFastNURBS();
+
 class SynthesisManager : public QObject
 {
 	Q_OBJECT

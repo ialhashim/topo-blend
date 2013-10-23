@@ -58,16 +58,25 @@ struct Node
 		return pnts;
 	}
 
+	// Selections
+	QMap<int, QColor> selections;
+	void addSelectionWithColor(int pID, QColor color = Qt::green){
+		if (selections.contains(pID)) selections.remove(pID);
+		else selections[pID] = color;
+	}
+
 	// Geometric properties
 	virtual Scalar area() = 0;
-	virtual Array1D_Vector3 geometricDiff( Structure::Node * other ){
+
+	Array1D_Vector3 geometricDiff( Structure::Node * other ){
 		Array1D_Vector3 cp1 = controlPoints(), cp2 = other->controlPoints(), result = cp1;
 		for(int i = 0; i < (int)cp1.size(); i++){
 			if(i < (int)cp2.size())	result[i] = (cp1[i] - cp2[i]);
 		}
 		return result;
 	}
-	virtual Scalar distortion( Structure::Node * other ){
+
+	Scalar distortion( Structure::Node * other ){
 		if(!other) return 0;
 		Array1D_Vector3 cp1 = controlPoints(), cp2 = other->controlPoints();
 		if(cp1.size() != cp2.size()) return 0;
@@ -81,18 +90,10 @@ struct Node
 		return maxDistort;
 	}
 
-	// Selections
-	QMap<int, QColor> selections;
-	void addSelectionWithColor(int pID, QColor color = Qt::green){
-		if (selections.contains(pID)) selections.remove(pID);
-		else selections[pID] = color;
-	}
-
     // Visualization
     virtual void draw(bool isShowCtrlPts = false) = 0;
     QMap< QString, QVariant > vis_property;
 	virtual void drawWithNames(int nID, int pointIDRange) = 0;
-
 	std::vector<Vector3> debugPoints,debugPoints2,debugPoints3;
 };
 

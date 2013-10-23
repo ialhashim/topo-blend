@@ -9,6 +9,7 @@
 class ProgressItem; class SynthesisManager;
 class BlendPathRenderer; class BlendRenderItem; class BlendPathSubButton;
 class BlendPathWidget;
+class PathEvaluator;
 
 // Blend path container
 struct BlendPath{
@@ -43,6 +44,7 @@ public:
 	friend class BlendPathRenderer;
 	friend class BlendPathSubButton;
 	friend class BlendPathSub;
+	friend class PathEvaluator;
 
 signals:
     void blendPathsReady();
@@ -62,6 +64,7 @@ public slots:
 
 	void setGraphCorresponder(GraphCorresponder *);
 	void preparePaths();
+	void generatePaths();
 	void schedulePaths( const QSharedPointer<Scheduler> & scheduler, const QSharedPointer<TopoBlender> & blender );
 	void pathProgressChanged();
 	void synthDataReady();
@@ -82,6 +85,8 @@ public slots:
 
 	void previewItem(BlendRenderItem*);
 
+	void emitMessage(QString);
+
 private:
 	QVector< QGraphicsProxyWidget* > blendPathsWidgets;
 	QVector< QVector< QSharedPointer<BlendRenderItem> > > resultItems;
@@ -89,6 +94,8 @@ private:
 	QVector< QGraphicsItem* > auxItems;
 	
 	QSharedPointer<SynthesisManager> s_manager;
+
+	PathEvaluator * pathsEval;
 
 	bool isSample;
 	bool isFinished;

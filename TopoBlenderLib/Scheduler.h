@@ -37,14 +37,21 @@ public:
 	double globalEnd;
 	double overTime;
 
-	// Input
-	Structure::Graph * activeGraph;
-	Structure::Graph * targetGraph;
-	QMap<QString, QString> superNodeCorr; // correspondence used to generate tasks
-
 	// Output
 	QVector<Structure::Graph*> allGraphs;
 
+	// Input
+	void setInputGraphs(Structure::Graph * source, Structure::Graph * target);
+	QMap<QString, QString> superNodeCorr; // correspondence used to generate tasks
+	Structure::Graph * activeGraph;
+	Structure::Graph * targetGraph;
+
+	Structure::Graph * originalActiveGraph;
+	Structure::Graph * originalTargetGraph;
+
+	bool isApplyChangesUI;
+
+public:
 	void prepareSynthesis();
 	void generateTasks();
 	void schedule();

@@ -16,10 +16,11 @@
 
 Q_DECLARE_METATYPE( QSet<int> ) // for tags
 
-Scheduler::Scheduler() : globalStart(0.0), globalEnd(1.0), timeStep( 1.0 / 100.0 ), overTime(0.0)
+Scheduler::Scheduler() : globalStart(0.0), globalEnd(1.0), timeStep( 1.0 / 100.0 ), overTime(0.0), isApplyChangesUI(false)
 {
 	rulerHeight = 25;
 
+	originalActiveGraph = originalTargetGraph = NULL;
 	activeGraph = targetGraph = NULL;
 	slider = NULL;
 	widget = NULL;
@@ -36,14 +37,11 @@ Scheduler::~Scheduler()
 	if(widget) delete widget;
 	if(slider) delete slider;
 
-	if(property.contains("prevActiveGraph"))
-	{
-		this->activeGraph = property["prevActiveGraph"].value<Structure::Graph*>();
-		this->targetGraph = property["prevTargetGraph"].value<Structure::Graph*>();
+	delete originalActiveGraph;
+	delete originalTargetGraph;
 
-		delete activeGraph;
-		delete targetGraph;
-	}
+	delete activeGraph;
+	delete targetGraph;
 }
 
 Scheduler::Scheduler( const Scheduler& other )
@@ -52,6 +50,7 @@ Scheduler::Scheduler( const Scheduler& other )
 	rulerHeight = other.rulerHeight;
 	isForceStop = other.isForceStop;
 	property = other.property;
+	isApplyChangesUI = other.isApplyChangesUI;
 
 	// UI elements
 	widget = NULL;
@@ -65,10 +64,11 @@ Scheduler::Scheduler( const Scheduler& other )
 	overTime = other.overTime;
 
 	// Input
-	activeGraph = other.activeGraph;
-	targetGraph = other.targetGraph;
-
+	setInputGraphs( other.originalActiveGraph, other.originalTargetGraph );
 	superNodeCorr = other.superNodeCorr;
+	activeGraph = NULL;
+	targetGraph = NULL;
+
 	this->generateTasks();
 	this->schedule();
 }
@@ -173,13 +173,21 @@ void Scheduler::drawForeground( QPainter * painter, const QRectF & rect )
 	slider->paint(painter, 0, 0);
 }
 
+void Scheduler::setInputGraphs( Structure::Graph * source, Structure::Graph * target )
+{
+	originalActiveGraph = new Structure::Graph(*source);
+	originalTargetGraph = new Structure::Graph(*target);
+}
+
 void Scheduler::generateTasks()
 {
 	tasks.clear();
 
-	// Possible memory leak
-	activeGraph = new Structure::Graph(*activeGraph);
-	targetGraph = new Structure::Graph(*targetGraph);
+	if( activeGraph ) delete activeGraph;
+	if( targetGraph ) delete targetGraph;
+
+	this->activeGraph = new Structure::Graph(*originalActiveGraph);
+	this->targetGraph = new Structure::Graph(*originalTargetGraph);
 
 	foreach(QString snodeID, superNodeCorr.keys())
 	{
@@ -448,15 +456,18 @@ void Scheduler::reset()
 	// Save assigned schedule
 	QMap< QString,QPair<int,int> > curSchedule = getSchedule();
 
+	// Clean previous outputs
+	qDeleteAll(allGraphs);
 	allGraphs.clear();
+
+	// Clean old tasks
 	foreach(Task * task, tasks)	this->removeItem(task);
 	tasks.clear();
+
+	// Remove any tags
 	property.remove("timeTags");
 
-	// Reload
-	this->activeGraph = property["prevActiveGraph"].value<Structure::Graph*>();
-	this->targetGraph = property["prevTargetGraph"].value<Structure::Graph*>();
-
+	/// Reload graphs:	
 	this->generateTasks();
 	this->schedule();
 
@@ -471,16 +482,10 @@ void Scheduler::executeAll()
 	int totalTime = totalExecutionTime();
 	QVector<Task*> allTasks = tasksSortedByStart();
 
-	// Save for re-execution
-	if( !allGraphs.size() )
-	{
-		property["prevActiveGraph"].setValue( new Structure::Graph(*activeGraph) );
-		property["prevTargetGraph"].setValue( new Structure::Graph(*targetGraph) );
-	}
+	if( isApplyChangesUI ) qApp->setOverrideCursor(Qt::WaitCursor);
 
 	// pre-execute
 	{
-		qApp->setOverrideCursor(Qt::WaitCursor);
 		property["progressDone"] = false;
 		isForceStop = false;
 
@@ -613,22 +618,25 @@ void Scheduler::executeAll()
 
 		// UI - progress visual indicator:
 		int percent = globalTime * 100;
-		emit( progressChanged(percent) );
 		property["progress"] = percent;
+		if( isApplyChangesUI ) emit( progressChanged(percent) );
 
 		if( isForceStop ) break;
 	}
 
 	finalize();
 
-	slider->enable();
-
-	emit( progressDone() );
-
-	qApp->restoreOverrideCursor();
 	property["progressDone"] = true;
 
-    QCursor::setPos(QCursor::pos());
+	if( isApplyChangesUI ) 
+	{
+		slider->enable();
+
+		emit( progressDone() );
+
+		qApp->restoreOverrideCursor();
+		QCursor::setPos(QCursor::pos());
+	}
 }
 
 void Scheduler::finalize()

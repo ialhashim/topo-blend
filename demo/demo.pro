@@ -25,6 +25,10 @@ INCLUDEPATH += ../Reconstruction
 LIBS += -L$$PWD/../TopoBlenderLib/$$CFG/lib -lTopoBlenderLib
 INCLUDEPATH += ../TopoBlenderLib
 
+# Relations detection library
+LIBS += -L$$PWD/../RelationDetectorLib/$$CFG/lib -lRelationDetectorLib
+INCLUDEPATH += ../RelationDetectorLib
+
 # Splat Rendering library
 LIBS += -L$$PWD/../GLSplatRendererLib/$$CFG/lib -lGLSplatRendererLib
 INCLUDEPATH += ../GLSplatRendererLib
@@ -48,8 +52,9 @@ SOURCES +=  main.cpp\
             BlendPathSubButton.cpp \
             BlendRenderItem.cpp \
             BlendPathSub.cpp \
-    ShapeRenderer.cpp \
-    BlendPathWidget.cpp
+            ShapeRenderer.cpp \
+            BlendPathWidget.cpp \
+    PathEvaluator.cpp
 
 HEADERS  += mainwindow.h \
             Scene.h \
@@ -68,8 +73,9 @@ HEADERS  += mainwindow.h \
             BlendPathSubButton.h \
             BlendRenderItem.h \
             BlendPathSub.h \
-    ShapeRenderer.h \
-    BlendPathWidget.h
+            ShapeRenderer.h \
+            BlendPathWidget.h \
+    PathEvaluator.h
 
 FORMS    += mainwindow.ui \
             Controls.ui
