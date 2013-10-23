@@ -11,6 +11,7 @@
 #include "SynthesisManager.h"
 #include "ShapeRenderer.h"
 #include "SchedulerWidget.h"
+#include "PathEvaluator.h"
 
 Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL), renderer(NULL), resultViewer(NULL)
 {
@@ -25,6 +26,9 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->numInBetweens = 6;
 
 	setupBlendPathItems();
+
+	// Paths evaluation
+	pathsEval = new PathEvaluator(this);
 
 	// Progress bar
 	progress = new ProgressItem("Working..", false, s);
@@ -271,6 +275,12 @@ void Blender::preparePaths()
 	allSchedules = m_scheduler->manyRandomSchedules(100);
 	resultsPage = 0;
 
+	// Evaluate schedules
+	pathsEval->evaluatePaths();
+}
+
+void Blender::generatePaths()
+{  
 	// Generate blend paths
 	schedulePaths( m_scheduler, m_blender );
 
@@ -412,6 +422,7 @@ void Blender::mousePress( QGraphicsSceneMouseEvent* mouseEvent )
 
 void Blender::keyReleased( QKeyEvent* keyEvent )
 {
+	// Special keys across all pages:
 	if(keyEvent->key() == Qt::Key_F)
 	{
 		this->isSample = !this->isSample;
@@ -419,6 +430,7 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 		return;
 	}
 
+	// Regular keys
 	if(!visible) return;
 
 	// Re-draw results
@@ -769,4 +781,9 @@ void Blender::previewItem( BlendRenderItem* item )
 	resultViewer->setGeometry( viewerRect.toRect() );
 
 	resultViewer->show();
+}
+
+void Blender::emitMessage( QString msg )
+{
+	emit( message(msg) );
 }

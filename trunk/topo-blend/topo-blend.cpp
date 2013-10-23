@@ -800,7 +800,7 @@ void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 
 	graphs.clear();
 
-	this->graphs.push_back(newActiveGraph);
+	this->graphs.push_back( new Structure::Graph( *newActiveGraph ) );
 
 	drawArea()->updateGL();
 

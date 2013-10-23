@@ -24,7 +24,7 @@ typedef std::pair<QString, QString> PairQString;
 Q_DECLARE_METATYPE( Structure::Sheet* )
 Q_DECLARE_METATYPE( QSet<Structure::Node*> )
 
-TopoBlender::TopoBlender(GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent ) : QObject(parent), parentWidget(NULL)
+TopoBlender::TopoBlender(GraphCorresponder * useCorresponder, Scheduler * useScheduler, QObject *parent ) : QObject(parent), parentWidget(NULL), super_sg(NULL), super_tg(NULL)
 {
 	scheduler = useScheduler;
 
@@ -37,20 +37,19 @@ TopoBlender::TopoBlender(GraphCorresponder * useCorresponder, Scheduler * useSch
 	generateSuperGraphs();
 
 	/// STEP 3) Generate tasks 
-	active = super_sg;
-	scheduler->activeGraph = active;
-	scheduler->targetGraph = super_tg;
+	scheduler->setInputGraphs(super_sg, super_tg);
 	scheduler->superNodeCorr = this->superNodeCorr;
 	scheduler->generateTasks();
 
 	/// STEP 4) Order and schedule the tasks
 	scheduler->schedule();
+	scheduler->isApplyChangesUI = true;
 }
 
 TopoBlender::~TopoBlender()
 {
-	delete super_sg;
-	delete super_tg;
+	if(super_sg) delete super_sg;
+	if(super_tg) delete super_tg;
 }
 
 void TopoBlender::setupUI()
@@ -708,6 +707,8 @@ void TopoBlender::generateSuperGraphs()
 	correspondSuperEdges();
 	
 	postprocessSuperEdges();
+
+	active = super_sg;
 }
 
 void TopoBlender::postprocessSuperEdges()
