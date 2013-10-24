@@ -53,6 +53,15 @@ void BlendPathRenderer::generateItem( Structure::Graph* newGraph, int pathID, in
 	emit( itemReady( genItem(newGraph, pathID, blendIDX) ) );
 }
 
+QImage BlendPathRenderer::quickRender( Structure::Graph* graph, QColor color )
+{
+	this->makeCurrent();
+	this->activeGraph = graph;
+	this->blender->s_manager->color = color;
+	this->updateGL();
+	return grabFrameBuffer(true);
+}
+
 void BlendPathRenderer::initializeGL()
 {
 	// Setup lights and material

@@ -271,20 +271,7 @@ void Blender::preparePaths()
 	m_scheduler = QSharedPointer<Scheduler>( new Scheduler );
 	m_blender = QSharedPointer<TopoBlender>( new TopoBlender( m_gcorr, m_scheduler.data() ) );
 	
-	srand(0);
-	allSchedules = m_scheduler->manyRandomSchedules(100);
-	resultsPage = 0;
-
-	// Evaluate schedules
-	pathsEval->evaluatePaths();
-}
-
-void Blender::generatePaths()
-{  
-	// Generate blend paths
-	schedulePaths( m_scheduler, m_blender );
-
-	// Synthesis requires a single instance of the blend process
+	// Synthesis data
 	if( s_manager.isNull() )
 	{
 		int numSamples = 8000;
@@ -299,6 +286,13 @@ void Blender::generatePaths()
 		progress->connect(s_manager.data(), SIGNAL(progressChanged(double)), SLOT(setProgress(double)));
 		this->connect(s_manager.data(), SIGNAL(synthDataReady()), SLOT(synthDataReady()));
 	}
+
+	// Generate blend paths
+	srand(0);
+	allSchedules = m_scheduler->manyRandomSchedules(50);
+	resultsPage = 0;
+
+	schedulePaths( m_scheduler, m_blender );
 
 	// UI and logging
 	{
@@ -321,6 +315,9 @@ void Blender::synthDataReady()
 {
 	for(int i = 0; i < numSuggestions; i++)
 		this->disconnect( blendPaths[i].scheduler.data() );
+
+	// Experiment: path evaluation
+	pathsEval->evaluatePaths();
 
 	emit( message(QString("Synthesis time [%1 ms]").arg(synthTimer.elapsed())) );
 	emit( blendPathsReady() );
