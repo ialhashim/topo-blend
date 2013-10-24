@@ -3,6 +3,13 @@
 
 #include "Blender.h"
 
+struct PathScore{
+	double score;
+	QStringList images;
+	PathScore() { score = 0.0; }
+	bool operator<(const PathScore& other) const { return score < other.score; }
+};
+
 class PathEvaluator : public QObject
 {
     Q_OBJECT
