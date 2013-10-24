@@ -13,7 +13,6 @@
 #include "graph_modify_dialog.h"
 #include "QuickAlignment.h"
 #include "GraphExplorer.h"
-#include "RelationWidget.h"
 
 using namespace NURBS;
 using namespace Structure;
@@ -38,6 +37,10 @@ using namespace Structure;
 #include "wizard.h"
 
 #include "QuickMeshDraw.h"
+
+// Relations
+#include "RelationWidget.h"
+RelationWidget * rwidget = NULL;
 
 topoblend::topoblend()
 {
@@ -78,7 +81,8 @@ void topoblend::create()
 		this->graph_explorer = new GraphExplorer;
 
 		// Add relation detector widget
-		this->widget->addTab( new RelationWidget(this, NULL) );
+		this->widget->addTab( (rwidget = new RelationWidget()) );
+		this->connect(rwidget->r_manager, SIGNAL(message(QString)), SLOT(setStatusBarMessage(QString)));
 	}
 
 	drawArea()->setSelectRegionHeight( 20 );
@@ -762,6 +766,12 @@ void topoblend::doBlend()
 	
     blender->parentWidget = mainWindow();
 	blender->setupUI();
+
+	// Update for relations widget
+	rwidget->r_manager->clear();
+	rwidget->r_manager->inputGraphs = this->graphs;
+	rwidget->r_manager->gcorr = this->gcoor;
+	rwidget->r_manager->scheduler = this->scheduler;
 
 	// Update active graph
 	this->connect(scheduler, SIGNAL(activeGraphChanged( Structure::Graph* )), SLOT(updateActiveGraph( Structure::Graph* )));

@@ -1,7 +1,4 @@
-//jjcao begin
 #pragma once
-
-#pragma warning( disable : 4018 4804 4100 4996)
 
 #include <vector>
 #include <algorithm>
@@ -130,6 +127,9 @@ bool isInGroupById(QString id, QVector<QString>& group);
 QString group2str(QVector<QString> &group);
 bool isInGroups(QVector<QString> &group, NodeGroups &planarGroups);
 double errorOfLineInPlane(Segment_3 &l, Vector3& point, Vector3& normal);
+static void saveScores(QVector<double>& scoreKeptGr, //QVector<double>& scoreAddGr,
+	QVector<double>& scoreKeptPr,//QVector<double>& scoreAddPr,
+	QTextStream& out);
 
 class RelationDetector
 {
@@ -217,7 +217,7 @@ protected:
     void transNodeMeshVerts(Structure::Node*n, Eigen::Vector3d& center, Eigen::Vector3d& normal, Eigen::MatrixXd & newverts)
     {
         meshVerts2MatrixPts(n, newverts);
-        for ( int i = 0; i < newverts.rows(); ++i)
+        for ( int i = 0; i < (int) newverts.rows(); ++i)
         {
             Vector3 p1 = newverts.row(i);
             Vector3 v = normal * (center - p1).dot(normal);
@@ -233,11 +233,11 @@ protected:
     double distanceBetween(const Eigen::MatrixXd& v1, const Eigen::MatrixXd& v2)
     {
         double err1(0.0);
-        for(int i = 0; i < v1.rows(); ++i)
+        for(int i = 0; i < (int) v1.rows(); ++i)
         {
             double minErr = std::numeric_limits<double>::max(), val(0.0);
             Eigen::Vector3d pt1 = v1.row(i);
-            for ( int j = 0; j < v2.rows(); ++j)
+            for ( int j = 0; j < (int) v2.rows(); ++j)
             {
                 Eigen::Vector3d pt2 = v2.row(j);
                 val = (pt1-pt2).norm();
@@ -252,11 +252,11 @@ protected:
     void distanceBetween(const Eigen::MatrixXd& v1, const Eigen::MatrixXd& v2, double &mean_dist, double &max_dist)
     {
         mean_dist = 0.0; max_dist = 0.0;
-        for(int i = 0; i < v1.rows(); ++i)
+        for(int i = 0; i < (int) v1.rows(); ++i)
         {
             double minErr = std::numeric_limits<double>::max(), val(0.0);
             Eigen::Vector3d pt1 = v1.row(i);
-            for ( int j = 0; j < v2.rows(); ++j)
+            for ( int j = 0; j < (int) v2.rows(); ++j)
             {
                 Eigen::Vector3d pt2 = v2.row(j);
                 val = (pt1-pt2).norm();
@@ -357,7 +357,7 @@ protected:
         Vector_3 n(normal[0],normal[1],normal[2]);
         Plane_3 plane(p, n);
 
-        for ( int i = 0; i < nodes.size(); ++i)
+        for ( int i = 0; i < (int) nodes.size(); ++i)
         {
             Eigen::Vector3d pt1 = nodes[i]->controlPoint(0);
             int ncp = nodes[i]->numCtrlPnts();
@@ -392,7 +392,7 @@ protected:
             Line_3 l0 = curve2line(n);
             std::vector<Eigen::Vector3d> pts, normals;
 
-            for ( int j = 1; j < cgr.ids.size(); ++j)
+            for ( int j = 1; j < (int) cgr.ids.size(); ++j)
             {
                 n = graph_->getNode( cgr.ids[j]);
                 Eigen::Vector3d d1 = curve2vectorNormalized(n);
@@ -416,7 +416,7 @@ protected:
             {
                 cgr.point = Eigen::Vector3d::Zero();
                 cgr.normal = Eigen::Vector3d::Ones();
-                for ( int i = 1; i < pts.size(); ++i)
+                for ( int i = 1; i < (int) pts.size(); ++i)
                 {
                     Eigen::Vector3d& nl = normals[i];
                     cgr.point = cgr.point + pts[i];
@@ -480,7 +480,7 @@ protected:
     void reflectPoints(const Eigen::MatrixXd& ptsin, const Eigen::Vector3d& center, const Eigen::Vector3d& normal, Eigen::MatrixXd& ptsout)
     {
         ptsout.resize(ptsin.rows(), ptsin.cols() );
-        for ( int i = 0; i < ptsin.rows(); ++i)
+        for ( int i = 0; i < (int) ptsin.rows(); ++i)
         {
             Eigen::Vector3d ptout;
             reflectPoint(ptsin.row(i), center, normal, ptout);
@@ -511,7 +511,7 @@ protected:
     double computeRefSymmetryGroupDeviation(GroupRelation& gr, bool bUseMeshVerts)
     {
         std::vector<Structure::Node*> nodes;
-        for ( int i = 0; i < gr.ids.size(); ++i)
+        for ( int i = 0; i < (int) gr.ids.size(); ++i)
         {
             nodes.push_back( graph_->getNode(gr.ids[i]) );
         }
@@ -520,9 +520,9 @@ protected:
         std::pair<int, int> minNodes;
         Eigen::Vector3d center, normal;
         double err;
-        for ( int i = 0; i < gr.ids.size(); ++i)
+        for ( int i = 0; i < (int) gr.ids.size(); ++i)
         {
-            for ( int j = i+1; j < gr.ids.size(); ++j)
+            for ( int j = i+1; j < (int) gr.ids.size(); ++j)
             {
                 findRefPlane(nodes[i], nodes[j], center,normal);
 
@@ -542,7 +542,7 @@ protected:
         gr.refPlane = Plane_3(Point_3(gr.center.x(), gr.center.y(), gr.center.z()), Vector_3(normal.x(), normal.y(), normal.z()) );
         return minErr/gr.ids.size()*2;
     }
-        // order part in a group by angle aroud the axis
+        // order part in a group by angle around the axis
     // return mean deviation of the group
     double computeAxisSymmetryGroupDeviation(GroupRelation& gr, bool bUseMeshVerts)
     {
@@ -558,7 +558,7 @@ protected:
             Structure::Node* n1 = graph_->getNode(ids.last());
             double tmp(std::numeric_limits<double>::max());
             int k(0);
-            for ( int i = 0; i < gr.ids.size(); ++i)
+            for ( int i = 0; i < (int) gr.ids.size(); ++i)
             {
                 Structure::Node* n2 = graph_->getNode(gr.ids[i]);
                 Eigen::MatrixXd newverts2;
@@ -596,7 +596,7 @@ protected:
 
         if ( bSource)
         {
-            for ( int i = 0; i < corres.size(); ++i)
+            for ( int i = 0; i < (int) corres.size(); ++i)
             {
                 QVector<QString> ids = corres[i].first;
                 int numCorres = corres[i].second.size();
@@ -605,7 +605,7 @@ protected:
                     Structure::Node* tmpNode = graph->getNode(id);
                     if ( tmpNode ==NULL)
                     {
-                        for ( int j = 0; j < numCorres; ++j)
+                        for ( int j = 0; j < (int) numCorres; ++j)
                         {
                             result.push_back( graph->getNode(corres[i].second[j]) );
                         }
@@ -627,7 +627,7 @@ protected:
                         }
                         else
                         {
-                            for ( int j = 0; j < ids.size(); ++j)
+                            for ( int j = 0; j < (int) ids.size(); ++j)
                             {
                                 result.push_back( graph->getNode(ids[j]));
                             }
@@ -639,7 +639,7 @@ protected:
         }
         else // is target
         {
-            for ( int i = 0; i < corres.size(); ++i)
+            for ( int i = 0; i < (int) corres.size(); ++i)
             {
                 QVector<QString> ids1 = corres[i].first;
                 QString id2 = corres[i].second[0];
@@ -652,7 +652,7 @@ protected:
                     }
                     else
                     {
-                        for ( int j = 0; j < ids1.size(); ++j)
+                        for ( int j = 0; j < (int) ids1.size(); ++j)
                         {
                             result.push_back( graph->getNode(ids1[j]) );
                         }
@@ -731,7 +731,7 @@ private:
     {
         std::vector<double> error;
         std::vector<bool> bDone(nodes.size(),false);
-        for ( int i = 0; i < nodes.size(); ++i)
+        for ( int i = 0; i < (int) nodes.size(); ++i)
         {
             if ( bDone[i] ) continue;
 
@@ -740,7 +740,8 @@ private:
             reflectNodeCpts(n1, center, normal, newverts1);
             double err = std::numeric_limits<double>::max(), tmp;
             int minIdx(0);
-            for ( int j = i; j < nodes.size(); ++j)
+
+            for ( int j = i; j < (int) nodes.size(); ++j)
             {
                 Structure::Node* n2 = nodes[j];
                 tmp = distanceBetweenTransNodesCpts(n2, newverts1);
@@ -759,7 +760,7 @@ private:
     {
         std::vector<double> error;
         std::vector<bool> bDone(nodes.size(),false);
-        for ( int i = 0; i < nodes.size(); ++i)
+        for ( int i = 0; i < (int) nodes.size(); ++i)
         {
             if ( bDone[i] ) continue;
 
@@ -768,7 +769,7 @@ private:
             transNodeMeshVerts(n1, center, normal, newverts1);
             double err = std::numeric_limits<double>::max(), tmp;
             int minIdx(0);
-            for ( int j = i; j < nodes.size(); ++j)
+            for ( int j = i; j < (int) nodes.size(); ++j)
             {
                 Structure::Node* n2 = nodes[j];
                 tmp = distanceBetweenTransNodesMesh(n2, newverts1);
@@ -803,7 +804,7 @@ public:
         }
 
         std::vector<Eigen::Vector3d> cptsV;
-        for ( int i = 0; i < graph_->nodes.size(); ++i)
+        for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
         {
             std::vector<Eigen::Vector3d> nodeCptsV;
             extractMainCpts( graph_->nodes[i], nodeCptsV, true);
@@ -825,7 +826,7 @@ public:
 //		if (!out.open(QIODevice::WriteOnly | QIODevice::Text)) return;
 //		QTextStream os;
 //		os.setDevice(&out);
-//		for (int i = 0; i < cpts_.rows(); ++i)
+//		for (int i = 0; i < (int) cpts_.rows(); ++i)
 //		{
 //			os << cpts_(i,0) << ", " << cpts_(i,1) << ", " << cpts_(i,2) << "\n";
 //		}
@@ -838,7 +839,7 @@ public:
     {
         double meanScore(0.0), maxScore(0.0);
         Eigen::Vector3d normal = findReflectPlane();
-        for ( int i = 0; i < nodesCenter_.size(); ++i)
+        for ( int i = 0; i < (int) nodesCenter_.size(); ++i)
         {
             Eigen::Vector3d nc = nodesCenter_[i];
             Eigen::Vector3d nc1;
@@ -886,7 +887,7 @@ private:
             Structure::Curve* c = dynamic_cast<Structure::Curve *>(n);
             if ( bAll)
             {
-                for (int i = 0; i < c->numCtrlPnts(); ++i)
+                for (int i = 0; i < (int) c->numCtrlPnts(); ++i)
                 {
                     mcpts.push_back( c->controlPoint(i));
                 }
@@ -902,7 +903,7 @@ private:
             Structure::Sheet* s = dynamic_cast<Structure::Sheet *>(n);
             if ( bAll)
             {
-                for (int i = 0; i < s->numCtrlPnts(); ++i)
+                for (int i = 0; i < (int) s->numCtrlPnts(); ++i)
                 {
                     mcpts.push_back( s->controlPoint(i));
                 }
@@ -924,7 +925,7 @@ private:
         Eigen::Vector3d axis(0,0,1);
         Eigen::Vector3d initNormal(0,1,0), normal;
         double angleStep = 3.1415926*0.5;
-        for ( int i = 0; i < 2; ++i)
+        for ( int i = 0; i < (int) 2; ++i)
         {
             normal = rotatedVec(initNormal, i*angleStep, axis);
             double mean_dist, max_dist;
@@ -952,7 +953,7 @@ private:
     {
         int no(0);
         dist = std::numeric_limits<double>::max();
-        for ( int i = 0; i < nodesCenter_.size(); ++i)
+        for ( int i = 0; i < (int) nodesCenter_.size(); ++i)
         {
             Eigen::Vector3d& nc1 = nodesCenter_[i];
             double tdist = (nc-nc1).norm();
@@ -992,7 +993,7 @@ public:
 
 #ifdef _OUTPUT_LOG
         logStream_ << "node diameter: \n";
-        for ( int i = 0; i < graph_->nodes.size(); ++i)
+        for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
         {
             logStream_ << graph_->nodes[i]->id << ": " << graph_->nodes[i]->bbox().diagonal().norm()<< "\n";
         }
@@ -1306,7 +1307,7 @@ public:
 
         //////////////////
         std::vector<double> score;
-        for ( int i = 0; i < groupRelations_.size(); ++i)
+        for ( int i = 0; i < (int) groupRelations_.size(); ++i)
         {
             GroupRelation& gr = groupRelations_[i];
             computeGroupDeviationByCpts(gr,gr);
@@ -1321,7 +1322,7 @@ public:
 
         ///////////////////
         score.clear();
-        for ( int i = 0; i < prRelations.size(); ++i)
+        for ( int i = 0; i < (int) prRelations.size(); ++i)
         {
             PairRelation& pr = prRelations[i];
             double ss = computeScore(pr, pr);
@@ -1337,16 +1338,16 @@ public:
 protected:
     void removeRedundantGroup()
     {
-        for ( int i = 0; i < groupRelations_.size(); ++i)
+        for ( int i = 0; i < (int) groupRelations_.size(); ++i)
         {
             groupRelations_[i].tag = false;
         }
-        for ( int i = 0; i < groupRelations_.size(); ++i)
+        for ( int i = 0; i < (int) groupRelations_.size(); ++i)
         {
             if ( groupRelations_[i].tag )
                 continue;
 
-            for ( int j = i+1; j < groupRelations_.size(); ++j)
+            for ( int j = i+1; j < (int) groupRelations_.size(); ++j)
             {
                 if ( isSubgroup(groupRelations_[i].ids, groupRelations_[j].ids) )
                     groupRelations_[j].tag = true;
@@ -1360,11 +1361,11 @@ protected:
 #ifdef _OUTPUT_LOG
         logStream_ << "Merging coplanar group begins: \n";
 #endif
-        for ( int i = 0; i < groupRelations_.size(); ++i)
+        for ( int i = 0; i < (int) groupRelations_.size(); ++i)
         {
             groupRelations_[i].tag = false;
         }
-        for ( int i = 0; i < groupRelations_.size(); ++i)
+        for ( int i = 0; i < (int) groupRelations_.size(); ++i)
         {
             if ( COPLANAR != groupRelations_[i].type || groupRelations_[i].tag)
                 continue;
@@ -1374,7 +1375,7 @@ protected:
             QSet<QString> ids;
             vectorId2SetId(groupRelations_[i].ids, ids);
 
-            for ( int j = i+1; j < groupRelations_.size(); ++j)
+            for ( int j = i+1; j < (int) groupRelations_.size(); ++j)
             {
                 if ( COPLANAR != groupRelations_[j].type || groupRelations_[j].tag)
                     continue;
@@ -1420,9 +1421,9 @@ protected:
     bool isSubgroup(QVector<QString>& ids1, QVector<QString>& ids2)
     {
         int count(0);
-        for ( int i = 0; i < ids2.size(); ++i)
+        for ( int i = 0; i < (int) ids2.size(); ++i)
         {
-            for ( int j = 0; j < ids1.size(); ++j)
+            for ( int j = 0; j < (int) ids1.size(); ++j)
             {
                 if ( ids2[i] == ids1[j] )
                 {
@@ -1731,7 +1732,7 @@ public:
         std::vector<double> score;
         QVector<PairRelation> cprs;
         int numCurrPr(0);
-        for ( int i = 0; i < prs.size(); ++i)
+        for ( int i = 0; i < (int) prs.size(); ++i)
         {
             PairRelation pr = prs[i];
             PairRelation cpr = findCorrespondencePair(this->graph_,pr,corres, 0==ith);
@@ -1751,7 +1752,7 @@ public:
             tmp = tmp/(diagonalLen_*numCurrPr);
 
 #ifdef _OUTPUT_LOG
-        for ( int i = 0; i < prs.size(); ++i)
+        for ( int i = 0; i < (int) prs.size(); ++i)
         {
             PairRelation pr = prs[i];
             PairRelation cpr = cprs[i];
@@ -1768,7 +1769,7 @@ public:
                 logStream_ << "correspondence pair: " << cpr << "\n";
             }
         }
-        for ( int i = 0; i < prs.size(); ++i)
+        for ( int i = 0; i < (int) prs.size(); ++i)
         {
             PairRelation pr = prs[i];
             PairRelation cpr = cprs[i];
@@ -1862,9 +1863,9 @@ private:
         }
 
         /////////////////////////
-        for ( int i = 0; i < nodes1.size(); ++i)
+        for ( int i = 0; i < (int) nodes1.size(); ++i)
         {
-            for ( int j = 0; j < nodes2.size(); ++j)
+            for ( int j = 0; j < (int) nodes2.size(); ++j)
             {
                 isParalOrthoCoplanar(nodes1[i], nodes2[j], cpr);
 //#ifdef _OUTPUT_LOG
@@ -1892,7 +1893,7 @@ public:
     {
         std::vector<double> score;
         int numCurrGr (0);
-        for ( int j = 0; j < grs.size(); ++j)
+        for ( int j = 0; j < (int) grs.size(); ++j)
         {
             GroupRelation gr = grs[j];
             GroupRelation cgr = findCorrespondenceGroup(this->graph_,gr,corres, 0==ith);
@@ -1939,11 +1940,11 @@ protected:
         int maxIdx(0);
 
         std::vector<Structure::Node*> tmpNodes;
-        for ( int i = 0; i < gr.ids.size(); ++i)
+        for ( int i = 0; i < (int) gr.ids.size(); ++i)
         {
             //Structure::Node * tnode = tgraph->getNode( snode->property["correspond"].toString() );
             std::vector<Structure::Node*> nodes = findNodes(gr.ids[i], graph, corres, bSource);
-            for ( int j = 0; j < nodes.size(); ++j)
+            for ( int j = 0; j < (int) nodes.size(); ++j)
             {
                 Structure::Node* n = nodes[j];
                 if ( NULL == n) continue;
@@ -1968,12 +1969,12 @@ protected:
             return cgr;
         }
 
-        for ( int i = maxIdx; i < tmpNodes.size(); ++i)
+        for ( int i = maxIdx; i < (int) tmpNodes.size(); ++i)
         {
             Structure::Node* n = tmpNodes[i];
             cgr.ids.push_back(n->id);
         }
-        for ( int i = 0; i < maxIdx; ++i)
+        for ( int i = 0; i < (int) maxIdx; ++i)
         {
             Structure::Node* n = tmpNodes[i];
             cgr.ids.push_back(n->id);
@@ -2021,7 +2022,7 @@ public:
     template<class T>
     QVector<double> relationKept(QVector<T>& prs1, QVector<T>& prs2)
     {
-        for ( int i = 0; i < prs2.size(); ++i)
+        for ( int i = 0; i < (int) prs2.size(); ++i)
         {
             prs2[i].tag = false;
         }
@@ -2031,7 +2032,7 @@ public:
         foreach(T pr1, prs1)
         {
             bool bFound(false);
-            for ( int j = 0; j < prs2.size(); ++j)
+            for ( int j = 0; j < (int) prs2.size(); ++j)
             {
                 T& pr2 = prs2[j];
                 if ( !pr2.tag && pr1.equal(pr2) )
@@ -2057,7 +2058,7 @@ public:
     template<class T>
     QVector<double> relationAdd(QVector<T>& prs1, QVector<T>& prs2)
     {
-        for ( int i = 0; i < prs1.size(); ++i)
+        for ( int i = 0; i < (int) prs1.size(); ++i)
         {
             prs1[i].tag = false;
         }
@@ -2067,7 +2068,7 @@ public:
         foreach(T pr2, prs2)
         {
             bool bFound(false);
-            for ( int j = 0; j < prs1.size(); ++j)
+            for ( int j = 0; j < (int) prs1.size(); ++j)
             {
                 T& pr1 = prs1[j];
                 if ( !pr1.tag && pr1.equal(pr2) )
@@ -2091,4 +2092,3 @@ public:
         return score;
     }
 };
-//jjcao end

@@ -2,95 +2,75 @@
 #include "../topo-blend/topo-blend.h"
 #include "Scheduler.h"
 
-RelationManager::RelationManager(topoblend *topo_blender) : tb(topo_blender)
+RelationManager::RelationManager( GraphCorresponder * graph_corresponder, 
+	Scheduler * scheduler, QVector<Structure::Graph*> input_graphs )
+	: gcorr(graph_corresponder), scheduler(scheduler), inputGraphs(input_graphs)
 {
-    isTracePairs = false;
-    isTraceGroups = true;
-    isCheckGlobalSymm = true;
-    pairWeight = 1;
-    graphWeight = 4;
-    globalSymmWeight = 0.7;
-    maxPairScore = 0;
-    maxGroupScore = 0;
-    maxGlobalSymmScore = 0;
+	init();
 }
 
-void saveScores(QVector<double>& scoreKeptGr, //QVector<double>& scoreAddGr,
-    QVector<double>& scoreKeptPr,//QVector<double>& scoreAddPr,
-    QTextStream& out)
+void RelationManager::init()
 {
-    out << "    basic group kept score: " << std::accumulate(scoreKeptGr.begin(),scoreKeptGr.end(),0.0) << "\n";
-    //out << "    basic group add score: " << std::accumulate(scoreAddGr.begin(),scoreAddGr.end(),0.0) << "\n";
-    double scoreFinal(0.0), scoreGroup;
-    scoreFinal += 4.0 * std::accumulate(scoreKeptGr.begin(),scoreKeptGr.end(),0.0);
-    //scoreFinal += 0.5 * std::accumulate(scoreAddGr.begin(),scoreAddGr.end(),0.0);
-    scoreGroup = scoreFinal;
-    out << "    weighted group score: " << scoreGroup << "\n";
+	isTracePairs = false;
+	isTraceGroups = true;
+	isCheckGlobalSymm = true;
 
-    scoreFinal += 1.0 * std::accumulate(scoreKeptPr.begin(),scoreKeptPr.end(),0.0);
-    //scoreFinal += 0.1 * std::accumulate(scoreAddPr.begin(),scoreAddPr.end(),0.0);
-    out << "    basic pair kept score: " << std::accumulate(scoreKeptPr.begin(),scoreKeptPr.end(),0.0) << "\n";
-    //out << "    basic pair add score: " << std::accumulate(scoreAddPr.begin(),scoreAddPr.end(),0.0) << "\n";
-    out << "    weighted pair score: " << scoreFinal - scoreGroup<< "\n";
+	pairWeight = 1;
+	graphWeight = 4;
+	globalSymmWeight = 0.7;
 
-    out << "    final score: "  << scoreFinal << "\n";
+	maxPairScore = 0;
+	maxGroupScore = 0;
+	maxGlobalSymmScore = 0;
 }
+
+void RelationManager::clear()
+{
+	init();
+
+	prGroups.clear();
+	grGroups.clear();
+	diagonals.clear();
+}
+
 void RelationManager::parseGlobalReflectionSymm()
 {
-    if ( this->tb->graphs.size() < 2)
-    {
-        this->tb->setStatusBarMessage("Two graphs needed!");
-        return;
-    }
-
     //////////////////
-    this->tb->setStatusBarMessage("Parse global symmetry starts: ");
+    emit( message("Parse global symmetry starts: ") );
     double symmScore[2];
-    for (int i = 0; i < this->tb->graphs.size(); ++i)
+    for (int i = 0; i < this->inputGraphs.size(); ++i)
     {
-        GlobalReflectionSymmDetector gsd(this->tb->graphs[i], i);
+        GlobalReflectionSymmDetector gsd(this->inputGraphs[i], i);
         symmScore[i] = gsd.detecting();
     }
 
     this->maxGlobalSymmScore = std::max(symmScore[0], symmScore[1]);
-    this->tb->setStatusBarMessage("Parse global symmetry end. ");
+    emit( message("Parse global symmetry end. ") );
 }
 
 void RelationManager::parseModelConstraintGroup()
 {
-    if ( this->tb->graphs.size() < 2)
-    {
-        this->tb->setStatusBarMessage("Two graphs needed!");
-        return;
-    }
-    if ( this->prGroups.empty())
-    {
-        this->tb->setStatusBarMessage("Parse pair relation first!");
-        return;
-    }
-
-    //////////////////
     this->grGroups.clear();
     this->diagonals.clear();
-    this->tb->setStatusBarMessage("Parse group relation starts: ");
+    emit( message("Parse group relation starts: ") );
     double groupScore[2];
     double pairScore[2];
-    for (int ii = 0; ii < this->tb->graphs.size(); ++ii)
+    for (int ii = 0; ii < this->inputGraphs.size(); ++ii)
     {
-        GroupRelationDetector grd(this->tb->graphs[ii], ii);
+        GroupRelationDetector grd(this->inputGraphs[ii], ii);
         grd.detecting(prGroups[ii],groupScore[ii], pairScore[ii]);
 
         //qSort(grd.groupRelations_.begin(), grd.groupRelations_.end(), typeLessThan);
         saveToFile("group_relation-" + QString::number(ii) + ".txt", grd.groupRelations_);
         saveToFile("pair_relation-" + QString::number(ii) + ".txt", this->prGroups[ii]);
         this->grGroups.push_back(grd.groupRelations_);
-        this->diagonals.push_back( this->tb->graphs[ii]->bbox().diagonal().norm());
+        this->diagonals.push_back( this->inputGraphs[ii]->bbox().diagonal().norm());
     }
 
     this->maxPairScore = std::max(pairScore[0], pairScore[1]);
     this->maxGroupScore = std::max(groupScore[0], groupScore[1]);
 
-    this->tb->setStatusBarMessage("Parse group relation end. ");
+    emit( message("Parse group relation end. ") );
 }
 double RelationManager::computeScore(double groupScore, double pairScore)
 {
@@ -99,38 +79,38 @@ double RelationManager::computeScore(double groupScore, double pairScore)
 void RelationManager::parseModelConstraintPair()
 {
     this->prGroups.clear();
-    this->tb->setStatusBarMessage("Parse pair relation starts: ");
-    if ( this->tb->graphs.size() < 2)
+    emit( message("Parse pair relation starts: ") );
+    if ( this->inputGraphs.size() < 2)
     {
-        this->tb->setStatusBarMessage("Two graphs needed!");
+        emit( message("Two graphs needed!") );
         return;
     }
 
     ///////////
-    for (int ii = 0; ii < this->tb->graphs.size(); ++ii)
+    for (int ii = 0; ii < this->inputGraphs.size(); ++ii)
     {
 
-        PairRelationDetector prd(this->tb->graphs[ii], ii);
+        PairRelationDetector prd(this->inputGraphs[ii], ii);
         prd.detecting();
 
         //qSort(prd.pairRelations_.begin(), prd.pairRelations_.end(), typeLessThan);
         saveToFile("pair_relation-" + QString::number(ii) + ".txt", prd.pairRelations_);
         this->prGroups.push_back(prd.pairRelations_);
     }
-    this->tb->setStatusBarMessage("Parse pair relation end. ");
+    emit( message("Parse pair relation end. ") );
 }
 void RelationManager::traceModelConstraintsAuto()
 {
-    if(!this->tb->scheduler->allGraphs.size()) return;
+    if(!scheduler->allGraphs.size()) return;
 
-    if ( !tb->gcoor->isReady)
+    if ( !gcorr->isReady)
     {
-        tb->mainWindow()->setStatusBarMessage( "No correspondence, load a job first!\n");
+        emit( message( "No correspondence, load a job first!\n") );
         return;
     }
     if ( this->grGroups.size() != 2 || this->prGroups.size()!=2)
     {
-        tb->mainWindow()->setStatusBarMessage( "compute pair & group constraints first!\n");
+        emit( message( "compute pair & group constraints first!\n") );
         return;
     }
 
@@ -138,7 +118,7 @@ void RelationManager::traceModelConstraintsAuto()
     std::vector<double> constraintScore;
     std::vector<double> globalSymmScore;
 
-    for ( int j = 0; j < this->tb->scheduler->allGraphs.size(); ++j)
+    for ( int j = 0; j < scheduler->allGraphs.size(); ++j)
     {
         double tmpScore[2] = {0,0};
         for ( int i = 0; i < this->grGroups.size(); ++i)
@@ -146,13 +126,13 @@ void RelationManager::traceModelConstraintsAuto()
             double gs(0.0), ps(0.0);
             if ( isTraceGroups)
             {
-                GroupRelationTracer grt(this->tb->scheduler->allGraphs[j], this->diagonals[i], i);
-                gs = grt.detecting(this->grGroups[i], tb->gcoor->correspondences,i);
+                GroupRelationTracer grt(scheduler->allGraphs[j], this->diagonals[i], i);
+                gs = grt.detecting(this->grGroups[i], gcorr->correspondences,i);
             }
             if ( isTracePairs)
             {
-                PairRelationTracer prt(this->tb->scheduler->allGraphs[j], this->diagonals[i], i);
-                ps = prt.detecting(this->prGroups[i], tb->gcoor->correspondences,i);
+                PairRelationTracer prt(scheduler->allGraphs[j], this->diagonals[i], i);
+                ps = prt.detecting(this->prGroups[i], gcorr->correspondences,i);
 
             }
             tmpScore[i] = computeScore(gs, ps);
@@ -176,7 +156,7 @@ void RelationManager::traceModelConstraintsAuto()
 
         if ( isCheckGlobalSymm)
         {
-            GlobalReflectionSymmDetector gsd(this->tb->scheduler->allGraphs[j], j);
+            GlobalReflectionSymmDetector gsd(scheduler->allGraphs[j], j);
             globalSymmScore.push_back( gsd.detecting());
         }
     }
@@ -186,13 +166,17 @@ void RelationManager::traceModelConstraintsAuto()
     QFile file(filename);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
     QTextStream out(&file);
+
+	// Find maximum constraint score of entire path
     double maxConstraintScore = 0;
-    for ( int j = 0; j < this->tb->scheduler->allGraphs.size(); ++j)
+    for ( int j = 0; j < scheduler->allGraphs.size(); ++j)
     {
         if ( maxConstraintScore < constraintScore[j])
             maxConstraintScore = constraintScore[j];
     }
-    for ( int j = 0; j < this->tb->scheduler->allGraphs.size(); ++j)
+
+	// Output info for each step in path
+    for ( int j = 0; j < scheduler->allGraphs.size(); ++j)
     {
         out << "trace constraints: " << j << "\n";
         //double totalScore = constraintScore[j]/maxConstraintScore;
@@ -210,29 +194,17 @@ void RelationManager::traceModelConstraintsAuto()
 }
 void RelationManager::traceModelConstraints()
 {
-    if ( !tb->gcoor->isReady)
-    {
-        tb->mainWindow()->setStatusBarMessage( "No correspondence, load a job first!\n");
-        return;
-    }
-    if ( this->grGroups.size() != 2 || this->prGroups.size()!=2)
-    {
-        tb->mainWindow()->setStatusBarMessage( "compute pair & group constraints first!\n");
-        return;
-    }
-
-    ////////////////////
     QString filename("trace_constraints.txt");
     QFile file(filename);
     if (!file.open(QIODevice::Append | QIODevice::Text)) return;
 
     QTextStream out(&file);
-    int ct = this->tb->scheduler->slider->currentTime();
-    double tmp = (double(ct) / this->tb->scheduler->totalExecutionTime());
+    int ct = scheduler->slider->currentTime();
+    double tmp = (double(ct) / scheduler->totalExecutionTime());
     out << "trace constraints: " << tmp << "\n";
     out << "graph & pair relation weight: " << this->graphWeight << ", " << this->pairWeight << "\n";
 
-    for ( int j = 0; j < this->tb->graphs.size(); ++j)
+    for ( int j = 0; j < this->inputGraphs.size(); ++j)
     {
         double score[2] = {0,0};
         for ( int i = 0; i < this->grGroups.size(); ++i)
@@ -240,14 +212,14 @@ void RelationManager::traceModelConstraints()
             double gs(0.0), ps(0.0);
             if ( isTraceGroups)
             {
-                GroupRelationTracer grt(this->tb->graphs[j], this->diagonals[i], i);
-                gs = grt.detecting(this->grGroups[i], tb->gcoor->correspondences,i);
+                GroupRelationTracer grt(this->inputGraphs[j], this->diagonals[i], i);
+                gs = grt.detecting(this->grGroups[i], gcorr->correspondences,i);
                 out << "group score of shape " << j << " relative to " << i << " is " << gs << "\n";
             }
             if ( isTracePairs)
             {
-                PairRelationTracer prt(this->tb->graphs[j], this->diagonals[i], i);
-                ps = prt.detecting(this->prGroups[i], tb->gcoor->correspondences,i);
+                PairRelationTracer prt(this->inputGraphs[j], this->diagonals[i], i);
+                ps = prt.detecting(this->prGroups[i], gcorr->correspondences,i);
                 out << "pair score of shape " << j << " relative to " << i << " is " << ps << "\n";
             }
             score[i] = computeScore(gs, ps);
@@ -258,7 +230,7 @@ void RelationManager::traceModelConstraints()
         //double totalScore = (score[1]);
         if ( isCheckGlobalSymm)
         {
-            GlobalReflectionSymmDetector gsd(this->tb->graphs[j], j, true);
+            GlobalReflectionSymmDetector gsd(this->inputGraphs[j], j, true);
             double symScore = gsd.detecting();
             out << "sym score is " << symScore << "\n";
             out << "constraint score is " << totalScore << "\n";
