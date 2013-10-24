@@ -1,6 +1,6 @@
 #include <omp.h>
-
 #include <QDebug>
+
 #include "PathEvaluator.h"
 #include "SynthesisManager.h"
 #include "RelationManager.h"
@@ -14,80 +14,82 @@ PathEvaluator::PathEvaluator( Blender * blender, QObject *parent ) : QObject(par
 
 void PathEvaluator::evaluatePaths()
 {
+	/// Export results:
+	QString sessionName = QString("session_%1").arg(QDateTime::currentDateTime().toString("dd.MM.yyyy_hh.mm.ss"));
+	QString path = "results/" + sessionName;
+	QDir d("");	d.mkpath( path ); d.mkpath( path + "/images" );
+
 	int numSamplesPerPath = 100;
 	int timeLimit = 5000; // ms
+	int numInBetweens = 8;
 
 	/// Get number of paths to evaluate:
 	int numPaths = 0;
+	Scheduler defaultSchedule( *b->m_scheduler );
 	{
 		// Find time it takes for a single path
 		QElapsedTimer timer; timer.start();
 		{
-			Scheduler s( *b->m_scheduler );
-			s.setSchedule( b->m_scheduler->getSchedule() ); // default
-			s.timeStep = 1.0 / numSamplesPerPath;
-			s.executeAll();
+			defaultSchedule.setSchedule( b->m_scheduler->getSchedule() ); // default
+			defaultSchedule.timeStep = 1.0 / numSamplesPerPath;
+			defaultSchedule.executeAll();
 		}
 
 		numPaths = qMax(1.0, double(timeLimit) / timer.elapsed() * omp_get_num_threads());
 	}
 
 	// Force number of paths
-	numPaths = 30;
-
-	b->emitMessage("Number of paths to evaluate: " + QString::number(numPaths));
+	numPaths = 100;
 
 	/// Setup schedules:
-	QVector<Scheduler*> randomSchedules;
-	
-	foreach(ScheduleType curSched, b->m_scheduler->manyRandomSchedules( numPaths )){
-		Scheduler * s = new Scheduler( *b->m_scheduler );
-		s->setSchedule( curSched );
-		s->timeStep = 1.0 / numSamplesPerPath;
+	QVector<PathScore> ps(numPaths);
 
-		randomSchedules.push_back(s);
-	}
+	// Do this once for input graphs
+	QVector<Structure::Graph*> inputGraphs;
+	inputGraphs << b->s->inputGraphs[0]->g << b->s->inputGraphs[1]->g;
 
-	/// Path evaluation:
-	std::vector<double> scheduleScore(numPaths, 0);
+	RelationManager r_manager(b->m_gcorr, b->m_scheduler.data(), inputGraphs);
+	r_manager.parseModelConstraintPair( false );
+	r_manager.parseModelConstraintGroup( false );
+
+	QVector<ScheduleType> allPaths = b->m_scheduler->manyRandomSchedules( numPaths );
+
+	QElapsedTimer evalTimer; evalTimer.start();
+
+	#pragma omp parallel for
+	for(int i = 0; i < allPaths.size(); i++)
 	{
-		QVector<Structure::Graph*> inputGraphs;
-		inputGraphs << b->s->inputGraphs[0]->g << b->s->inputGraphs[1]->g;
+		// Setup schedule
+		Scheduler s( *b->m_scheduler );
+		s.setSchedule( allPaths[i] );
+		s.timeStep = 1.0 / numSamplesPerPath;
 
-		// Do this once for input graphs
-		RelationManager r_manager(b->m_gcorr, b->m_scheduler.data(), inputGraphs);
-		r_manager.parseModelConstraintPair( false );
-		r_manager.parseModelConstraintGroup( false );
+		// Execute blend
+		s.executeAll();
+		
+		// Compute its score
+		ps[i].score = r_manager.traceModelConstraints( s.allGraphs );
 
-		for(int i = 0; i < numPaths; i++)
+		//#pragma omp critical
 		{
-			Scheduler * s = randomSchedules[i];
-
-			// Compute path
-			s->executeAll();
-
-			// Evaluate path
-			double score = r_manager.traceModelConstraints( s->allGraphs );
-
-			// Put in priority queue
-			scheduleScore[i] = score;
+			// Render path
+			QVector<Structure::Graph*> inBetweens = s.interestingInBetweens( numInBetweens );
+			for(int k = 0; k < numInBetweens; k++)
+			{
+				QString imageName = QString("%1_%2.png").arg(i).arg(k);
+				QString imagePath = path + "/images/" + imageName;
+				//b->renderer->quickRender(inBetweens[k], Qt::white).save(imagePath);
+				ps[i].images << imageName;
+			}
 		}
 	}
 
-	// Sort by score
-	std::vector<unsigned int> indices;
-	paired_sort<double>(indices, scheduleScore);
+	// Sort based on score
+	qSort(ps);
 
-	QVector<Scheduler*> sortedSchedules;
-	foreach(unsigned int idx, indices) sortedSchedules.push_back( randomSchedules[idx] );
+	b->emitMessage( QString("Time (%1 ms), number of paths (%2)").arg(evalTimer.elapsed()).arg(QString::number(numPaths)) );
 
 	///////////////////////////////////////////////////////////
-
-	/// Export results
-	QString sessionName = QString("session_%1").arg(QDateTime::currentDateTime().toString("dd.MM.yyyy_hh.mm.ss"));
-	QString path = "results/" + sessionName;
-	QDir d("");	d.mkpath( path ); d.mkpath( path + "/images" );
-
 	// HTML header
 	QStringList html;
 	html << "<!DOCTYPE html>";
@@ -97,55 +99,28 @@ void PathEvaluator::evaluatePaths()
 
 	// Inputs
 	QColor inputColor(255,255,255);
-	b->renderer->quickRender(sortedSchedules.front()->allGraphs.front(), inputColor).save(path + "/images/source.png");
-	b->renderer->quickRender(sortedSchedules.front()->allGraphs.back(), inputColor).save(path + "/images/target.png");
+	b->renderer->quickRender(defaultSchedule.allGraphs.front(), inputColor).save(path + "/images/source.png");
+	b->renderer->quickRender(defaultSchedule.allGraphs.back(), inputColor).save(path + "/images/target.png");
 	html << QString("<div> <img src='images/source.png'/> <img src='images/target.png'/> </div>");
 
 	// Outputs
 	html << "<div id='results'>" << "<table>";
 
-	int numInBetweens = 8;
-
-	for(int i = 0; i < (int)indices.size() * 0.5; i++)
+	for(int i = 0; i < ps.size() * 0.5; i++)
 	{
-		int j = (indices.size() - 1) - i;
+		int j = (ps.size() - 1) - i;
+		QStringList scoreType; scoreType << "low" << "high";
+		QVector<int> idx; idx << i << j;
 
 		html << "<tr>";
 
-		// High
+		for(int h = 0; h < 2; h++)
 		{
-			Scheduler * s = sortedSchedules[j];
-			double score = scheduleScore[j];
-
-			html << "<td>" << "<div class='score-high'>" << QString::number(score) << "</div>";
-			html << "<div class='path-img'>";
-			
-			QVector<Structure::Graph*> inBetweens = s->interestingInBetweens( numInBetweens );
-			for(int k = 0; k < numInBetweens; k++)
-			{
-				QString imageName = QString("%1_%2.png").arg(j).arg(k);
-				b->renderer->quickRender(inBetweens[k], inputColor).save(path + "/images/" + imageName);
-				html << QString(" <img src='images/%1'/> ").arg(imageName);
-			}
-
-			html << "</div>" << "</td>";
-		}
-
-		// Low
-		{
-			Scheduler * s = sortedSchedules[i];
-			double score = scheduleScore[i];
-
-			html << "<td>" << "<div class='score-low'>" << QString::number(score) << "</div>";
+			html << "<td>" << QString("<div class='score-%1'>").arg(scoreType[h]) << QString::number(ps[ idx[h] ].score) << "</div>";
 			html << "<div class='path-img'>";
 
-			QVector<Structure::Graph*> inBetweens = s->interestingInBetweens( numInBetweens );
 			for(int k = 0; k < numInBetweens; k++)
-			{
-				QString imageName = QString("%1_%2.png").arg(i).arg(k);
-				b->renderer->quickRender(inBetweens[k], inputColor).save(path + "/images/" + imageName);
-				html << QString(" <img src='images/%1'/> ").arg(imageName);
-			}
+				html << QString(" <img src='images/%1'/> ").arg(ps[ idx[h] ].images[k]);
 
 			html << "</div>" << "</td>";
 		}
