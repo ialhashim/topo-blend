@@ -64,7 +64,6 @@ public slots:
 
 	void setGraphCorresponder(GraphCorresponder *);
 	void preparePaths();
-	void generatePaths();
 	void schedulePaths( const QSharedPointer<Scheduler> & scheduler, const QSharedPointer<TopoBlender> & blender );
 	void pathProgressChanged();
 	void synthDataReady();

@@ -21,6 +21,8 @@ public:
 	friend class BlendPathSub;
 	friend class Blender;
 
+	QImage quickRender( Structure::Graph* graph, QColor color );
+
 protected:
 	void initializeGL(); 
 	void paintGL();

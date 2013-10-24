@@ -42,11 +42,13 @@ signals:
 
 public slots:
     void parseGlobalReflectionSymm();//parseGlobalSymm
-    void parseModelConstraintGroup();
-    void parseModelConstraintPair();
+    void parseModelConstraintGroup( bool isSaveFile = true );
+	void parseModelConstraintPair( bool isSaveFile = true );
 
     void traceModelConstraintsAuto();
     void traceModelConstraints();
+
+	double traceModelConstraints( QVector<Structure::Graph*> graphs );
 
 	double computeScore(double groupScore, double pairScore);
 

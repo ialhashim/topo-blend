@@ -48,7 +48,7 @@ void RelationManager::parseGlobalReflectionSymm()
     emit( message("Parse global symmetry end. ") );
 }
 
-void RelationManager::parseModelConstraintGroup()
+void RelationManager::parseModelConstraintGroup( bool isSaveFile )
 {
     this->grGroups.clear();
     this->diagonals.clear();
@@ -61,8 +61,13 @@ void RelationManager::parseModelConstraintGroup()
         grd.detecting(prGroups[ii],groupScore[ii], pairScore[ii]);
 
         //qSort(grd.groupRelations_.begin(), grd.groupRelations_.end(), typeLessThan);
-        saveToFile("group_relation-" + QString::number(ii) + ".txt", grd.groupRelations_);
-        saveToFile("pair_relation-" + QString::number(ii) + ".txt", this->prGroups[ii]);
+
+		if( isSaveFile )
+		{
+			saveToFile("group_relation-" + QString::number(ii) + ".txt", grd.groupRelations_);
+			saveToFile("pair_relation-" + QString::number(ii) + ".txt", this->prGroups[ii]);
+		}
+
         this->grGroups.push_back(grd.groupRelations_);
         this->diagonals.push_back( this->inputGraphs[ii]->bbox().diagonal().norm());
     }
@@ -72,11 +77,8 @@ void RelationManager::parseModelConstraintGroup()
 
     emit( message("Parse group relation end. ") );
 }
-double RelationManager::computeScore(double groupScore, double pairScore)
-{
-    return groupScore*this->graphWeight + pairScore*this->pairWeight;
-}
-void RelationManager::parseModelConstraintPair()
+
+void RelationManager::parseModelConstraintPair( bool isSaveFile )
 {
     this->prGroups.clear();
     emit( message("Parse pair relation starts: ") );
@@ -89,16 +91,21 @@ void RelationManager::parseModelConstraintPair()
     ///////////
     for (int ii = 0; ii < this->inputGraphs.size(); ++ii)
     {
-
         PairRelationDetector prd(this->inputGraphs[ii], ii);
         prd.detecting();
 
         //qSort(prd.pairRelations_.begin(), prd.pairRelations_.end(), typeLessThan);
-        saveToFile("pair_relation-" + QString::number(ii) + ".txt", prd.pairRelations_);
+
+		if( isSaveFile )
+		{
+			saveToFile("pair_relation-" + QString::number(ii) + ".txt", prd.pairRelations_);
+		}
+
         this->prGroups.push_back(prd.pairRelations_);
     }
     emit( message("Parse pair relation end. ") );
 }
+
 void RelationManager::traceModelConstraintsAuto()
 {
     if(!scheduler->allGraphs.size()) return;
@@ -192,6 +199,7 @@ void RelationManager::traceModelConstraintsAuto()
     }
     file.close();
 }
+
 void RelationManager::traceModelConstraints()
 {
     QString filename("trace_constraints.txt");
@@ -241,6 +249,66 @@ void RelationManager::traceModelConstraints()
 
     file.close();
 }
+
+double RelationManager::traceModelConstraints( QVector<Structure::Graph*> graphs )
+{
+	std::vector<double> constraintScore;
+	std::vector<double> globalSymmScore;
+
+	for (int j = 0; j < graphs.size(); ++j){
+		double tmpScore[2] = {0,0};
+		for (int i = 0; i < this->grGroups.size(); ++i){
+			double gs(0.0), ps(0.0);
+			if ( isTraceGroups )
+			{
+				GroupRelationTracer grt(graphs[j], this->diagonals[i], i);
+				gs = grt.detecting(this->grGroups[i], gcorr->correspondences,i);
+			}
+			if ( isTracePairs )
+			{
+				PairRelationTracer prt(graphs[j], this->diagonals[i], i);
+				ps = prt.detecting(this->prGroups[i], gcorr->correspondences,i);
+			}
+			tmpScore[i] = computeScore(gs, ps);
+		}
+
+		constraintScore.push_back( (tmpScore[0] + tmpScore[1]) );
+
+		if( isCheckGlobalSymm )
+		{
+			GlobalReflectionSymmDetector gsd(graphs[j], j);
+			globalSymmScore.push_back( gsd.detecting());
+		}
+	}
+
+	// Find maximum constraint score of entire path
+	double maxConstraintScore = 0;
+	for ( int j = 0; j < graphs.size(); ++j){
+		if ( maxConstraintScore < constraintScore[j])
+			maxConstraintScore = constraintScore[j];
+	}
+
+	// Output info for each step in path
+	double allScore = 0;
+
+	for ( int j = 0; j < graphs.size(); ++j){
+		double totalScore = constraintScore[j];
+		if ( isCheckGlobalSymm )
+		{
+			totalScore = globalSymmWeight*globalSymmScore[j] + (1-globalSymmWeight)*totalScore;
+		}
+
+		allScore += totalScore;
+	}
+
+	return allScore;
+}
+
+double RelationManager::computeScore(double groupScore, double pairScore)
+{
+	return groupScore*this->graphWeight + pairScore*this->pairWeight;
+}
+
 void RelationManager::setIsCheckGlobalSymm(bool checked)
 {
     this->isCheckGlobalSymm = checked;
