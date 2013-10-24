@@ -244,3 +244,22 @@ double errorOfLineInPlane(Segment_3 &l, Vector3& point, Vector3& normal)
 	double dist2 = squared_distance(plane, l.point(1));
 	return sqrt(dist1)+sqrt(dist2);
 }
+
+void saveScores( QVector<double>& scoreKeptGr, /*QVector<double>& scoreAddGr, */ QVector<double>& scoreKeptPr,/*QVector<double>& scoreAddPr, */ QTextStream& out )
+{
+	out << "    basic group kept score: " << std::accumulate(scoreKeptGr.begin(),scoreKeptGr.end(),0.0) << "\n";
+	//out << "    basic group add score: " << std::accumulate(scoreAddGr.begin(),scoreAddGr.end(),0.0) << "\n";
+	double scoreFinal(0.0), scoreGroup;
+	scoreFinal += 4.0 * std::accumulate(scoreKeptGr.begin(),scoreKeptGr.end(),0.0);
+	//scoreFinal += 0.5 * std::accumulate(scoreAddGr.begin(),scoreAddGr.end(),0.0);
+	scoreGroup = scoreFinal;
+	out << "    weighted group score: " << scoreGroup << "\n";
+
+	scoreFinal += 1.0 * std::accumulate(scoreKeptPr.begin(),scoreKeptPr.end(),0.0);
+	//scoreFinal += 0.1 * std::accumulate(scoreAddPr.begin(),scoreAddPr.end(),0.0);
+	out << "    basic pair kept score: " << std::accumulate(scoreKeptPr.begin(),scoreKeptPr.end(),0.0) << "\n";
+	//out << "    basic pair add score: " << std::accumulate(scoreAddPr.begin(),scoreAddPr.end(),0.0) << "\n";
+	out << "    weighted pair score: " << scoreFinal - scoreGroup<< "\n";
+
+	out << "    final score: "  << scoreFinal << "\n";
+}

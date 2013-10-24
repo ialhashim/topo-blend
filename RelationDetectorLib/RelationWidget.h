@@ -12,7 +12,7 @@ class RelationWidget : public QWidget
     Q_OBJECT
     
 public:
-    explicit RelationWidget(topoblend * tb, QWidget *parent = 0);
+    explicit RelationWidget(QWidget *parent = 0);
     ~RelationWidget();
     
     RelationManager * r_manager;
