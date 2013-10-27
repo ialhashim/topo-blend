@@ -4,10 +4,11 @@
 #include "Blender.h"
 
 struct PathScore{
-	double score;
-	QStringList images;
-	PathScore() { score = 0.0; }
-	bool operator<(const PathScore& other) const { return score < other.score; }
+	QVector<double> scores;
+	double score() const { return minScore(); }
+	double maxScore() const { return *std::max_element(scores.begin(), scores.end()); }
+	double minScore() const { return *std::min_element(scores.begin(), scores.end()); }
+	bool operator<(const PathScore& other) const { return score() < other.score(); }
 };
 
 class PathEvaluator : public QObject

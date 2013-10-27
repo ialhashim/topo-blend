@@ -40,7 +40,7 @@ void RelationManager::parseGlobalReflectionSymm()
     double symmScore[2];
     for (int i = 0; i < this->inputGraphs.size(); ++i)
     {
-        GlobalReflectionSymmDetector gsd(this->inputGraphs[i], i);
+        GlobalReflectionSymmDetector gsd(this->inputGraphs[i]);
         symmScore[i] = gsd.detecting();
     }
 
@@ -57,7 +57,7 @@ void RelationManager::parseModelConstraintGroup( bool isSaveFile )
     double pairScore[2];
     for (int ii = 0; ii < this->inputGraphs.size(); ++ii)
     {
-        GroupRelationDetector grd(this->inputGraphs[ii], ii);
+        GroupRelationDetector grd(this->inputGraphs[ii]);
         grd.detecting(prGroups[ii],groupScore[ii], pairScore[ii]);
 
         //qSort(grd.groupRelations_.begin(), grd.groupRelations_.end(), typeLessThan);
@@ -91,7 +91,7 @@ void RelationManager::parseModelConstraintPair( bool isSaveFile )
     ///////////
     for (int ii = 0; ii < this->inputGraphs.size(); ++ii)
     {
-        PairRelationDetector prd(this->inputGraphs[ii], ii);
+        PairRelationDetector prd(this->inputGraphs[ii]);
         prd.detecting();
 
         //qSort(prd.pairRelations_.begin(), prd.pairRelations_.end(), typeLessThan);
@@ -133,12 +133,12 @@ void RelationManager::traceModelConstraintsAuto()
             double gs(0.0), ps(0.0);
             if ( isTraceGroups)
             {
-                GroupRelationTracer grt(scheduler->allGraphs[j], this->diagonals[i], i);
+                GroupRelationTracer grt(scheduler->allGraphs[j], this->diagonals[i]);
                 gs = grt.detecting(this->grGroups[i], gcorr->correspondences,i);
             }
             if ( isTracePairs)
             {
-                PairRelationTracer prt(scheduler->allGraphs[j], this->diagonals[i], i);
+                PairRelationTracer prt(scheduler->allGraphs[j], this->diagonals[i]);
                 ps = prt.detecting(this->prGroups[i], gcorr->correspondences,i);
 
             }
@@ -163,7 +163,7 @@ void RelationManager::traceModelConstraintsAuto()
 
         if ( isCheckGlobalSymm)
         {
-            GlobalReflectionSymmDetector gsd(scheduler->allGraphs[j], j);
+            GlobalReflectionSymmDetector gsd(scheduler->allGraphs[j]);
             globalSymmScore.push_back( gsd.detecting());
         }
     }
@@ -220,13 +220,13 @@ void RelationManager::traceModelConstraints()
             double gs(0.0), ps(0.0);
             if ( isTraceGroups)
             {
-                GroupRelationTracer grt(this->inputGraphs[j], this->diagonals[i], i);
+                GroupRelationTracer grt(this->inputGraphs[j], this->diagonals[i]);
                 gs = grt.detecting(this->grGroups[i], gcorr->correspondences,i);
                 out << "group score of shape " << j << " relative to " << i << " is " << gs << "\n";
             }
             if ( isTracePairs)
             {
-                PairRelationTracer prt(this->inputGraphs[j], this->diagonals[i], i);
+                PairRelationTracer prt(this->inputGraphs[j], this->diagonals[i]);
                 ps = prt.detecting(this->prGroups[i], gcorr->correspondences,i);
                 out << "pair score of shape " << j << " relative to " << i << " is " << ps << "\n";
             }
@@ -238,7 +238,7 @@ void RelationManager::traceModelConstraints()
         //double totalScore = (score[1]);
         if ( isCheckGlobalSymm)
         {
-            GlobalReflectionSymmDetector gsd(this->inputGraphs[j], j, true);
+            GlobalReflectionSymmDetector gsd(this->inputGraphs[j]);
             double symScore = gsd.detecting();
             out << "sym score is " << symScore << "\n";
             out << "constraint score is " << totalScore << "\n";
@@ -250,23 +250,26 @@ void RelationManager::traceModelConstraints()
     file.close();
 }
 
-double RelationManager::traceModelConstraints( QVector<Structure::Graph*> graphs )
+QVector<double> RelationManager::traceModelConstraints( QVector<Structure::Graph*> graphs )
 {
 	std::vector<double> constraintScore;
 	std::vector<double> globalSymmScore;
 
-	for (int j = 0; j < graphs.size(); ++j){
+	for (int j = 0; j < graphs.size(); ++j)
+	{
 		double tmpScore[2] = {0,0};
-		for (int i = 0; i < this->grGroups.size(); ++i){
+
+		for (int i = 0; i < this->grGroups.size(); ++i)
+		{
 			double gs(0.0), ps(0.0);
 			if ( isTraceGroups )
 			{
-				GroupRelationTracer grt(graphs[j], this->diagonals[i], i);
+				GroupRelationTracer grt(graphs[j], this->diagonals[i]);
 				gs = grt.detecting(this->grGroups[i], gcorr->correspondences,i);
 			}
 			if ( isTracePairs )
 			{
-				PairRelationTracer prt(graphs[j], this->diagonals[i], i);
+				PairRelationTracer prt(graphs[j], this->diagonals[i]);
 				ps = prt.detecting(this->prGroups[i], gcorr->correspondences,i);
 			}
 			tmpScore[i] = computeScore(gs, ps);
@@ -276,32 +279,37 @@ double RelationManager::traceModelConstraints( QVector<Structure::Graph*> graphs
 
 		if( isCheckGlobalSymm )
 		{
-			GlobalReflectionSymmDetector gsd(graphs[j], j);
-			globalSymmScore.push_back( gsd.detecting());
+			GlobalReflectionSymmDetector gsd(graphs[j]);
+			globalSymmScore.push_back( gsd.detecting() );
 		}
 	}
 
 	// Find maximum constraint score of entire path
 	double maxConstraintScore = 0;
 	for ( int j = 0; j < graphs.size(); ++j){
-		if ( maxConstraintScore < constraintScore[j])
+		if ( maxConstraintScore < constraintScore[j] )
 			maxConstraintScore = constraintScore[j];
 	}
 
 	// Output info for each step in path
-	double allScore = 0;
+	QVector<double> scores( graphs.size() );
 
-	for ( int j = 0; j < graphs.size(); ++j){
+	for ( int j = 0; j < graphs.size(); ++j)
+	{
 		double totalScore = constraintScore[j];
+
 		if ( isCheckGlobalSymm )
 		{
 			totalScore = globalSymmWeight*globalSymmScore[j] + (1-globalSymmWeight)*totalScore;
 		}
 
-		allScore += totalScore;
+		scores[j] = totalScore;
+
+		// store the score in the graph itself
+		graphs[j]->property["score"] = totalScore;
 	}
 
-	return allScore;
+	return scores;
 }
 
 double RelationManager::computeScore(double groupScore, double pairScore)

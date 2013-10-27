@@ -48,7 +48,7 @@ public slots:
     void traceModelConstraintsAuto();
     void traceModelConstraints();
 
-	double traceModelConstraints( QVector<Structure::Graph*> graphs );
+	QVector<double> traceModelConstraints( QVector<Structure::Graph*> graphs );
 
 	double computeScore(double groupScore, double pairScore);
 

@@ -34,10 +34,11 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	progress = new ProgressItem("Working..", false, s);
 
 	// Connections
-    this->connect(this, SIGNAL(blendPathsReady()), SLOT(computeBlendPaths()));
-    this->connect(this, SIGNAL(blendPathsDone()), SLOT(blenderDone()));
 	this->connect(this, SIGNAL(becameHidden()), SLOT(cleanUp()));
 	this->connect(this, SIGNAL(keyUpEvent(QKeyEvent*)), SLOT(keyReleased(QKeyEvent*)));
+
+    this->connect(this, SIGNAL(blendPathsReady()), SLOT(computeBlendPaths()));
+    this->connect(this, SIGNAL(blendPathsDone()), SLOT(blenderDone()));
 	this->connect(this, SIGNAL(blendDone()), SLOT(blenderAllResultsDone()));
 }
 
@@ -316,9 +317,6 @@ void Blender::synthDataReady()
 	for(int i = 0; i < numSuggestions; i++)
 		this->disconnect( blendPaths[i].scheduler.data() );
 
-	// Experiment: path evaluation
-	pathsEval->evaluatePaths();
-
 	emit( message(QString("Synthesis time [%1 ms]").arg(synthTimer.elapsed())) );
 	emit( blendPathsReady() );
 }
@@ -433,6 +431,15 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 	// Re-draw results
 	if(keyEvent->key() == Qt::Key_R){
 		showResultsPage();
+		return;
+	}
+
+	// EXPERIMENT:
+	if(keyEvent->key() == Qt::Key_Q){
+
+		// Experiment: path evaluation
+		pathsEval->evaluatePaths();
+
 		return;
 	}
 

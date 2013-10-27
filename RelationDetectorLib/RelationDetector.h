@@ -168,11 +168,8 @@ public:
     }
     ~RelationDetector()
     {
-        logFile_.close();
     }
 protected:
-    QFile logFile_;
-    QTextStream logStream_;
 
     double errorOfParallel(Eigen::Vector3d& d1, Eigen::Vector3d& d2)
     {
@@ -794,15 +791,8 @@ public:
     std::vector<Eigen::MatrixXd> nodesCpts_;
     std::vector<Eigen::Vector3d> nodesCenter_;
 
-    GlobalReflectionSymmDetector(Structure::Graph* g, int ith, bool bLog=false):RelationDetector(g)
+    GlobalReflectionSymmDetector(Structure::Graph* g):RelationDetector(g)
     {
-        if ( bLog)
-        {
-            logFile_.setFileName("GlobalReflectionSymmDetector-" + QString::number(ith) + ".log");
-            if (!logFile_.open(QIODevice::WriteOnly | QIODevice::Text)) return;
-            logStream_.setDevice(&logFile_);
-        }
-
         std::vector<Eigen::Vector3d> cptsV;
         for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
         {
@@ -820,17 +810,6 @@ public:
         }
         vectorPts2MatrixPts(cptsV, cpts_);
 
-//#ifdef _OUTPUT_LOG
-//		QFile out;
-//		out.setFileName("GlobalReflectionSymmDetector-cpts.txt");
-//		if (!out.open(QIODevice::WriteOnly | QIODevice::Text)) return;
-//		QTextStream os;
-//		os.setDevice(&out);
-//		for (int i = 0; i < (int) cpts_.rows(); ++i)
-//		{
-//			os << cpts_(i,0) << ", " << cpts_(i,1) << ", " << cpts_(i,2) << "\n";
-//		}
-//#endif
         //center_= this->graph_->bbox().center();// not extract for symm
         center_ = Eigen::Vector3d( cpts_.col(0).mean(), cpts_.col(1).mean(), cpts_.col(2).mean());
     }
@@ -977,29 +956,7 @@ class PairRelationDetector : public RelationDetector
 public:
     QVector<PairRelation> pairRelations_;
 
-    PairRelationDetector(Structure::Graph* g, int ith):RelationDetector(g)
-    {
-        logFile_.setFileName("PairRelationDetector-" + QString::number(ith) + ".log");
-        if (!logFile_.open(QIODevice::WriteOnly | QIODevice::Text)) return;
-        logStream_.setDevice(&logFile_);
-
-        logStream_ << "parameters: \n";
-        logStream_ << "thRadiusRadio_: " << thRadiusRadio_ << "\n";
-        logStream_ << "thTransRadio_: " << thTransRadio_ << "\n";
-        logStream_ << "thRefRadio_: " << thRefRadio_ << "\n";
-        logStream_ << "thParal_: " << thParal_ << "\n";
-        logStream_ << "thOthog_: " << thOthog_ << "\n";
-        logStream_ << "thCopla_: " << thCopla_ << "\n\n";
-
-#ifdef _OUTPUT_LOG
-        logStream_ << "node diameter: \n";
-        for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
-        {
-            logStream_ << graph_->nodes[i]->id << ": " << graph_->nodes[i]->bbox().diagonal().norm()<< "\n";
-        }
-#endif
-    }
-
+	PairRelationDetector(Structure::Graph* g):RelationDetector(g) { }
 
     void detecting()
     {
@@ -1010,21 +967,15 @@ public:
                 continue;
             double diam1 = graph_->nodes[i]->bbox().diagonal().norm();
             if ( diam1 < thDegeneratedNode_)
-            {
-                logStream_ << "Too small node: " << graph_->nodes[i]->id << ", is ingored. Radius: " << diam1 <<"\n";
                 continue;
-            }
-
+        
             for (int j=i+1; j<nNodes; ++j)
             {
                 if ( graph_->nodes[j]->id.contains("null"))
                     continue;
                 double diam2 = graph_->nodes[j]->bbox().diagonal().norm();
                 if ( diam2 < thDegeneratedNode_)
-                {
-                    logStream_ << "Too small node: " << graph_->nodes[j]->id << ", is ingored. Radius: " << diam2 <<"\n";
                     continue;
-                }
 
                 bool hasTrans(false),hasRef(false);
                 // compare radius // whether 2 part could be symmetry coarsely
@@ -1174,9 +1125,6 @@ private:
         double error = distanceBetweenTransNodesMesh(n1, newverts2);
         error = error / ((n1->bbox().diagonal().norm() + n2->bbox().diagonal().norm()) * 0.5);
 
-        logStream_ <<"<(" << n1->id <<", " <<n2->id <<"), trans, ["<<transVec[0]<<", "<<transVec[1]<<", "<<transVec[2]<<"]>\n"
-                  <<"Error is : "<<error<<"\n\n";
-
         if (error < thTransRadio_)
         {
             PairRelation pr(n1->id, n2->id, TRANS);
@@ -1201,7 +1149,7 @@ private:
         if ( iscurve1 == iscurve2 )
         {
             double error = errorOfParallel(d1, d2);
-            logStream_ <<"<" << n1->id <<", " <<n2->id <<", PARALLEL> Error is : "<<error<<"\n\n";
+
             if (error < thParal_)
             {
                 PairRelation pr(n1->id, n2->id, PARALLEL);
@@ -1212,7 +1160,7 @@ private:
             else
             {
                 double error = errorOfOrthogonal(d1, d2);
-                logStream_ <<"<" << n1->id <<", " <<n2->id <<", ORTHOGONAL> Error is : "<<error<<"\n\n";
+
                 if ( error < thOthog_)
                 {
                     PairRelation pr(n1->id, n2->id, ORTHOGONAL);
@@ -1224,7 +1172,7 @@ private:
                 {
                     Line_3 l1 = curve2line(n1), l2 = curve2line(n2);
                     error = squared_distance(l1, l2);
-                    logStream_ <<"<" << n1->id <<", " <<n2->id <<", COPLANAR> Error is : "<<error<<"\n\n";
+
                     if ( error < thCopla_)
                     {
                         PairRelation pr(n1->id, n2->id, COPLANAR);
@@ -1239,7 +1187,7 @@ private:
         else// curve & sheet
         {
             double error = errorOfParallel(d1, d2);
-            logStream_ <<"<" << n1->id <<", " <<n2->id <<", ORTHOGONAL> Error is : "<<error<<"\n\n";
+
             if (error < thOthog_)
             {
                 PairRelation pr(n1->id, n2->id, ORTHOGONAL);
@@ -1261,7 +1209,7 @@ private:
                     sheet2plane(dynamic_cast<Structure::Sheet *>(n1), point, normal);
                     error = errorOfLineInPlane( curve2segment(n2), point, normal);
                 }
-                logStream_ <<"<" << n1->id <<", " <<n2->id <<", COPLANAR> Error is : "<<error<<"\n\n";
+
                 if ( error < thCopla_)
                 {
                     PairRelation pr(n1->id, n2->id, COPLANAR);
@@ -1280,17 +1228,7 @@ class GroupRelationDetector : public RelationDetector
 public:
     QVector<GroupRelation> groupRelations_;
 
-    GroupRelationDetector(Structure::Graph* g, int ith):RelationDetector(g)
-    {
-        logFile_.setFileName("GroupRelationDetector-" + QString::number(ith) + ".log");
-        if (!logFile_.open(QIODevice::WriteOnly | QIODevice::Text)) return;
-        logStream_.setDevice(&logFile_);
-
-        logStream_ << "graph diagonal: " << graph_->bbox().diagonal().norm() << "\n";
-        logStream_ << "thAxisGroup_: " << thAxisGroup_ << "\n";
-        logStream_ << "thRefGroup_: " << thRefGroup_ << "\n";
-        logStream_ << "thCoplaGroup_: " << thCoplaGroup_ << "\n\n";
-    }
+    GroupRelationDetector(Structure::Graph* g):RelationDetector(g)  {    }
     // input: prRelations
     // output
     // 1. prRelations, after some of them are removed since they have been added into group relations
@@ -1318,7 +1256,6 @@ public:
             groupScore = 0;
         else
             groupScore = groupScore/(graph_->bbox().diagonal().norm()*groupRelations_.size());
-        logStream_ << "Group score of the shape: " << groupScore << "\n";
 
         ///////////////////
         score.clear();
@@ -1333,7 +1270,6 @@ public:
             pairScore = 0;
         else
             pairScore = pairScore/(graph_->bbox().diagonal().norm()*prRelations.size());
-        logStream_ << "Pair score of the shape: " << pairScore << "\n";
     }
 protected:
     void removeRedundantGroup()
@@ -1358,9 +1294,6 @@ protected:
     // merge coplanar group
     void mergeCoplanarGroup()
     {
-#ifdef _OUTPUT_LOG
-        logStream_ << "Merging coplanar group begins: \n";
-#endif
         for ( int i = 0; i < (int) groupRelations_.size(); ++i)
         {
             groupRelations_[i].tag = false;
@@ -1380,30 +1313,10 @@ protected:
                 if ( COPLANAR != groupRelations_[j].type || groupRelations_[j].tag)
                     continue;
 
-#ifdef _OUTPUT_LOG
-                logStream_ << "Coplanar group <";
-                for ( QSet<QString>::iterator it = ids.begin(); it!=ids.end(); ++it)
-                {
-                    QString tmp = *it;
-                    logStream_ << tmp << ", ";
-                }
-                logStream_ << ", point: " << pt1.x() << ", " << pt1.y() << ", " << pt1.z() <<
-                             ", normal: " << normal1.x() << ", " << normal1.y() << ", " << normal1.z() << " > with Coplanar group <";
-                for ( QVector<QString>::iterator it = groupRelations_[j].ids.begin(); it!=groupRelations_[j].ids.end(); ++it)
-                {
-                    QString tmp = *it;
-                    logStream_ << tmp << ", ";
-                }
-#endif
-
                 Vector3 pt2 = groupRelations_[j].point;
                 Vector3 normal2 = groupRelations_[j].normal;
                 double err = errorOfCoplanar(pt1, normal1, pt2, normal2);
-#ifdef _OUTPUT_LOG
-                logStream_ << ", point: " << pt2.x() << ", " << pt2.y() << ", " << pt2.z() <<
-                             ", normal: " << normal2.x() << ", " << normal2.y() << ", " << normal2.z() << " > \n";
-                logStream_ << "Error: " << err << "\n";
-#endif
+
                 if ( err < thCoplaGroup_)
                 {
                     groupRelations_[j].tag = true;
@@ -1533,9 +1446,6 @@ protected:
                     groupRelations_.push_back(gr);
                 }
             }
-#ifdef _OUTPUT_LOG
-            logStream_ << gr;
-#endif
         }
         ////////////// remove pairs have been put into groups
         prRelations.erase( std::remove_if(prRelations.begin(), prRelations.end(), isTaged), prRelations.end() );
@@ -1637,9 +1547,7 @@ protected:
             {
                 groupRelations_.push_back(gr);
             }
-#ifdef _OUTPUT_LOG
-            logStream_ << gr << "\n";
-#endif
+
             //else
             //{
                 gr.type = REF_SYMMETRY;
@@ -1648,9 +1556,6 @@ protected:
                 {
                     groupRelations_.push_back(gr);
                 }
-#ifdef _OUTPUT_LOG
-                logStream_ << gr << "\n";
-#endif
             //}
 
         }
@@ -1688,8 +1593,7 @@ protected:
                 if (pr2.tag || COPLANAR.compare(pr2.type)) continue;
 
                 double error = errorOfCoplanar(pr1.point, pr1.normal, pr2.point, pr2.normal);
-                logStream_ <<"<" << pr1.id1 <<", " << pr1.id2 << ", "
-                    << pr2.id1 <<", " << pr2.id2 <<", COPLANAR> Error is : "<<error<<"\n\n";
+
                 if ( error < thCoplaGroup_)
                 {
                     ids.insert(pr2.id1);
@@ -1721,12 +1625,7 @@ class PairRelationTracer : public RelationDetector
 {
 public:
     double diagonalLen_;
-    PairRelationTracer(Structure::Graph* g, double diagonalLen, int ith):RelationDetector(g),diagonalLen_(diagonalLen)
-    {
-        logFile_.setFileName("PairRelationTracer-" + QString::number(ith) + ".log");
-        if (!logFile_.open(QIODevice::WriteOnly | QIODevice::Text)) return;
-        logStream_.setDevice(&logFile_);
-    }
+    PairRelationTracer(Structure::Graph* g, double diagonalLen):RelationDetector(g),diagonalLen_(diagonalLen){    }
     double detecting(QVector<PairRelation>& prs,QVector<PART_LANDMARK> &corres, int ith)
     {
         std::vector<double> score;
@@ -1751,45 +1650,6 @@ public:
         else
             tmp = tmp/(diagonalLen_*numCurrPr);
 
-#ifdef _OUTPUT_LOG
-        for ( int i = 0; i < (int) prs.size(); ++i)
-        {
-            PairRelation pr = prs[i];
-            PairRelation cpr = cprs[i];
-            if ( !isDegeneratePair(cpr))
-            {
-                if ( 0 == ith)
-                {
-                    logStream_ << "pair in source: " << pr << "\n";
-                }
-                else
-                {
-                    logStream_ << "pair in target: " << pr << "\n";
-                }
-                logStream_ << "correspondence pair: " << cpr << "\n";
-            }
-        }
-        for ( int i = 0; i < (int) prs.size(); ++i)
-        {
-            PairRelation pr = prs[i];
-            PairRelation cpr = cprs[i];
-            if ( isDegeneratePair(cpr))
-            {
-                if ( 0 == ith)
-                {
-                    logStream_ << "pair in source: " << pr << "\n";
-                }
-                else
-                {
-                    logStream_ << "pair in target: " << pr << "\n";
-                }
-                logStream_ << "correspondence pair: " << cpr << "\n";
-            }
-        }
-        logStream_ << "\n ========================================= \n";
-        logStream_ << "total pair number: " << prs.size() << ", current pair: " << numCurrPr << "\n";
-        logStream_ << "mean pair score: " << tmp << "\n";
-#endif
         return tmp;
     }
 private:
@@ -1852,7 +1712,6 @@ private:
         std::vector<Structure::Node*> nodes1 = filterNodesByDiameter(tmpNodes1, thDegeneratedNode_);
         std::vector<Structure::Node*> nodes2 = filterNodesByDiameter(tmpNodes2, thDegeneratedNode_);
 
-
         ////////////////
         cpr.deviation = 0;
         cpr.type = pr.type;
@@ -1868,9 +1727,6 @@ private:
             for ( int j = 0; j < (int) nodes2.size(); ++j)
             {
                 isParalOrthoCoplanar(nodes1[i], nodes2[j], cpr);
-//#ifdef _OUTPUT_LOG
-//				logStream_ << "<" << nodes1[i]->id <<", " << nodes2[j]->id <<", " << cpr.type << "> Error is : "<< cpr.deviation <<"\n\n";
-//#endif
             }
         }
         return cpr;
@@ -1881,12 +1737,8 @@ class GroupRelationTracer : public RelationDetector
 {
 public:
     double diagonalLen_;
-    GroupRelationTracer(Structure::Graph* g, double diagonalLen, int ith):RelationDetector(g),diagonalLen_(diagonalLen)
-    {
-        logFile_.setFileName("GroupRelationTracer-" + QString::number(ith) + ".log");
-        if (!logFile_.open(QIODevice::WriteOnly | QIODevice::Text)) return;
-        logStream_.setDevice(&logFile_);
-    }
+	GroupRelationTracer(Structure::Graph* g, double diagonalLen):RelationDetector(g),diagonalLen_(diagonalLen){}
+
     // return score of current shape relative to ith shape
     // ith takes two values: ith = 0 means source, 1 means target.
     double detecting(QVector<GroupRelation>& grs,QVector<PART_LANDMARK> &corres, int ith)
@@ -1902,17 +1754,7 @@ public:
                 ++numCurrGr;
                 //if ( cgr.deviation <
             }
-#ifdef _OUTPUT_LOG
-            if ( 0 == ith)
-            {
-                logStream_ << "group in source: " << gr << "\n";
-            }
-            else
-            {
-                logStream_ << "group in target: " << gr << "\n";
-            }
-            logStream_ << "correspondence group: " << cgr << "\n";
-#endif
+
             /*if ( cgr.type == REF_SYMMETRY)
             {*/
                 double ss = computeScore(cgr, gr);
@@ -1924,11 +1766,6 @@ public:
             tmp = 0;
         else
             tmp = tmp/(diagonalLen_*numCurrGr);
-#ifdef _OUTPUT_LOG
-        logStream_ << "\n ========================================= \n";
-        logStream_ << "total group number: " << grs.size() << ", current group: " << numCurrGr << "\n";
-        logStream_ << "mean score: " << tmp << "\n";
-#endif
         return tmp;
     }
 protected:

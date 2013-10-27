@@ -110,13 +110,12 @@ void BlendPathRenderer::paintGL()
 	sceneCamera->loadProjectionMatrix();
 	sceneCamera->loadModelViewMatrix();
 
-	// Draw current graph
-	s_manager->scheduler->property["progressDone"] = true;
-	
+	// Render options
 	if( !isViewerMode ) s_manager->pointSize = 1.0;
 	else s_manager->pointSize = 2.5;
-
 	s_manager->color = QColor( 255, 180, 68 );
+
+	// Draw current graph
 	s_manager->drawSynthesis( activeGraph );
 
 	if( !isViewerMode ) 
