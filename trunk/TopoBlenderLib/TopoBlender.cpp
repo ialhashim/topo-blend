@@ -911,18 +911,15 @@ bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structu
 		}
 	}
 
-	// Hack for now..
-	if(edges.isEmpty())
-	{
+	// Hack for broken graphs...
+	if(edges.isEmpty()){
 		Vector3 pos = sheet1->approxProjection(curve2->position(Vec4d(0,0,0,0)));
-		NURBS::NURBSCurved new_curve = sheet1->convertToNURBSCurve(pos, curve2->direction());
-		Structure::Curve *curve1 = new Structure::Curve(new_curve, nodeID1);
+		Structure::Curve *curve1 = new Structure::Curve(sheet1->convertToNURBSCurve(pos, curve2->direction()), nodeID1);
 		curve1->property = node1->property;
 		curve1->property["original_sheet"].setValue(sheet1);
 		superG1->removeNode(nodeID1);
 		superG1->addNode(curve1);
-		curve1->property["type_equalized"] = true;
-		node2->property["type_equalized"] = true;
+		curve1->property["type_equalized"] = node2->property["type_equalized"] = true;
 		converted = true;
 	}
 

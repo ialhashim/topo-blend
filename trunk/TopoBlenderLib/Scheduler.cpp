@@ -240,6 +240,8 @@ void Scheduler::schedule()
 		prev = current;
 	}
 
+	this->startAllSameTime();
+
 	// Order and group here:
 	this->order();
 
@@ -267,10 +269,9 @@ void Scheduler::order()
 	{
 		QList<Task*> curTasks = tasksByType.values(Task::TaskType(i));
 
-		int futureStart = curStart;
-		Structure::Graph * g = NULL;
-
 		if(!curTasks.size()) continue;
+
+		int futureStart = curStart;
 
 		// Sort tasks by priority
 		curTasks = sortTasksByPriority( curTasks );
@@ -290,7 +291,7 @@ void Scheduler::order()
 		}
 
 		// Group events in same group
-		g = (i == Task::SHRINK) ? activeGraph : targetGraph;
+		Structure::Graph * g = (i == Task::SHRINK) ? activeGraph : targetGraph;
 		groupStart(g, curTasks, curStart, futureStart);		
 
 		curStart = futureStart;
@@ -384,6 +385,8 @@ void Scheduler::groupStart( Structure::Graph * g, QList<Task*> curTasks, int cur
 		foreach(Task * t, tasksInGroup){
 			t->setStart(curStart);
 			futureStart = qMax(futureStart, t->endTime());
+
+			t->property["grouped"] = true;
 		}
 	}
 }
