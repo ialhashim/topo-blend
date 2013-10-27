@@ -327,7 +327,8 @@ void topoblend::decorate()
 			s_manager->isSplatRenderer = viz_params["isSplatRenderer"].toBool();
 			s_manager->splatSize = viz_params["splatSize"].toDouble();
 
-			s_manager->drawSynthesis( graphs.back() );
+			if(scheduler->property["progressDone"].toBool())
+				s_manager->drawSynthesis( graphs.back() );
 		}
 	}
 

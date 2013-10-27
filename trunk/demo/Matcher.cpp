@@ -1,7 +1,7 @@
 #include "Matcher.h"
 using namespace Structure;
 
-Matcher::Matcher(Scene * scene, QString title) : gcorr(NULL), prevItem(NULL), DemoPage(scene,title)
+Matcher::Matcher(Scene * scene, QString title) : gcorr(NULL), prevItem(NULL), isAuto(true), DemoPage(scene,title)
 {
 	// Fill in color sets
 	for(int i = 0; i < 40; i++)
@@ -21,6 +21,9 @@ Matcher::Matcher(Scene * scene, QString title) : gcorr(NULL), prevItem(NULL), De
 	}
 
 	c_cold = c_warm = 0;
+
+	// Connections
+	this->connect(this, SIGNAL(keyUpEvent(QKeyEvent*)), SLOT(keyReleased(QKeyEvent*)));
 }
 
 void Matcher::show()
@@ -250,14 +253,20 @@ void Matcher::autoMode()
 
 	// Visualize computed correspondences
 	visualize();
+
+	isAuto = true;
 }
 
 void Matcher::manualMode()
 {
 	if( property.contains("corrFile") )
 	{
+		QString filename = property["corrFile"].toString();
+
 		gcorr->clear();
-		gcorr->loadCorrespondences( property["corrFile"].toString(), property["corrReversed"].toBool() );
+		gcorr->loadCorrespondences( filename, property["corrReversed"].toBool() );
+
+		emit( message( "Correspondence loaded from file: " + filename ) );
 	}
 
 	prevCorrAuto.clear();
@@ -270,6 +279,8 @@ void Matcher::manualMode()
 	visualize();
 
 	prevItem = NULL;
+	
+	isAuto = false;
 }
 
 void Matcher::clearMatch()
@@ -311,4 +322,41 @@ void Matcher::setMatch()
 	clearMatch();
 
 	visualize();
+}
+
+void Matcher::mousePress( QGraphicsSceneMouseEvent* mouseEvent )
+{
+	if( isAuto )
+	{
+		QVector<QRectF> r; 
+		r << s->inputGraphs[0]->sceneBoundingRect() << s->inputGraphs[1]->sceneBoundingRect();
+
+		// Test on smaller bounds of input graphs
+		int	b = r.front().width() * 0.25;
+
+		for(int i = 0; i < 2; i++){	
+			if(r[i].adjusted(b,b,-b,-b).contains(mouseEvent->scenePos())){
+				manualMode();
+				emit( switchedToManual() );
+				return;
+			}
+		}
+	}
+}
+
+void Matcher::keyReleased( QKeyEvent* keyEvent )
+{
+	// Save correspondence
+	if(keyEvent->key() == Qt::Key_S){
+		QString filename = "dataset/corr/" + (s->inputGraphs[0]->name + "_" + s->inputGraphs[1]->name) + ".txt";
+		gcorr->saveCorrespondences(filename, true);
+		emit( message( "Correspondence save to file: " + filename ) );
+		return;
+	}
+
+	if(keyEvent->key() == Qt::Key_R){
+		QString filename = "dataset/corr/" + (s->inputGraphs[0]->name + "_" + s->inputGraphs[1]->name) + ".txt";
+		if(QFile::remove(filename)) emit( message( "Correspondence file deleted: " + filename ) );
+		return;
+	}
 }

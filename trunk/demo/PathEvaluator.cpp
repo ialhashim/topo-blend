@@ -19,14 +19,15 @@ void PathEvaluator::evaluatePaths()
 	QString path = "results/" + sessionName;
 	QDir d("");	d.mkpath( path ); d.mkpath( path + "/images" );
 
-	int numSamplesPerPath = 100;
 	int timeLimit = 5000; // ms
 	int numInBetweens = 8;
+	int numSamplesPerPath = 100;
 
 	/// Get number of paths to evaluate:
 	int numPaths = 0;
-	Scheduler defaultSchedule( *b->m_scheduler );
 	{
+		Scheduler defaultSchedule( *b->m_scheduler );
+
 		// Find time it takes for a single path
 		QElapsedTimer timer; timer.start();
 		{
@@ -36,6 +37,11 @@ void PathEvaluator::evaluatePaths()
 		}
 
 		numPaths = qMax(1.0, double(timeLimit) / timer.elapsed() * omp_get_num_threads());
+		
+		// Export source and target images
+		QColor inputColor(255,255,255);
+		b->renderer->quickRender(defaultSchedule.allGraphs.front(), inputColor).save(path + "/images/source.png");
+		b->renderer->quickRender(defaultSchedule.allGraphs.back(), inputColor).save(path + "/images/target.png");
 	}
 
 	// Force number of paths
@@ -56,7 +62,7 @@ void PathEvaluator::evaluatePaths()
 
 	QElapsedTimer evalTimer; evalTimer.start();
 
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(int i = 0; i < allPaths.size(); i++)
 	{
 		// Setup schedule
@@ -68,26 +74,58 @@ void PathEvaluator::evaluatePaths()
 		s.executeAll();
 		
 		// Compute its score
-		ps[i].score = r_manager.traceModelConstraints( s.allGraphs );
+		ps[i].scores = r_manager.traceModelConstraints( s.allGraphs );
+		
+		double maxScorePath = ps[i].maxScore();
 
 		//#pragma omp critical
 		{
+			QImage img(QSize(600,130), QImage::Format_ARGB32);
+			img.fill(qRgba(0,0,0,0));
+
+			QPainter painter(&img);
+			painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+			
+			// Graph
+			QPainterPath poly;
+			int padding = 20;
+			poly.moveTo(img.width(), padding);
+			poly.lineTo(img.width(), img.height());
+			poly.lineTo(0, img.height());
+			poly.lineTo(0, padding);
+
 			// Render path
 			QVector<Structure::Graph*> inBetweens = s.interestingInBetweens( numInBetweens );
 			for(int k = 0; k < numInBetweens; k++)
 			{
-				QString imageName = QString("%1_%2.png").arg(i).arg(k);
-				QString imagePath = path + "/images/" + imageName;
-				//b->renderer->quickRender(inBetweens[k], Qt::white).save(imagePath);
-				ps[i].images << imageName;
+				QImage inBetween = b->renderer->quickRender(inBetweens[k], Qt::white);
+
+				// Rendered shape
+				int newWidth = inBetween.width() * 0.5;
+				int startX = k * newWidth;
+				painter.drawImage(startX, 0, inBetween);
+
+				// Score graph
+				double val = inBetweens[k]->property["score"].toDouble() / maxScorePath;
+				int x = startX + newWidth;
+				int y = img.height() - (img.height() * val);
+				poly.lineTo(x, y + padding);
 			}
+
+			poly.lineTo(img.width(), padding);
+			painter.setPen(QPen(Qt::black, 3));
+			painter.setBrush(QColor(50,255,50,30));
+			painter.drawPath(poly);
+
+			img.save( path + QString("/images/%1.png").arg(i) );
 		}
 	}
 
 	// Sort based on score
 	qSort(ps);
 
-	b->emitMessage( QString("Time (%1 ms), number of paths (%2)").arg(evalTimer.elapsed()).arg(QString::number(numPaths)) );
+	int timeElapsed = evalTimer.elapsed();
+	b->emitMessage( QString("Time (%1 ms), number of paths (%2)").arg(timeElapsed).arg(QString::number(numPaths)) );
 
 	///////////////////////////////////////////////////////////
 	// HTML header
@@ -95,12 +133,10 @@ void PathEvaluator::evaluatePaths()
 	html << "<!DOCTYPE html>";
 	html << "<html>" << "<head>" << "<title> Results </title> <link rel='stylesheet' href='../style.css'>" << "</head>" << "<body>";
 	html << "<h1>" << sessionName << "</h1>";
-	html << "<h2 id ='input'>" << "Parents" << "</h2>";
+	html << "<h2 id ='input'>" << "Parents:" << b->m_blender->super_sg->property["sourceName"].toString() << ", "
+											<< b->m_blender->super_sg->property["targetName"].toString() << "</h2>";
 
 	// Inputs
-	QColor inputColor(255,255,255);
-	b->renderer->quickRender(defaultSchedule.allGraphs.front(), inputColor).save(path + "/images/source.png");
-	b->renderer->quickRender(defaultSchedule.allGraphs.back(), inputColor).save(path + "/images/target.png");
 	html << QString("<div> <img src='images/source.png'/> <img src='images/target.png'/> </div>");
 
 	// Outputs
@@ -116,12 +152,9 @@ void PathEvaluator::evaluatePaths()
 
 		for(int h = 0; h < 2; h++)
 		{
-			html << "<td>" << QString("<div class='score-%1'>").arg(scoreType[h]) << QString::number(ps[ idx[h] ].score) << "</div>";
+			html << "<td>" << QString("<div class='score-%1'>").arg(scoreType[h]) << QString::number(ps[ idx[h] ].score()) << "</div>";
 			html << "<div class='path-img'>";
-
-			for(int k = 0; k < numInBetweens; k++)
-				html << QString(" <img src='images/%1'/> ").arg(ps[ idx[h] ].images[k]);
-
+			html << QString(" <img src='images/%1.png'/> ").arg( idx[h] );
 			html << "</div>" << "</td>";
 		}
 
@@ -129,7 +162,10 @@ void PathEvaluator::evaluatePaths()
 	}
 
 	// Footer
-	html << "</table>" << "</div>" << "</body>" << "</html>";
+	html << "</table>" << "</div>";
+	html << "<h2>Time taken: " << QString::number((timeElapsed / 1000) / 60) << " minutes</h2>";
+		
+	html << "</body>" << "</html>";
 
 	QString filename( path + "/index.html"  );
 	QFile file(filename); file.open(QIODevice::WriteOnly | QIODevice::Text);

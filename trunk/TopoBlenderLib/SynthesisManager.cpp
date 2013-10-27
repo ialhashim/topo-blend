@@ -760,8 +760,6 @@ void SynthesisManager::geometryMorph( SynthData & data, Structure::Graph * graph
 
 void SynthesisManager::drawSynthesis( Structure::Graph * activeGraph )
 {
-	if(!scheduler || !scheduler->property["progressDone"].toBool()) return;
-
 	// Combine all geometries
 	if(currentGraph["graph"].value<Structure::Graph*>() != activeGraph)
 	{

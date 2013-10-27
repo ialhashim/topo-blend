@@ -23,6 +23,7 @@ private:
 	MatcherState state;
 	QVector<QString> groupA, groupB;
 	GraphItem * prevItem;
+	bool isAuto;
 
 public slots:
     void show();
@@ -39,7 +40,12 @@ public slots:
 	void setMatch();
 	void clearMatch();
 
+	void mousePress( QGraphicsSceneMouseEvent* mouseEvent );
+	void keyReleased( QKeyEvent* keyEvent );
+
 signals:
 	void corresponderCreated(GraphCorresponder *);
 	void correspondenceFromFile();
+
+	void switchedToManual();
 };
