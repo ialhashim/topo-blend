@@ -19,6 +19,7 @@ public:
 
 public slots:
 	void evaluatePaths();
+	void clusterPaths();
 
 private:
 	Blender * b;

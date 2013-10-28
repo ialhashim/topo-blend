@@ -202,7 +202,7 @@ static QString toGraphvizFormat(DynamicGraphs::DynamicGraph g, QString subcaptio
 		if(node->id.contains("_null")) shape = "ellipse";
 
 		QString nodeName = n.property["original"].toString();
-		if(nodeName.contains("_null")) nodeName = "# " + nodeName.replace("_null","");
+		if(nodeName.contains("_null")) nodeName = "# " + nodeName.replace("_null","z");
 
 		out << "\t" << QString("%1 [label = \"%2\", color = \"%3\", shape = %4];").arg(n.idx).arg( nodeName ).arg(colorHex).arg(shape) << "\n";
 

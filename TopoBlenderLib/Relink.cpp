@@ -37,6 +37,11 @@ void Relink::execute()
 		}
 	}
 
+	// Stating nodes propagate in parallel
+	foreach(Task * task, propagationQueue){
+		propagateFrom(task);
+	}
+
 	// propagating
 	while( !propagationQueue.isEmpty() )
 	{

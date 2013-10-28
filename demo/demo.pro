@@ -54,7 +54,8 @@ SOURCES +=  main.cpp\
             BlendPathSub.cpp \
             ShapeRenderer.cpp \
             BlendPathWidget.cpp \
-    PathEvaluator.cpp
+            PathEvaluator.cpp \
+            json.cpp
 
 HEADERS  += mainwindow.h \
             Scene.h \
@@ -75,7 +76,8 @@ HEADERS  += mainwindow.h \
             BlendPathSub.h \
             ShapeRenderer.h \
             BlendPathWidget.h \
-    PathEvaluator.h
+            PathEvaluator.h \
+            json.h
 
 FORMS    += mainwindow.ui \
             Controls.ui

@@ -406,7 +406,8 @@ void TaskCurve::executeCurve(double t)
 
 void TaskCurve::foldCurve( double t )
 {
-	Curve* structure_curve = ((Curve*)node());
+	Node * n = node();
+	Curve* structure_curve = ((Curve*)n);
 
 	// Grow curve
 	Array1D_Vector3 cpts = property["orgCtrlPoints"].value<Array1D_Vector3>();
@@ -418,7 +419,6 @@ void TaskCurve::foldCurve( double t )
 
 	// Placement
     Link * l = property["edges"].value< QVector<Link*> >().front();
-	Node * n = node();
 
 	Vector3 posOnMe = l->position(n->id);
 	Vector3 posOnBase = l->positionOther(n->id);

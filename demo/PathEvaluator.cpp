@@ -7,6 +7,8 @@
 
 #include "BlendPathRenderer.h"
 
+#include "json.h"
+
 PathEvaluator::PathEvaluator( Blender * blender, QObject *parent ) : QObject(parent), b(blender)
 {
 	
@@ -174,4 +176,89 @@ void PathEvaluator::evaluatePaths()
 	file.close();
 
 	emit( evaluationDone() );
+}
+
+void PathEvaluator::clusterPaths()
+{
+	int numPaths = 100;
+	int numInBetweens = 20;
+	int numSamplesPerPath = 100;
+
+	// Exporting
+	QString sessionName = QString("cluster_%1").arg(QDateTime::currentDateTime().toString("dd.MM.yyyy_hh.mm.ss"));
+	QString path = "results/" + sessionName;
+	QDir d("");	d.mkpath( path ); d.mkpath( path + "/images" );
+
+	QtJson::JsonObject json;
+	QtJson::JsonArray allData;
+	
+	QVector< QVector<double> > rawData;
+	int idx = 0;
+	
+	QVector<ScheduleType> allPaths = b->m_scheduler->manyRandomSchedules( numPaths );
+
+	for(int i = 0; i < allPaths.size(); i++)
+	{
+		// Setup schedule
+		Scheduler s( *b->m_scheduler );
+		s.setSchedule( allPaths[i] );
+		s.timeStep = 1.0 / numSamplesPerPath;
+
+		// Execute blend
+		s.executeAll();
+
+		QtJson::JsonArray b_path;
+
+		QVector<Structure::Graph*> inBetweens = s.interestingInBetweens( numInBetweens );
+		
+		for(int k = 0; k < numInBetweens; k++)
+		{
+			QtJson::JsonObject tvals, ibetween;
+			QVector<double> rawDataInbetweens;
+
+			foreach(Structure::Node * n, inBetweens[k]->nodes)
+			{
+				double t = n->property["t"].toDouble();
+				tvals[n->id] = t;
+
+				rawDataInbetweens.push_back(t);
+			}
+		
+			ibetween["t"] = tvals;
+			ibetween["image"] = QString("images/%1_%2.png").arg(i).arg(k);
+			ibetween["id"] = idx++;
+
+			//b->renderer->quickRender(inBetweens[k], Qt::white).save(path + "/" + ibetween["image"].toString());
+
+			b_path.append(ibetween);
+
+			rawData.push_back(rawDataInbetweens);
+		}
+
+		allData.append(b_path);
+	}
+
+	json["data"] = allData;
+
+	/// Export results:
+	{
+		QString filename( path + "/data.json"  );
+		QFile file(filename); file.open(QIODevice::WriteOnly | QIODevice::Text);
+		QTextStream out(&file);
+		out << QtJson::serialize(allData);
+		file.close();
+	}
+
+	// Draw data
+	{
+		QString filename( path + "/rawdata.csv"  );
+		QFile file(filename); file.open(QIODevice::WriteOnly | QIODevice::Text);
+		QTextStream out(&file);
+		foreach(QVector<double> shapeVector, rawData){
+			QStringList tvector;
+			foreach(double t, shapeVector) tvector << QString::number(t);
+			out << tvector.join(",") << "\n";
+		}
+		file.close();
+	}
 }
