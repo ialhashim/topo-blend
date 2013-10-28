@@ -283,7 +283,7 @@ void TopoBlender::correspondSuperEdges()
 		connectNullNodes( super_sg, super_tg );
 		connectNullNodes( super_tg, super_sg );
 	}
-	
+
 	/// Correspond edges with changed ends
 	if( CASE_4 )
 	{
@@ -358,10 +358,21 @@ void TopoBlender::correspondSimilarType( Structure::Graph * source, Structure::G
 
 void TopoBlender::connectNullNodes( Structure::Graph * source, Structure::Graph * target )
 {
-	foreach(Structure::Node * snode, source->nodes)
-	{
-		if (!snode->id.contains("_null")) continue;
+	// Sorted by valence descending
+	QVector<Structure::Node*> nullNodes;
+	typedef QPair<int,Node*> ValenceNode;
+	QMap<Node*,int> nodeV;
+	foreach(Structure::Node * n, source->nodes){
+		if (!n->id.contains("_null")) continue;
+		nodeV[n] = source->valence(n);
+	}
 
+	// high to low
+	foreach(ValenceNode pair, sortQMapByValue(nodeV)) 
+		nullNodes.push_front(pair.second); 
+
+	foreach(Structure::Node * snode, nullNodes)
+	{
 		Structure::Node * tnode = target->getNode( snode->property["correspond"].toString() );
 
 		// Get edges of target node
@@ -457,7 +468,18 @@ void TopoBlender::correspondChangedEnds( Structure::Graph * source, Structure::G
 			// Source has been duplicated ?
 			else if(tedges.size() == 1 && sedges.size() > 1)
 			{
-				Link* slink = sedges.front(), *tlink = tedges.front();
+				Link * tlink = tedges.front();
+
+				// A single edge from the target graph is ground truth
+				if(target == super_tg)
+				{
+					Structure::Node * n1 = source->getNode( tlink->getNode(tnode->id)->property["correspond"].toString() );
+					Structure::Node * n2 = source->getNode( tlink->otherNode(tnode->id)->property["correspond"].toString() );
+					Structure::Link * newEdge = source->addEdge(n1, n2, tlink->getCoord(tnode->id), tlink->getCoordOther(tnode->id), source->linkName(n1,n2));
+					sedges.push_front( newEdge );
+				}
+
+				Link* slink = sedges.front();
 				bool sFromMe = ( slink->n1->id == snode->id );
 				bool tFromMe = ( tlink->n1->id == tnode->id );
 				bool isFlip = (sFromMe != tFromMe);

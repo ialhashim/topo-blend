@@ -438,7 +438,8 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 	if(keyEvent->key() == Qt::Key_Q){
 
 		// Experiment: path evaluation
-		pathsEval->evaluatePaths();
+		//pathsEval->evaluatePaths();
+		pathsEval->clusterPaths();
 
 		return;
 	}
