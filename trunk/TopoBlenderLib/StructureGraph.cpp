@@ -1011,7 +1011,7 @@ void Graph::loadFromFile( QString fileName )
 	// Original shape bounding box
 	if( hasMeshes ){
 		Eigen::AlignedBox3d shapeBox;
-		for(int i = 0; i < num_nodes; i++){
+		for(int i = 0; i < nodes.size(); i++){
 			QSharedPointer<SurfaceMeshModel> nodeMesh = nodes[i]->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >();
 			shapeBox = shapeBox.merged( nodeMesh->bbox() );
 		}
