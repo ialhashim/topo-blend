@@ -723,6 +723,37 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 		used = true;
 	}
 
+	// Visualize relinking
+	if(event->key() == Qt::Key_Y && graph_explorer)
+	{
+		QString dotPath = "dot";
+
+		#ifdef Q_OS_WIN
+		dotPath = "\"" + QString(exec("where dot").c_str()).replace("\\","/").trimmed() + "\"";
+		#else
+		dotPath = QString(exec("which dot").c_str());
+		#endif
+
+		QProcess * p = graph_explorer->p;
+
+		p = new QProcess;
+		p->start( dotPath, QStringList() << "-Tsvg" );
+		p->waitForStarted();
+		p->write( qPrintable( graphs.front()->property["relinkGraph"].toString() ) );
+		p->closeWriteChannel();
+		p->waitForFinished(-1);
+
+		QString svgData = p->readAllStandardOutput();
+		QTemporaryFile file;
+		if (file.open()){
+			QTextStream out(&file);
+			out << svgData;
+			file.close();
+		}
+
+		graph_explorer->svgViewer->openFile(file);
+	}
+
 	drawArea()->updateGL();
 
 	return used;

@@ -506,3 +506,24 @@ static inline std::vector<bool> subsampleMask(int samples, int entire){
 	std::random_shuffle(mask.begin(), mask.end());
 	return mask;
 }
+
+// Executing system commands and returning output
+#ifdef Q_OS_WIN
+#ifndef popen
+#define popen _popen
+#define pclose _pclose
+#endif
+#else
+#endif
+static inline std::string exec(char* cmd) {
+	FILE* pipe = popen(cmd, "r");
+	if (!pipe) return "ERROR";
+	char buffer[128];
+	std::string result = "";
+	while(!feof(pipe)) {
+		if(fgets(buffer, 128, pipe) != NULL)
+			result += buffer;
+	}
+	pclose(pipe);
+	return result;
+}

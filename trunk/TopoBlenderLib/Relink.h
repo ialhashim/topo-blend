@@ -1,7 +1,7 @@
 #pragma once
 #include "StructureGraph.h"
 #include "Task.h"
-#include "QQueue"
+#include <QQueue>
 
 struct LinkConstraint{
     Structure::Link *link;
@@ -19,16 +19,20 @@ struct Relink
 
     Scheduler * s;
     Structure::Graph *activeGraph, *targetGraph;
+	
     TasksConstraints constraints;
 
-	bool checkRelinkability;
-	QQueue<Task*> propagationQueue;
+	// Tracking
+	typedef QPair<QString,int> PropagationEdge;
+	typedef QVector< PropagationEdge > PropagationEdges;
+	QMap< QString, PropagationEdges > propagationGraph;
+	int propagationIndex;
 
 	void execute();
 	void fixTask( Task* task );
-	void propagateFrom( Task* task );
 
 	// Helpers
 	Vector3 getToDelta( Structure::Link * link, QString otherID );
 	bool doesPropagate( Task* task );
+	bool isInActiveGroup( Task* task );
 };

@@ -234,10 +234,6 @@ void TaskSheet::executeCrossingSheet( double t )
 		Vector3d deltaA = linkA->property["delta"].value<Vector3d>() * dt;
 		Vector3d deltaB = linkB->property["delta"].value<Vector3d>() * dt;
 		
-		// Visualize
-		active->vs.addVector(pointA,deltaA);
-		active->vs.addVector(pointB,deltaB);
-		
         Array1D_Vector3 decoded = Curve::decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA + deltaA, pointB + deltaB, decodeT);
         structure_sheet->setControlPoints( decoded );
     }

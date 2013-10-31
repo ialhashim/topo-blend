@@ -8,50 +8,89 @@ Relink::Relink(Scheduler *scheduler)
     this->s = scheduler;
     this->activeGraph = scheduler->activeGraph;
     this->targetGraph = scheduler->targetGraph;
-
-	checkRelinkability = true;
 }
 
 void Relink::execute()
 {
 	// initial
 	constraints.clear();
-	propagationQueue.clear();
 	foreach (Task* t, s->tasks) 
 	{
 		t->property["relinked"] = false;
 		t->property["propagated"] = false;
 	}
 
-	// Set up starting nodes
-	QVector<QString> activeNodeIDs = activeGraph->property["activeTasks"].value< QVector<QString> >();
-	foreach (QString nID, activeNodeIDs)
-	{
-		Task* task = s->getTaskFromNodeID(nID);
+	// Tracking
+	propagationGraph.clear();
+	propagationIndex = 0;
 
-		// Skip all crossing nodes
-		if ( doesPropagate(task) )
-		{
-			propagationQueue.enqueue(task);
+	// Find propagation levels via BFS
+	QVector< QVector<Task*> > propagationLevel;
+	propagationLevel.resize(1);
+
+	QVector<QString> activeNodeIDs = activeGraph->property["activeTasks"].value< QVector<QString> >();
+	foreach (QString nID, activeNodeIDs){
+		Task* task = s->getTaskFromNodeID(nID);
+		if ( doesPropagate(task) ){
+			propagationLevel[0].push_back(task);
 			task->property["propagated"] = true;
 		}
 	}
 
-	// Stating nodes propagate in parallel
-	foreach(Task * task, propagationQueue){
-		propagateFrom(task);
+	forever{
+		QVector<Task *> curLevel;
+
+		// Visit nodes in levels
+		foreach(Task* task, propagationLevel.back())
+		{
+			foreach(Structure::Link* link, activeGraph->getEdges(task->nodeID))
+			{
+				Structure::Node * other = link->otherNode(task->nodeID);
+				Task * otherTask = s->getTaskFromNodeID(other->id);
+				if (otherTask->property["propagated"].toBool()) continue;
+
+				if(!curLevel.contains(otherTask)) curLevel.push_back( otherTask );
+
+				// Add constraint
+				constraints[ otherTask ].push_front( LinkConstraint(link, task, otherTask) );
+
+				// Tracking
+				propagationGraph[task->nodeID].push_back(qMakePair(otherTask->nodeID, propagationIndex++));
+			}
+
+		}
+
+		// Mark elements in level as visited
+		foreach(Task* task, propagationLevel.back())
+				task->property["propagated"] = true;
+
+		if(curLevel.isEmpty()) break;
+		propagationLevel.push_back( curLevel );
 	}
 
-	// propagating
-	while( !propagationQueue.isEmpty() )
+	// Apply constraints
+	for(int i = 0; i < propagationLevel.size(); i++)
 	{
-		Task* task = propagationQueue.dequeue();
+		foreach(Task* task, propagationLevel[i]) 
+		{
+			fixTask(task);
+		}
+	}
 
-		// Fix current task according to constraints
-		fixTask(task);
-
-		// Propagate from task
-		propagateFrom(task);
+	// Tracking
+	if( true ){
+		QStringList graph;
+		graph << "digraph G{";
+		foreach(QString n1, propagationGraph.keys()){
+			foreach(PropagationEdge edge, propagationGraph[n1]){
+				int idx = edge.second;
+				double t = 1.0 - (double(idx) / (propagationIndex-1));
+				int penWidth = qMax(1, int(t * 10));
+				graph << QString("%1 -> %2 [penwidth=%3, color=\"0.0 1.0 %4\"];").arg(n1).arg(edge.first).arg(penWidth).arg(t);
+			}
+		}
+		graph << "}";
+		activeGraph->property["relinkGraph"] = graph.join("\n");
 	}
 }
 
@@ -201,46 +240,6 @@ void Relink::fixTask( Task* task )
 				activeGraph->vs2.addVector( linkPosOtherA, deltaA );
 				activeGraph->vs2.addVector( linkPosOtherB, deltaB );
 			}
-		}
-	}
-
-	// Visualization
-	foreach(LinkConstraint c, consts)
-	{
-		Structure::Link* link = c.link;
-		Vector3 linkPosOther = link->positionOther(n->id);
-		Vector3d delta = getToDelta(link, n->id);
-
-		activeGraph->vs.addVector( linkPosOther, delta );
-	}
-}
-
-void Relink::propagateFrom( Task* task )
-{
-	Structure::Node * n = task->node();
-	QVector<Structure::Link*> edges = activeGraph->getEdges(n->id);
-
-	foreach(Structure::Link* link, edges)
-	{
-		Structure::Node * other = link->otherNode(n->id);
-		Task * otherTask = s->getTaskFromNodeID(other->id);
-
-		// Add to queue
-		if ( !otherTask->property["propagated"].toBool() )
-		{
-			propagationQueue.enqueue(otherTask);
-			otherTask->property["propagated"] = true;
-		}
-
-		// generate constrains to unfixed task
-		if ( !otherTask->property["relinked"].toBool() )
-		{
-			bool taskIsActive = task->isReady && !task->isDone;
-
-			if(taskIsActive)
-				constraints[ otherTask ].push_front( LinkConstraint(link, task, otherTask) );
-			else
-				constraints[ otherTask ].push_back( LinkConstraint(link, task, otherTask) );
 		}
 	}
 }
