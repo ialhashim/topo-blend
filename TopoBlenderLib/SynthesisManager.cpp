@@ -242,6 +242,11 @@ void SynthesisManager::doRenderAll()
     qDebug() << QString("Sequence rendered [%1 ms]").arg(timer.elapsed());
 }
 
+void SynthesisManager::renderCurrent()
+{
+	renderCurrent(currentGraph["graph"].value<Structure::Graph*>(), "currentGraph");
+}
+
 void SynthesisManager::renderCurrent(Structure::Graph * currentGraph, QString path)
 {
     if(!scheduler) return;
