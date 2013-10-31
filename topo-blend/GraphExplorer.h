@@ -4,6 +4,10 @@
 #include <QStringList>
 #include <QTreeWidget>
 
+#include <QProcess>
+#include "QGraphViz/svgview.h"
+#include <QTemporaryFile>
+
 namespace Ui {class GraphExplorer;}
 
 namespace Structure {struct Graph;}
@@ -22,6 +26,9 @@ public:
     ~GraphExplorer();
 
 	void update(Structure::Graph * graph);
+
+	QProcess * p;
+	SvgView * svgViewer;
 
 private:
     Ui::GraphExplorer *ui;

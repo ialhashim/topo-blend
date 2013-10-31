@@ -2,8 +2,6 @@
 #include <QSet>
 #include <QStack>
 #include <QFileDialog>
-#include <QProcess>
-#include <QTemporaryFile>
 
 #include "GraphExplorer.h"
 #include "ui_GraphExplorer.h"
@@ -13,34 +11,8 @@
 #include "Task.h"
 
 #include "ExportDynamicGraph.h"
-#include "QGraphViz/svgview.h"
 
-QProcess * p = NULL;
-SvgView * svgViewer = NULL;
-
-#ifdef Q_OS_WIN
-#ifndef popen
-#define popen _popen
-#define pclose _pclose
-#endif
-#else
-
-#endif
-
-static inline std::string exec(char* cmd) {
-	FILE* pipe = popen(cmd, "r");
-	if (!pipe) return "ERROR";
-	char buffer[128];
-	std::string result = "";
-	while(!feof(pipe)) {
-		if(fgets(buffer, 128, pipe) != NULL)
-			result += buffer;
-	}
-	pclose(pipe);
-	return result;
-}
-
-GraphExplorer::GraphExplorer(QWidget *parent): QWidget(parent), ui(new Ui::GraphExplorer)
+GraphExplorer::GraphExplorer(QWidget *parent): QWidget(parent), ui(new Ui::GraphExplorer), p(NULL), svgViewer(NULL)
 {
 	//setAttribute(Qt::WA_DeleteOnClose);
 	ui->setupUi(this);

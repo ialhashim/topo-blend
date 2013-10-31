@@ -468,9 +468,6 @@ void TaskCurve::executeCrossingCurve( double t )
 
 		// Place
 		n->moveBy(newPos - oldPos);
-
-		// Visualize
-		active->vs.addVector(point, delta);
 	}
 
 	// Walk along using two edges
@@ -512,10 +509,6 @@ void TaskCurve::executeCrossingCurve( double t )
 		// Deltas to myself
 		if (slinkA->n1->id == n->id) deltaA *= -1;
 		if (slinkB->n1->id == n->id) deltaB *= -1;
-
-		// Visualize
-		active->vs.addVector(pointA, deltaA);
-		active->vs.addVector(pointB, deltaB);
 
 		Array1D_Vector3 newPnts = Curve::decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA + deltaA, pointB + deltaB);
 		Array1D_Vector3 newPntsT = Curve::decodeCurve(property["cpCoordsT"].value<CurveEncoding>(), pointA + deltaA, pointB + deltaB);
