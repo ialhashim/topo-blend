@@ -744,14 +744,8 @@ void Task::prepareMorphEdges()
 		if (!tl->hasNode(tn->id)) continue;
 
 		edges.push_back(l);
-
-		// Make sure local link coordinates are consistent from source to target
-		//Vector4d scoord = l->getCoord(n->id).front();
-		//Vector4d tcoord = target->getEdge(l->property["correspond"].toInt())->getCoord(tn->id).front();
-		//bool isWithinThreshold = (abs(scoord[0]-tcoord[0]) < 0.5);
-		//if(isSameHalf(scoord,tcoord) || isWithinThreshold ) continue;
-		//l->invertCoords(n->id);
 	}
+
 	property["edges"].setValue( edges );
 
 	// Compute paths for all edges
@@ -806,6 +800,10 @@ void Task::executeMorphEdges( double t )
 		GraphDistance::PathPointPair cur = path[idx];
 		Structure::Node *otherOld = link->otherNode(n->id);
 		Structure::Node *otherNew = active->getNode(cur.a.first);
+
+		// Do not perform on active nodes
+		Task * otherTask = otherOld->property["task"].value<Task*>();
+		if(otherTask->isReady && !otherTask->isDone) continue;
 
 		link->replace( otherOld->id, otherNew, Array1D_Vector4d(1,cur.a.second) );
 	}

@@ -418,7 +418,8 @@ void TaskCurve::foldCurve( double t )
 		structure_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);
 
 	// Placement
-    Link * l = property["edges"].value< QVector<Link*> >().front();
+	QVector<Link*> edges = property["edges"].value< QVector<Link*> >();
+    Link * l = edges.front();
 
 	Vector3 posOnMe = l->position(n->id);
 	Vector3 posOnBase = l->positionOther(n->id);
