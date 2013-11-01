@@ -172,7 +172,8 @@ void ShapesGallery::wheelEvent(QGraphicsSceneWheelEvent * event)
 {
     if(!this->isVisible()) return;
 
-    bool isLeftSide = event->scenePos().x() < (s->width() * 0.5);
+    bool isLeftSide = event->scenePos().x() < (s->width() * 0.6);
+	bool isRightSide = event->scenePos().x() > (s->width() * 0.4);
     bool isUp = event->delta() > 0;
 
     if(isLeftSide)
@@ -180,7 +181,8 @@ void ShapesGallery::wheelEvent(QGraphicsSceneWheelEvent * event)
         scrollTo(listA, isUp ? --indexA : ++indexA );
         emit( shapeChanged(0, listA[indexA]) );
     }
-    else
+    
+	if(isRightSide)
     {
         scrollTo(listB, isUp ? --indexB : ++indexB );
         emit( shapeChanged(1, listB[indexB]) );
