@@ -41,9 +41,6 @@ public:
 
 	OBB_Volume mesh_obb;
 
-    void basicCurveFit(NURBS::NURBSCurved & curve, std::vector<Vector3d> pnts);
-    void basicCurveFitRecursive(NURBS::NURBSCurved & curve, std::vector<Vector3d> pnts, int high, int low);
-
 	NURBS::NURBSCurved curveFit( SurfaceMeshModel * part );
 	NURBS::NURBSRectangled surfaceFit( SurfaceMeshModel * part );
 
@@ -65,12 +62,6 @@ public:
 	std::vector<Vertex> collectRings(SurfaceMeshModel * part, Vertex v, size_t min_nb);
 
 public slots:
-    void doFitCurve();
-    void doFitSurface();
-
-	void doFitSurface_old();
-	void basicSurfaceFit_old( NURBS::NURBSRectangled & surface, std::vector<Vector3d> pnts );
-
 	void clearAll();
 	void saveAll();
 

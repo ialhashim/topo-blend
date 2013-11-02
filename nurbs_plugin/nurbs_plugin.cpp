@@ -37,8 +37,6 @@ LineSegments lseg;
 
 #define RADIANS(deg)    ((deg)/180.0 * M_PI)
 
-std::vector<Vector3d> polyline;
-
 void nurbs_plugin::create()
 {
 	if(widget) return;
@@ -92,99 +90,7 @@ void nurbs_plugin::decorate()
 	pps.draw();
 	pps2.draw();
 
-	glLineWidth(3); 
-	glDisable(GL_LIGHTING);
-	glBegin(GL_LINE_STRIP);
-	foreach(Vector3d p, polyline) glVector3(p);
-	glEnd();
-	glEnable(GL_LIGHTING);
-
 	spheres.draw();
-}
-
-void nurbs_plugin::doFitCurve()
-{
-    qDebug() << "Curve fitting..";
-
-	points = m->vertex_property<Vector3>("v:point");
-	mesh_obb = OBB_Volume( m );
-	std::vector<Vector3d> corners = mesh_obb.corners();
-	Vector3d diag = mesh_obb.extents();
-	Vector3d from = mesh_obb.center() + diag;
-	Vector3d to = mesh_obb.center() - diag;
-    NURBS::NURBSCurved c = NURBS::NURBSCurved::createCurve( from, to, widget->uCount() );
-	std::vector<Vector3d> mesh_points;
-	foreach(Vertex v, m->vertices()) mesh_points.push_back( points[v] );
-	basicCurveFit(c, mesh_points);
-	c.mCtrlPoint = smoothPolyline( c.mCtrlPoint, 2 );
-
-	curves.push_back( c );
-
-	drawArea()->updateGL();
-}
-
-void nurbs_plugin::basicCurveFit( NURBS::NURBSCurved & curve, std::vector<Vector3d> pnts )
-{
-	int high = curve.mCtrlPoint.size() - 1;
-	int low = 0;
-
-	Vector3d planeNormal = (curve.mCtrlPoint[high] - curve.mCtrlPoint[low]).normalized();
-	QMap<double, Vector3d> distsLow, distsHigh;
-	for(int i = low; i <= high; i++){
-		for(int j = 0; j < (int)pnts.size(); j++){
-			distsLow[abs(dot( planeNormal, Vector3(pnts[j] - curve.mCtrlPoint[low]) ))] = pnts[j];
-			distsHigh[abs(dot( planeNormal, Vector3(pnts[j] - curve.mCtrlPoint[high]) ))] = pnts[j];
-		}
-	}
-	curve.mCtrlPoint[low] = distsLow.values().front();
-	curve.mCtrlPoint[high] = distsHigh.values().front();
-
-	basicCurveFitRecursive(curve,pnts,high,low);
-}
-
-void nurbs_plugin::basicCurveFitRecursive( NURBS::NURBSCurved & curve, std::vector<Vector3d> pnts, int high, int low )
-{
-	int mid = ((high - low) * 0.5) + low;
-
-	if(high <= low || mid == low || mid == high) return;
-
-	qDebug() << QString("High = %1  Mid = %2  Low = %3").arg(high).arg(mid).arg(low);
-
-	Vector3d planeCenter = (curve.mCtrlPoint[high] + curve.mCtrlPoint[low]) * 0.5;
-	Vector3d planeNormal = (curve.mCtrlPoint[high] - curve.mCtrlPoint[low]).normalized();
-
-	QMap<double, Vector3d> dists;
-	for(int i = low; i <= high; i++)
-	{
-		for(int j = 0; j < (int)pnts.size(); j++)
-		{
-			double d = abs(dot( planeNormal, Vector3(pnts[j] - planeCenter) ));
-			dists[d] = pnts[j];
-		}
-	}
-
-	Vector3d closestPoint = dists.values().front();
-	curve.mCtrlPoint[mid] = closestPoint;
-
-	Vector3d deltaLow = (curve.mCtrlPoint[mid] - curve.mCtrlPoint[low]) / (mid - (low + 1));
-	for(int i = low + 1; i < mid; i++)
-	{
-		curve.mCtrlPoint[i] = curve.mCtrlPoint[i-1] + deltaLow;
-	}
-
-	Vector3d deltaHigh = (curve.mCtrlPoint[high] - curve.mCtrlPoint[mid]) / (high - (mid + 1));
-	for(int i = mid + 1; i < high; i++)
-	{
-		curve.mCtrlPoint[i] = curve.mCtrlPoint[i-1] + deltaHigh;
-	}
-
-	basicCurveFitRecursive(curve, pnts, mid, low);
-	basicCurveFitRecursive(curve, pnts, high, mid);
-}
-
-void nurbs_plugin::doFitSurface()
-{
-	rects.push_back( surfaceFit( mesh() ) );
 }
 
 void nurbs_plugin::clearAll()
@@ -195,15 +101,6 @@ void nurbs_plugin::clearAll()
 
 void nurbs_plugin::saveAll()
 {
-	//Structure::Graph g;
-	//foreach(NURBS::NURBSCurved curve, curves)
-	//	g.addNode( new Structure::Curve(curve, m->name) );
-	//foreach(NURBS::NURBSRectangled rect, rects)
-	//	g.addNode( new Structure::Sheet(rect, m->name) );
-	//QString filename = QFileDialog::getSaveFileName(0, tr("Save Model"), 
-	//	mainWindow()->settings()->getString("lastUsedDirectory"), tr("Model Files (*.xml)"));
-	//g.saveToFile(filename);
-
 	foreach(Structure::Node * n, graph->nodes)
 	{
 		QString nodeID = n->id;
@@ -219,34 +116,6 @@ void nurbs_plugin::saveAll()
 	
 	QString filename = folderPath + "/" + entireMesh->name + ".xml";
 	graph->saveToFile( filename );
-}
-
-void nurbs_plugin::doFitSurface_old()
-{
-
-}
-
-void nurbs_plugin::basicSurfaceFit_old( NURBS::NURBSRectangled & surface, std::vector<Vector3d> pnts )
-{
-	// Try to minimize distance between control points and point cloud [buggy code..]
-	for(int v = 0; v < surface.mNumVCtrlPoints; v++){
-		for(int u = 0; u < surface.mNumUCtrlPoints; u++){
-			QMap<double, Vector3d> dists;
-			/*for(int j = 0; j < (int)pnts.size(); j++)
-			{
-			double d = abs(dot( planeNormal, (pnts[j] - planeCenter) ));
-			*/
-			Vector3d & cp = surface.mCtrlPoint[u][v];
-			for(int j = 0; j < (int)pnts.size(); j++){
-				Vector3d p,t0,t1,normal;
-				surface.GetFrame(u,v,p,t0,t1,normal);
-				double d = abs(dot( normal, Vector3(pnts[j] - p) ));
-				dists[d] = pnts[j];
-			}
-			Vector3d closestPoint = dists.values().front();
-			cp = closestPoint;
-		}
-	}
 }
 
 bool nurbs_plugin::keyPressEvent( QKeyEvent* event )
@@ -645,6 +514,9 @@ void nurbs_plugin::convertToCurve()
 		if(isDone) break;
 	}
 
+	// Clear parameters
+	mcf_params = NULL;
+
 	drawArea()->deleteAllRenderObjects();
 
 	foreach(Vertex v, m->vertices()) if(m->is_isolated(v)) m->remove_vertex(v);
@@ -678,6 +550,9 @@ void nurbs_plugin::convertToSheet()
 		stepSkeletonizeMesh();
 	}
 
+	// Clear parameters
+	mcf_params = NULL;
+
 	// Clean up
 	drawArea()->deleteAllRenderObjects();
 	foreach(Vertex v, m->vertices()) if(m->is_isolated(v)) m->remove_vertex(v);
@@ -701,8 +576,6 @@ NURBS::NURBSCurved nurbs_plugin::curveFit( SurfaceMeshModel * part )
 	NURBS::NURBSCurved fittedCurve;
 
 	Vector3VertexProperty partPoints = part->vertex_property<Vector3>("v:point");
-
-	double r = 0.025 * part->bbox().diagonal().norm();
 
 	GenericGraphs::Graph<int,double> g;
 	SurfaceMeshHelper h(part);
@@ -739,9 +612,11 @@ NURBS::NURBSCurved nurbs_plugin::curveFit( SurfaceMeshModel * part )
 	std::list<int> path = g.DijkstraShortestPath(idxA,idxB);
 
 	// Check for loop case
+	double r = 0.025 * part->bbox().diagonal().norm();
 	QVector<int> pathA, pathB;
 	foreach(int vi, path) pathA.push_back(vi);
 	Vertex centerPath ( pathA[pathA.size() / 2] );
+
 	foreach( Face f, part->faces() ){
 		QVector<Vertex> vidx; 
 		Surface_mesh::Vertex_around_face_circulator vit = part->vertices(Face(f)),vend=vit;
