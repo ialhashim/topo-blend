@@ -8,8 +8,8 @@ NURBSTools::NURBSTools(nurbs_plugin * usePlugin, QWidget *parent) : QWidget(pare
     this->plugin = usePlugin;
 
     // Connect
-    plugin->connect(ui->fitCurveButton, SIGNAL(clicked()), SLOT(doFitCurve()));
-    plugin->connect(ui->fitSurfaceButton, SIGNAL(clicked()), SLOT(doFitSurface()));
+    //plugin->connect(ui->fitCurveButton, SIGNAL(clicked()), SLOT(doFitCurve()));
+    //plugin->connect(ui->fitSurfaceButton, SIGNAL(clicked()), SLOT(doFitSurface()));
 
 	plugin->connect(ui->clearButton, SIGNAL(clicked()), SLOT(clearAll()));
 	plugin->connect(ui->saveButton, SIGNAL(clicked()), SLOT(saveAll()));
