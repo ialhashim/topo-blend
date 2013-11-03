@@ -209,34 +209,29 @@ void SynthesisManager::doRenderAll()
 {
     QElapsedTimer timer; timer.start();
 
-    int stepSize = 1;
-    int N = scheduler->allGraphs.size();
-
-    if(scheduler->property.contains("renderCount")){
-        int renderCount = scheduler->property["renderCount"].toInt();
-        if(renderCount > 1)
-            stepSize = double(N) / renderCount;
-    }
-
     int reconLevel = 7;
     if(scheduler->property.contains("reconLevel")){
         reconLevel = scheduler->property["reconLevel"].toInt();
     }
 
-    int startPercentage = scheduler->property["renderStartPercentage"].toInt();
-    int startID = N * ( (double) startPercentage / 100);
+	int N = scheduler->allGraphs.size();
 
-    for(int i = startID; i < N; i += stepSize)
+	// Not useful anymore...
+	int startPercentage = scheduler->property["renderStartPercentage"].toInt();
+	int startID = N * ( (double) startPercentage / 100);
+
+	int renderCount = scheduler->property["renderCount"].toInt();
+	int stepSize = qMax(1, N / renderCount);
+
+    for(int i = startID; i < scheduler->allGraphs.size(); i += stepSize)
     {
         Structure::Graph currentGraph = *(scheduler->allGraphs[i]);
 
         int progress = (double(i) / (N-1)) * 100;
         qDebug() << QString("Rendering sequence [%1 %]").arg(progress);
 
-        if (progress < 10)
-            renderGraph( currentGraph, QString("output_0%1").arg(progress), false, reconLevel );
-        else
-            renderGraph( currentGraph, QString("output_%1").arg(progress), false, reconLevel );
+		QString numString = QString("%1").arg(i, 3, 10, QChar('0'));
+        renderGraph( currentGraph, QString("output_%1").arg(numString), false, reconLevel );
     }
 
     qDebug() << QString("Sequence rendered [%1 ms]").arg(timer.elapsed());
