@@ -32,6 +32,7 @@ public:
 	// Execution stage
 	void execute( double t );
 	void executeMorphEdges( double t );
+	void postDone();
 
     // Geometry morphing stage
 	void geometryMorph( double t );
@@ -118,6 +119,7 @@ public:
 protected:
 	virtual QVariant itemChange ( GraphicsItemChange change, const QVariant & value );
 	QVector<Task*> allOtherTasks();
+
 };
 
 // Useful global definitions

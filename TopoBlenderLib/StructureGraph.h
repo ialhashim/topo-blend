@@ -82,7 +82,7 @@ struct Graph
 	QVector<Structure::Node*> path(Structure::Node * from, Structure::Node * to);
 
 	bool shareEdge( Node * n1, Node * n2 );
-
+	bool shareEdge( QString nid1, QString nid2 );
 	void renameNode( QString oldNodeID, QString newNodeID );
 
     // Accessors

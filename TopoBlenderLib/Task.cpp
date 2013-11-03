@@ -527,45 +527,99 @@ void Task::execute( double t )
 	executeMorphEdges( t );
 
 	// Post execution steps
-	if(t >= 1.0)
-	{
-		Structure::Node * n = node();
-
-		this->isDone = true;
-		n->property["taskIsDone"] = true;
-
-		// Remove paths for edges
-		QVector<Structure::Link*> edges = property["edges"].value< QVector<Structure::Link*> >();
-		foreach (Structure::Link* link, edges){
-			QVector< GraphDistance::PathPointPair > path = link->property["path"].value< QVector< GraphDistance::PathPointPair > >();
-			if(path.size()) 
-				link->property.remove("path");
-		}
-
-		// Post shrinking
-		if(type == SHRINK)
-		{
-			n->property["shrunk"] = true;
-			node()->property["zeroGeometry"] = true;
-
-			// remove all edges for non cutting node after shrunk
-			if (!isCutting())
-			{
-				foreach(Link* link, active->getEdges(nodeID))
-				{
-					active->removeEdge(link->n1, link->n2);
-				}
-			}
-		}
-
-		// Clean up:
-		n->property.remove("path");
-		n->property.remove("path2");
-	}
+	if(t >= 1.0) postDone();
 
 	// Record current time
 	property["t"] = t;
 	node()->property["t"] = t;
+}
+
+void Task::postDone()
+{
+	Structure::Node * n = node();
+
+	this->isDone = true;
+	n->property["taskIsDone"] = true;
+
+	// Remove paths for edges
+	QVector<Structure::Link*> edges = property["edges"].value< QVector<Structure::Link*> >();
+	foreach (Structure::Link* link, edges){
+		QVector< GraphDistance::PathPointPair > path = link->property["path"].value< QVector< GraphDistance::PathPointPair > >();
+		if(path.size()) 
+			link->property.remove("path");
+	}
+
+	// Post shrinking
+	if(type == SHRINK)
+	{
+		n->property["shrunk"] = true;
+		n->property["zeroGeometry"] = true;
+
+		// remove all edges for non cutting node after shrunk
+		if (!isCutting())
+		{
+			foreach(Link* link, active->getEdges(nodeID))
+			{
+				active->removeEdge(link->n1, link->n2);
+			}
+		}
+	}
+
+	// Post merging
+	if(n->property["taskTypeReal"].toInt() == Task::MERGE)
+	{
+		// Disconnect other merged nodes
+		foreach(QString siblingID, active->groupOf(nodeID))
+		{
+			Structure::Node * sibling = active->getNode(siblingID);
+
+			// Ignore myself, non-merging, and already dealt with
+			if(siblingID == nodeID || !sibling->property["taskTypeReal"].toInt() == Task::MERGE) continue;
+			if(sibling->property["merged"].toBool()) continue;
+
+			// Transfer edges
+			foreach(Link* link, active->getEdges(siblingID))
+			{
+				QString neighbour = link->otherNode(siblingID)->id;
+				if(active->getEdge(nodeID, neighbour)) 
+				{
+					// Remove shared ones
+					active->removeEdge(siblingID, neighbour);
+				}
+				else
+				{
+					// Replace to node of this task
+					link->replace(siblingID, n, link->getCoord(siblingID));
+				}
+			}
+
+			// "remove" the node from execution
+			sibling->property["shrunk"] = true;
+			sibling->property["zeroGeometry"] = true;
+			sibling->property["taskIsDone"] = true;
+
+			Task * siblingTask = sibling->property["task"].value<Task*>();
+			siblingTask->isDone = true;
+			siblingTask->property.remove("edges");
+		}
+
+		// Fix coordinates of edges by looking at the target
+		foreach(Link* link, active->getEdges(nodeID))
+		{
+			Link * tlink = target->getEdge(link->property["correspond"].toInt());
+			Array1D_Vector4d coordMe = tlink->getCoord(n->property["correspond"].toString());
+			Array1D_Vector4d coordOther = tlink->getCoordOther(n->property["correspond"].toString());
+
+			link->setCoord(nodeID, coordMe);
+			link->setCoord(link->otherNode(nodeID)->id, coordOther);
+		}
+
+		n->property["merged"] = true;
+	}
+
+	// Clean up:
+	n->property.remove("path");
+	n->property.remove("path2");
 }
 
 QVector< GraphDistance::PathPointPair > Task::smoothStart( Structure::Node * n, Vector4d& startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
