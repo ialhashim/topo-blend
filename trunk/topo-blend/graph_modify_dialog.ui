@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>418</width>
-    <height>259</height>
+    <width>481</width>
+    <height>287</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,15 +20,35 @@
    <bool>true</bool>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="5" column="3">
-    <widget class="QPushButton" name="unlinkAllButton">
-     <property name="text">
-      <string>Unlink all</string>
+   <item row="0" column="0" rowspan="5" colspan="2">
+    <widget class="QListWidget" name="list1">
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::SingleSelection</enum>
      </property>
     </widget>
    </item>
-   <item row="5" column="0">
-    <spacer name="horizontalSpacer_2">
+   <item row="0" column="4" rowspan="5" colspan="2">
+    <widget class="QListWidget" name="list2">
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::MultiSelection</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="3">
+    <widget class="QPushButton" name="renameButton">
+     <property name="text">
+      <string>Rename..</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="2">
+    <spacer name="horizontalSpacer_3">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -39,6 +59,29 @@
       </size>
      </property>
     </spacer>
+   </item>
+   <item row="1" column="3">
+    <spacer name="verticalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="5" column="3">
+    <widget class="QPushButton" name="unlinkAllButton">
+     <property name="text">
+      <string>Unlink all</string>
+     </property>
+    </widget>
    </item>
    <item row="3" column="3">
     <spacer name="verticalSpacer">
@@ -75,46 +118,6 @@
      </property>
     </widget>
    </item>
-   <item row="5" column="1">
-    <widget class="QPushButton" name="removeButton">
-     <property name="text">
-      <string>Remove node</string>
-     </property>
-     <property name="icon">
-      <iconset resource="topo-blend.qrc">
-       <normaloff>:/images/minus.png</normaloff>:/images/minus.png</iconset>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="3">
-    <spacer name="verticalSpacer_2">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Fixed</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="6" column="4">
-    <widget class="QDoubleSpinBox" name="uB">
-     <property name="decimals">
-      <number>6</number>
-     </property>
-     <property name="maximum">
-      <double>1.000000000000000</double>
-     </property>
-     <property name="singleStep">
-      <double>0.100000000000000</double>
-     </property>
-    </widget>
-   </item>
    <item row="6" column="0">
     <widget class="QDoubleSpinBox" name="uA">
      <property name="decimals">
@@ -141,6 +144,13 @@
      </property>
     </widget>
    </item>
+   <item row="6" column="3">
+    <widget class="QPushButton" name="updateLinkButton">
+     <property name="text">
+      <string>Update</string>
+     </property>
+    </widget>
+   </item>
    <item row="6" column="5">
     <widget class="QDoubleSpinBox" name="vB">
      <property name="decimals">
@@ -151,50 +161,27 @@
      </property>
     </widget>
    </item>
-   <item row="6" column="3">
-    <widget class="QPushButton" name="updateLinkButton">
+   <item row="6" column="4">
+    <widget class="QDoubleSpinBox" name="uB">
+     <property name="decimals">
+      <number>6</number>
+     </property>
+     <property name="maximum">
+      <double>1.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.100000000000000</double>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="4">
+    <widget class="QPushButton" name="removeButton">
      <property name="text">
-      <string>Update</string>
+      <string>Remove node</string>
      </property>
-    </widget>
-   </item>
-   <item row="4" column="3">
-    <widget class="QPushButton" name="renameButton">
-     <property name="text">
-      <string>Rename..</string>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="4" rowspan="5" colspan="2">
-    <widget class="QListWidget" name="list2">
-     <property name="alternatingRowColors">
-      <bool>true</bool>
-     </property>
-     <property name="selectionMode">
-      <enum>QAbstractItemView::MultiSelection</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="2">
-    <spacer name="horizontalSpacer_3">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>40</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="0" column="0" rowspan="5" colspan="2">
-    <widget class="QListWidget" name="list1">
-     <property name="alternatingRowColors">
-      <bool>true</bool>
-     </property>
-     <property name="selectionMode">
-      <enum>QAbstractItemView::SingleSelection</enum>
+     <property name="icon">
+      <iconset resource="topo-blend.qrc">
+       <normaloff>:/images/minus.png</normaloff>:/images/minus.png</iconset>
      </property>
     </widget>
    </item>

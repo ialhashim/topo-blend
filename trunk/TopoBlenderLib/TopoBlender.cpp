@@ -226,6 +226,11 @@ void TopoBlender::correspondSuperNodes()
 		Structure::Node * sn = super_sg->getNode(snode);
 		Structure::Node * tn = super_tg->getNode(tnode);
 
+		if(!sn || !tn){
+			qDebug() << "ERROR: many to many cases are not handled";
+			continue;
+		}
+
 		sn->property["correspond"] = tnode;
 		tn->property["correspond"] = snode;
 	}

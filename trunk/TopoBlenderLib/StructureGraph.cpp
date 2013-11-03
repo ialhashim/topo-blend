@@ -394,6 +394,11 @@ bool Graph::shareEdge( Node * n1, Node * n2 )
 	return false;
 }
 
+bool Graph::shareEdge( QString nid1, QString nid2 )
+{
+	return shareEdge(getNode(nid1), getNode(nid2));
+}
+
 void Graph::clearDebug()
 {
 	debugPoints.clear(); debugPoints2.clear(); debugPoints3.clear();

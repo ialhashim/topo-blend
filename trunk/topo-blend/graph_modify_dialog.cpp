@@ -98,9 +98,9 @@ void GraphModifyDialog::updateLink()
 
 void GraphModifyDialog::remove()
 {
-    if(ui->list1->selectedItems().size() < 1) return;
+    if(ui->list2->selectedItems().size() < 1) return;
 
-	foreach( QListWidgetItem *item, ui->list1->selectedItems())
+	foreach( QListWidgetItem *item, ui->list2->selectedItems())
 	{
 		QString id = item->text();
 		g->removeNode( id );
