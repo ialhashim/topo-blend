@@ -19,7 +19,7 @@ public:
 	QVector<Structure::Graph*> inputGraphs;	
 
 	// Global scores
-    double maxGlobalSymmScore;
+    double maxGlobalSymmScore_;
 
 	//
 	Eigen::Vector3d refCenter_;// center of the reflection plane
@@ -43,7 +43,7 @@ public slots:
 private:
 	bool ScorerManager::isGlobalReflectionSymmParsed()
 	{
-		return -1 == maxGlobalSymmScore;
+		return (-1 != maxGlobalSymmScore_);
 	}
 };
 	

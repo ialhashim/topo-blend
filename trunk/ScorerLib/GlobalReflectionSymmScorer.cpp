@@ -61,7 +61,7 @@ void GlobalReflectionSymmScorer::init()
 	{
 		Structure::Node * n = graph_->nodes[i];
 		double nsize = n->bbox().diagonal().norm();
-		if (  nsize == 0)// jjcao todo, graph_->bbox().diagonal().norm()这个normalize不准，见bed1=?bed4的shuffle二组！！
+		if (  nsize == 0)
 		{
 			if(logLevel_>1)
 			{
