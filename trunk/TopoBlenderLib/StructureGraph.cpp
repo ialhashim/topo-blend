@@ -21,10 +21,8 @@ using namespace Structure;
 
 #include "QuickMeshDraw.h"
 
-Q_DECLARE_METATYPE( Vector3d )
-Q_DECLARE_METATYPE( RMF )
-Q_DECLARE_METATYPE( RMF::Frame )
-Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
+#include "Task.h"
+
 Q_DECLARE_METATYPE( Eigen::AlignedBox3d )
 
 Graph::Graph()
@@ -82,7 +80,6 @@ Graph::Graph( const Graph & other )
 
 	groups = other.groups;
 	property = other.property;
-	adjacency = other.adjacency;
 	misc = other.misc;
 
 	debugPoints = other.debugPoints;
@@ -206,12 +203,6 @@ Link * Graph::addEdge(Node *n1, Node *n2, Array1D_Vector4d coord1, Array1D_Vecto
 
 	e->property["uid"] = ueid++;
 
-	// Add to adjacency list
-	if(adjacency.cols() != nodes.size()) adjacency = MatrixXd::Zero( nodes.size(), nodes.size() );
-
-	adjacency(nodes.indexOf(n1), nodes.indexOf(n2)) = 1 ;
-	adjacency(nodes.indexOf(n2), nodes.indexOf(n1)) = 1 ;
-
 	return e;
 }
 
@@ -235,10 +226,19 @@ void Graph::removeEdge( Node * n1, Node * n2 )
 	edges[edge_idx] = NULL;
 	edges.remove(edge_idx);
 
-	adjacency(indexOfNode(n1), indexOfNode(n2)) = 0;
-	adjacency(indexOfNode(n2), indexOfNode(n1)) = 0;
-
 	qDebug() << QString("[%1]->removeEdge( %2, %3 )").arg(name()).arg(n1->id).arg(n2->id);
+}
+
+void Graph::removeEdge( QString n1_id, QString n2_id )
+{
+	removeEdge( getNode(n1_id), getNode(n2_id) );
+}
+
+void Graph::removeEdges( QString nodeID )
+{
+	QVector<Link*> edgs = this->getEdges(nodeID);
+	foreach(Link * l, edgs) 
+		this->removeEdge( l->n1->id, l->n2->id );
 }
 
 int Graph::indexOfNode( Node * node )
@@ -267,17 +267,6 @@ Node *Graph::getNode(QString nodeID)
 	}
 
     return NULL;
-}
-
-Node* Graph::auxNode( QString auxNodeID )
-{
-	foreach(Node* n, aux_nodes)
-	{
-		if(n->id == auxNodeID) 
-			return n;
-	}
-
-	return NULL;
 }
 
 Link *Graph::getEdge(QString id1, QString id2)
@@ -1086,66 +1075,6 @@ void Graph::loadFromFile( QString fileName )
 	file.close();
 }
 
-/*void Graph::materialize( SurfaceMesh::Model * m, Scalar voxel_scaling )
-{
-    QElapsedTimer timer; timer.start();
-
-	cached_mesh.clear();
-
-	Eigen::AlignedBox3d box = bbox();
-	Eigen::Vector3d b = bbox().diagonal();
-	Scalar avg = (b.x() + b.y() + b.z()) / 3.0;
-	Scalar voxel_size = (avg / 70) * voxel_scaling;
-
-	DynamicVoxel vox( voxel_size );
-
-	Vector3 half_voxel = -0.5 * Vector3( voxel_size );
-
-	vox.begin();
-
-	foreach(Node * n, nodes)
-	{
-		QElapsedTimer nodoe_timer; nodoe_timer.start();
-
-		Array2D_Vector3 parts = n->discretized( voxel_size );
-		int c = parts.front().size();
-
-		// Curve segments
-		if(c == 2)
-		{
-			foreach(std::vector<Vector3> segment, parts)
-			{
-				vox.addCapsule( segment.front() + half_voxel, segment.back() + half_voxel, voxel_size * 2 );
-			}
-		}
-
-		// Sheet triangles
-		if(c == 3)
-		{
-			foreach(std::vector<Vector3> segment, parts)
-			{
-				Eigen::AlignedBox3d triBox;
-				foreach(Vector3 p, segment) 
-				{
-					Vector3 pnt = p + half_voxel;
-					triBox = triBox.merged( Eigen::AlignedBox3d(pnt,pnt) );
-				}
-				vox.addBox( triBox.min(), triBox.max() );
-			}
-		}
-
-		qDebug() << "Node built [" << n->id << "] " << nodoe_timer.elapsed() << " ms";
-	}
-
-	vox.end();
-
-	qDebug() << "Voxels built " << timer.elapsed() << " ms";
-
-	vox.buildMesh(m, cached_mesh);
-
-    if(m) cached_mesh.clear();
-}*/
-
 Node *Graph::rootBySize()
 {
 	int idx = 0;
@@ -1327,29 +1256,8 @@ SurfaceMesh::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 	//return (c1 + c2) / 2.0;
 }
 
-void Graph::printAdjacency()
-{
-	int n = nodes.size();
-
-	qDebug() << "\n\n== Adjacency Matrix ==";
-
-	for(int i = 0; i < n; i++)
-	{
-		QString line;
-
-		for(int j = 0; j < n; j++)
-			line += QString(" %1 ").arg(adjacency(i,j));
-
-		qDebug() << line;
-	}
-
-	qDebug() << "======";
-}
-
 int Graph::valence( Node * n )
 {
-	//int idx = nodes.indexOf(n);
-	//return 0.5 * (adjacency.col(idx).sum() + adjacency.row(idx).sum());
 	return this->getEdges(n->id).size();
 }
 
@@ -1595,8 +1503,6 @@ void Graph::replaceCoords( QString nodeA, QString nodeB, Array1D_Vector4d coordA
 Vector3 Graph::position( QString nodeID, Vector4d& coord )
 {
 	Node * node = getNode(nodeID);
-	if(!node) node = auxNode( nodeID );
-
 	return node->position(coord);
 }
 
@@ -1761,22 +1667,18 @@ void Graph::normalize()
 	property["AABB"].setValue(bbox());
 }
 
-void Graph::removeEdge( QString n1_id, QString n2_id )
-{
-    removeEdge( getNode(n1_id),getNode(n2_id) );
-}
-
-void Graph::removeEdges( QString nodeID )
-{
-	QVector<Link*> edgs = this->getEdges(nodeID);
-	foreach(Link * l, edgs) 
-		this->removeEdge( l->n1->id, l->n2->id );
-}
-
 void Graph::addGroup(QVector<QString> newGroup)
 {
     if(!newGroup.size()) return;
     groups.push_back( newGroup );
+}
+
+void Structure::Graph::removeGroup( QVector<QString> groupElements )
+{
+	int idx = -1;
+	for(int i = 0; i < groups.size(); i++) if(groups[i] == groupElements) idx = i;
+
+	removeGroup(idx);
 }
 
 void Graph::removeGroup(int groupIDX)
@@ -1819,24 +1721,6 @@ void Graph::clearSelections()
 		node->selections.clear();
 }
 
-void Graph::printLinksInfo()
-{
-	qDebug() << QString("Graph [%1]").arg(name());
-	foreach(Link * e, edges)
-	{
-		QStringList c_string;
-
-		foreach(Array1D_Vector4d coords, e->coord)
-		{
-			c_string << "";
-			foreach(Vector4d c, coords)
-				c_string.back() += QString("|%1  %2|").arg(c[0]).arg(c[1]);
-		}
-
-		qDebug() << e->id << "\t=> c1 [ " << c_string.front() << " ] \t c2 [ " << c_string.back() << " ]" ;
-	}
-}
-
 QString Graph::name()
 {
 	return property["name"].toString().section('\\', -1).section('.', 0, 0);
@@ -1867,4 +1751,161 @@ void Graph::clearAll()
 	foreach(Node * n, nodes){
 		n->property.clear();
 	}
+}
+
+QVector<Node*> Graph::articulationPoints()
+{
+	int N = nodes.size();
+	setPropertyAll("articulation", false);
+
+	QVector<int> low, pre;
+	low.fill(-1,N);
+	pre.fill(-1,N);
+
+	int cnt = 0;
+
+	for(int v = 0; v < nodes.size(); v++)
+		if (pre[v] == -1)
+			articulationDFS(cnt, v, v, low, pre);
+
+	return nodesWithProperty("articulation", true);
+}
+
+void Graph::articulationDFS( int & cnt, int u, int v, QVector<int> & low, QVector<int> & pre )
+{
+	int children = 0;
+	pre[v] = cnt++;
+	low[v] = pre[v];
+	
+	foreach(Link * l, getEdges(nodes[v]->id))
+	{
+		int w = indexOfNode(l->otherNode(nodes[v]->id));
+
+		if (pre[w] == -1) {
+			children++;
+			articulationDFS(cnt, v, w, low, pre);
+
+			// update low number
+			low[v] = qMin(low[v], low[w]);
+
+			// non-root of DFS is an articulation point if low[w] >= pre[v]
+			if (low[w] >= pre[v] && u != v) 
+				nodes[v]->property["articulation"] = true;
+		}
+
+		// update low number - ignore reverse of edge leading to v
+		else if (w != u)
+			low[v] = qMin(low[v], pre[w]);
+	}
+
+	// root of DFS is an articulation point if it has more than 1 child
+	if (u == v && children > 1)
+		nodes[v]->property["articulation"] = true;
+}
+
+QVector<Node*> Structure::Graph::leaves()
+{
+	QVector<Node*> result;
+
+	foreach(Node* n, nodes)
+		if(getEdges(n->id).size() == 1)
+			result.push_back(n);
+
+	return result;
+}
+
+Structure::Graph * Graph::actualGraph(Structure::Graph * fromGraph)
+{
+	Graph * actual = new Graph(*fromGraph);
+
+	bool stillCleaning = true;
+
+	while( stillCleaning )
+	{
+		stillCleaning = false;
+
+		foreach(Node* n, actual->nodes)
+		{
+			QVector<Link*> edges = actual->getEdges(n->id);
+
+			// Skip disconnected
+			if(edges.size() == 0) continue;
+
+			// Get type of task on this node
+			if(!n->property.contains("taskTypeReal")) continue;
+			int taskType = n->property["taskTypeReal"].toInt();
+
+			// Real morph tasks are not topology altering
+			if(taskType == Task::MORPH) continue;
+
+			// Cases:
+			//	Nodes that finished shrinking or 
+			//	have not yet grown or
+			//	Going to split
+			bool isShrinking = taskType == Task::SHRINK && n->property["taskIsDone"].toBool();
+			bool isGrowing = taskType == Task::GROW && !n->property["taskIsReady"].toBool();
+			bool isSpliting = taskType == Task::SPLIT && !n->property["taskIsReady"].toBool();
+
+			if( isShrinking || isGrowing || isSpliting )
+			{
+				/// Transfer edges to someone else:
+				if( !isSpliting )
+				{
+					// Look at neighbours valence
+					QMap<int, Node*> valMap;
+					foreach(Link* e, edges){
+						Node * j = e->otherNode(n->id);
+						valMap[actual->valence(j)] = j;
+					}
+
+					// Move my edges to my replacment
+					Node* replacment = valMap[valMap.keys().back()];
+					foreach(Link* e, edges)
+					{
+						QString otherID = e->otherNode(n->id)->id;
+						if(otherID == replacment->id) continue;
+						if(actual->shareEdge(otherID, replacment->id)) continue;
+
+						Vec4d c = replacment->approxCoordinates( replacment->approxProjection(e->position(n->id)) );
+						Array1D_Vector4d coord(1, c);
+
+						e->replace(n->id, replacment, coord);
+					}
+				}
+
+				foreach(Link* e, actual->getEdges(n->id))
+				{
+					actual->removeEdge(e->n1, e->n2);
+				}
+
+				if( isSpliting )
+				{
+					QString siblingKeep;
+					QVector<QString> siblings = actual->groupOf(n->id);
+
+					// Change one sibling in order to keep it
+					foreach(QString nid, siblings)
+					{
+						if(nid == n->id) continue;
+						
+						// Override the chosen one
+						actual->getNode(nid)->property["taskTypeReal"] = Task::MORPH;
+						actual->removeGroup(siblings);
+						break;
+					}
+				}
+
+				stillCleaning = true;
+
+				break;
+			}
+		}
+	}
+
+	// Remove any disconnected nodes
+	QVector<QString> nodesToRemove;
+	foreach(Node * n, actual->nodes) if(actual->getEdges(n->id).size() == 0) nodesToRemove.push_back(n->id);
+	foreach(QString nid, nodesToRemove) actual->removeNode(nid);
+
+	return actual;
 }

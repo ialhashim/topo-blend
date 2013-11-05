@@ -45,6 +45,9 @@ void Relink::execute()
 		{
 			foreach(Structure::Link* link, activeGraph->getEdges(task->nodeID))
 			{
+				// Self referring edges should be ignored
+				if(link->n1->id == link->n2->id) continue;
+
 				Structure::Node * other = link->otherNode(task->nodeID);
 				Task * otherTask = s->getTaskFromNodeID(other->id);
 				if (otherTask->property["propagated"].toBool()) continue;
@@ -57,7 +60,6 @@ void Relink::execute()
 				// Tracking
 				propagationGraph[task->nodeID].push_back(qMakePair(otherTask->nodeID, propagationIndex++));
 			}
-
 		}
 
 		// Mark elements in level as visited
@@ -74,6 +76,15 @@ void Relink::execute()
 		foreach(Task* task, propagationLevel[i]) 
 		{
 			fixTask(task);
+
+			// Override relinking for splitting case
+			if(task->node()->property["taskTypeReal"].toInt() == Task::SPLIT && !task->isReady){
+				foreach(QString sibling, activeGraph->groupOf(task->nodeID)){
+					Task * otherTask = s->getTaskFromNodeID( sibling );
+					if(otherTask->node()->property["taskTypeReal"].toInt() == Task::SPLIT && !otherTask->isReady)
+						otherTask->node()->setControlPoints(task->node()->controlPoints());
+				}
+			}
 		}
 	}
 

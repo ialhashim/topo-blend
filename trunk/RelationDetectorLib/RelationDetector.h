@@ -125,7 +125,7 @@ void saveToFile(QString filename, QVector<PairRelation>& prs);
 void saveToFile(QString filename, QVector<GroupRelation>& grs);
 bool isInGroupById(QString id, QVector<QString>& group);
 QString group2str(QVector<QString> &group);
-bool isInGroups(QVector<QString> &group, NodeGroups &planarGroups);
+bool isInGroups(QVector<QString> &group, Structure::NodeGroups &planarGroups);
 double errorOfLineInPlane(Segment_3 &l, Vector3& point, Vector3& normal);
 static void saveScores(QVector<double>& scoreKeptGr, //QVector<double>& scoreAddGr,
 	QVector<double>& scoreKeptPr,//QVector<double>& scoreAddPr,

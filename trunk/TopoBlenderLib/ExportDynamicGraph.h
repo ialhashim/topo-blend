@@ -204,7 +204,10 @@ static QString toGraphvizFormat(DynamicGraphs::DynamicGraph g, QString subcaptio
 		QString nodeName = n.property["original"].toString();
 		if(nodeName.contains("_null")) nodeName = "# " + nodeName.replace("_null","z");
 
-		out << "\t" << QString("%1 [label = \"%2\", color = \"%3\", shape = %4];").arg(n.idx).arg( nodeName ).arg(colorHex).arg(shape) << "\n";
+		QString other = "";
+		if(node->property["articulation"].toBool()) other = ", style=\"bold\"";
+
+		out << "\t" << QString("%1 [label = \"%2\", color = \"%3\", shape = %4 %5];").arg(n.idx).arg( nodeName ).arg(colorHex).arg(shape).arg(other) << "\n";
 
 		// Move virtual cursor
 		x += dx;

@@ -50,10 +50,6 @@ public:
 	QVector< GraphDistance::PathPointPair > smoothEnd( Structure::Node * n, Vector4d& startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
 	bool isPathOnSingleNode( QVector< GraphDistance::PathPointPair > path );
 
-	Structure::Node * addAuxNode(Vector3d position, Structure::Graph * g);
-	Structure::Node * prepareEnd( Structure::Node * n, Structure::Link * slink );
-	QPair<Structure::Node*,Structure::Node*> prepareEnd2( Structure::Node * n, Structure::Link * linkA, Structure::Link * linkB );
-
 	RMF::Frame curveFrame( Structure::Curve * curve, bool isFlip = false );
 	RMF::Frame sheetFrame( Structure::Sheet * sheet );
 	Array1D_Vector3 sheetDeltas(Structure::Sheet * sheet);

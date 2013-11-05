@@ -225,7 +225,7 @@ QString group2str(QVector<QString> &group)
 	}
 	return str;
 }
-bool isInGroups(QVector<QString> &group, NodeGroups &planarGroups)
+bool isInGroups(QVector<QString> &group, Structure::NodeGroups &planarGroups)
 {
 	QString str = group2str(group);
 	foreach (QVector<QString> g, planarGroups)

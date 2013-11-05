@@ -685,49 +685,6 @@ Structure::Link * Task::getCoorespondingEdge( Structure::Link * link, Structure:
 	return otherGraph->getEdge(link->property["correspond"].toInt());
 }
 
-Structure::Node * Task::addAuxNode(Vector3d position, Structure::Graph * g)
-{
-	Structure::Node * aux = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, position ) ), 
-		"auxA_" + QString::number(g->aux_nodes.size()));
-	g->aux_nodes.push_back( aux );
-	return aux;
-}
-
-Structure::Node * Task::prepareEnd( Structure::Node * n, Structure::Link * slink )
-{
-	Structure::Node * tn = target->getNode(n->property["correspond"].toString());
-	Structure::Link * tlink = target->getEdge(slink->property["correspond"].toInt());
-	Vector3d endDelta = tlink->position(tn->id) - tlink->positionOther(tn->id);
-	QString corrBaseNodeID = tlink->otherNode(tn->id)->property["correspond"].toString();
-	Vector3d posOther = active->getNode(corrBaseNodeID)->position(tlink->getCoordOther(tn->id).front());
-	Structure::Node * aux = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, posOther + endDelta ) ), "auxA_" + n->id);
-	active->aux_nodes.push_back( aux );
-	return aux;
-}
-
-QPair<Structure::Node*,Structure::Node*> Task::prepareEnd2( Structure::Node * n, Structure::Link * linkA, Structure::Link * linkB )
-{
-	Structure::Node * tn = target->getNode(n->property["correspond"].toString());
-	Structure::Link * tlinkA = target->getEdge(linkA->property["correspond"].toInt());
-	Structure::Link * tlinkB = target->getEdge(linkB->property["correspond"].toInt());
-
-	Vector3d endDeltaA = tlinkA->position(tn->id) - tlinkA->positionOther(tn->id);
-	Vector3d endDeltaB = tlinkB->position(tn->id) - tlinkB->positionOther(tn->id);
-
-	//Vector3d fromOtherA = linkA->otherNode(n->id)->position(tlinkA->getCoordOther(tn->id).front());
-	//Vector3d fromOtherB = linkB->otherNode(n->id)->position(tlinkB->getCoordOther(tn->id).front());
-
-	Vector3d fromOtherA = tlinkA->position(tn->id) - endDeltaA;
-	Vector3d fromOtherB = tlinkB->position(tn->id) - endDeltaB;
-
-	Node * auxA = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, fromOtherA + endDeltaA ) ), "auxA_" + n->id);
-	Node * auxB = new Structure::Curve(NURBSCurved::createCurveFromPoints( Array1D_Vector3 ( 4, fromOtherB + endDeltaB ) ), "auxB_" + n->id);
-
-	active->aux_nodes.push_back( auxA );
-	active->aux_nodes.push_back( auxB );
-	return qMakePair(auxA, auxB);
-}
-
 void Task::setNode( QString node_ID )
 {
 	property["nodeID"] = node_ID;
