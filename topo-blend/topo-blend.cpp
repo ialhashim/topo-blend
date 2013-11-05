@@ -483,8 +483,9 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 	if(event->key() == Qt::Key_I)
 	{
-		if(graphs.size()){
-			graph_explorer->update(graphs.front());
+		if(graphs.size())
+		{
+			graph_explorer->update(graphs.back());
 			if(graph_explorer) graph_explorer->show();
 		}
 
@@ -500,6 +501,52 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 	if(event->key() == Qt::Key_Space)
 	{
 		c_manager->correspondenceMode();
+		used = true;
+	}
+
+	if(event->key() == Qt::Key_M)
+	{
+		if(graphs.size())
+		{
+			QVector< QMap<QString, int> > graphsInfo;
+
+			for(int i = 0; i < scheduler->allGraphs.size(); i++)
+			{
+				Structure::Graph * g = Structure::Graph::actualGraph( scheduler->allGraphs[i] );
+				QMap<QString, int> info;
+
+				info["id"] = i;
+				info["V"] = g->nodes.size();
+				info["E"] = g->edges.size();
+				info["A"] = g->articulationPoints().size();
+				info["L"] = g->leaves().size();
+
+				graphsInfo.push_back(info);
+			}
+
+			// Output to file
+			QString filename( "blendJob.json"  );
+			QFile file(filename); file.open(QIODevice::WriteOnly | QIODevice::Text);
+			QTextStream out(&file);
+			out << "{ \"items\": [";
+
+			for(int i = 0; i < graphsInfo.size(); i++)
+			{
+				QMap<QString, int> info = graphsInfo[i];
+
+				QStringList item;
+				foreach(QString name, info.keys()) item << QString("\"%1\": %2").arg(name).arg(info[name]);
+
+				out << "{" << item.join(",") << "}";
+
+				if( i < graphsInfo.size() - 1 ) out << ",";
+
+				out << "\n";
+			}
+
+			out << "]}";
+			file.close();
+		}
 		used = true;
 	}
 
@@ -557,13 +604,6 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 
 		mainWindow()->setStatusBarMessage( "Distance test: " + QString::number(t.elapsed()) );
 
-		used = true;
-	}
-
-	if(event->key() == Qt::Key_M)
-	{
-		for(int g = 0; g < (int) graphs.size(); g++)
-			graphs[g]->printAdjacency();
 		used = true;
 	}
 
@@ -847,7 +887,7 @@ void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 	drawArea()->updateGL();
 
 	if(graph_explorer->isVisible()){
-		graph_explorer->update(newActiveGraph);
+		graph_explorer->update( newActiveGraph );
 	}
 }
 
