@@ -39,9 +39,10 @@ using namespace Structure;
 #include "QuickMeshDraw.h"
 
 // Relations
-#include "RelationWidget.h"
-RelationWidget * rwidget = NULL;
-
+//#include "RelationWidget.h"
+#include "ScorerWidget.h"
+//RelationWidget * rwidget = NULL;
+ScorerWidget * swidget = NULL;
 topoblend::topoblend()
 {
 	widget = NULL;
@@ -81,8 +82,10 @@ void topoblend::create()
 		this->graph_explorer = new GraphExplorer;
 
 		// Add relation detector widget
-		this->widget->addTab( (rwidget = new RelationWidget()) );
-		this->connect(rwidget->r_manager, SIGNAL(message(QString)), SLOT(setStatusBarMessage(QString)));
+		//this->widget->addTab( (rwidget = new RelationWidget()) );
+		//this->connect(rwidget->r_manager, SIGNAL(message(QString)), SLOT(setStatusBarMessage(QString)));
+		this->widget->addTab( (swidget = new ScorerWidget()) );
+		this->connect(swidget->s_manager, SIGNAL(message(QString)), SLOT(setStatusBarMessage(QString)));
 	}
 
 	drawArea()->setSelectRegionHeight( 20 );
@@ -840,10 +843,10 @@ void topoblend::doBlend()
 	blender->setupUI();
 
 	// Update for relations widget
-	rwidget->r_manager->clear();
-	rwidget->r_manager->inputGraphs = this->graphs;
-	rwidget->r_manager->gcorr = this->gcoor;
-	rwidget->r_manager->scheduler = this->scheduler;
+	swidget->s_manager->clear();
+	swidget->s_manager->inputGraphs = this->graphs;
+	swidget->s_manager->gcorr = this->gcoor;
+	swidget->s_manager->scheduler = this->scheduler;
 
 	// Update active graph
 	this->connect(scheduler, SIGNAL(activeGraphChanged( Structure::Graph* )), SLOT(updateActiveGraph( Structure::Graph* )));
