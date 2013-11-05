@@ -22,7 +22,7 @@ void ScorerManager::init()
 
 	//maxPairScore = 0;
 	//maxGroupScore = 0;
-	maxGlobalSymmScore = -1;
+	maxGlobalSymmScore_ = -1;
 	isUseSourceCenter_ = false;
 }
 
@@ -49,7 +49,8 @@ void ScorerManager::parseGlobalReflectionSymm()
 	int logLevel = 2;
     for (int i = 0; i < this->inputGraphs.size(); ++i)
     {
-        GlobalReflectionSymmScorer gss(this->inputGraphs[i], i, logLevel);
+		Structure::Graph * g = Structure::Graph::actualGraph( this->inputGraphs[i] );
+        GlobalReflectionSymmScorer gss(g, i, logLevel);
         symmScore[i] = gss.evaluate();
 		if ( i == 0)
 		{
@@ -58,8 +59,8 @@ void ScorerManager::parseGlobalReflectionSymm()
 		}
     }
 
-    //this->maxGlobalSymmScore = std::max(symmScore[0], symmScore[1]);
-	this->maxGlobalSymmScore = symmScore[0];
+    //this->maxGlobalSymmScore_ = std::max(symmScore[0], symmScore[1]);
+	this->maxGlobalSymmScore_ = symmScore[0];
     emit( message("Parse global symmetry end. ") );
 }
 void ScorerManager::evaluateGlobalReflectionSymm()
@@ -77,14 +78,15 @@ void ScorerManager::evaluateGlobalReflectionSymm()
 	int idx = this->scheduler->allGraphs.size() * (double(ct) / this->scheduler->totalExecutionTime());
 	
 	int logLevel = 2;
-	GlobalReflectionSymmScorer gss(this->scheduler->allGraphs[idx], idx, logLevel);
+	Structure::Graph * g = Structure::Graph::actualGraph(this->scheduler->allGraphs[idx]);
+	GlobalReflectionSymmScorer gss(g, idx, logLevel);
 
 
 	double symmScore;
 	if (isUseSourceCenter_)
-		symmScore = gss.evaluate( this->refCenter_, this->refNormal_, this->maxGlobalSymmScore);
+		symmScore = gss.evaluate( this->refCenter_, this->refNormal_, this->maxGlobalSymmScore_);
 	else
-		symmScore = gss.evaluate( gss.center_, this->refNormal_, this->maxGlobalSymmScore);
+		symmScore = gss.evaluate( gss.center_, this->refNormal_, this->maxGlobalSymmScore_);
 
     emit( message("Evaluate global symmetry end. ") );
 }
@@ -125,12 +127,13 @@ QVector<double> ScorerManager::evaluateGlobalReflectionSymm( QVector<Structure::
 	double tmp;
     for (int i = 0; i < graphs.size(); ++i)
     {
-        GlobalReflectionSymmScorer gss(graphs[i], i, logLevel);
+		Structure::Graph * g = Structure::Graph::actualGraph(graphs[i] );
+        GlobalReflectionSymmScorer gss(g, i, logLevel);
 
 		if (isUseSourceCenter_)
-			tmp = gss.evaluate( this->refCenter_, this->refNormal_, this->maxGlobalSymmScore);
+			tmp = gss.evaluate( this->refCenter_, this->refNormal_, this->maxGlobalSymmScore_);
 		else
-			tmp = gss.evaluate( gss.center_, this->refNormal_, this->maxGlobalSymmScore);
+			tmp = gss.evaluate( gss.center_, this->refNormal_, this->maxGlobalSymmScore_);
 		symmScore.push_back(tmp);
     }
 	return symmScore;
