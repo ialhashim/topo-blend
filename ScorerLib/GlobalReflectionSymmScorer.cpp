@@ -197,6 +197,7 @@ double GlobalReflectionSymmScorer::evaluate(Eigen::Vector3d &center, Eigen::Vect
 	}
 
     return maxScore;
+	//return meanScore;
 }
 
 int GlobalReflectionSymmScorer::findNearestPart(Eigen::Vector3d &nc, QString & type, double& dist)

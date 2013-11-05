@@ -108,7 +108,7 @@ void ScorerManager::evaluateGlobalReflectionSymmAuto()
 	///////////////// output to file
 	QString filename("evaluate_global_symm_auto.txt");
 	QFile file(filename);
-	if (!file.open(QIODevice::Append | QIODevice::Text)) return;		
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;		
 	QTextStream out(&file);	
 	out << "is use source center: " << isUseSourceCenter_ << "\n";
 	
