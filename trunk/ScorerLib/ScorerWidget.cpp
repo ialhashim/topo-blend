@@ -11,6 +11,7 @@ ScorerWidget::ScorerWidget(QWidget *parent)
 	s_manager = new ScorerManager( NULL, NULL, empty );
 
 	// Compute
+	s_manager->connect(ui->parseConstraintPair, SIGNAL(clicked()), SLOT(parseConstraintPair()));
     s_manager->connect(ui->parseGlobalSymm, SIGNAL(clicked()), SLOT(parseGlobalReflectionSymm()));
 	
 	// Evaluate

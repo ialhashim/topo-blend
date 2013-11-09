@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ConnectivityScorer.cpp" />
     <ClCompile Include="GeneratedFiles\Debug\moc_ScorerManager.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -24,6 +25,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="GlobalReflectionSymmScorer.cpp" />
+    <ClCompile Include="RelationDetector.cpp" />
     <ClCompile Include="Scorer.cpp" />
     <ClCompile Include="ScorerManager.cpp" />
     <ClCompile Include="ScorerWidget.cpp" />
@@ -55,9 +57,11 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ConnectivityScorer.h" />
     <ClInclude Include="GeneratedFiles\ui_ScorerWidget.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="GlobalReflectionSymmScorer.h" />
+    <ClInclude Include="RelationDetector.h" />
     <ClInclude Include="Scorer.h" />
     <ClInclude Include="transform3d.h" />
     <CustomBuild Include="ScorerManager.h">

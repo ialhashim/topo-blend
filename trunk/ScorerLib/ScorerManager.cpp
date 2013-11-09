@@ -7,6 +7,7 @@ ScorerManager::ScorerManager( GraphCorresponder * graph_corresponder,
 	Scheduler * scheduler, QVector<Structure::Graph*> input_graphs )
 	: gcorr(graph_corresponder), scheduler(scheduler), inputGraphs(input_graphs)
 {
+	logLevel_ = 2;
 	init();
 }
 
@@ -35,6 +36,40 @@ void ScorerManager::clear()
 	//diagonals.clear();
 }
 
+void ScorerManager::parseConstraintPair()
+{
+	//////////////////
+    emit( message("Parse constraint pair starts: ") );
+	if ( this->inputGraphs.size() < 2)
+	{
+		emit( ("Two graphs needed!") );
+		return;
+	}
+
+	///////////////////////
+	connectPairs_.clear();
+    for (int i = 0; i < this->inputGraphs.size(); ++i)
+    {
+		Structure::Graph * g = Structure::Graph::actualGraph( this->inputGraphs[i] );
+        ConnectedPairDetector cpd(g);
+		cpd.detect();
+		connectPairs_.push_back(cpd.pairs_);
+        
+		if( logLevel_ >1 )
+		{
+			QFile file("connected_pair_relation-" + QString::number(i) + ".txt");
+			if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;		
+			QTextStream out(&file);
+
+			for ( QVector<PairRelationBasic>::iterator it = cpd.pairs_.begin(); it != cpd.pairs_.end(); ++it)
+				out << *it << "\n";
+
+			file.close();
+		}
+    }
+
+    emit( message("Parse constraint pairs end. ") );
+}
 void ScorerManager::parseGlobalReflectionSymm()
 {
 	//////////////////
@@ -46,11 +81,10 @@ void ScorerManager::parseGlobalReflectionSymm()
 	}
 
     double symmScore[2];
-	int logLevel = 2;
     for (int i = 0; i < this->inputGraphs.size(); ++i)
     {
 		Structure::Graph * g = Structure::Graph::actualGraph( this->inputGraphs[i] );
-        GlobalReflectionSymmScorer gss(g, i, logLevel);
+        GlobalReflectionSymmScorer gss(g, i, logLevel_);
         symmScore[i] = gss.evaluate();
 		if ( i == 0)
 		{
@@ -77,9 +111,8 @@ void ScorerManager::evaluateGlobalReflectionSymm()
 	int ct = this->scheduler->slider->currentTime();
 	int idx = this->scheduler->allGraphs.size() * (double(ct) / this->scheduler->totalExecutionTime());
 	
-	int logLevel = 2;
 	Structure::Graph * g = Structure::Graph::actualGraph(this->scheduler->allGraphs[idx]);
-	GlobalReflectionSymmScorer gss(g, idx, logLevel);
+	GlobalReflectionSymmScorer gss(g, idx, logLevel_);
 
 
 	double symmScore;

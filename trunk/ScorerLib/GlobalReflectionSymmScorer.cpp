@@ -1,58 +1,5 @@
 #include "GlobalReflectionSymmScorer.h"
-int extractCpts( Structure::Node * n, std::vector<Eigen::Vector3d>& mcpts, int pointsLevel)
-{
-    if ( pointsLevel == 2)
-    {
-    	SurfaceMesh::Model * m1 = n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data();
-    	SurfaceMesh::Vector3VertexProperty pts1 = m1->vertex_coordinates();
-    	double* tmp;
-    	foreach(Vertex v1, m1->vertices())
-    	{
-    		tmp = pts1[v1].data();
-    		mcpts.push_back( Eigen::Vector3d(tmp[0], tmp[1], tmp[2]) );
-    	}
-    }
-	else
-	{
-		if ( Structure::CURVE == n->type() )
-		{
-			Structure::Curve* c = dynamic_cast<Structure::Curve *>(n);
-			if ( pointsLevel == 1)
-			{
-				for (int i = 0; i < (int) c->numCtrlPnts(); ++i)
-				{
-					mcpts.push_back( c->controlPoint(i));
-				}
-			}
-			else
-			{
-				mcpts.push_back( c->controlPoint(0) );
-				mcpts.push_back( c->controlPoint( c->numCtrlPnts()-1 ) );
-			}
-		}
-		else
-		{
-			Structure::Sheet* s = dynamic_cast<Structure::Sheet *>(n);
-			if ( pointsLevel == 1)
-			{
-				for (int i = 0; i < (int) s->numCtrlPnts(); ++i)
-				{
-					mcpts.push_back( s->controlPoint(i));
-				}
-			}
-			else
-			{
-				int nu = s->numUCtrlPnts(), nv = s->numVCtrlPnts();
-				mcpts.push_back( s->surface.GetControlPoint(0,0) );
-				mcpts.push_back( s->surface.GetControlPoint(nu-1,0) );
-				mcpts.push_back( s->surface.GetControlPoint(nu-1,nv-1) );
-				mcpts.push_back( s->surface.GetControlPoint(0,nv-1) );
-			}
-		}
-	}
 
-	return mcpts.size();
-}
 void GlobalReflectionSymmScorer::init()
 {
 	std::vector<Eigen::Vector3d> cptsV;
