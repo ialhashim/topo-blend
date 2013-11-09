@@ -215,7 +215,6 @@ bool nurbs_plugin::keyPressEvent( QKeyEvent* event )
 
 void nurbs_plugin::buildSamples()
 {
-
 	// Curve example
 	int degree = 3;
 	std::vector<Vector3d> cps;
@@ -266,9 +265,11 @@ void nurbs_plugin::prepareSkeletonize()
 	// Remove visualization
 	ps.clear();
 
+	m->update_face_normals();
+	m->update_vertex_normals();
 	m->updateBoundingBox();
 
-	// Select model to skeletonize
+	drawArea()->setRenderer( m, "Wireframe");
 	document()->setSelectedModel( m );
 
 	// Voxelize
@@ -280,8 +281,6 @@ void nurbs_plugin::prepareSkeletonize()
 		resample_params->setValue("voxel_scale", float( widget->voxelParamter() ));
 		voxResamplePlugin->applyFilter( resample_params );
 	}
-
-	drawArea()->updateGL();
 
 	// Remesh
 	if( widget->isRemesh() )
@@ -301,8 +300,6 @@ void nurbs_plugin::prepareSkeletonize()
 		remeshPlugin->applyFilter( remesh_params );
 	}
 
-	drawArea()->updateGL();
-
 	// Compute MAT
 	FilterPlugin * matPlugin = pluginManager()->getFilter("Voronoi based MAT");
 	RichParameterSet * mat_params = new RichParameterSet;
@@ -319,7 +316,8 @@ void nurbs_plugin::stepSkeletonizeMesh()
 		mcfPlugin->initParameters( mcf_params );
 
 		// Custom MCF parameters
-		if( !widget->isUseMedial() ) mcf_params->setValue("omega_P_0",0);
+		if( !widget->isUseMedial() ) 
+			mcf_params->setValue("omega_P_0", 0.0f);
 	}
 	mcfPlugin->applyFilter( mcf_params );
 	 
@@ -495,7 +493,6 @@ void nurbs_plugin::convertToCurve()
 	if(!m) return;
 
 	document()->addModel( m );
-	document()->setSelectedModel( m );
 
 	prepareSkeletonize(); 
 
@@ -542,9 +539,9 @@ void nurbs_plugin::convertToSheet()
 	if(!m) return;
 
 	document()->addModel( m );
-	document()->setSelectedModel( m );
 
 	prepareSkeletonize(); 
+
 	for(int i = 0; i < widget->contractIterations(); i++)
 	{
 		stepSkeletonizeMesh();
