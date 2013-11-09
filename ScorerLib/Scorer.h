@@ -5,10 +5,8 @@
 #include <sstream>
 #include <numeric>
 
-#include "StructureGraph.h"
-#include "StructureNode.h"
-#include "GraphCorresponder.h"
 
+#include "GraphCorresponder.h"
 #include "transform3d.h"
 
 class Scorer
