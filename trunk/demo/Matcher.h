@@ -5,6 +5,7 @@
 #include "GraphItem.h"
 
 enum MatcherState{ CLEARED, SINGLE, BOTH };
+enum GraphHitMode{ MARKING, STROKES };
 
 class Matcher : public DemoPage
 {
@@ -19,11 +20,15 @@ public:
 
 	QVector<PART_LANDMARK> prevCorrAuto, prevCorrManual;
 
+	QColor curStrokeColor;
+
 private:
 	MatcherState state;
 	QVector<QString> groupA, groupB;
 	GraphItem * prevItem;
+	
 	bool isAuto;
+	bool isGrouping;
 
 public slots:
     void show();
@@ -36,11 +41,13 @@ public slots:
 
 	void autoMode();
 	void manualMode();
+	void groupingMode();
 
 	void setMatch();
 	void clearMatch();
 
 	void mousePress( QGraphicsSceneMouseEvent* mouseEvent );
+	void mouseRelease( QGraphicsSceneMouseEvent* mouseEvent );
 	void keyReleased( QKeyEvent* keyEvent );
 
 signals:

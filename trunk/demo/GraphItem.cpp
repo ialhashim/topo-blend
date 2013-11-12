@@ -1,5 +1,7 @@
 #include "GraphItem.h"
 
+#include <Eigen/Geometry>
+
 GraphItem::GraphItem(Structure::Graph *graph, QRectF region, qglviewer::Camera * camera) : g(graph), camera(camera)
 {
     setGeometry(region);
@@ -71,6 +73,91 @@ void GraphItem::draw3D()
 
     g->draw();
 
+	// Draw strokes
+	{
+		glDisable(GL_LIGHTING);
+
+		QVector< QVector<Vector3> > allStorkes = g->property["strokes"].value< QVector< QVector<Vector3> > >();
+
+		foreach(QVector<Vector3> skeleton, allStorkes)
+		{
+			int N = skeleton.size();
+
+			if(N > 2 && g->property.contains("strokeColor"))
+			{
+				// Draw skeleton
+				if(false)
+				{
+					glColorQt(QColor(0,0,0));
+					glLineWidth(40);
+					glEnableClientState(GL_VERTEX_ARRAY);
+					glVertexPointer(3, GL_DOUBLE, 0, &skeleton[0][0]);
+					glDrawArrays(GL_LINE_STRIP, 0, skeleton.size());
+					glDisableClientState(GL_VERTEX_ARRAY);
+				}
+
+				QColor curColor = g->property["strokeColor"].value<QColor>();
+				glColorQt(curColor);
+
+				// Build a connected tube from cross-sections
+				{
+					QVector< QVector<Vector3> > crossSections;
+					QVector<Vector3> crossSection;
+
+					Vector3 t0 = (skeleton[1] - skeleton[0]).normalized();
+					Vector3 start = orthogonalVector(t0);
+
+					int numSegments = 8;
+					double tubeRadius = g->bbox().diagonal().norm() * 0.03;
+
+					double theta = (M_PI * 2.0) / numSegments;
+
+					// First cross-section
+					for(int i = 0; i < numSegments; i++){
+						crossSection.push_back(start);
+						start = rotatedVec(start, theta, t0);
+					}
+
+					// Tube
+					for(int i = 0; i < N - 1; i++)
+					{
+						Vector3 ti = (skeleton[i+1] - skeleton[i]).normalized();
+
+						// Rotate cross-section
+						Eigen::Quaterniond q = Eigen::Quaterniond::FromTwoVectors(t0, ti).normalized();
+
+						for(int j = 0; j < crossSection.size(); j++)
+							crossSection[j] = q * crossSection[j];
+
+						crossSections.push_back(crossSection);
+
+						// Set to new normal
+						t0 = ti;
+					}
+
+					// Draw tube
+					for(int i = 0; i < crossSections.size() - 1; i++)
+					{
+						glBegin(GL_QUAD_STRIP);
+						for(int j = 0; j < numSegments + 1; j++)
+						{
+							int k = j % numSegments;
+							Vector3 a = (crossSections[i][k] * tubeRadius) + skeleton[i];
+							Vector3 b = (crossSections[i+1][k] * tubeRadius) + skeleton[i+1];
+
+							glVector3(a);
+							glVector3(b);
+						}
+						glEnd();
+					}
+				}
+			}
+		}
+
+		glEnable(GL_LIGHTING);
+	}
+
+	// Markers used for matching
 	marker.draw();
 
 	// DEBUG:
@@ -80,7 +167,7 @@ void GraphItem::draw3D()
     glViewport(viewport[0],viewport[1],viewport[2],viewport[3]);
 }
 
-void GraphItem::pick( int X, int Y )
+void GraphItem::pick( int X, int Y, int pickMode )
 {
 	if(!m_geometry.contains(X,Y)){
 		emit( miss() );
@@ -91,8 +178,8 @@ void GraphItem::pick( int X, int Y )
 	int y = Y - m_geometry.y();
 
 	qglviewer::Vec orig, dir;
-	QMap<double,Vector3> isects;
-	QMap<double,QString> isectNode;
+	QMap< double, QPair<int, Vector3> > isects;
+	QMap< double, QString > isectNode;
 
 	this->setCamera();
 	camera->convertClickToLine(QPoint(x,y), orig, dir);
@@ -118,7 +205,7 @@ void GraphItem::pick( int X, int Y )
 			if( intersectRayTri(tri, origin, direction, ipoint) )
 			{
 				double dist = (origin - ipoint).norm();
-				isects[dist] = ipoint;
+				isects[dist] = qMakePair(f.idx(), ipoint);
 				isectNode[dist] = n->id;
 			}
 		}
@@ -128,8 +215,11 @@ void GraphItem::pick( int X, int Y )
 	if(isects.size())
 	{
 		double minDist = isects.keys().front();
-		Vector3 ipoint = isects[minDist];
+		Vector3 ipoint = isects[minDist].second;
 		Vector3 direction(-dir[0],-dir[1],-dir[2]);
+		int faceIDX = isects[minDist].first;
+
+		emit( hit( HitResult(this, isectNode[minDist], ipoint, QPoint(X,Y), faceIDX, pickMode) ) );
 
 		// DEBUG:
 		if(false){
@@ -137,8 +227,6 @@ void GraphItem::pick( int X, int Y )
 			ss1.addSphere(ipoint, 0.03f);
 			vs1.addVector(ipoint, direction);
 		}
-
-		emit( hit( HitResult(this, isectNode[minDist], ipoint, QPoint(X,Y)) ) );
 	}
 	else
 	{

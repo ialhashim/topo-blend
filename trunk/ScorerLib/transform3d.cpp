@@ -162,7 +162,7 @@ Eigen::Matrix4d create_rotation3d_line_angle(Eigen::Vector3d& center,Eigen::Vect
 void vectorPts2MatrixPts(const std::vector<Eigen::Vector3d>& ptsin, Eigen::MatrixXd& ptsout)
 {
 	ptsout.resize(ptsin.size(), 3);
-	for ( int i = 0; i < ptsin.size(); ++i)
+    for ( int i = 0; i < (int)ptsin.size(); ++i)
 	{
 		ptsout.row(i) = ptsin[i];
 	}

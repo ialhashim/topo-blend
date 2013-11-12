@@ -22,6 +22,8 @@ Matcher::Matcher(Scene * scene, QString title) : gcorr(NULL), prevItem(NULL), is
 
 	c_cold = c_warm = 0;
 
+	curStrokeColor = QColor(255,0,0,200);
+
 	// Connections
 	this->connect(this, SIGNAL(keyUpEvent(QKeyEvent*)), SLOT(keyReleased(QKeyEvent*)));
 }
@@ -104,6 +106,9 @@ void Matcher::show()
 	{
 		autoMode();
 	}
+
+	// Ordering
+	curStrokeColor = QColor(255,0,0);
 
 	emit( corresponderCreated(gcorr) );
 	DemoPage::show();
@@ -227,13 +232,32 @@ void Matcher::graphHit( GraphItem::HitResult hit )
 	Structure::Node * n = g->getNode( hit.nodeID );
 
 	QVector<QString> & group = (g == s->inputGraphs[0]->g) ? groupA : groupB;
-	
-	// Add only if not there
-	if(!group.contains(n->id)) group.push_back(n->id);
-	
-	double markerRadius = g->bbox().diagonal().norm() * 0.03;
 
-	item->marker.addSphere( hit.ipoint, markerRadius, QColor(211, 50, 118) );
+	// Unique results: add only if not there
+	if(!group.contains(n->id)) group.push_back(n->id);
+
+	if( hit.hitMode == MARKING && !isGrouping )
+	{
+		if(visible)
+		{
+			double markerRadius = g->bbox().diagonal().norm() * 0.03;
+			item->marker.addSphere( hit.ipoint, markerRadius, QColor(211, 50, 118) );
+		}
+	}
+
+	if( hit.hitMode == STROKES )
+	{
+		g->property["strokeColor"] = curStrokeColor;
+
+		QVector< QVector<Vector3> > allStorkes = g->property["strokes"].value< QVector< QVector<Vector3> > >();
+		
+		if(allStorkes.size() < 1) allStorkes.push_back(QVector<Vector3>());
+
+		QVector<Vector3> & lastStroke = allStorkes.back();
+		lastStroke.push_back( hit.ipoint );
+
+		g->property["strokes"].setValue( allStorkes );
+	}
 }
 
 void Matcher::autoMode()
@@ -255,6 +279,7 @@ void Matcher::autoMode()
 	visualize();
 
 	isAuto = true;
+	isGrouping = false;
 }
 
 void Matcher::manualMode()
@@ -281,6 +306,7 @@ void Matcher::manualMode()
 	prevItem = NULL;
 	
 	isAuto = false;
+	isGrouping = false;
 }
 
 void Matcher::clearMatch()
@@ -326,7 +352,7 @@ void Matcher::setMatch()
 
 void Matcher::mousePress( QGraphicsSceneMouseEvent* mouseEvent )
 {
-	if( isAuto )
+	if( isAuto && !isGrouping )
 	{
 		QVector<QRectF> r; 
 		r << s->inputGraphs[0]->sceneBoundingRect() << s->inputGraphs[1]->sceneBoundingRect();
@@ -344,8 +370,44 @@ void Matcher::mousePress( QGraphicsSceneMouseEvent* mouseEvent )
 	}
 }
 
+void Matcher::mouseRelease( QGraphicsSceneMouseEvent* mouseEvent )
+{
+	Q_UNUSED(mouseEvent)
+
+	if(!visible) return;
+
+	if( isGrouping )
+	{
+		if(groupA.size() && groupB.size())
+		{
+			foreach(QString nid, groupA)	s->inputGraphs[0]->g->setColorFor(nid, curStrokeColor);
+			foreach(QString nid, groupB)	s->inputGraphs[1]->g->setColorFor(nid, curStrokeColor);
+
+			curStrokeColor = qRandomColor2();
+
+			s->inputGraphs[0]->g->property.remove("strokes");
+			s->inputGraphs[1]->g->property.remove("strokes");
+
+			groupA.clear();
+			groupB.clear();
+		}
+		else
+		{
+			QVector<Structure::Graph*> graphs;
+			graphs << s->inputGraphs[0]->g << s->inputGraphs[1]->g;
+
+			foreach(Structure::Graph * g, graphs)
+				g->property["strokes"].setValue( g->property["strokes"].value< QVector< QVector<Vector3> > >() << QVector<Vector3>() );
+		}
+	}
+
+	emit( update() );
+}
+
 void Matcher::keyReleased( QKeyEvent* keyEvent )
 {
+	if(!visible) return;
+
 	// Save correspondence
 	if(keyEvent->key() == Qt::Key_S){
 		QString filename = "dataset/corr/" + (s->inputGraphs[0]->name + "_" + s->inputGraphs[1]->name) + ".txt";
@@ -359,4 +421,22 @@ void Matcher::keyReleased( QKeyEvent* keyEvent )
 		if(QFile::remove(filename)) emit( message( "Correspondence file deleted: " + filename ) );
 		return;
 	}
+}
+
+void Matcher::groupingMode()
+{
+	// Set to clear color
+	QColor clearColor(100,100,100);
+	foreach(Node * n, s->inputGraphs[0]->g->nodes)	n->vis_property["meshColor"].setValue( clearColor );
+	foreach(Node * n, s->inputGraphs[1]->g->nodes)	n->vis_property["meshColor"].setValue( clearColor );
+
+	// Remove any strokes
+	s->inputGraphs[0]->g->property.remove("strokes");
+	s->inputGraphs[1]->g->property.remove("strokes");
+
+	// Remove any markers
+	s->inputGraphs[0]->marker.clear();
+	s->inputGraphs[1]->marker.clear();
+
+	isGrouping = true;
 }

@@ -179,33 +179,54 @@ void Scene::testScene()
 	glEnd();
 }
 
+void Scene::mouseReleaseEvent( QGraphicsSceneMouseEvent * event )
+{
+	emit( mousePressUpEvent(event) );
+	QGraphicsScene::mousePressEvent(event);
+}
+
 void Scene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-	if(event->buttons() & Qt::LeftButton)
+	QPointF startPos = event->buttonDownScenePos(Qt::LeftButton);
+	QPointF currentPos = event->scenePos();
+
+	QList<QGraphicsItem*> underMouse = items(event->scenePos());
+	bool isGraphUnderMouse = underMouse.contains(inputGraphs[0]) || underMouse.contains(inputGraphs[1]);
+	
+	if( isGraphUnderMouse )
 	{
-		QList<QGraphicsItem*> underMouse = items(event->scenePos());
-		bool isGraphUnderMouse = underMouse.contains(inputGraphs[0]) || underMouse.contains(inputGraphs[1]);
-
-		if(property("camera-rotate").toBool() && isGraphUnderMouse)
+		if(event->buttons() & Qt::LeftButton && event->modifiers() == Qt::ShiftModifier)
 		{
-			QPointF startPos = event->buttonDownScenePos(Qt::LeftButton);
-			QPointF currentPos = event->scenePos();
+			int i = 0;
+			if(startPos.x() > width() * 0.5) i = 1;
 
-			// Reset
-			camera->frame()->setPosition( camera->property("startPos").value<qglviewer::Vec>() );
-			camera->frame()->setOrientation( camera->property("startOrientation").value<qglviewer::Quaternion>() );
-
-			// Rotate to new view
-			QRect r = graphRect(0);
-			if(startPos.x() > width() * 0.5) r = graphRect(1);
-
-			qglviewer::Quaternion rot = deformedBallQuaternion(startPos.x(), startPos.y(),
-				currentPos.x(), currentPos.y(),
-				r.center().x(), r.center().y(), r.width(), r.height());
-			camera->frame()->rotateAroundPoint(rot, camera->revolveAroundPoint());
-
-			update();
+			if(inputGraphs[i]) 
+			{
+				inputGraphs[i]->pick( currentPos.x(), currentPos.y(), 1 );
+				update();
+			}
 		}
+		else if(event->buttons() & Qt::LeftButton)
+		{
+			if(property("camera-rotate").toBool())
+			{
+				// Reset
+				camera->frame()->setPosition( camera->property("startPos").value<qglviewer::Vec>() );
+				camera->frame()->setOrientation( camera->property("startOrientation").value<qglviewer::Quaternion>() );
+
+				// Rotate to new view
+				QRect r = graphRect(0);
+				if(startPos.x() > width() * 0.5) r = graphRect(1);
+
+				qglviewer::Quaternion rot = deformedBallQuaternion(startPos.x(), startPos.y(),
+					currentPos.x(), currentPos.y(),
+					r.center().x(), r.center().y(), r.width(), r.height());
+				camera->frame()->rotateAroundPoint(rot, camera->revolveAroundPoint());
+
+				update();
+			}
+		}
+
 	}
 
 	QGraphicsScene::mouseMoveEvent(event);
@@ -234,7 +255,7 @@ void Scene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 			for(int i = 0; i < 2; i++)
 			{
 				QPointF pos = event->scenePos();
-				if(inputGraphs[i]) inputGraphs[i]->pick( pos.x(), pos.y() );
+				if(inputGraphs[i]) inputGraphs[i]->pick( pos.x(), pos.y(), 0 );
 			}
 		}
 

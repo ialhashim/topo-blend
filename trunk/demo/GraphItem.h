@@ -8,6 +8,9 @@
 #include "StructureGraph.h"
 #include "DemoGlobal.h"
 
+Q_DECLARE_METATYPE(QVector< Vector3 >)
+Q_DECLARE_METATYPE(QVector< QVector<Vector3> >)
+
 class GraphItem : public QGraphicsObject{
     Q_OBJECT
     Q_PROPERTY(QRectF geometry READ boundingRect WRITE setGeometry NOTIFY geometryChanged)
@@ -25,7 +28,7 @@ public:
 	QRectF setCamera();
 
     void draw3D();
-	void pick(int x, int y);
+	void pick(int x, int y, int pickMode);
 
     QRectF popState();
     void pushState();
@@ -36,8 +39,10 @@ public:
 		QString nodeID;
 		Vector3 ipoint;
 		QPoint mousePos;
-		HitResult(GraphItem * item, QString nodeID, Vector3 ipoint, QPoint mousePos) :
-		 item(item), nodeID(nodeID), ipoint(ipoint), mousePos(mousePos) {}
+		int faceIDX;
+		int hitMode;
+		HitResult(GraphItem * item, QString nodeID, Vector3 ipoint, QPoint mousePos, int faceIDX, int hitMode) :
+		 item(item), nodeID(nodeID), ipoint(ipoint), mousePos(mousePos), faceIDX(faceIDX), hitMode(hitMode) {}
 	};
 
 private:

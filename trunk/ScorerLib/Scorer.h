@@ -5,7 +5,6 @@
 #include <sstream>
 #include <numeric>
 
-
 #include "GraphCorresponder.h"
 #include "transform3d.h"
 #include "RelationDetector.h"

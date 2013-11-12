@@ -25,6 +25,7 @@ protected:
     void testScene(); // delete this later
 
 protected:
+	void mouseReleaseEvent( QGraphicsSceneMouseEvent * event );
     void mousePressEvent( QGraphicsSceneMouseEvent * event );
     void mouseMoveEvent( QGraphicsSceneMouseEvent * event );
     void wheelEvent( QGraphicsSceneWheelEvent *event );
@@ -37,6 +38,7 @@ private:
 
 signals:
 	void mousePressDownEvent(QGraphicsSceneMouseEvent * event);
+	void mousePressUpEvent(QGraphicsSceneMouseEvent * event);
 	void keyUpEvent(QKeyEvent*);
     void wheelEvents(QGraphicsSceneWheelEvent*);
 	void doubleClick();
