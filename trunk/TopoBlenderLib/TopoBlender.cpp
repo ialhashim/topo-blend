@@ -43,7 +43,6 @@ TopoBlender::TopoBlender(GraphCorresponder * useCorresponder, Scheduler * useSch
 
 	/// STEP 4) Order and schedule the tasks
 	scheduler->schedule();
-	scheduler->isApplyChangesUI = true;
 }
 
 TopoBlender::~TopoBlender()
@@ -59,6 +58,8 @@ void TopoBlender::setupUI()
 	scheduler->dock->setWidget( scheduler->widget );
     QMainWindow * win = (QMainWindow *) parentWidget;
 	win->addDockWidget(Qt::BottomDockWidgetArea, scheduler->dock);
+
+	scheduler->isApplyChangesUI = true;
 }
 
 void TopoBlender::drawDebug()
