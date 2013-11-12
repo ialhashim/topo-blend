@@ -87,7 +87,3 @@ SOURCES += StructureGraph.cpp \
     Relink.cpp
 	
 FORMS +=  SchedulerWidget.ui
-
-win32-msvc* {
-    QMAKE_CXXFLAGS += /wd4305
-}

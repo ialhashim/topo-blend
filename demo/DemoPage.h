@@ -21,6 +21,7 @@ public:
         items.push_back(titleItem);
 
 		this->connect(s, SIGNAL(keyUpEvent(QKeyEvent*)), SLOT(keyUp(QKeyEvent*)));
+		s->connect(this, SIGNAL(update()), SLOT(update()));
     }
 
     PropertyMap property;
@@ -54,4 +55,5 @@ signals:
 	void becameVisible();
 	void becameHidden();
 	void message(QString);
+	void update();
 };

@@ -857,7 +857,7 @@ void GraphCorresponder::correspondTwoCurves( Structure::Curve *sCurve, Structure
 	float f2b = (sfront - tback).norm();
 
 	float diff = std::abs(f2f-f2b);
-	float threshold = 0.1;
+    float threshold = 0.1f;
 
 	if (f2f > f2b && diff > threshold)
 	{

@@ -1732,6 +1732,16 @@ void Graph::setColorAll( QColor newNodesColor )
 		n->vis_property["color"] = newNodesColor;
 }
 
+void Graph::setColorFor( QString nodeID, QColor newColor )
+{
+	Node * n = getNode(nodeID);
+
+	n->vis_property["color"] = newColor;
+
+	QSharedPointer<SurfaceMeshModel> nodeMesh = n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >();
+	if(!nodeMesh.isNull())	n->vis_property["meshColor"] = newColor;
+}
+
 void Graph::renameNode( QString oldNodeID, QString newNodeID )
 {
 	Structure::Node * n = getNode(oldNodeID);

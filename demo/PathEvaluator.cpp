@@ -3,7 +3,6 @@
 
 #include "PathEvaluator.h"
 #include "SynthesisManager.h"
-#include "RelationManager.h"
 
 #include "BlendPathRenderer.h"
 
@@ -56,9 +55,9 @@ void PathEvaluator::evaluatePaths()
 	QVector<Structure::Graph*> inputGraphs;
 	inputGraphs << b->s->inputGraphs[0]->g << b->s->inputGraphs[1]->g;
 
-	RelationManager r_manager(b->m_gcorr, b->m_scheduler.data(), inputGraphs);
-	r_manager.parseModelConstraintPair( false );
-	r_manager.parseModelConstraintGroup( false );
+	//RelationManager r_manager(b->m_gcorr, b->m_scheduler.data(), inputGraphs);
+	//r_manager.parseModelConstraintPair( false );
+	//r_manager.parseModelConstraintGroup( false );
 
 	QVector<ScheduleType> allPaths = b->m_scheduler->manyRandomSchedules( numPaths );
 
@@ -76,7 +75,7 @@ void PathEvaluator::evaluatePaths()
 		s.executeAll();
 		
 		// Compute its score
-		ps[i].scores = r_manager.traceModelConstraints( s.allGraphs );
+		//ps[i].scores = r_manager.traceModelConstraints( s.allGraphs );
 		
 		double maxScorePath = ps[i].maxScore();
 

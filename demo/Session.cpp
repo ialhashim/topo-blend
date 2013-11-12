@@ -14,7 +14,9 @@ Session::Session(   Scene *scene, ShapesGallery *gallery, Controls * control,
 	// Matcher:
 	matcher->connect(control->ui->autoButton, SIGNAL(clicked()), SLOT(autoMode()));
 	matcher->connect(control->ui->manualButton, SIGNAL(clicked()), SLOT(manualMode()));
+	matcher->connect(control->ui->groupingButton, SIGNAL(clicked()), SLOT(groupingMode()));
 	matcher->connect(scene, SIGNAL(mousePressDownEvent(QGraphicsSceneMouseEvent*)), SLOT(mousePress(QGraphicsSceneMouseEvent*)));
+	matcher->connect(scene, SIGNAL(mousePressUpEvent(QGraphicsSceneMouseEvent*)), SLOT(mouseRelease(QGraphicsSceneMouseEvent*)));
 	control->connect(matcher, SIGNAL(correspondenceFromFile()), SLOT(forceManualMatch()));
 	control->connect(matcher, SIGNAL(switchedToManual()), SLOT(forceManualMatch()));
 

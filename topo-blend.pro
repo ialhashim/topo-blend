@@ -2,10 +2,10 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 # Libraries
-SUBDIRS += NURBS \
-    RelationDetectorLib
+SUBDIRS += NURBS
 SUBDIRS += DynamicVoxel
 SUBDIRS += Voxeler
+SUBDIRS += ScorerLib
 SUBDIRS += TopoBlenderLib
 SUBDIRS += Reconstruction
 SUBDIRS += GlSplatRendererLib
@@ -23,11 +23,10 @@ SUBDIRS += nurbs_plugin
 SUBDIRS += demo         # Standalone demo
 SUBDIRS += topo-blend   # Main plugin for topo-blending
 
-#SUBDIRS += test         # Performance test
+#SUBDIRS += test        # Performance test
 
 # Dependecy map
-#dynamic_voxel.depends = DynamicVoxel
 nurbs_plugin.depends = NURBS
 TopoBlenderLib.depends = GlSplatRendererLib
-topo-blend.depends = GlSplatRendererLib NURBS DynamicVoxel TopoBlenderLib 
-demo.depends = GlSplatRendererLib NURBS DynamicVoxel TopoBlenderLib
+topo-blend.depends = GlSplatRendererLib NURBS DynamicVoxel ScorerLib TopoBlenderLib 
+demo.depends = GlSplatRendererLib NURBS DynamicVoxel ScorerLib TopoBlenderLib

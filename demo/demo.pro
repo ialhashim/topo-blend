@@ -25,9 +25,9 @@ INCLUDEPATH += ../Reconstruction
 LIBS += -L$$PWD/../TopoBlenderLib/$$CFG/lib -lTopoBlenderLib
 INCLUDEPATH += ../TopoBlenderLib
 
-# Relations detection library
-LIBS += -L$$PWD/../RelationDetectorLib/$$CFG/lib -lRelationDetectorLib
-INCLUDEPATH += ../RelationDetectorLib
+# Blend path scoring library
+LIBS += -L$$PWD/../ScorerLib/$$CFG/lib -lScorerLib
+INCLUDEPATH += ../ScorerLib
 
 # Splat Rendering library
 LIBS += -L$$PWD/../GLSplatRendererLib/$$CFG/lib -lGLSplatRendererLib

@@ -61,6 +61,7 @@ namespace Structure{
 		void setVisPropertyAll( QString prop_name, QVariant value );
 		void setPropertyFor( QVector<QString> nodeIDs, QString prop_name, QVariant value );
 		void setColorAll( QColor newNodesColor );
+		void setColorFor( QString nodeID, QColor newColor );
 	
 		QVector<Structure::Node*> nodesWithProperty( QString propertyName );
 		QVector<Structure::Node*> nodesWithProperty( QString propertyName,  QVariant value );
