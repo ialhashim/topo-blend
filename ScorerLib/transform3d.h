@@ -9,8 +9,8 @@ int extractCpts( Structure::Node * n, std::vector<Eigen::Vector3d>& mcpts, int p
 void vectorPts2MatrixPts(const std::vector<Eigen::Vector3d>& ptsin, Eigen::MatrixXd& ptsout);
 std::vector<Eigen::Vector3d> matrixPts2VectorPts(Eigen::MatrixXd& ptsin);
 
-double distanceBetween(const Eigen::MatrixXd& v1, const Eigen::MatrixXd& v2);
-void distanceBetween(const Eigen::MatrixXd& v1, const Eigen::MatrixXd& v2, double &mean_dist, double &max_dist);
+// compute min, mean & max distance between 2 sets of points
+void distanceBetween(const Eigen::MatrixXd& v1, const Eigen::MatrixXd& v2, double & min_dist, double &mean_dist, double &max_dist);
 
 void reflectPoints(const Eigen::MatrixXd& ptsin, const Eigen::Vector3d& center, const Eigen::Vector3d& normal, Eigen::MatrixXd& ptsout);
 void reflectPoint(const Eigen::Vector3d& ptin, const Eigen::Vector3d& center, const Eigen::Vector3d& normal, Eigen::Vector3d& ptout);

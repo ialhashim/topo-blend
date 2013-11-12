@@ -8,6 +8,7 @@
 
 #include "GraphCorresponder.h"
 #include "transform3d.h"
+#include "RelationDetector.h"
 
 class Scorer
 {
@@ -25,6 +26,10 @@ public:
 	{
 		logFile_.close();
 	}
+	
+	std::vector<Structure::Node*> findNodes(QString id, Structure::Graph *graph, QVector<PART_LANDMARK> &corres, bool bSource);
+	Eigen::MatrixXd node2matrix(Structure::Node* node, int pointLevel);
+
 
 	Structure::Graph* graph_;
 

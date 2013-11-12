@@ -36,10 +36,16 @@ signals:
 
 public slots:
 	void parseConstraintPair();
+	void evaluateTopology();
+	QVector<double> evaluateTopology( QVector<Structure::Graph*> const &graphs );
+	void evaluateTopologyAuto();
+	
+
     void parseGlobalReflectionSymm();
-    void evaluateGlobalReflectionSymm();
-	void evaluateGlobalReflectionSymmAuto();
+    void evaluateGlobalReflectionSymm();	
 	QVector<double> evaluateGlobalReflectionSymm( QVector<Structure::Graph*> const &graphs );
+	void evaluateGlobalReflectionSymmAuto();
+	
 
 	void setIsUseSourceCenter(bool);
 
@@ -51,6 +57,7 @@ private:
 	{
 		return (-1 != maxGlobalSymmScore_);
 	}
+	Structure::Graph * getCurrentGraph(int &idx);
 };
 	
 

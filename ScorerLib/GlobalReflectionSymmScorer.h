@@ -4,7 +4,7 @@ class GlobalReflectionSymmScorer :
 	public Scorer
 {
 public:
-    GlobalReflectionSymmScorer(Structure::Graph* g, int ith, int logLevel=0):Scorer(g, "GlobalReflectionSymmDetector-", ith, logLevel)
+    GlobalReflectionSymmScorer(Structure::Graph* g, int ith, int logLevel=0):Scorer(g, "GlobalReflectionSymmScorer-", ith, logLevel)
     {
 		pointsLevel_= 1;
 		init();

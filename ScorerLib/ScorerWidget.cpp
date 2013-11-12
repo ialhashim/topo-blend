@@ -18,6 +18,9 @@ ScorerWidget::ScorerWidget(QWidget *parent)
     s_manager->connect(ui->evaluateGlobalSymm, SIGNAL(clicked()), SLOT(evaluateGlobalReflectionSymm()));
 	s_manager->connect(ui->evaluateGlobalSymmAuto, SIGNAL(clicked()), SLOT(evaluateGlobalReflectionSymmAuto()));
 
+	s_manager->connect(ui->evaluateTopology, SIGNAL(clicked()), SLOT(evaluateTopology()));
+	s_manager->connect(ui->evaluateTopologyAuto, SIGNAL(clicked()), SLOT(evaluateTopologyAuto()));	
+
 	// Options
     s_manager->connect(ui->bUseSourceCenter, SIGNAL(clicked(bool)), SLOT(setIsUseSourceCenter(bool)));
 }

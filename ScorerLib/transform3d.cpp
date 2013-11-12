@@ -55,28 +55,11 @@ int extractCpts( Structure::Node * n, std::vector<Eigen::Vector3d>& mcpts, int p
 
 	return mcpts.size();
 }
-double distanceBetween(const Eigen::MatrixXd& v1, const Eigen::MatrixXd& v2)
+
+void distanceBetween(const Eigen::MatrixXd& v1, const Eigen::MatrixXd& v2, double & min_dist, double &mean_dist, double &max_dist)
 {
-    double err1(0.0);
-    for(int i = 0; i < (int) v1.rows(); ++i)
-    {
-        double minErr = std::numeric_limits<double>::max(), val(0.0);
-        Eigen::Vector3d pt1 = v1.row(i);
-        for ( int j = 0; j < (int) v2.rows(); ++j)
-        {
-            Eigen::Vector3d pt2 = v2.row(j);
-            val = (pt1-pt2).norm();
-            if ( val < minErr)
-                minErr = val;
-        }
-        err1 += minErr;
-    }
-    err1 = err1/v1.rows();
-    return err1;
-}
-void distanceBetween(const Eigen::MatrixXd& v1, const Eigen::MatrixXd& v2, double &mean_dist, double &max_dist)
-{
-    mean_dist = 0.0; max_dist = 0.0;
+    min_dist = std::numeric_limits<double>::max(); mean_dist = 0.0; max_dist = 0.0; 
+
     for(int i = 0; i < (int) v1.rows(); ++i)
     {
         double minErr = std::numeric_limits<double>::max(), val(0.0);
@@ -91,6 +74,8 @@ void distanceBetween(const Eigen::MatrixXd& v1, const Eigen::MatrixXd& v2, doubl
         mean_dist += minErr;
         if(minErr > max_dist)
             max_dist = minErr;
+		if(minErr < min_dist)
+            min_dist = minErr;
     }
     mean_dist = mean_dist/v1.rows();
 }
