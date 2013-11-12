@@ -65,6 +65,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="evaluateTopology">
+        <property name="text">
+         <string>Connectivity</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QGroupBox" name="groupBox">
         <property name="title">
          <string>Evaluate auto</string>
@@ -74,6 +81,13 @@
           <widget class="QPushButton" name="evaluateGlobalSymmAuto">
            <property name="text">
             <string>global reflection symm</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="evaluateTopologyAuto">
+           <property name="text">
+            <string>Connectivity</string>
            </property>
           </widget>
          </item>

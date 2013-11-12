@@ -71,10 +71,10 @@ Eigen::Vector3d GlobalReflectionSymmScorer::findReflectPlane(const Eigen::Vector
     for ( int i = 0; i < (int) 2; ++i)
     {
         normal = rotatedVec(initNormal, i*angleStep, axis);
-        double meanDist, maxDist;
+        double minDist, meanDist, maxDist;
         Eigen::MatrixXd ptsout;
 		reflectPoints(cpts_, center, normal, ptsout);
-		distanceBetween(cpts_, ptsout, meanDist, maxDist);
+		distanceBetween(cpts_, ptsout, minDist, meanDist, maxDist);
 
         if ( meanDist < meanScore)
         {
@@ -101,27 +101,25 @@ double GlobalReflectionSymmScorer::evaluate(Eigen::Vector3d &center, Eigen::Vect
         Eigen::Vector3d nc = nodesCenter_[i];
         Eigen::Vector3d nc1;
         reflectPoint(nc, center, normal, nc1);
-        double dist;
-        int j = findNearestPart(nc1, nonDegeneratedNodes_[i]->type(), dist);
+        double minDist, meanDist, maxDist;
+		int j = findNearestPart(nc1, nonDegeneratedNodes_[i]->type(), minDist);
         
 		Eigen::MatrixXd ptsout;
         reflectPoints(nodesCpts_[i], center, normal, ptsout);
-        dist = distanceBetween(ptsout, nodesCpts_[j]);
-		//dist = std::abs(nonDegeneratedNodes_[i]->bbox().diagonal().norm() - nonDegeneratedNodes_[j]->bbox().diagonal().norm());///graph_->bbox().diagonal().norm();
-		//dist *= nonDegeneratedNodes_[i]->bbox().diagonal().norm();
-
+		
+        distanceBetween(ptsout, nodesCpts_[j], minDist, meanDist, maxDist);
         
-        meanScore += dist;
-        if ( dist > maxScore)
+        meanScore += minDist;
+        if ( minDist > maxScore)
         {
-            maxScore = dist;
+            maxScore = minDist;
         }
 
 		if(logLevel_>1)
 		{
-			dist= dist/gsize;
-			dist = 1/(1+dist);
-			logStream_ << "part: " << nonDegeneratedNodes_[i]->id << ", deviation of symm: " << dist/maxGlobalSymmScore << "\n";
+			minDist= minDist/gsize;
+			minDist = 1/(1+minDist);
+			logStream_ << "part: " << nonDegeneratedNodes_[i]->id << ", deviation of symm: " << minDist/maxGlobalSymmScore << "\n";
 		}
     }
     meanScore = meanScore/nonDegeneratedNodes_.size();
