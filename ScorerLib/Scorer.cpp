@@ -14,39 +14,28 @@ std::vector<Structure::Node*> Scorer::findNodes(QString id, Structure::Graph *gr
             if ( 1 == numCorres && ids[0] == id)
             {
                 Structure::Node* tmpNode = graph->getNode(id);
-                if ( tmpNode ==NULL)
-                {
-                    for ( int j = 0; j < (int) numCorres; ++j)
-                    {
-                        result.push_back( graph->getNode(corres[i].second[j]) );
-                    }
-                }
-                else
-                {
-                    result.push_back( graph->getNode(id) );
-                }
+                if ( tmpNode != NULL)
+                    result.push_back( tmpNode );
+
                 return result;
             }
             else if ( 1 < numCorres )
             {
                 if ( ids[0].startsWith( id + "_", Qt::CaseSensitive) )
                 {
-                    Structure::Node* tmpNode = graph->getNode(ids[0]);
-                    if ( tmpNode ==NULL)
+                    for ( int j = 0; j < numCorres; ++j)
                     {
-                        result.push_back( graph->getNode(corres[i].second[0]) );
-                    }
-                    else
-                    {
-                        for ( int j = 0; j < (int) ids.size(); ++j)
-                        {
-                            result.push_back( graph->getNode(ids[j]));
-                        }
+						Structure::Node* tmpNode = graph->getNode(ids[j]);
+						if ( tmpNode != NULL)
+	                        result.push_back( tmpNode);
                     }
                     return result;
                 }
             }
         }
+		Structure::Node* tmpNode = graph->getNode(id);
+		if ( tmpNode != NULL)
+			result.push_back( graph->getNode(id) );   
     }
     else // is target
     {
@@ -56,17 +45,11 @@ std::vector<Structure::Node*> Scorer::findNodes(QString id, Structure::Graph *gr
             QString id2 = corres[i].second[0];
             if ( id2 == id)
             {
-                Structure::Node* tmpNode = graph->getNode(ids1[0]);
-                if ( tmpNode ==NULL)
+                for ( int j = 0; j < ids1.size(); ++j)
                 {
-                    result.push_back( graph->getNode(id2) );
-                }
-                else
-                {
-                    for ( int j = 0; j < (int) ids1.size(); ++j)
-                    {
-                        result.push_back( graph->getNode(ids1[j]) );
-                    }
+					Structure::Node* tmpNode = graph->getNode(ids1[j]);
+					if ( tmpNode != NULL)
+						result.push_back( tmpNode );
                 }
                 return result;
             }
@@ -76,12 +59,10 @@ std::vector<Structure::Node*> Scorer::findNodes(QString id, Structure::Graph *gr
         if ( tmpNode != NULL)
         {
             result.push_back( tmpNode );            
-        }
-		return result;
+        }		
     }
-
-    result.push_back( graph->getNode(id) );
-    return result;
+    //result.push_back( graph->getNode(id) );   
+	return result;
 }
 Eigen::MatrixXd Scorer::node2matrix(Structure::Node* node, int pointLevel)
 {
