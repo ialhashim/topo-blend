@@ -1,6 +1,8 @@
 #pragma once
 #include "transform3d.h"
 
+Eigen::MatrixXd node2matrix(Structure::Node* node, int pointLevel);
+
 struct PairRelationBasic
 {
 	PairRelationBasic():n1(0),n2(0)
@@ -36,6 +38,11 @@ public:
 	{
 		logFile_.close();
 	}
+	
+	// find nodes in the source or target shape
+	// bSource == true means that the id is from target shape, & we want to find its corresponded node in source shape, then graph should be source
+	std::vector<Structure::Node*> findNodesInST(QString id, Structure::Graph *graph, QVector<PART_LANDMARK> &corres, bool bSource);
+
 
 	Structure::Graph* graph_;
 
@@ -52,8 +59,13 @@ class ConnectedPairDetector : public RelationDetector
 public:
 	ConnectedPairDetector(Structure::Graph* g, int ith, int logLevel=0):RelationDetector(g, "ConnectedPairDetector-", ith, logLevel)
 	{
+		bSource_ = ith == 0;
+		pointsLevel_ = 1;
 	}
-	void detect();
+	// if bSource_, g is the target shape (graph_ is source shape). else g is the source shape
+	void detect(Structure::Graph* g, QVector<PART_LANDMARK> &corres);
 	
 	QVector<PairRelationBasic> pairs_;
+	bool bSource_;
+	int pointsLevel_; // 0 for main control points, 1 for all control points, 2 for all points.
 };

@@ -26,9 +26,9 @@ public:
 		logFile_.close();
 	}
 	
-	std::vector<Structure::Node*> findNodes(QString id, Structure::Graph *graph, QVector<PART_LANDMARK> &corres, bool bSource);
-	Eigen::MatrixXd node2matrix(Structure::Node* node, int pointLevel);
-
+	// find nodes in a blended shape
+	// bSource == true means that the id is from source shape
+	std::vector<Structure::Node*> findNodesInB(QString id, Structure::Graph *graph, QVector<PART_LANDMARK> &corres, bool bSource);
 
 	Structure::Graph* graph_;
 

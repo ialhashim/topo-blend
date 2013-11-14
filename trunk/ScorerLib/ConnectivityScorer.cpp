@@ -2,7 +2,7 @@
 
 double ConnectivityScorer::evaluate(QVector<QVector<PairRelationBasic> > &connectPairs, QVector<PART_LANDMARK> &corres)
 {
-	double result(0.0); int num(0);
+	double resultMean(0.0), resultMax(0.0); int num(0);
 	double dist = graph_->bbox().diagonal().norm();
 
 	for ( int j = 0; j < connectPairs.size(); ++j)
@@ -19,8 +19,8 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelationBasic> > &connec
 		{
 			PairRelationBasic& prb = pairs[i];
 
-			std::vector<Structure::Node*> nodes1 = findNodes(prb.n1->id, graph_, corres, j==0);
-			std::vector<Structure::Node*> nodes2 = findNodes(prb.n2->id, graph_, corres, j==0);
+			std::vector<Structure::Node*> nodes1 = findNodesInB(prb.n1->id, graph_, corres, j==0);
+			std::vector<Structure::Node*> nodes2 = findNodesInB(prb.n2->id, graph_, corres, j==0);
 			//if (logLevel_>0)
 			//{
 			//	logStream_ << prb << "\n correspond to: \n";
@@ -42,8 +42,12 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelationBasic> > &connec
 					else
 						min_dist = min_dist - prb.miniDist;
 
-					result += min_dist;
+					resultMean += min_dist;
 					++num;
+					if ( min_dist > resultMax)
+					{
+						resultMax = min_dist;
+					}					
 					
 					if (logLevel_>0 && min_dist > 0)
 					{
@@ -64,7 +68,8 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelationBasic> > &connec
 
 	if (logLevel_>0 )
 	{
-		logStream_ << "mean score: " << 1-result/num << "\n";
+		logStream_ << "mean score: " << 1-resultMean/num << "\n";
+		logStream_ << "max score: " << 1-resultMax << "\n";		
 	}
-	return 1-result/num;
+	return 1-resultMax;
 }

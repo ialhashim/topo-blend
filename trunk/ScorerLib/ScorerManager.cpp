@@ -65,13 +65,16 @@ void ScorerManager::parseConstraintPair()
 
 	///////////////////////
 	connectPairs_.clear();
-    for (int i = 0; i < this->inputGraphs.size(); ++i)
-    {
-		Structure::Graph * g = Structure::Graph::actualGraph( this->inputGraphs[i] );
-        ConnectedPairDetector cpd(g, i, logLevel_);
-		cpd.detect();
-		connectPairs_.push_back(cpd.pairs_);        
-    }
+	
+	Structure::Graph * g = Structure::Graph::actualGraph( this->inputGraphs[0] );
+    ConnectedPairDetector cpd0(g, 0, logLevel_);
+	cpd0.detect(this->inputGraphs[1], gcorr->correspondences);
+	connectPairs_.push_back(cpd0.pairs_);
+
+	g = Structure::Graph::actualGraph( this->inputGraphs[1] );
+	ConnectedPairDetector cpd1(g, 1, logLevel_);
+	cpd1.detect(this->inputGraphs[0], gcorr->correspondences);
+	connectPairs_.push_back(cpd1.pairs_);
 
     emit( message("Parse constraint pairs end. ") );
 }
