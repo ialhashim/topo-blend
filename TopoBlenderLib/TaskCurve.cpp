@@ -139,7 +139,7 @@ void TaskCurve::prepareGrowCurveOneEdge( Structure::Link * tlink )
 	int cpIDX = tcurve.controlPointIndexFromCoord( coordSelf );
 
 	// Make origin the position on me in which I will grow from
-	tcurve.moveBy( -tcurve.controlPoints()[cpIDX] + base->position(coordBase) );
+	tcurve.moveBy( -tcurve.controlPoints()[cpIDX] + base->position( coordBase ) );
 
 	// Curve folding
 	Array1D_Vector3 deltas = tcurve.foldTo( coordSelf, true );
@@ -147,6 +147,10 @@ void TaskCurve::prepareGrowCurveOneEdge( Structure::Link * tlink )
 	// Growing instructions
 	property["deltas"].setValue( deltas );
 	property["orgCtrlPoints"].setValue( tcurve.curve.mCtrlPoint );
+
+	// Force blended delta
+	Structure::Link * slink = active->getEdge(tlink->property["correspond"].toInt());
+	slink->property["blendedDelta"].setValue( tlink->property["delta"] );
 }
 
 void TaskCurve::prepareGrowCurve()
@@ -186,7 +190,7 @@ void TaskCurve::prepareGrowCurve()
 		return;
 	}
 
-	if (tedges.size() && isCutting())
+	if (tedges.size() && isCutting(true))
 	{
 		property["isCutNode"] = true;
 
@@ -426,6 +430,12 @@ void TaskCurve::foldCurve( double t )
 
 	// Get delta 
 	Vector3 delta = l->property["blendedDelta"].value<Vector3d>();
+
+	if(this->type == Task::GROW) 
+	{
+		Link * tl = target->getEdge( l->property["correspond"].toInt() );
+		delta = tl->delta();
+	}
 
 	// Delta to me
 	if(l->n1->id == n->id) delta *= -1;

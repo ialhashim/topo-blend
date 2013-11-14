@@ -104,11 +104,21 @@ Graph::~Graph()
     //nodes.clear();
 }
 
-Eigen::AlignedBox3d Graph::bbox()
+Eigen::AlignedBox3d Graph::bbox(bool isSkipUnready)
 {
     Eigen::AlignedBox3d box;
 
-    foreach(Node * n, nodes){
+    foreach(Node * n, nodes)
+	{
+		if( isSkipUnready )
+		{
+			if(getEdges(n->id).isEmpty()) continue;
+			
+			Task * t = n->property["task"].value<Task*>();
+			if(t->type == Task::GROW && !t->isReady) continue;
+			if(t->type == Task::SHRINK && !t->isDone) continue;
+		}
+
         box = box.merged( n->bbox() );
     }
 
@@ -1690,13 +1700,24 @@ void Graph::removeGroup(int groupIDX)
     groups.remove(groupIDX);
 }
 
-QVector<QString> Graph::groupOf( QString nodeID )
+QVector< QVector<QString> > Graph::groupsOf( QString nodeID )
 {
-	foreach(QVector<QString> group, groups)
-		foreach(QString nid, group)
-			if(nid == nodeID) return group;
+	QVector< QVector<QString> > result;
 
-	return QVector<QString>(0);
+	foreach(QVector<QString> group, groups)
+	{
+		foreach(QString nid, group)
+		{
+			if(nid == nodeID){
+				result.push_back(group);
+				break;
+			}
+		}
+	}
+
+	if(result.isEmpty()) result.push_back( QVector<QString>() );
+
+	return result;
 }
 
 QVector<POINT_ID> Graph::selectedControlPointsByColor(QColor color)
@@ -1891,7 +1912,7 @@ Structure::Graph * Graph::actualGraph(Structure::Graph * fromGraph)
 				if( isSpliting )
 				{
 					QString siblingKeep;
-					QVector<QString> siblings = actual->groupOf(n->id);
+					QVector<QString> siblings = actual->groupsOf(n->id).back();
 
 					// Change one sibling in order to keep it
 					foreach(QString nid, siblings)

@@ -40,8 +40,7 @@ public:
 	// Helper functions
 	bool isActive(double t);
 	bool isCrossing();
-	bool isCutting();
-	bool isCuttingReal();
+	bool isCutting(bool isSkipUngrown = false);
 
 	bool ungrownNode(QString nid);
 

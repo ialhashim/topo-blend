@@ -21,7 +21,7 @@ namespace Structure{
 		QVector<Link*> edges;
 		NodeGroups groups;
 
-		Eigen::AlignedBox3d bbox();
+		Eigen::AlignedBox3d bbox(bool isSkipUnready = false);
 		Eigen::AlignedBox3d cached_bbox();
 
 		PropertyMap property;
@@ -51,7 +51,7 @@ namespace Structure{
 		void addGroup(QVector<QString> nodes);
 		void removeGroup(int groupIDX);
 		void removeGroup(QVector<QString> groupElements);
-		QVector<QString> groupOf( QString nodeID );
+		QVector< QVector<QString> > groupsOf( QString nodeID );
 
 		QString linkName( QString n1_id, QString n2_id );
 		QString linkName( Node * n1, Node * n2 );
