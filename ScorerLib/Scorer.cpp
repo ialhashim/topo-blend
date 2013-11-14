@@ -1,7 +1,6 @@
 #include "Scorer.h"
 
-// bSource == true means that the id is from source relation groups
-std::vector<Structure::Node*> Scorer::findNodes(QString id, Structure::Graph *graph, QVector<PART_LANDMARK> &corres, bool bSource)
+std::vector<Structure::Node*> Scorer::findNodesInB(QString id, Structure::Graph *graph, QVector<PART_LANDMARK> &corres, bool bSource)
 {
     std::vector<Structure::Node*> result;
 
@@ -64,11 +63,4 @@ std::vector<Structure::Node*> Scorer::findNodes(QString id, Structure::Graph *gr
     //result.push_back( graph->getNode(id) );   
 	return result;
 }
-Eigen::MatrixXd Scorer::node2matrix(Structure::Node* node, int pointLevel)
-{
-	std::vector<Eigen::Vector3d> nodeCptsV;
-	int tmp = extractCpts( node, nodeCptsV, pointLevel);
-	Eigen::MatrixXd nodeCptsM;
-	vectorPts2MatrixPts(nodeCptsV, nodeCptsM);
-	return nodeCptsM;
-}
+
