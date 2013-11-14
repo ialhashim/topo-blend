@@ -365,7 +365,7 @@ void Scheduler::groupStart( Structure::Graph * g, QList<Task*> curTasks, int cur
 		// Check grouping from target graph
 		if(!tasksInGroup.isEmpty()){
 			Structure::Graph * tg = (i == Task::SHRINK) ? tasksInGroup.front()->target : tasksInGroup.front()->active;
-			groupTarget = tg->groupOf( tasksInGroup.front()->node()->id );
+			groupTarget = tg->groupsOf( tasksInGroup.front()->node()->id ).front();
 
 			if(!groupTarget.isEmpty()){
 				foreach(Task * t, curTasks){

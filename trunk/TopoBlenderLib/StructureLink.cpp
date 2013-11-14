@@ -26,12 +26,16 @@ void Link::setCoord( QString nodeID, Array1D_Vector4d newCoord )
 {
 	if(n1->id == nodeID) coord[0] = newCoord;
 	if(n2->id == nodeID) coord[1] = newCoord;
+
+	//qDebug() << QString("Coordinates changed for %1").arg(nodeID);
 }
 
 void Link::setCoordOther( QString nodeID, Array1D_Vector4d newCoord )
 {
 	if(n1->id == nodeID) coord[1] = newCoord;
 	if(n2->id == nodeID) coord[0] = newCoord;
+
+	//qDebug() << QString("Coordinates changed for %1").arg(n1->id == nodeID ? n2->id : n1->id);
 }
 
 Array1D_Vector4d Link::getCoord( QString nodeID )
@@ -54,7 +58,7 @@ Vector4d Link::getMiddleCoord( QString nodeID )
 
 void Link::replace(QString oldNodeID, Node *newNode, Array1D_Vector4d newCoord)
 {
-	if(!newNode) return;
+	if(!newNode || oldNodeID == newNode->id) return;
 
 	if(n1->id == oldNodeID){
 		n1 = newNode;

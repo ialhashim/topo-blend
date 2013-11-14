@@ -712,6 +712,9 @@ void TopoBlender::generateSuperGraphs()
 	super_sg->property["sourceName"] = gcoor->sgName();
 	super_sg->property["targetName"] = gcoor->tgName();
 
+	super_sg->property["sourceGraphCenter"].setValue( Vector3(sg->bbox().center()) );
+	super_sg->property["targetGraphCenter"].setValue( Vector3(tg->bbox().center()) );
+
 	/// NODES:
 	// Correspond nodes in super graphs
 	correspondSuperNodes();

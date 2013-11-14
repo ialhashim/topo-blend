@@ -150,7 +150,7 @@ void Task::mouseMoveEvent( QGraphicsSceneMouseEvent * event )
 		}
 		if( nothingElseSelected ){
 			bool needRefresh = false;
-			foreach(QString member, active->groupOf(nodeID)){
+			foreach(QString member, active->groupsOf(nodeID).front()){
 				Task * t = active->getNode(member)->property["task"].value<Task*>();
 
 				if(abs(t->start - this->start) < 10){
@@ -311,6 +311,10 @@ NodeCoord Task::futureOtherNodeCoord( Structure::Link *link )
 
 	Structure::Node * tfutureOther = tlink->otherNode(tn->id);
 	QString futureOtherID = tfutureOther->property["correspond"].toString();
+
+	Structure::Node * otherNode = active->getNode(futureOtherID);
+	if(otherNode->property.contains("mergedTo"))
+		futureOtherID = otherNode->property["mergedTo"].toString();
 
 	Vector4d futureOtherCoord = tlink->getCoordOther(tn->id).front();
 
@@ -537,6 +541,7 @@ void Task::execute( double t )
 void Task::postDone()
 {
 	Structure::Node * n = node();
+	Structure::Node * tn = targetNode();
 
 	this->isDone = true;
 	n->property["taskIsDone"] = true;
@@ -568,41 +573,49 @@ void Task::postDone()
 	// Post merging
 	if(n->property["taskTypeReal"].toInt() == Task::MERGE)
 	{
-		// Disconnect other merged nodes
-		foreach(QString siblingID, active->groupOf(nodeID))
+		if( true )
 		{
-			Structure::Node * sibling = active->getNode(siblingID);
+			// Disconnect other merged nodes
+			QVector< QVector<QString> > targetGroups = target->groupsOf(tn->id);
 
-			// Ignore myself, non-merging, and already dealt with
-			if(siblingID == nodeID || !sibling->property["taskTypeReal"].toInt() == Task::MERGE) continue;
-			if(sibling->property["merged"].toBool()) continue;
-
-			// Transfer edges
-			foreach(Link* link, active->getEdges(siblingID))
+			foreach(QString tsiblingID, targetGroups.back())
 			{
-				QString neighbour = link->otherNode(siblingID)->id;
-				if(active->getEdge(nodeID, neighbour)) 
+				QString siblingID = target->getNode(tsiblingID)->property["correspond"].toString();
+				Structure::Node * sibling = active->getNode(siblingID);
+
+				// Ignore myself, non-merging, and already dealt with
+				if(siblingID == nodeID || !(sibling->property["taskTypeReal"].toInt() == Task::MERGE)) continue;
+				if(sibling->property["merged"].toBool()) continue;
+
+				// Transfer edges
+				foreach(Link* link, active->getEdges(siblingID))
 				{
-					// Remove shared ones
-					active->removeEdge(siblingID, neighbour);
+					QString neighbour = link->otherNode(siblingID)->id;
+					if(active->getEdge(nodeID, neighbour)) 
+					{
+						// Remove shared ones
+						active->removeEdge(siblingID, neighbour);
+					}
+					else
+					{
+						// Replace to node of this task
+						link->replace(siblingID, n, link->getCoord(siblingID));
+					}
 				}
-				else
-				{
-					// Replace to node of this task
-					link->replace(siblingID, n, link->getCoord(siblingID));
-				}
+
+				// "remove" the node from execution
+				sibling->property["shrunk"] = true;
+				sibling->property["zeroGeometry"] = true;
+				sibling->property["taskIsDone"] = true;
+				sibling->property["mergedTo"] = n->id;
+
+				Task * siblingTask = sibling->property["task"].value<Task*>();
+				siblingTask->isDone = true;
+				siblingTask->property.remove("edges");
 			}
-
-			// "remove" the node from execution
-			sibling->property["shrunk"] = true;
-			sibling->property["zeroGeometry"] = true;
-			sibling->property["taskIsDone"] = true;
-
-			Task * siblingTask = sibling->property["task"].value<Task*>();
-			siblingTask->isDone = true;
-			siblingTask->property.remove("edges");
 		}
-
+		
+		/*
 		// Fix coordinates of edges by looking at the target
 		foreach(Link* link, active->getEdges(nodeID))
 		{
@@ -613,6 +626,7 @@ void Task::postDone()
 			link->setCoord(nodeID, coordMe);
 			link->setCoord(link->otherNode(nodeID)->id, coordOther);
 		}
+		*/
 
 		n->property["merged"] = true;
 	}
@@ -816,7 +830,12 @@ void Task::executeMorphEdges( double t )
 		Task * otherTask = otherOld->property["task"].value<Task*>();
 		if(otherTask->isReady && !otherTask->isDone) continue;
 
-		link->replace( otherOld->id, otherNew, Array1D_Vector4d(1,cur.a.second) );
+		Array1D_Vector4d newCoords = Array1D_Vector4d(1, cur.a.second);
+
+		if(otherOld->id != otherNew->id)
+			link->replace( otherOld->id, otherNew, newCoords );
+		else
+			link->setCoord( otherOld->id, newCoords );
 	}
 }
 
@@ -848,49 +867,31 @@ bool Task::isCrossing()
 	return isCross;
 }
 
-bool Task::isCutting()
+bool Task::isCutting( bool isSkipUngrown )
 {
 	bool result = false;
 
-	{
-		Structure::Graph copyActive (*active);
-
-		// Exclude nodes that is active and non-existing
-		QSet<QString> excludeNodes;
-
-		foreach(QString nid, active->property["activeTasks"].value< QVector<QString> >())
-			excludeNodes.insert(nid);
-
-		// Keep myself in graph for checking
-		excludeNodes.remove(nodeID);
-		foreach (QString nid, excludeNodes)	copyActive.removeNode(nid);
-
-		result = copyActive.isCutNode(nodeID);
-	}
-
-	return result;
-}
-
-bool Task::isCuttingReal()
-{
-	Structure::Graph * copyActive = new Structure::Graph(*active);
+	Structure::Graph copyActive (*active);
 
 	// Exclude nodes that is active and non-existing
-	QSet<QString>excludeNodes;
+	QSet<QString> excludeNodes;
 
 	foreach(QString nid, active->property["activeTasks"].value< QVector<QString> >())
 		excludeNodes.insert(nid);
 
 	// Skip un-grown nodes
-	foreach(Node* n, active->nodes)
-		if (ungrownNode(n->id)) excludeNodes.insert(n->id);
+	if( isSkipUngrown )
+	{
+		foreach(Node* n, active->nodes)
+			if (ungrownNode(n->id)) excludeNodes.insert(n->id);
+	}
 
 	// Keep myself in graph for checking
 	excludeNodes.remove(nodeID);
-	foreach (QString nid, excludeNodes)	copyActive->removeNode(nid);
+	foreach (QString nid, excludeNodes)	copyActive.removeNode(nid);
 
-	bool result = copyActive->isCutNode(nodeID);
-	delete copyActive;
+	result = copyActive.isCutNode(nodeID);
+	
 	return result;
 }
 

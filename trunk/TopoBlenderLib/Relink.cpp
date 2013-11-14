@@ -3,6 +3,8 @@
 #include "Relink.h"
 #include "Scheduler.h"
 
+#include "MinBall.h"
+
 Relink::Relink(Scheduler *scheduler)
 {
     this->s = scheduler;
@@ -79,7 +81,7 @@ void Relink::execute()
 
 			// Override relinking for splitting case
 			if(task->node()->property["taskTypeReal"].toInt() == Task::SPLIT && !task->isReady){
-				foreach(QString sibling, activeGraph->groupOf(task->nodeID)){
+				foreach(QString sibling, activeGraph->groupsOf(task->nodeID).back()){
 					Task * otherTask = s->getTaskFromNodeID( sibling );
 					if(otherTask->node()->property["taskTypeReal"].toInt() == Task::SPLIT && !otherTask->isReady)
 						otherTask->node()->setControlPoints(task->node()->controlPoints());
@@ -113,11 +115,14 @@ void Relink::fixTask( Task* task )
 
 	QVector<LinkConstraint> consts;
 	if ( constraints.contains(task) ) consts = constraints[task];
+	if(!consts.size()) return;
 
 	// Useful for debugging:
-	QStringList listRelinks;
-	foreach(LinkConstraint c, consts) listRelinks << c.link->otherNode(n->id)->id;
-	n->property["listRelinks"].setValue( listRelinks );
+	{
+		QStringList listRelinks;
+		foreach(LinkConstraint c, consts) listRelinks << c.link->otherNode(n->id)->id;
+		n->property["preConsts"].setValue( listRelinks );
+	}
 
 	bool fixedSize = false;
 	if (task->type == Task::MORPH && task->isDone && !task->property["isCrossing"].toBool())
@@ -149,20 +154,36 @@ void Relink::fixTask( Task* task )
 		}
 	}
 
-	n->property["fixedSize"] = fixedSize;
+	// CASE: sheets are more rigid than curves
+	{
+		if(n->type() == Structure::SHEET && consts.size() > 2)
+		{
+			fixedSize = true;
+		}
+	}
 
 	int N = consts.size();
 
 	// No constraints for task
 	if (N == 0) return;
 
+	n->property["fixedSize"] = fixedSize;
+
+	// Useful for debugging:
+	{
+		QStringList listRelinks;
+		foreach(LinkConstraint c, consts) listRelinks << c.link->otherNode(n->id)->id;
+		n->property["postConsts"].setValue( listRelinks );
+	}
+
 	// Crossing node is still fixable 
 	// Translate done tasks
 
 	if ( fixedSize && N > 0 )
 	{
+		std::vector<Vector3> oldPoints, newPoints;
+
 		// Use all constraints
-		Vector3d translation(0,0,0);
 		foreach(LinkConstraint c, consts)
 		{
 			Structure::Link * link = c.link;
@@ -172,9 +193,16 @@ void Relink::fixTask( Task* task )
 			Vector3d delta = getToDelta(link, n->id);
 			Vector3 newPos = linkPosOther + delta;
 
-			translation += newPos - oldPos;
+			oldPoints.push_back(oldPos);
+			newPoints.push_back(newPos);
 		}
-		n->moveBy( translation / N );
+
+		Vector3 translation = QuickMinBall<Vector3>(newPoints).center - QuickMinBall<Vector3>(oldPoints).center;
+
+		n->moveBy( translation );
+
+		// Debug:
+		n->property["fixedTranslation"].setValue( translation );
 		
 		// Visualization
 		foreach(LinkConstraint c, consts)
@@ -230,7 +258,7 @@ void Relink::fixTask( Task* task )
 			// In case two handles or two new positions are two close
 			double handleDiff = (handleA - handleB).norm();
 			double newPosDiff = (newPosA - newPosB).norm();
-			if (newPosDiff < 0.05 || handleDiff < 0.25)
+			if (newPosDiff < 0.01 || handleDiff < 0.25)
 			{
 				// Pick first one only
 				Vector3d oldPos = linkA->position(n->id);
@@ -265,7 +293,7 @@ Vector3 Relink::getToDelta( Structure::Link * link, QString toOtherID )
 
 bool Relink::doesPropagate(Task* task)
 {
-	if (task->isCutting()) return true;
+	if (task->isCutting(true)) return true;
 	if (task->type == Task::MORPH && !task->isCrossing()) return true;
 	return false;
 }
