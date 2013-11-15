@@ -371,9 +371,15 @@ void Task::prepare()
 	// Reset any modified edges
 	{
 		Node * n = node();
-		if(n->property["edgesModified"].toBool()){
+		if(n->property["edgesModified"].toBool())
+		{
 			foreach(Link * l, active->getEdges(n->id))
+			{
+				if(l->otherNode(n->id)->property.contains("mergedTo"))
+					qDebug() << "TEST";
+				
 				l->popState();
+			}
 		}
 	}
 
@@ -593,6 +599,9 @@ void Task::postDone()
 					QString neighbour = link->otherNode(siblingID)->id;
 					if(active->getEdge(nodeID, neighbour)) 
 					{
+						// Replace in target
+						target->getEdge(link->property["correspond"].toInt())->property["correspond"] = active->getEdge(n->id, neighbour)->property["uid"].toInt();
+
 						// Remove shared ones
 						active->removeEdge(siblingID, neighbour);
 					}
@@ -600,6 +609,17 @@ void Task::postDone()
 					{
 						// Replace to node of this task
 						link->replace(siblingID, n, link->getCoord(siblingID));
+
+						// Avoid modifying this link in the future
+						link->clearState();
+					}
+				}
+
+				// Remove from un-grown edges
+				foreach(Link * link, active->edges){
+					if(link->isInState(siblingID)){
+						link->clearState();
+						link->property["mergedEdge"] = true;
 					}
 				}
 

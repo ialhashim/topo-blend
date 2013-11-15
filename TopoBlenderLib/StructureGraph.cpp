@@ -216,6 +216,29 @@ Link * Graph::addEdge(Node *n1, Node *n2, Array1D_Vector4d coord1, Array1D_Vecto
 	return e;
 }
 
+void Graph::removeEdge( int uid )
+{
+	int edge_idx = -1;
+
+	for(int i = 0; i < (int)edges.size(); i++){
+		Link * e = edges[i];
+		if(e->property["uid"].toInt() == uid){
+			edge_idx = i;
+			break;
+		}
+	}
+
+	if(edge_idx < 0) return;
+
+	Node *n1 = edges[edge_idx]->n1, *n2 = edges[edge_idx]->n2;
+
+	delete edges[edge_idx];
+	edges[edge_idx] = NULL;
+	edges.remove(edge_idx);
+
+	qDebug() << QString("[%1]->removeEdge( %2, %3 )").arg(name()).arg(n1->id).arg(n2->id);
+}
+
 void Graph::removeEdge( Node * n1, Node * n2 )
 {
 	int edge_idx = -1;
@@ -1931,6 +1954,16 @@ Structure::Graph * Graph::actualGraph(Structure::Graph * fromGraph)
 				break;
 			}
 		}
+	}
+
+	// Remove edges kept after a merge
+	QVector<Link*> toRemove;
+	foreach(Link * link, actual->edges){
+		if(link->property["mergedEdge"].toBool())
+			toRemove.push_back(link);
+	}
+	foreach(Link * link, toRemove){
+		actual->removeEdge( link->property["uid"].toInt() );
 	}
 
 	// Remove any disconnected nodes
