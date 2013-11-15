@@ -150,7 +150,7 @@ void TaskCurve::prepareGrowCurveOneEdge( Structure::Link * tlink )
 
 	// Force blended delta
 	Structure::Link * slink = active->getEdge(tlink->property["correspond"].toInt());
-	if(slink) slink->property["blendedDelta"].setValue( tlink->property["delta"] );
+	slink->property["blendedDelta"].setValue( tlink->delta() );
 }
 
 void TaskCurve::prepareGrowCurve()

@@ -229,3 +229,14 @@ void Link::popState()
 
 	property["modified"] = false;
 }
+
+void Link::clearState()
+{
+	state.clear();
+}
+
+bool Link::isInState( QString nodeID )
+{
+	if(!state.contains("n1")) return false;
+	return state["n1"].value<Node*>()->id == nodeID || state["n2"].value<Node*>()->id == nodeID;
+}

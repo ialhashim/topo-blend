@@ -44,6 +44,7 @@ namespace Structure{
 		Link * addEdge( QString n1_id, QString n2_id );
 
 		Node * removeNode( QString nodeID );
+		void removeEdge( int uid );
 		void removeEdge( Node * n1, Node * n2 );
 		void removeEdge( QString n1_id, QString n2_id );
 		void removeEdges( QString nodeID );

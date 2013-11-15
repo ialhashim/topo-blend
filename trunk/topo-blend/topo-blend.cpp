@@ -891,6 +891,7 @@ void topoblend::updateActiveGraph( Structure::Graph * newActiveGraph )
 	drawArea()->updateGL();
 
 	if(graph_explorer->isVisible()){
+		//graph_explorer->update( Graph::actualGraph(newActiveGraph) );
 		graph_explorer->update( newActiveGraph );
 	}
 }

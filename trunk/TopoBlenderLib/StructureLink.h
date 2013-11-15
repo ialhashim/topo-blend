@@ -74,6 +74,8 @@ struct Link
 	// State
 	void pushState();
 	void popState();
+	void clearState();
+	bool isInState(QString nodeID);
 
 private:
 	QMap< QString, QVariant> state;
