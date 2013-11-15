@@ -49,7 +49,7 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelationBasic> > &connec
 						resultMax = min_dist;
 					}					
 					
-					if (logLevel_>0 && min_dist > 0)
+					if (logLevel_>0 && min_dist > 0) //
 					{
 						logStream_ << num << "\n";
 						if ( j == 0 )
@@ -58,7 +58,9 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelationBasic> > &connec
 							logStream_ << "connected pairs in target shape \n";
 
 						logStream_ << prb << "correspond to: \n";
-						logStream_ << "<" << nodes1[i1]->id << ", " << nodes2[i2]->id << ">: " << min_dist << "\n\n";
+						logStream_ << "<" << nodes1[i1]->id << ", " << nodes2[i2]->id << "> size <" 
+							<< nodes1[i1]->bbox().diagonal().norm() << ", " << nodes1[i2]->bbox().diagonal().norm()
+							<< ">:" << min_dist << "\n\n";
 					}
 					
 				}
