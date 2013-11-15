@@ -100,7 +100,7 @@ void ConnectedPairDetector::detect(Structure::Graph* g, QVector<PART_LANDMARK> &
 					resultMax = min_dist;
 				}					
 					
-				if (logLevel_>0 && min_dist > prb.miniDist)
+				if (logLevel_>0 && min_dist > prb.miniDist ) //
 				{
 					logStream_ << num << "\n";
 					if ( bSource_ )
@@ -120,8 +120,11 @@ void ConnectedPairDetector::detect(Structure::Graph* g, QVector<PART_LANDMARK> &
 		}
 
 		/////////
-		prb.miniDist = std::max(prb.miniDist, resultMax);
-		pairs_.push_back(prb);
+		if (nodes1.size()*nodes2.size()>0)
+		{
+			prb.miniDist = std::max(prb.miniDist, resultMax);
+			pairs_.push_back(prb);
+		}
 	}
 
 	if( logLevel_ >1 )
