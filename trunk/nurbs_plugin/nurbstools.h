@@ -32,6 +32,12 @@ public:
 
 	double remeshParamter();
 	double voxelParamter();
+
+public slots:
+	void selectionChanged();
+	void fillList();
+	QStringList selectedGroups();
+
 private:
     Ui::NURBSTools *ui;
 };

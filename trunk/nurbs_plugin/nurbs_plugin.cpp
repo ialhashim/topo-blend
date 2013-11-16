@@ -16,16 +16,11 @@ QVector<QColor> randColors;
 //#include "LSCM.h"
 //#include "LinABF.h"
 
-SurfaceMesh::SurfaceMeshModel * entireMesh;
-Vector3VertexProperty entirePoints;
-
 QString groupID = "";
 SurfaceMesh::SurfaceMeshModel * m = NULL;
 RichParameterSet * mcf_params = NULL;
 
-#include "../CustomDrawObjects.h"
 PointSoup pps,pps2;
-PolygonSoup ps;
 SphereSoup spheres;
 VectorSoup vs;
 LineSegments lseg;
@@ -48,12 +43,6 @@ void nurbs_plugin::create()
 	entireMesh = (SurfaceMeshModel*)document()->selectedModel();
 	entirePoints = entireMesh->vertex_property<Vector3>("v:point");
 
-    ModePluginDockWidget * dockwidget = new ModePluginDockWidget("NURBS plugin", mainWindow());
-    widget = new NURBSTools(this);
-    dockwidget->setWidget(widget);
-    dockwidget->setWindowTitle(widget->windowTitle());
-    mainWindow()->addDockWidget(Qt::RightDockWidgetArea,dockwidget);
-
 	for(int i = 0; i < 10; i++)
 		randColors.push_back(qRandomColor());
 
@@ -63,6 +52,13 @@ void nurbs_plugin::create()
 	points = m->vertex_property<Vector3>("v:point");
 
 	graph = new Structure::Graph;
+
+	ModePluginDockWidget * dockwidget = new ModePluginDockWidget("NURBS plugin", mainWindow());
+	widget = new NURBSTools(this);
+	dockwidget->setWidget(widget);
+	dockwidget->setWindowTitle(widget->windowTitle());
+	mainWindow()->addDockWidget(Qt::RightDockWidgetArea,dockwidget);
+	widget->fillList();
 
 	//buildSamples();
 }

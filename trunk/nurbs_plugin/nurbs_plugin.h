@@ -13,6 +13,8 @@
 
 #include "OBB_Volume.h"
 
+#include "../CustomDrawObjects.h"
+
 namespace Structure{
 	struct Graph;
 }
@@ -40,6 +42,11 @@ public:
     Vector3VertexProperty points;
 
 	OBB_Volume mesh_obb;
+
+	SurfaceMesh::SurfaceMeshModel * entireMesh;
+	Vector3VertexProperty entirePoints;
+
+	PolygonSoup ps;
 
 	NURBS::NURBSCurved curveFit( SurfaceMeshModel * part );
 	NURBS::NURBSRectangled surfaceFit( SurfaceMeshModel * part );
