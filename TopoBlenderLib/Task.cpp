@@ -373,11 +373,9 @@ void Task::prepare()
 		Node * n = node();
 		if(n->property["edgesModified"].toBool())
 		{
-			foreach(Link * l, active->getEdges(n->id))
+			QVector<Link*> edges = active->getEdges(n->id);
+			foreach(Link * l, edges)
 			{
-				if(l->otherNode(n->id)->property.contains("mergedTo"))
-					qDebug() << "TEST";
-				
 				l->popState();
 			}
 		}
@@ -903,7 +901,8 @@ bool Task::isCutting( bool isSkipUngrown )
 	if( isSkipUngrown )
 	{
 		foreach(Node* n, active->nodes)
-			if (ungrownNode(n->id)) excludeNodes.insert(n->id);
+			if (ungrownNode(n->id) && !copyActive.isCutNode(n->id)) 
+				excludeNodes.insert(n->id);
 	}
 
 	// Keep myself in graph for checking

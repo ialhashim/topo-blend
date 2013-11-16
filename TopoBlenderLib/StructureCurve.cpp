@@ -230,15 +230,7 @@ Vector3 & Curve::controlPointFromCoord( Vector4d& coord )
 
 SurfaceMesh::Scalar Curve::area()
 {
-	double a = 0;
-
-	std::vector<Vector3> pnts;
-	curve.SubdivideByLength(10, pnts);
-
-	for(int i = 0; i < (int)pnts.size() - 1; i++)
-		a += (pnts[i+1] - pnts[i]).norm();
-
-	return a;
+	return curve.GetTotalLength();
 }
 
 SurfaceMesh::Vector3 Curve::center()
