@@ -161,7 +161,7 @@ void TaskCurve::prepareGrowCurve()
 	Curve * curve = (Curve *)n;
 	Curve * tcurve = (Curve *)tn;
 
-	// Isolated branch growth: do not consider edges with non-ready nodes
+	// Do not consider edges with non-ready nodes
 	QVector<Link*> tedges, edges;
 	foreach(Link* edge, all_tedges)
 	{
@@ -169,28 +169,56 @@ void TaskCurve::prepareGrowCurve()
 		Node * other = active->getNode( tother->property["correspond"].toString() );
 
 		// Skip not grown others
-		if( all_tedges.size() > 1 && ungrownNode(other->id) )	continue;
+		if( all_tedges.size() > 1 && ungrownNode(other->id) )	
+			continue;
 
 		tedges.push_back(edge);		
+	}
+
+	// Skip all but one edge of splitting nodes
+	foreach(Link * edge, tedges)
+	{
+		Node * other = active->getNode( edge->otherNode( tn->id )->property["correspond"].toString() );
+		if(other->property["taskTypeReal"].toInt() == Task::SPLIT && !other->property["taskIsReady"].toBool()){
+			if(tedges.size() > 1) 
+				tedges.remove(tedges.indexOf(edge));
+		}
 	}
 
 	// Find corresponding edges
 	foreach(Link * edge, tedges)
 	{
 		Link * slink = active->getEdge( edge->property["correspond"].toInt() );
+
+		// The edge has been removed, possibly by Task::postDone
+		if(!slink)
+		{
+			Node * n1 = active->getNode(edge->n1->property["correspond"].toString());
+			Node * n2 = active->getNode(edge->n2->property["correspond"].toString());
+			Array1D_Vector4d c1 = edge->coord.front();
+			Array1D_Vector4d c2 = edge->coord.back();
+
+			// Bring it back
+			slink = active->addEdge(n1, n2, c1, c2, active->linkName(n1,n2));
+			
+			// Correspond
+			slink->property["correspond"] = edge->property["uid"].toInt();
+			edge->property["correspond"] = slink->property["uid"].toInt();
+		}
+
 		if(slink) edges.push_back( slink );
 	}
 
 	// Save edges used
 	property["edges"].setValue( edges );
 
-	if (tedges.size() == 1)
+	if (edges.size() == 1)
 	{
 		prepareGrowCurveOneEdge( tedges.front() );
 		return;
 	}
 
-	if (tedges.size() && isCutting(true))
+	if (edges.size() && isCutting(true))
 	{
 		property["isCutNode"] = true;
 
@@ -198,7 +226,7 @@ void TaskCurve::prepareGrowCurve()
 		return;
 	}
 
-	if (tedges.size() > 1)
+	if (edges.size() > 1)
 	{
 		// Make sure the edges are reasonable for curve encoding
 		QMap< double, QPair<int,int> > edgePairs;

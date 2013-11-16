@@ -252,14 +252,10 @@ void Graph::removeEdge( Node * n1, Node * n2 )
 			break;
 		}
 	}
-
+	
 	if(edge_idx < 0) return;
 
-	delete edges[edge_idx];
-	edges[edge_idx] = NULL;
-	edges.remove(edge_idx);
-
-	qDebug() << QString("[%1]->removeEdge( %2, %3 )").arg(name()).arg(n1->id).arg(n2->id);
+	removeEdge( edges[edge_idx]->property["uid"].toInt() );
 }
 
 void Graph::removeEdge( QString n1_id, QString n2_id )

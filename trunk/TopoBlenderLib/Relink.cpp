@@ -31,6 +31,8 @@ void Relink::execute()
 	propagationLevel.resize(1);
 
 	QVector<QString> activeNodeIDs = activeGraph->property["activeTasks"].value< QVector<QString> >();
+
+	// Initial propagation level
 	foreach (QString nID, activeNodeIDs){
 		Task* task = s->getTaskFromNodeID(nID);
 		if ( doesPropagate(task) ){
@@ -157,8 +159,20 @@ void Relink::fixTask( Task* task )
 	// CASE: sheets are more rigid than curves
 	{
 		if(n->type() == Structure::SHEET && consts.size() > 2)
-		{
 			fixedSize = true;
+	}
+
+	// CASE: ignore constraints of non-existing parts when connected to others
+	{
+		if(consts.size() > 1)
+		{
+			QVector<LinkConstraint> keep;
+			foreach(LinkConstraint c, consts)
+			{
+				if(!c.task->isReady && c.task->type == Task::GROW) continue;
+				keep.push_back(c);
+			}
+			if(keep.size()) consts = keep;
 		}
 	}
 
@@ -176,9 +190,7 @@ void Relink::fixTask( Task* task )
 		n->property["postConsts"].setValue( listRelinks );
 	}
 
-	// Crossing node is still fixable 
-	// Translate done tasks
-
+	// Apply constraints
 	if ( fixedSize && N > 0 )
 	{
 		std::vector<Vector3> oldPoints, newPoints;
