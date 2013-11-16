@@ -2,6 +2,11 @@
 #include "ui_nurbstools.h"
 #include "nurbs_plugin.h"
 
+#include "StructureGraph.h"
+#include "StructureCurve.h"
+#include "StructureSheet.h"
+#include "GraphCorresponder.h"
+
 NURBSTools::NURBSTools(nurbs_plugin * usePlugin, QWidget *parent) : QWidget(parent), ui(new Ui::NURBSTools)
 {
     ui->setupUi(this);
@@ -17,8 +22,8 @@ NURBSTools::NURBSTools(nurbs_plugin * usePlugin, QWidget *parent) : QWidget(pare
 	//plugin->connect(ui->skeletonButton, SIGNAL(clicked()), SLOT(skeletonizeMesh()));
 	plugin->connect(ui->skeletonButtonStep, SIGNAL(clicked()), SLOT(stepSkeletonizeMesh()));
 
-	plugin->connect(ui->curveFitButton, SIGNAL(clicked()), SLOT(convertToCurve()));
-	plugin->connect(ui->sheetFitButton, SIGNAL(clicked()), SLOT(convertToSheet()));
+	this->connect(ui->curveFitButton, SIGNAL(clicked()), SLOT(convertToCurve()));
+	this->connect(ui->sheetFitButton, SIGNAL(clicked()), SLOT(convertToSheet()));
 
 	plugin->connect(ui->flipUButton, SIGNAL(clicked()), SLOT(flipU()));
 	plugin->connect(ui->flipVButton, SIGNAL(clicked()), SLOT(flipV()));
@@ -121,4 +126,78 @@ void NURBSTools::selectionChanged()
 			}
 		}
 	}
+
+	plugin->updateDrawArea();
+}
+
+void NURBSTools::convertToCurve()
+{
+	QStringList selected = selectedGroups();
+	ui->partsList->clearSelection();
+
+	if( selected.isEmpty() ){
+		plugin->convertToCurve();
+		return;
+	}
+
+	foreach(QString gid, selected){
+		plugin->selectGroup(gid);
+		plugin->convertToCurve();
+	}
+
+	if(selected.size() < 2) return;
+
+	/// Post process:
+	QColor groupColor = qRandomColor2();
+	Structure::Node * firstElement = plugin->graph->getNode(selected.front());
+
+	foreach(QString gid, selected)
+	{
+		// Change color
+		Structure::Node * n = plugin->graph->getNode(gid);
+		n->vis_property["color"].setValue( groupColor );
+
+		// Align to first in group
+		GraphCorresponder::correspondTwoCurves((Structure::Curve*)firstElement, (Structure::Curve*)n, plugin->graph);
+	}
+
+	plugin->graph->addGroup(selected.toVector());
+
+	plugin->updateDrawArea();
+}
+
+void NURBSTools::convertToSheet()
+{
+	QStringList selected = selectedGroups();
+	ui->partsList->clearSelection();
+
+	if( selected.isEmpty() ){
+		plugin->convertToSheet();
+		return;
+	}
+
+	foreach(QString gid, selected){
+		plugin->selectGroup(gid);
+		plugin->convertToSheet();
+	}
+
+	if(selected.size() < 2) return;
+
+	/// Post process:
+	QColor groupColor = qRandomColor2();
+	Structure::Node * firstElement = plugin->graph->getNode(selected.front());
+
+	foreach(QString gid, selected)
+	{
+		// Change color
+		Structure::Node * n = plugin->graph->getNode(gid);
+		n->vis_property["color"].setValue( groupColor );
+
+		// Align to first in group
+		GraphCorresponder::correspondTwoSheets((Structure::Sheet*)firstElement, (Structure::Sheet*)n, plugin->graph);
+	}
+
+	plugin->graph->addGroup(selected.toVector());
+
+	plugin->updateDrawArea();
 }

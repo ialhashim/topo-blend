@@ -40,6 +40,9 @@ void nurbs_plugin::create()
 		document()->deleteModel(document()->getModel("empty"));
 	}	
 
+	drawArea()->setRenderer( mesh(), "Transparent");
+	drawArea()->camera()->setType(qglviewer::Camera::PERSPECTIVE);
+
 	entireMesh = (SurfaceMeshModel*)document()->selectedModel();
 	entirePoints = entireMesh->vertex_property<Vector3>("v:point");
 
@@ -384,7 +387,13 @@ bool nurbs_plugin::postSelection( const QPoint& point )
 	Vertex selectedVertex = entireMesh->vertices( Surface_mesh::Face(selectedID) );
 
 	QString gid = faceGroup[entireMesh->face(entireMesh->halfedge(selectedVertex)).idx()];
+	selectGroup(gid);
 
+    return true;
+}
+
+void nurbs_plugin::selectGroup(QString gid)
+{
 	groupID = gid;
 	m = extractMesh( groupID );
 	QVector<int> part = groupFaces[gid];
@@ -400,8 +409,6 @@ bool nurbs_plugin::postSelection( const QPoint& point )
 
 		ps.addPoly(pnts, QColor(255,0,0,100));
 	}
-
-    return true;
 }
 
 void nurbs_plugin::loadGroupsFromOBJ()
@@ -1035,6 +1042,11 @@ void nurbs_plugin::experiment()
 	{
 		drawArea()->drawPoint(mesh_points[Vertex(r.first)]);
 	}
+}
+
+void nurbs_plugin::updateDrawArea()
+{
+	drawArea()->update();
 }
 
 Q_EXPORT_PLUGIN (nurbs_plugin)
