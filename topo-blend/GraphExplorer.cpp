@@ -41,7 +41,7 @@ void GraphExplorer::update(Structure::Graph * graph)
 	storeOldValues();
 	clear();
 
-	g = graph;
+	g = ui->isActual->isChecked() ? Structure::Graph::actualGraph(graph) : graph;
 
 	// Set graph name
 	QString graphName = g->name().split("/").last();
@@ -143,6 +143,14 @@ void GraphExplorer::fillNodesInfo()
 		QTreeWidgetItem * nitem = new QTreeWidgetItem;
 		nitem->setText(0, n->id);
 		nitem->setText(1, n->type());
+
+		if(ui->isGeometry->isChecked()){
+			QStringList geometryString;
+			foreach(Vector3 p, n->controlPoints())
+				geometryString << QString("%1,%2,%3").arg(p[0]).arg(p[1]).arg(p[2]);
+			n->property["geometry"].setValue( geometryString.join(" / ") );
+		}
+
 		fillInfoItem(n->property, nitem);
 		ui->nodesTree->addTopLevelItem(nitem);
 	}
