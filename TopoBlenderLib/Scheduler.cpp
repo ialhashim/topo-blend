@@ -622,7 +622,7 @@ void Scheduler::executeAll()
 		// UI - progress visual indicator:
 		int percent = globalTime * 100;
 		property["progress"] = percent;
-		if( isApplyChangesUI ) emit( progressChanged(percent) );
+		emit( progressChanged(percent) );
 
 		if( isForceStop ) break;
 	}
@@ -635,11 +635,11 @@ void Scheduler::executeAll()
 	{
 		slider->enable();
 
-		emit( progressDone() );
-
 		qApp->restoreOverrideCursor();
 		QCursor::setPos(QCursor::pos());
 	}
+	
+	emit( progressDone() );
 }
 
 void Scheduler::finalize()
