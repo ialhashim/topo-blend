@@ -38,6 +38,8 @@ public slots:
 	void fillList();
 	QStringList selectedGroups();
 
+	void convertToCurve();
+	void convertToSheet();
 private:
     Ui::NURBSTools *ui;
 };

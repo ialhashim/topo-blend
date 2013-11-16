@@ -68,6 +68,8 @@ public:
 	double minAngle(Face f, SurfaceMeshModel * ofMesh);
 	std::vector<Vertex> collectRings(SurfaceMeshModel * part, Vertex v, size_t min_nb);
 
+	void selectGroup(QString gid);
+
 public slots:
 	void clearAll();
 	void saveAll();
@@ -82,6 +84,8 @@ public slots:
 
 	void flipU();
 	void flipV();
+
+	void updateDrawArea();
 
 	void experiment();
 };
