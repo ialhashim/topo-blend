@@ -86,8 +86,22 @@
      <property name="title">
       <string>Batch Operation</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
+     <layout class="QGridLayout" name="gridLayout_7">
+      <item row="1" column="1">
+       <widget class="QPushButton" name="clearSelectedButton">
+        <property name="text">
+         <string>Clear</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QPushButton" name="linksButton">
+        <property name="text">
+         <string>Links..</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0" colspan="2">
        <widget class="QListWidget" name="partsList">
         <property name="editTriggers">
          <set>QAbstractItemView::NoEditTriggers</set>
@@ -97,13 +111,6 @@
         </property>
         <property name="selectionRectVisible">
          <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="clearSelectedButton">
-        <property name="text">
-         <string>Clear</string>
         </property>
        </widget>
       </item>
@@ -211,7 +218,7 @@
          <double>0.010000000000000</double>
         </property>
         <property name="value">
-         <double>0.100000000000000</double>
+         <double>0.050000000000000</double>
         </property>
        </widget>
       </item>

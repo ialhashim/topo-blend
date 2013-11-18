@@ -7,6 +7,8 @@
 #include "StructureSheet.h"
 #include "GraphCorresponder.h"
 
+#include "GraphModifyWidget.h"
+
 NURBSTools::NURBSTools(nurbs_plugin * usePlugin, QWidget *parent) : QWidget(parent), ui(new Ui::NURBSTools)
 {
     ui->setupUi(this);
@@ -25,11 +27,12 @@ NURBSTools::NURBSTools(nurbs_plugin * usePlugin, QWidget *parent) : QWidget(pare
 	this->connect(ui->curveFitButton, SIGNAL(clicked()), SLOT(convertToCurve()));
 	this->connect(ui->sheetFitButton, SIGNAL(clicked()), SLOT(convertToSheet()));
 
-	plugin->connect(ui->flipUButton, SIGNAL(clicked()), SLOT(flipU()));
-	plugin->connect(ui->flipVButton, SIGNAL(clicked()), SLOT(flipV()));
+	this->connect(ui->flipUButton, SIGNAL(clicked()), SLOT(flipU()));
+	this->connect(ui->flipVButton, SIGNAL(clicked()), SLOT(flipV()));
 
 	ui->partsList->connect(ui->clearSelectedButton, SIGNAL(clicked()), SLOT(clearSelection()));
 	this->connect(ui->partsList, SIGNAL(itemSelectionChanged()), SLOT(selectionChanged()));
+	this->connect(ui->linksButton, SIGNAL(clicked()), SLOT(modifyGraph()));
 }
 
 NURBSTools::~NURBSTools()
@@ -87,12 +90,72 @@ double NURBSTools::voxelParamter()
 	return ui->voxelParamter->value();
 }
 
+void NURBSTools::flipU()
+{
+	QStringList selected = selectedGroups();
+
+	foreach(QString gid, selectedGroups()){
+		Structure::Node * n = plugin->graph->getNode(gid);
+		if(!n) continue;
+		if(n->type() == Structure::CURVE){
+			Array1D_Vector3 cpts = n->controlPoints();
+			std::reverse(cpts.begin(), cpts.end());
+			n->setControlPoints(cpts);
+		}
+		else{
+			Structure::Sheet * sheet = ((Structure::Sheet*)n);
+			Array2D_Vector3 cpts = sheet->surface.mCtrlPoint, newPts = cpts;
+			int nU = cpts.size(); int nV = cpts.front().size();
+			for(int u = 0; u < nU; u++)
+				for(int v = 0; v < nV; v++)
+					newPts[u][v] = cpts[(nU - 1) - u][v];
+			sheet->surface.mCtrlPoint = newPts;
+			sheet->surface.quads.clear();
+		}
+	}
+
+	ui->partsList->clearSelection();
+	plugin->updateDrawArea();
+}
+
+void NURBSTools::flipV()
+{
+	QStringList selected = selectedGroups();
+
+	foreach(QString gid, selectedGroups()){
+		Structure::Node * n = plugin->graph->getNode(gid);
+		if(!n) continue;
+		if(n->type() == Structure::CURVE){
+			Array1D_Vector3 cpts = n->controlPoints();
+			std::reverse(cpts.begin(), cpts.end());
+			n->setControlPoints(cpts);
+		}
+		else{
+			Structure::Sheet * sheet = ((Structure::Sheet*)n);
+			Array2D_Vector3 cpts = sheet->surface.mCtrlPoint, newPts = cpts;
+			int nU = cpts.size(); int nV = cpts.front().size();
+			for(int u = 0; u < nU; u++)
+				for(int v = 0; v < nV; v++)
+					newPts[u][v] = cpts[u][(nV - 1) - v];
+			sheet->surface.mCtrlPoint = newPts;
+			sheet->surface.quads.clear();
+		}
+	}
+
+	ui->partsList->clearSelection();
+	plugin->updateDrawArea();
+}
+
 void NURBSTools::fillList()
 {
 	ui->partsList->clear();
 
 	foreach(QString groupID, plugin->groupFaces.keys()){
-		ui->partsList->addItem(groupID);
+		QListWidgetItem * item = new QListWidgetItem( groupID );
+		
+		if(plugin->graph->getNode(groupID)) item->setTextColor(Qt::gray);
+
+		ui->partsList->addItem(item);
 	}
 }
 
@@ -130,6 +193,13 @@ void NURBSTools::selectionChanged()
 	plugin->updateDrawArea();
 }
 
+void NURBSTools::modifyGraph()
+{
+	GraphModifyWidget * widget = new GraphModifyWidget(plugin->graph);
+	plugin->connect(widget, SIGNAL(updateView()), SLOT(updateDrawArea()));
+	widget->show();
+}
+
 void NURBSTools::convertToCurve()
 {
 	QStringList selected = selectedGroups();
@@ -164,6 +234,8 @@ void NURBSTools::convertToCurve()
 	plugin->graph->addGroup(selected.toVector());
 
 	plugin->updateDrawArea();
+
+	fillList();
 }
 
 void NURBSTools::convertToSheet()
@@ -200,4 +272,6 @@ void NURBSTools::convertToSheet()
 	plugin->graph->addGroup(selected.toVector());
 
 	plugin->updateDrawArea();
+
+	fillList();
 }

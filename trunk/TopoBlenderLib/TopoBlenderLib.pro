@@ -63,7 +63,8 @@ HEADERS += StructureNode.h \
     AbsoluteOrientation.h \
     TaskCurve.h \
     TaskSheet.h \
-    Relink.h
+    Relink.h \
+    GraphModifyWidget.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -84,6 +85,7 @@ SOURCES += StructureGraph.cpp \
     AbsoluteOrientation.cpp \
     TaskCurve.cpp \
     TaskSheet.cpp \
-    Relink.cpp
+    Relink.cpp \
+    GraphModifyWidget.cpp
 	
-FORMS +=  SchedulerWidget.ui
+FORMS +=  SchedulerWidget.ui GraphModifyWidget.ui
