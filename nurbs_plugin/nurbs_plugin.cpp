@@ -63,6 +63,8 @@ void nurbs_plugin::create()
 	mainWindow()->addDockWidget(Qt::RightDockWidgetArea,dockwidget);
 	widget->fillList();
 
+	mainWindow()->showMaximized();
+
 	//buildSamples();
 }
 
@@ -517,8 +519,6 @@ void nurbs_plugin::convertToCurve()
 	// Clear parameters
 	mcf_params = NULL;
 
-	drawArea()->deleteAllRenderObjects();
-
 	foreach(Vertex v, m->vertices()) if(m->is_isolated(v)) m->remove_vertex(v);
 	m->garbage_collection();
 
@@ -531,6 +531,7 @@ void nurbs_plugin::convertToCurve()
 	ps.clear();
 	document()->setSelectedModel(entireMesh);
 	document()->deleteModel(m);
+	drawArea()->clear();
 	
 	m = NULL;
 
@@ -554,7 +555,6 @@ void nurbs_plugin::convertToSheet()
 	mcf_params = NULL;
 
 	// Clean up
-	drawArea()->deleteAllRenderObjects();
 	foreach(Vertex v, m->vertices()) if(m->is_isolated(v)) m->remove_vertex(v);
 	m->garbage_collection();
 
@@ -565,6 +565,7 @@ void nurbs_plugin::convertToSheet()
 
 	document()->setSelectedModel( entireMesh );
 	document()->deleteModel(m);
+	drawArea()->clear();
 
 	m = NULL;
 
@@ -971,54 +972,6 @@ NURBS::NURBSRectangled nurbs_plugin::surfaceFit( SurfaceMeshModel * part )
 
 	// debug
 	//return NURBS::NURBSRectangled::createSheet(Vector3d(0,0,0),Vector3d(0.01));
-}
-
-void nurbs_plugin::flipU()
-{
-	Structure::Node * n = graph->getNode(groupID);
-	if(!m || m == entireMesh || !n) return;
-	
-	if(n->type() == Structure::CURVE)
-	{
-		Array1D_Vector3 cpts = n->controlPoints();
-		std::reverse(cpts.begin(), cpts.end());
-		n->setControlPoints(cpts);
-	}
-	else
-	{
-		Structure::Sheet * sheet = ((Structure::Sheet*)n);
-		Array2D_Vector3 cpts = sheet->surface.mCtrlPoint, newPts = cpts;
-		int nU = cpts.size(); int nV = cpts.front().size();
-		for(int u = 0; u < nU; u++)
-			for(int v = 0; v < nV; v++)
-				newPts[u][v] = cpts[(nU - 1) - u][v];
-		sheet->surface.mCtrlPoint = newPts;
-		sheet->surface.quads.clear();
-	}
-	drawArea()->updateGL();
-}
-
-void nurbs_plugin::flipV()
-{
-	Structure::Node * n = graph->getNode(groupID);
-	if(!m || m == entireMesh || !n) return;
-
-	if(n->type() == Structure::CURVE)
-	{
-		flipU();
-	}
-	else
-	{
-		Structure::Sheet * sheet = ((Structure::Sheet*)n);
-		Array2D_Vector3 cpts = sheet->surface.mCtrlPoint, newPts = cpts;
-		int nU = cpts.size(); int nV = cpts.front().size();
-		for(int u = 0; u < nU; u++)
-			for(int v = 0; v < nV; v++)
-				newPts[u][v] = cpts[u][(nV - 1) - v];
-		sheet->surface.mCtrlPoint = newPts;
-		sheet->surface.quads.clear();
-	}
-	drawArea()->updateGL();
 }
 
 void nurbs_plugin::experiment()

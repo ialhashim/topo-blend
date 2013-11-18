@@ -4,19 +4,19 @@
 #include "StructureGraph.h"
 
 namespace Ui {
-class GraphModifyDialog;
+class GraphModifyWidget;
 }
 
-class GraphModifyDialog : public QDialog
+class GraphModifyWidget : public QDialog
 {
     Q_OBJECT
     
 public:
-    explicit GraphModifyDialog(Structure::Graph * graph, QWidget *parent = 0);
-    ~GraphModifyDialog();
+    explicit GraphModifyWidget(Structure::Graph * graph, QWidget *parent = 0);
+    ~GraphModifyWidget();
     
 private:
-    Ui::GraphModifyDialog *ui;
+    Ui::GraphModifyWidget *ui;
     Structure::Graph * g;
 
 public slots:

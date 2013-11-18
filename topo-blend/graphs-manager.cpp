@@ -1,5 +1,5 @@
 #include <QFileDialog>
-#include "graph_modify_dialog.h"
+#include "GraphModifyWidget.h"
 #include "QuickAlignment.h"
 
 #include "TopoBlender.h"
@@ -68,7 +68,7 @@ void GraphsManager::modifyModel()
 
     tb->viz_params["showNames"] = true;
 
-    GraphModifyDialog modifyDialog(tb->graphs.back());
+    GraphModifyWidget modifyDialog(tb->graphs.back());
     tb->drawArea()->connect(&modifyDialog, SIGNAL(updateView()), SLOT(updateGL()));
     modifyDialog.exec();
 }

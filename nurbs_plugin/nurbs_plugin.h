@@ -82,9 +82,6 @@ public slots:
 	void convertToCurve();
 	void convertToSheet();
 
-	void flipU();
-	void flipV();
-
 	void updateDrawArea();
 
 	void experiment();

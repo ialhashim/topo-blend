@@ -40,6 +40,12 @@ public slots:
 
 	void convertToCurve();
 	void convertToSheet();
+
+	void modifyGraph();
+
+	void flipU();
+	void flipV();
+
 private:
     Ui::NURBSTools *ui;
 };

@@ -10,7 +10,7 @@
 #include "topo-blend.h"
 
 #include "../CustomDrawObjects.h"
-#include "graph_modify_dialog.h"
+#include "GraphModifyWidget.h"
 #include "QuickAlignment.h"
 #include "GraphExplorer.h"
 

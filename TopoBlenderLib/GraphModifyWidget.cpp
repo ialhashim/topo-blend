@@ -1,8 +1,8 @@
-#include "graph_modify_dialog.h"
-#include "ui_graph_modify_dialog.h"
+#include "GraphModifyWidget.h"
+#include "ui_GraphModifyWidget.h"
 #include <QInputDialog>
 
-GraphModifyDialog::GraphModifyDialog(Structure::Graph * graph, QWidget *parent) : QDialog(parent), ui(new Ui::GraphModifyDialog)
+GraphModifyWidget::GraphModifyWidget(Structure::Graph * graph, QWidget *parent) : QDialog(parent), ui(new Ui::GraphModifyWidget)
 {
     this->g = graph;
 
@@ -23,14 +23,14 @@ GraphModifyDialog::GraphModifyDialog(Structure::Graph * graph, QWidget *parent) 
 	updateLists();
 }
 
-GraphModifyDialog::~GraphModifyDialog()
+GraphModifyWidget::~GraphModifyWidget()
 {
 	g->property["showNames"] = false;
 
     delete ui;
 }
 
-void GraphModifyDialog::renameNodes()
+void GraphModifyWidget::renameNodes()
 {
 	foreach( QListWidgetItem *item, ui->list2->selectedItems())
 	{
@@ -46,7 +46,7 @@ void GraphModifyDialog::renameNodes()
 	emit ( updateView() );
 }
 
-void GraphModifyDialog::link()
+void GraphModifyWidget::link()
 {
     if(ui->list1->selectedItems().size() < 1) return;
     if(ui->list2->selectedItems().size() < 1) return;
@@ -61,7 +61,7 @@ void GraphModifyDialog::link()
 	emit ( updateView() );
 }
 
-void GraphModifyDialog::unlink()
+void GraphModifyWidget::unlink()
 {
     if(ui->list1->selectedItems().size() < 1) return;
     if(ui->list2->selectedItems().size() < 1) return;
@@ -77,7 +77,7 @@ void GraphModifyDialog::unlink()
 	emit( updateView() );
 }
 
-void GraphModifyDialog::updateLink()
+void GraphModifyWidget::updateLink()
 {
 	if(ui->list1->selectedItems().size() < 1) return;
 	if(ui->list2->selectedItems().size() < 1) return;
@@ -96,7 +96,7 @@ void GraphModifyDialog::updateLink()
 	emit( updateView() );
 }
 
-void GraphModifyDialog::remove()
+void GraphModifyWidget::remove()
 {
     if(ui->list2->selectedItems().size() < 1) return;
 
@@ -115,7 +115,7 @@ void GraphModifyDialog::remove()
 	emit( updateView() );
 }
 
-void GraphModifyDialog::visualizeSelections()
+void GraphModifyWidget::visualizeSelections()
 {
 	QList<QListWidgetItem *> items_1 = ui->list1->selectedItems();
 	QList<QListWidgetItem *> items_2 = ui->list2->selectedItems();
@@ -157,7 +157,7 @@ void GraphModifyDialog::visualizeSelections()
 	}
 }
 
-void GraphModifyDialog::removeAll()
+void GraphModifyWidget::removeAll()
 {
 	foreach(Structure::Link * edge, g->edges)
 		g->removeEdge(edge->n1, edge->n2);
@@ -165,7 +165,7 @@ void GraphModifyDialog::removeAll()
 	emit( updateView() );
 }
 
-void GraphModifyDialog::updateLists()
+void GraphModifyWidget::updateLists()
 {
 	ui->list1->clear();
 	ui->list2->clear();
