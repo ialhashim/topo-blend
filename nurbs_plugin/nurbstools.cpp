@@ -207,6 +207,8 @@ void NURBSTools::convertToCurve()
 
 	if( selected.isEmpty() ){
 		plugin->convertToCurve();
+		plugin->updateDrawArea();
+		fillList();
 		return;
 	}
 
@@ -234,7 +236,6 @@ void NURBSTools::convertToCurve()
 	plugin->graph->addGroup(selected.toVector());
 
 	plugin->updateDrawArea();
-
 	fillList();
 }
 
@@ -245,6 +246,8 @@ void NURBSTools::convertToSheet()
 
 	if( selected.isEmpty() ){
 		plugin->convertToSheet();
+		plugin->updateDrawArea();
+		fillList();
 		return;
 	}
 
@@ -272,6 +275,5 @@ void NURBSTools::convertToSheet()
 	plugin->graph->addGroup(selected.toVector());
 
 	plugin->updateDrawArea();
-
 	fillList();
 }
