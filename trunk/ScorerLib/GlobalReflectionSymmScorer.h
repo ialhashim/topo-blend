@@ -1,10 +1,9 @@
 #pragma once
-#include "scorer.h"
-class GlobalReflectionSymmScorer :
-	public Scorer
+#include "RelationDetector.h"
+class GlobalReflectionSymmScorer :	public RelationDetector
 {
 public:
-    GlobalReflectionSymmScorer(Structure::Graph* g, int ith, int logLevel=0):Scorer(g, "GlobalReflectionSymmScorer-", ith, logLevel)
+    GlobalReflectionSymmScorer(Structure::Graph* g, int ith, int logLevel=0):RelationDetector(g, "GlobalReflectionSymmScorer-", ith, logLevel)
     {
 		pointsLevel_= 1;
 		init();
@@ -21,7 +20,6 @@ public:
 
     std::vector<Eigen::MatrixXd> nodesCpts_; 
     std::vector<Eigen::Vector3d> nodesCenter_; // center of each node by control points, if the diameter of the part is 0, it is not pushed back in this array.
-	std::vector<Structure::Node *> nonDegeneratedNodes_;
 
 private:
 	void init();

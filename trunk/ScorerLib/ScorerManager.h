@@ -2,12 +2,14 @@
 #define SCORERMANAGER_H
 
 #include <QObject>
-#include "Scorer.h"
 #include "RelationDetector.h"
 
 class GraphCorresponder;
 class Scheduler;
 
+
+// todo jjcao trace pairs!
+// todo jjcao parse & trance groups!
 
 class ScorerManager : public QObject
 {
@@ -27,7 +29,12 @@ public:
 	bool isUseSourceCenter_;
 
 	// for connectivity
-	QVector<QVector<PairRelationBasic> > connectPairs_; // connectPairs[0] is from source shape, [1] is from target shape
+	QVector<QVector<PairRelation> > connectPairs_; // connectPairs[0] is from source shape, [1] is from target shape
+	QVector<QVector<PairRelation> > transPairs_;
+	QVector<QVector<PairRelation> > refPairs_;
+	QVector<QVector<PairRelation> > parallelPairs_;
+	QVector<QVector<PairRelation> > orthogonalPairs_;
+	QVector<QVector<PairRelation> > coplanarPairs_;
 
 	// for debuging
 	int logLevel_;
