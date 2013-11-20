@@ -3,6 +3,7 @@
 #include "Scheduler.h"
 #include "GlobalReflectionSymmScorer.h"
 #include "ConnectivityScorer.h"
+#include "PairRelationDetector.h"
 void saveScore(QString &filename, QVector<double> scores, QString& headline)
 {
 	QFile file(filename);
@@ -67,14 +68,26 @@ void ScorerManager::parseConstraintPair()
 	connectPairs_.clear();
 	
 	Structure::Graph * g = Structure::Graph::actualGraph( this->inputGraphs[0] );
-    ConnectedPairDetector cpd0(g, 0, logLevel_);
+	
+    PairRelationDetector cpd0(g, 0, logLevel_);
 	cpd0.detect(this->inputGraphs[1], gcorr->correspondences);
-	connectPairs_.push_back(cpd0.pairs_);
+	connectPairs_.push_back(cpd0.connectedPairs_);
+	transPairs_.push_back(cpd0.transPairs_);
+	refPairs_.push_back(cpd0.refPairs_);
+	parallelPairs_.push_back(cpd0.parallelPairs_);
+	orthogonalPairs_.push_back(cpd0.orthogonalPairs_);
+	coplanarPairs_.push_back(cpd0.coplanarPairs_);
+
 
 	g = Structure::Graph::actualGraph( this->inputGraphs[1] );
-	ConnectedPairDetector cpd1(g, 1, logLevel_);
+	PairRelationDetector cpd1(g, 1, logLevel_);
 	cpd1.detect(this->inputGraphs[0], gcorr->correspondences);
-	connectPairs_.push_back(cpd1.pairs_);
+	connectPairs_.push_back(cpd1.connectedPairs_);
+	transPairs_.push_back(cpd1.transPairs_);
+	refPairs_.push_back(cpd1.refPairs_);
+	parallelPairs_.push_back(cpd1.parallelPairs_);
+	orthogonalPairs_.push_back(cpd1.orthogonalPairs_);
+	coplanarPairs_.push_back(cpd1.coplanarPairs_);
 
     emit( message("Parse constraint pairs end. ") );
 }

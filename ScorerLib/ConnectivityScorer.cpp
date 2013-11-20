@@ -1,13 +1,13 @@
 #include "ConnectivityScorer.h"
 
-double ConnectivityScorer::evaluate(QVector<QVector<PairRelationBasic> > &connectPairs, QVector<PART_LANDMARK> &corres)
+double ConnectivityScorer::evaluate(QVector<QVector<PairRelation> > &connectPairs, QVector<PART_LANDMARK> &corres)
 {
 	double resultMean(0.0), resultMax(0.0); int num(0);
 	double dist = graph_->bbox().diagonal().norm();
 
 	for ( int j = 0; j < connectPairs.size(); ++j)
 	{
-		QVector<PairRelationBasic>& pairs = connectPairs[j];
+		QVector<PairRelation>& pairs = connectPairs[j];
 		//if (logLevel_>0)
 		//{
 		//	if ( j == 0 )
@@ -17,7 +17,7 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelationBasic> > &connec
 		//}
 		for ( int i = 0; i < pairs.size(); ++i)
 		{
-			PairRelationBasic& prb = pairs[i];
+			PairRelation& prb = pairs[i];
 
 			std::vector<Structure::Node*> nodes1 = findNodesInB(prb.n1->id, graph_, corres, j==0);
 			std::vector<Structure::Node*> nodes2 = findNodesInB(prb.n2->id, graph_, corres, j==0);
@@ -37,10 +37,10 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelationBasic> > &connec
 					distanceBetween(m1, m2, min_dist, mean_dist, max_dist);
 					
 					min_dist = min_dist/dist;
-					if (min_dist < prb.miniDist)
+					if (min_dist < prb.deviation)
 						min_dist = 0;
 					else
-						min_dist = min_dist - prb.miniDist;
+						min_dist = min_dist - prb.deviation;
 
 					resultMean += min_dist;
 					++num;

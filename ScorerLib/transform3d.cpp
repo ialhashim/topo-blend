@@ -1,60 +1,33 @@
 #include "geometry.h"
 #include "transform3d.h"
 
-int extractCpts( Structure::Node * n, std::vector<Eigen::Vector3d>& mcpts, int pointsLevel)
+double errorOfParallel(Eigen::Vector3d& d1, Eigen::Vector3d& d2)
 {
-    if ( pointsLevel == 2)
-    {
-    	SurfaceMesh::Model * m1 = n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data();
-    	SurfaceMesh::Vector3VertexProperty pts1 = m1->vertex_coordinates();
-    	double* tmp;
-    	foreach(Vertex v1, m1->vertices())
-    	{
-    		tmp = pts1[v1].data();
-    		mcpts.push_back( Eigen::Vector3d(tmp[0], tmp[1], tmp[2]) );
-    	}
-    }
-	else
-	{
-		if ( Structure::CURVE == n->type() )
-		{
-			Structure::Curve* c = dynamic_cast<Structure::Curve *>(n);
-			if ( pointsLevel == 1)
-			{
-				for (int i = 0; i < (int) c->numCtrlPnts(); ++i)
-				{
-					mcpts.push_back( c->controlPoint(i));
-				}
-			}
-			else
-			{
-				mcpts.push_back( c->controlPoint(0) );
-				mcpts.push_back( c->controlPoint( c->numCtrlPnts()-1 ) );
-			}
-		}
-		else
-		{
-			Structure::Sheet* s = dynamic_cast<Structure::Sheet *>(n);
-			if ( pointsLevel == 1)
-			{
-				for (int i = 0; i < (int) s->numCtrlPnts(); ++i)
-				{
-					mcpts.push_back( s->controlPoint(i));
-				}
-			}
-			else
-			{
-				int nu = s->numUCtrlPnts(), nv = s->numVCtrlPnts();
-				mcpts.push_back( s->surface.GetControlPoint(0,0) );
-				mcpts.push_back( s->surface.GetControlPoint(nu-1,0) );
-				mcpts.push_back( s->surface.GetControlPoint(nu-1,nv-1) );
-				mcpts.push_back( s->surface.GetControlPoint(0,nv-1) );
-			}
-		}
-	}
-
-	return mcpts.size();
+    return 1 - sqrt( std::abs(d1.dot(d2))/(d1.norm()*d2.norm()) );
 }
+double errorOfOrthogonal(Eigen::Vector3d& d1, Eigen::Vector3d& d2)
+{
+    return sqrt( std::abs(d1.dot(d2))/(d1.norm()*d2.norm()) );
+}
+double errorOfCoplanar(Eigen::Vector3d &pt1, Eigen::Vector3d &normal1, Eigen::Vector3d &pt2, Eigen::Vector3d &normal2)
+{
+    double err1 = 1-std::abs(normal1.dot(normal2));
+
+    Point_3 point(pt1.x(), pt1.y(), pt1.z());
+    Plane_3 p2(Point_3(pt2.x(), pt2.y(), pt2.z()), Vector_3(normal2.x(), normal2.y(), normal2.z()));
+    double dist1 = squared_distance(p2, point);
+    return err1 + sqrt(dist1);
+}
+
+double errorOfLineInPlane(Segment_3 &l, Eigen::Vector3d& point, Eigen::Vector3d& normal)
+{
+	Plane_3 plane( Point_3(point.x(), point.y(), point.z()), 
+				  Vector_3(normal.x(), normal.y(), normal.z()) );		
+	double dist1 = squared_distance(plane, l.point(0));
+	double dist2 = squared_distance(plane, l.point(1));
+	return 0.5*(sqrt(dist1)+sqrt(dist2));
+}
+
 
 void distanceBetween(const Eigen::MatrixXd& v1, const Eigen::MatrixXd& v2, double & min_dist, double &mean_dist, double &max_dist)
 {
@@ -79,17 +52,18 @@ void distanceBetween(const Eigen::MatrixXd& v1, const Eigen::MatrixXd& v2, doubl
     }
     mean_dist = mean_dist/v1.rows();
 }
-void reflectPoints(const Eigen::MatrixXd& ptsin, const Eigen::Vector3d& center, const Eigen::Vector3d& normal, Eigen::MatrixXd& ptsout)
+
+void reflect_points3d(const Eigen::MatrixXd& ptsin, const Eigen::Vector3d& center, const Eigen::Vector3d& normal, Eigen::MatrixXd& ptsout)
 {
     ptsout.resize(ptsin.rows(), ptsin.cols() );
     for ( int i = 0; i < (int) ptsin.rows(); ++i)
     {
         Eigen::Vector3d ptout;
-        reflectPoint(ptsin.row(i), center, normal, ptout);
+        reflect_point3d(ptsin.row(i), center, normal, ptout);
         ptsout.row(i) = ptout;
     }
 }
-void reflectPoint(const Eigen::Vector3d& ptin, const Eigen::Vector3d& center, const Eigen::Vector3d& normal, Eigen::Vector3d& ptout)
+void reflect_point3d(const Eigen::Vector3d& ptin, const Eigen::Vector3d& center, const Eigen::Vector3d& normal, Eigen::Vector3d& ptout)
 {
     Vector_3 v = normal * (center - ptin).dot(normal);
     ptout = ptin + v * 2;
@@ -159,20 +133,3 @@ Eigen::Matrix4d create_rotation3d_line_angle(Eigen::Vector3d& center,Eigen::Vect
 	return mat;
 }
 
-void vectorPts2MatrixPts(const std::vector<Eigen::Vector3d>& ptsin, Eigen::MatrixXd& ptsout)
-{
-	ptsout.resize(ptsin.size(), 3);
-    for ( int i = 0; i < (int)ptsin.size(); ++i)
-	{
-		ptsout.row(i) = ptsin[i];
-	}
-}
-std::vector<Eigen::Vector3d> matrixPts2VectorPts(Eigen::MatrixXd& ptsin)
-{
-	std::vector<Eigen::Vector3d> ptsout;
-	for ( int i = 0; i < ptsin.rows(); ++i)
-	{
-		ptsout.push_back( ptsin.row(i));
-	}
-	return ptsout;
-}

@@ -1,20 +1,157 @@
 #include "RelationDetector.h"
 
-Eigen::MatrixXd node2matrix(Structure::Node* node, int pointLevel)
+QTextStream& operator << (QTextStream& os, const PairRelation& pr)
+{    
+	os << "Pair <" << pr.n1->id << ", " << pr.n2->id << "> size <" << pr.n1->bbox().diagonal().norm() << ", " << pr.n2->bbox().diagonal().norm() << 
+		"> Skeleton distance: " << pr.deviation << "\n";
+    return os;
+}
+double RelationDetector::computePairDiameter(PairRelation& pr)
+{
+	Eigen::AlignedBox3d bbox1 = pr.n1->bbox();
+	Eigen::AlignedBox3d bbox2 = pr.n2->bbox();
+	Eigen::AlignedBox3d bbox = bbox2.merged(bbox1);
+	return bbox.diagonal().norm();
+}
+Eigen::MatrixXd RelationDetector::node2matrix(Structure::Node* node, int pointLevel)
 {
 	std::vector<Eigen::Vector3d> nodeCptsV;
-	int tmp = extractCpts( node, nodeCptsV, pointLevel);
+	extractCpts( node, nodeCptsV, pointLevel);
 	Eigen::MatrixXd nodeCptsM;
 	vectorPts2MatrixPts(nodeCptsV, nodeCptsM);
 	return nodeCptsM;
 }
+int RelationDetector::extractCpts( Structure::Node * n, std::vector<Eigen::Vector3d>& mcpts, int pointsLevel)
+{
+    if ( pointsLevel == 2)
+    {
+    	SurfaceMesh::Model * m1 = n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data();
+    	SurfaceMesh::Vector3VertexProperty pts1 = m1->vertex_coordinates();
+    	double* tmp;
+    	foreach(Vertex v1, m1->vertices())
+    	{
+    		tmp = pts1[v1].data();
+    		mcpts.push_back( Eigen::Vector3d(tmp[0], tmp[1], tmp[2]) );
+    	}
+    }
+	else
+	{
+		if ( Structure::CURVE == n->type() )
+		{
+			Structure::Curve* c = dynamic_cast<Structure::Curve *>(n);
+			if ( pointsLevel == 1)
+			{
+				for (int i = 0; i < (int) c->numCtrlPnts(); ++i)
+				{
+					mcpts.push_back( c->controlPoint(i));
+				}
+			}
+			else
+			{
+				mcpts.push_back( c->controlPoint(0) );
+				mcpts.push_back( c->controlPoint( c->numCtrlPnts()-1 ) );
+			}
+		}
+		else
+		{
+			Structure::Sheet* s = dynamic_cast<Structure::Sheet *>(n);
+			if ( pointsLevel == 1)
+			{
+				for (int i = 0; i < (int) s->numCtrlPnts(); ++i)
+				{
+					mcpts.push_back( s->controlPoint(i));
+				}
+			}
+			else
+			{
+				int nu = s->numUCtrlPnts(), nv = s->numVCtrlPnts();
+				mcpts.push_back( s->surface.GetControlPoint(0,0) );
+				mcpts.push_back( s->surface.GetControlPoint(nu-1,0) );
+				mcpts.push_back( s->surface.GetControlPoint(nu-1,nv-1) );
+				mcpts.push_back( s->surface.GetControlPoint(0,nv-1) );
+			}
+		}
+	}
 
-QTextStream& operator << (QTextStream& os, const PairRelationBasic& pr)
-{    
-	os << "Pair <" << pr.n1->id << ", " << pr.n2->id << "> size <" << pr.n1->bbox().diagonal().norm() << ", " << pr.n2->bbox().diagonal().norm() << 
-		"> Skeleton distance: " << pr.miniDist << "\n";
-    return os;
+	return mcpts.size();
 }
+void RelationDetector::vectorPts2MatrixPts(const std::vector<Eigen::Vector3d>& ptsin, Eigen::MatrixXd& ptsout)
+{
+	ptsout.resize(ptsin.size(), 3);
+    for ( int i = 0; i < (int)ptsin.size(); ++i)
+	{
+		ptsout.row(i) = ptsin[i];
+	}
+}
+std::vector<Eigen::Vector3d> RelationDetector::matrixPts2VectorPts(Eigen::MatrixXd& ptsin)
+{
+	std::vector<Eigen::Vector3d> ptsout;
+	for ( int i = 0; i < ptsin.rows(); ++i)
+	{
+		ptsout.push_back( ptsin.row(i));
+	}
+	return ptsout;
+}
+
+Eigen::Vector3d RelationDetector::curve2vectorNormalized(Structure::Node * n)
+{
+	const Vector3& bpn = n->controlPoint(0);
+	const Vector3& epn = n->controlPoint(n->numCtrlPnts()-1);
+	Eigen::Vector3d vec = bpn - epn;
+	vec.normalize();
+	return vec;
+}
+std::vector<Point_3> RelationDetector::sheet2rect(Structure::Node * n)
+{
+	Structure::Sheet* s = dynamic_cast<Structure::Sheet *>(n);
+	std::vector<Point_3> result;
+	Vector3 v = s->surface.GetControlPoint(0,0); 
+	result.push_back( Point_3(v.x(), v.y(), v.z()) );
+	v = s->surface.GetControlPoint(s->surface.GetNumCtrlPoints(0)-1,0); 
+	result.push_back( Point_3(v.x(), v.y(), v.z()) );
+	v = s->surface.GetControlPoint(0,s->surface.GetNumCtrlPoints(1)-1); 
+	result.push_back( Point_3(v.x(), v.y(), v.z()) );
+	v = s->surface.GetControlPoint(s->surface.GetNumCtrlPoints(0)-1,s->surface.GetNumCtrlPoints(1)-1); 
+	result.push_back( Point_3(v.x(), v.y(), v.z()) );
+	return result;
+}
+Segment_3 RelationDetector::curve2segment(Structure::Node * n)
+{
+	const Vector3& bpn = n->controlPoint(0);
+	const Vector3& epn = n->controlPoint(n->numCtrlPnts()-1);
+
+	Segment_3 seg(Point_3(bpn.x(),bpn.y(),bpn.z()), Point_3(epn.x(),epn.y(),epn.z()));
+	return seg;
+}
+Line_3 RelationDetector::curve2line(Structure::Node * n)
+{
+	return Line_3(curve2segment(n));
+}
+void RelationDetector::sheet2plane(Structure::Sheet * s, Vector3& pos, Vector3& normal)
+{
+	std::vector<Vector3> nf = noFrame();
+	s->get(Vector4d(0.5,0.5,0,0), pos, nf);
+	normal = nf[2];
+}
+bool RelationDetector::node2direction(Structure::Node * n, Vector_3& result)
+{
+	bool iscurve(true);
+	if ( 0 == Structure::CURVE.compare( n->type()) )
+	{
+		Line_3 line = curve2line(n);
+		result = line.direction;		
+	}
+	else
+	{
+		Vector3 point, normal;
+		sheet2plane(dynamic_cast<Structure::Sheet *>(n), point, normal);
+		result = Vector_3(normal.x(), normal.y(), normal.z());
+		iscurve = false;
+	}	
+	result = result/sqrt(result.squaredNorm());
+	return iscurve;
+}
+
 // bSource == true means that the id is from target shape, & we want to find its corresponded node in source shape, then graph should be source
 std::vector<Structure::Node*> RelationDetector::findNodesInST(QString id, Structure::Graph *graph, QVector<PART_LANDMARK> &corres, bool bSource)
 {	
@@ -62,94 +199,99 @@ std::vector<Structure::Node*> RelationDetector::findNodesInST(QString id, Struct
 	return result;
 }
 
-void ConnectedPairDetector::detect(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
+std::vector<Structure::Node*> RelationDetector::findNodesInB(QString id, Structure::Graph *graph, QVector<PART_LANDMARK> &corres, bool bSource)
 {
-	pairs_.clear();
+    std::vector<Structure::Node*> result;
 
-	double dist = graph_->bbox().diagonal().norm();
-	int tmp1 = graph_->edges.size();
-	int num(0);
-	for ( int i = 0; i < tmp1; ++i)
-	{
-		Structure::Link* link = graph_->edges[i];
-		SurfaceMesh::Vector3 p1 = link->position(link->n1->id);
-		SurfaceMesh::Vector3 p2 = link->position(link->n2->id);
-		
-		PairRelationBasic prb;
-		prb.n1 = link->n1;
-		prb.n2 = link->n2;
-		prb.miniDist = (p1-p2).norm()/dist;
+    if ( bSource)
+    {
+        for ( int i = 0; i < (int) corres.size(); ++i)
+        {
+            QVector<QString> ids = corres[i].first;
+            int numCorres = corres[i].second.size();
+            if ( 1 == numCorres && ids[0] == id)
+            {
+                Structure::Node* tmpNode = graph->getNode(id);
+                if ( tmpNode != NULL)
+                    result.push_back( tmpNode );
 
-		
-		std::vector<Structure::Node*> nodes1 = findNodesInST(prb.n1->id, g, corres, !bSource_);
-		std::vector<Structure::Node*> nodes2 = findNodesInST(prb.n2->id, g, corres, !bSource_);
-		double dist1 = g->bbox().diagonal().norm();
-		double min_dist, mean_dist, max_dist,resultMax(0.0);		
-		for ( int i1 = 0; i1 < (int) nodes1.size(); ++i1)
-		{
-			Eigen::MatrixXd m1 = node2matrix(nodes1[i1], pointsLevel_);
+                return result;
+            }
+            else if ( 1 < numCorres )
+            {
+                if ( ids[0].startsWith( id + "_", Qt::CaseSensitive) )
+                {
+                    for ( int j = 0; j < numCorres; ++j)
+                    {
+						Structure::Node* tmpNode = graph->getNode(ids[j]);
+						if ( tmpNode != NULL)
+	                        result.push_back( tmpNode);
+                    }
+                    return result;
+                }
+            }
+        }
+		Structure::Node* tmpNode = graph->getNode(id);
+		if ( tmpNode != NULL)
+			result.push_back( graph->getNode(id) );   
+    }
+    else // is target
+    {
+        for ( int i = 0; i < (int) corres.size(); ++i)
+        {
+            QVector<QString> ids1 = corres[i].first;
+            QString id2 = corres[i].second[0];
+            if ( id2 == id)
+            {
+                for ( int j = 0; j < ids1.size(); ++j)
+                {
+					Structure::Node* tmpNode = graph->getNode(ids1[j]);
+					if ( tmpNode != NULL)
+						result.push_back( tmpNode );
+                }
+                return result;
+            }
+        }
+        //
+        Structure::Node* tmpNode = graph->getNode(id + "_null");
+        if ( tmpNode != NULL)
+        {
+            result.push_back( tmpNode );            
+        }		
+    }
+    //result.push_back( graph->getNode(id) );   
+	return result;
+}
 
-			for ( int i2 = 0; i2 < (int) nodes2.size(); ++i2)
-			{
-				Eigen::MatrixXd m2 = node2matrix(nodes2[i2], pointsLevel_);					
-				distanceBetween(m1, m2, min_dist, mean_dist, max_dist);
-					
-				min_dist = min_dist/dist1;
-				if ( min_dist > resultMax)
-				{
-					resultMax = min_dist;
-				}					
-					
-				if (logLevel_>0 && min_dist > prb.miniDist ) //
-				{
-					logStream_ << num << "\n";
-					if ( bSource_ )
-					{
-						logStream_ << "connected pair in source shape <" << prb.n1->id << ", " << prb.n2->id << "> with min dist: " << prb.miniDist << "\n";
-						logStream_ << "corresponds to a pair in target shape <" << nodes1[i1]->id << ", " << nodes2[i2]->id << ">: " << min_dist << "\n\n";
-					}
-					else
-					{
-						logStream_ << "connected pairs in target shape <" << prb.n1->id << ", " << prb.n2->id << "> with min dist: " << prb.miniDist << "\n";
-						logStream_ << "corresponds to a pair in source shape <" << nodes1[i1]->id << ", " << nodes2[i2]->id << ">: " << min_dist << "\n\n";
-					}
-					++num;
-				}
-					
-			}
-		}
+void RelationDetector::createPlane(Structure::Node *n1,Structure::Node *n2, Eigen::Vector3d& point, Eigen::Vector3d& normal)
+{
+    Segment_3 s0 = curve2segment(n1);
+    Segment_3 s2 = curve2segment(n2);
 
-		/////////
-		//if (nodes1.size()*nodes2.size()>0)
-		//{
-			prb.miniDist = std::max(prb.miniDist, resultMax);
-			pairs_.push_back(prb);
-		//}
-	}
+    // use middle point of 2 segment to generate a new segment, avoiding that s0 & s2 are parallel
+    Point_3 p0( 0.5*(s0.point(0).x() + s0.point(1).x()),
+            0.5*(s0.point(0).y() + s0.point(1).y()),
+            0.5*(s0.point(0).z() + s0.point(1).z())  );
+    Point_3 p2(0.5*(s2.point(0).x() + s2.point(1).x()),
+            0.5*(s2.point(0).y() + s2.point(1).y()),
+            0.5*(s2.point(0).z() + s2.point(1).z()) );
+    Segment_3 s1 = Segment_3(p0,p2);
 
-	if( logLevel_ >1 )
-	{
-		logStream_ << "Total: " << pairs_.size() << " pairs" << "\n\n";
-		for ( QVector<PairRelationBasic>::iterator it = pairs_.begin(); it != pairs_.end(); ++it)
-			logStream_ << *it << "\n";
-	}
+    ///////
+    Point_3 cp( 0.25*(s0.point(0).x() + s0.point(1).x() + s2.point(0).x() + s2.point(1).x()),
+        0.25*(s0.point(0).y() + s0.point(1).y() + s2.point(0).y() + s2.point(1).y()),
+        0.25*(s0.point(0).z() + s0.point(1).z() + s2.point(0).z() + s2.point(1).z()) );
+    point[0] = cp.x(); point[1] = cp.y(); point[2] = cp.z();
 
-	//int tmp1 = nodesPts_.size()-1;
-	//for ( int i = 0; i < tmp1; ++i)
-	//{
-	//	Eigen::MatrixXd ptsi = nodesPts_[i];
-	//	for ( int j = i+1; j < tmp1+1; ++j)
-	//	{
-	//		Eigen::MatrixXd ptsj = nodesPts_[j];
-	//		double tmpd = distanceBetween(ptsi, ptsj)/dist;
-	//		if (tmpd < thIntersectDist_)
-	//		{
-	//			PairRelationBasic prb;
-	//			prb.n1 = graph_->nodes[i];
-	//			prb.n2 = graph_->nodes[j];
-	//			prb.miniDist = tmpd;
-	//			pairs_.push_back(prb);
-	//		}
-	//	}
-	//}
+    Vector_3 v0 = cross_product(s1,s0);
+    Vector_3 v2 = cross_product(s1,s2);
+    if ( v0.squaredNorm() > v2.squaredNorm())
+    {
+        normal[0] = v0.x(); normal[1] = v0.y(); normal[2] = v0.z();
+    }
+    else
+    {
+        normal[0] = v2.x(); normal[1] = v2.y(); normal[2] = v2.z();
+    }
+    normal.normalize();
 }
