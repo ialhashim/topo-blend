@@ -1017,6 +1017,38 @@ ScheduleType Scheduler::getSchedule()
 	return result;
 }
 
+ScheduleType Scheduler::reversedSchedule(const ScheduleType & fromSchedule)
+{
+	ScheduleType result;
+
+	QMap< int, QVector<QString> > startTask;
+
+	foreach(QString task, fromSchedule.keys())
+		startTask[fromSchedule[task].first].push_back(task);
+
+	// These keys are sorted in increasing order
+	QVector<int> originalTimes = startTask.keys().toVector();
+
+	// Shuffle them
+	QVector<int> startTimes = originalTimes;
+	std::reverse(startTimes.begin(), startTimes.end());
+
+	for(int i = 0; i < (int)startTimes.size(); i++)
+	{
+		int oldStart = originalTimes[i];
+		int newStart = startTimes[i];
+
+		QVector<QString> curTasks = startTask[oldStart];
+
+		foreach(QString t, curTasks)
+		{
+			result[t] = qMakePair(newStart, fromSchedule[t].second);
+		}
+	}
+
+	return result;
+}
+
 void Scheduler::setSchedule( ScheduleType fromSchedule )
 {
 	Task * t = NULL;
@@ -1132,7 +1164,10 @@ QVector<ScheduleType> Scheduler::manyRandomSchedules(int N)
 	// Add the default scheduling as first possibility
 	schedules.push_back( getSchedule() );
 
-	for(int itr = 1; itr < N; itr++)
+	// Add the reverse of the default scheduling
+	if(N > 1) schedules.push_back( Scheduler::reversedSchedule(schedules.front()) );
+
+	for(int itr = 2; schedules.size() < N; itr++)
 	{
 		std::random_shuffle(startTimes.begin(), startTimes.end());
 
