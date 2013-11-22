@@ -116,6 +116,7 @@ public slots:
 	void saveSchedule(QString filename);
 	void setSchedule( ScheduleType fromSchedule );
 	ScheduleType getSchedule();
+	static ScheduleType reversedSchedule(const ScheduleType & fromSchedule);
 
 	void defaultSchedule();
 	void shuffleSchedule();
@@ -142,4 +143,5 @@ signals:
 
 	void updateExternalViewer();
 	void hasReset();
+
 };
