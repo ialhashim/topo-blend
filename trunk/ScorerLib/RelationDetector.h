@@ -15,7 +15,7 @@ public:
 	}
 	Structure::Node* n1;
 	Structure::Node* n2;
-
+	QString type;
 
 	//for connected pair, deviation is: mini distance between the skeleton' s control points of n1 & n2. has been normalized by graph->bbox().diagonal().norm()
 	//for translation pair, deviation is: mean distance between the skeleton' s control points of n1 & that of n2 after translation. has been normalized by n1 & n2's diameters
