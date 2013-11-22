@@ -30,11 +30,7 @@ public:
 
 	// for connectivity
 	QVector<QVector<PairRelation> > connectPairs_; // connectPairs[0] is from source shape, [1] is from target shape
-	QVector<QVector<PairRelation> > transPairs_;
-	QVector<QVector<PairRelation> > refPairs_;
-	QVector<QVector<PairRelation> > parallelPairs_;
-	QVector<QVector<PairRelation> > orthogonalPairs_;
-	QVector<QVector<PairRelation> > coplanarPairs_;
+	QVector<QVector<PairRelation> > otherPairs_;
 
 	// for debuging
 	int logLevel_;

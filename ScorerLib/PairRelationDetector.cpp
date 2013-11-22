@@ -13,6 +13,14 @@ double fixDeviationByPartName(QString& s1, QString& s2, double deviation)
 	return ndeviation;
 }
 
+void PairRelationDetector::pushToOtherPairs(QVector<PairRelation>& prs, QString type)
+{
+	for (QVector<PairRelation>::iterator it = prs.begin(); it != prs.end(); ++it)
+	{
+		it->type = type;
+		otherPairs_.push_back(*it);
+	}
+}
 double PairRelationDetector::ConnectedPairModifier::operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2)
 {
 	double min_dist(-1.0), mean_dist, max_dist;
@@ -229,12 +237,18 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 
 	double dist1 = g->bbox().diagonal().norm();
 	modifyPairsDegree(connectedPairs_, ConnectedPairModifier(dist1, pointsLevel_), g, corres, "Connected pairs");
+
+	QString type("connected");
+	for (QVector<PairRelation>::iterator it = connectedPairs_.begin(); it != connectedPairs_.end(); ++it)
+	{
+		it->type = type;
+	}
 }
 void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
 {
 	transPairs_.clear();    refPairs_.clear();
 	parallelPairs_.clear();	orthogonalPairs_.clear();
-	coplanarPairs_.clear();
+	coplanarPairs_.clear(); otherPairs_.clear();
 
     int nNodes = graph_->nodes.size();
     for (int i=0; i<nNodes; ++i)
@@ -270,7 +284,15 @@ void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LA
 	modifyPairsDegree(parallelPairs_, ParallelPairModifier(pointsLevel_), g, corres,"Parallel pairs");
 	modifyPairsDegree(orthogonalPairs_, OrthogonalPairModifier(pointsLevel_), g, corres, "Orthogonal pairs");
 	modifyPairsDegree(coplanarPairs_, CoplanarPairModifier(pointsLevel_), g, corres, "Coplanar pairs");
+
+	
+	pushToOtherPairs(transPairs_, "trans");
+	pushToOtherPairs(refPairs_, "ref");
+	pushToOtherPairs(parallelPairs_, "parallel");
+	pushToOtherPairs(orthogonalPairs_, "orthogonal");
+	pushToOtherPairs(coplanarPairs_, "coplanar");
 }
+
 void PairRelationDetector::detect(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
 {
 	detectConnectedPairs(g, corres);

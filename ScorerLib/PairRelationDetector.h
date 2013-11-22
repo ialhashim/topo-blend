@@ -127,14 +127,15 @@ private:
 	void isParalOrthoCoplanar(int id1, int id2);
 	//bool has_rot_relation(int id1, int id2);
 
-public:
-	
+	void pushToOtherPairs(QVector<PairRelation>& pairs, QString type);
 	QVector<PairRelation> transPairs_;
 	QVector<PairRelation> refPairs_;
 	QVector<PairRelation> parallelPairs_;
 	QVector<PairRelation> orthogonalPairs_;
 	QVector<PairRelation> coplanarPairs_;
 
+public:
+	QVector<PairRelation> otherPairs_; // all pairs except connected pairs are save in it.
 	QVector<PairRelation> connectedPairs_;
 	
 private:

@@ -2,7 +2,7 @@
 
 QTextStream& operator << (QTextStream& os, const PairRelation& pr)
 {    
-	os << "Pair <" << pr.n1->id << ", " << pr.n2->id << "> size <" << pr.n1->bbox().diagonal().norm() << ", " << pr.n2->bbox().diagonal().norm() << 
+	os << pr.type << " Pair <" << pr.n1->id << ", " << pr.n2->id << "> size <" << pr.n1->bbox().diagonal().norm() << ", " << pr.n2->bbox().diagonal().norm() << 
 		"> Skeleton distance: " << pr.deviation << "\n";
     return os;
 }

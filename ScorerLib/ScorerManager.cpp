@@ -72,22 +72,14 @@ void ScorerManager::parseConstraintPair()
     PairRelationDetector cpd0(g, 0, logLevel_);
 	cpd0.detect(this->inputGraphs[1], gcorr->correspondences);
 	connectPairs_.push_back(cpd0.connectedPairs_);
-	transPairs_.push_back(cpd0.transPairs_);
-	refPairs_.push_back(cpd0.refPairs_);
-	parallelPairs_.push_back(cpd0.parallelPairs_);
-	orthogonalPairs_.push_back(cpd0.orthogonalPairs_);
-	coplanarPairs_.push_back(cpd0.coplanarPairs_);
+	otherPairs_.push_back(cpd0.otherPairs_);
 
 
 	g = Structure::Graph::actualGraph( this->inputGraphs[1] );
 	PairRelationDetector cpd1(g, 1, logLevel_);
 	cpd1.detect(this->inputGraphs[0], gcorr->correspondences);
 	connectPairs_.push_back(cpd1.connectedPairs_);
-	transPairs_.push_back(cpd1.transPairs_);
-	refPairs_.push_back(cpd1.refPairs_);
-	parallelPairs_.push_back(cpd1.parallelPairs_);
-	orthogonalPairs_.push_back(cpd1.orthogonalPairs_);
-	coplanarPairs_.push_back(cpd1.coplanarPairs_);
+	otherPairs_.push_back(cpd1.otherPairs_);
 
     emit( message("Parse constraint pairs end. ") );
 }
