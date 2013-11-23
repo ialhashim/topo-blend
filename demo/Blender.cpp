@@ -8,10 +8,14 @@
 
 #include "TopoBlender.h"
 #include "Scheduler.h"
+#include "Task.h"
 #include "SynthesisManager.h"
 #include "ShapeRenderer.h"
 #include "SchedulerWidget.h"
 #include "PathEvaluator.h"
+
+typedef QVector< QSet<size_t> > ForcedGroups;
+Q_DECLARE_METATYPE( ForcedGroups )
 
 Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL), renderer(NULL), resultViewer(NULL)
 {
@@ -286,6 +290,26 @@ void Blender::preparePaths()
 		// Progress connections
 		progress->connect(s_manager.data(), SIGNAL(progressChanged(double)), SLOT(setProgress(double)));
 		this->connect(s_manager.data(), SIGNAL(synthDataReady()), SLOT(synthDataReady()));
+	}
+
+	// Apply any user-specified groups
+	ForcedGroups forcedGroups = s->inputGraphs[0]->g->property["forceGroup"].value< ForcedGroups >();
+	foreach(QSet<size_t> uids, forcedGroups)
+	{
+		// Retrieve all tasks of the set
+		QVector<Task*> tasks;
+		foreach(Structure::Node * n, m_scheduler->activeGraph->nodes){
+			size_t uid = size_t(n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data());
+			if(uids.contains(uid)) tasks.push_back( n->property["task"].value<Task*>() );
+		}
+
+		// Schedule them together
+		int startTime = m_scheduler->totalExecutionTime();
+		foreach(Task * t, tasks) startTime = qMin(startTime, t->start);
+		foreach(Task * t, tasks) t->setStart( startTime );
+
+		// Clean up
+		m_scheduler->trimTasks();
 	}
 
 	// Generate blend paths

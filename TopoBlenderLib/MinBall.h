@@ -16,6 +16,9 @@
 #define SEB_TIMER_STRING(timer)
 #define SEB_STATS(expr)
 
+// Warning about unsafe use of std::inner_product
+#pragma warning( disable : 4996 ) 
+
 namespace SEB_NAMESPACE {
   
   template<typename Float>
