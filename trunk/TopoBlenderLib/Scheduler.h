@@ -84,8 +84,9 @@ public:
 	// Time helpers
 	void splitTasksStartTime( int startTime, QList<Task*> & before, QList<Task*> & after );
 	void slideTasksTime( QList<Task*> list_tasks, int delta );
-	int startOf( QList<Task*> list_tasks );
-	int endOf( QList<Task*> list_tasks );
+	static int startOf( QList<Task*> list_tasks );
+	static int endOf( QList<Task*> list_tasks );
+	void trimTasks();
 
 	void drawDebug();
 
@@ -143,5 +144,4 @@ signals:
 
 	void updateExternalViewer();
 	void hasReset();
-
 };

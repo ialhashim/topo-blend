@@ -298,26 +298,7 @@ void Scheduler::order()
 	}
 
 	// Remove large empty spaces between tasks [inefficient?]
-	{
-		int curTime = 0;
-		forever{
-			QList<Task*> before, after;
-			splitTasksStartTime(curTime, before, after);
-
-			if(after.empty()) break;
-
-			if(!before.empty())
-			{
-				int end = endOf( before );
-				int start = startOf( after );
-
-				int delta = end - start;
-				if(delta < 0) 
-					slideTasksTime(after, delta);
-			}
-			curTime += 50;
-		}
-	}
+	this->trimTasks();
 
 	// Add small spaces between tasks
 	{
@@ -341,6 +322,28 @@ void Scheduler::order()
 	}
 
 	// To-do: Collect tasks together?
+}
+
+void Scheduler::trimTasks()
+{
+	int curTime = 0;
+	forever{
+		QList<Task*> before, after;
+		splitTasksStartTime(curTime, before, after);
+
+		if(after.empty()) break;
+
+		if(!before.empty())
+		{
+			int end = endOf( before );
+			int start = startOf( after );
+
+			int delta = end - start;
+			if(delta < 0) 
+				slideTasksTime(after, delta);
+		}
+		curTime += 50;
+	}
 }
 
 void Scheduler::groupStart( Structure::Graph * g, QList<Task*> curTasks, int curStart, int & futureStart )

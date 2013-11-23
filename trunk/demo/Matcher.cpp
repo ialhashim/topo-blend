@@ -1,6 +1,9 @@
 #include "Matcher.h"
 using namespace Structure;
 
+typedef QVector< QSet<size_t> > ForcedGroups;
+Q_DECLARE_METATYPE( ForcedGroups )
+
 Matcher::Matcher(Scene * scene, QString title) : gcorr(NULL), prevItem(NULL), isAuto(true), DemoPage(scene,title)
 {
 	// Fill in color sets
@@ -109,6 +112,10 @@ void Matcher::show()
 
 	// Ordering
 	curStrokeColor = QColor(255,0,0);
+
+	// Remove any previous grouping
+	s->inputGraphs[0]->g->property.remove("forceGroup");
+	s->inputGraphs[1]->g->property.remove("forceGroup");
 
 	emit( corresponderCreated(gcorr) );
 	DemoPage::show();
@@ -388,6 +395,18 @@ void Matcher::mouseRelease( QGraphicsSceneMouseEvent* mouseEvent )
 			s->inputGraphs[0]->g->property.remove("strokes");
 			s->inputGraphs[1]->g->property.remove("strokes");
 
+			// Convert selection to their unique IDs 
+			QSet<size_t> uniqueID;
+			foreach(QString nid, groupA)
+				uniqueID.insert( size_t(s->inputGraphs[0]->g->getNode(nid)->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data()) );
+			foreach(QString nid, groupB)
+				uniqueID.insert( size_t(s->inputGraphs[1]->g->getNode(nid)->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data()) );
+
+			// and push them to the list
+			ForcedGroups forcedGroups = s->inputGraphs[0]->g->property["forceGroup"].value< ForcedGroups >();
+			forcedGroups.push_back(uniqueID);
+			s->inputGraphs[0]->g->property["forceGroup"].setValue(forcedGroups);
+
 			groupA.clear();
 			groupB.clear();
 		}
@@ -418,7 +437,9 @@ void Matcher::keyReleased( QKeyEvent* keyEvent )
 
 	if(keyEvent->key() == Qt::Key_R){
 		QString filename = "dataset/corr/" + (s->inputGraphs[0]->name + "_" + s->inputGraphs[1]->name) + ".txt";
-		if(QFile::remove(filename)) emit( message( "Correspondence file deleted: " + filename ) );
+		QString filename2 = "dataset/corr/" + (s->inputGraphs[1]->name + "_" + s->inputGraphs[0]->name) + ".txt";
+
+		if(QFile::remove(filename) || QFile::remove(filename2)) emit( message( "Correspondence file deleted: " + filename ) );
 		return;
 	}
 }
@@ -437,6 +458,20 @@ void Matcher::groupingMode()
 	// Remove any markers
 	s->inputGraphs[0]->marker.clear();
 	s->inputGraphs[1]->marker.clear();
+
+	// Show existing groups
+	ForcedGroups forcedGroups = s->inputGraphs[0]->g->property["forceGroup"].value< ForcedGroups >();
+	
+	foreach(QSet<size_t> uids, forcedGroups){
+		QColor curGroupColor = qRandomColor2();
+
+		foreach(Structure::Node * n, (s->inputGraphs[0]->g->nodes + s->inputGraphs[1]->g->nodes)){
+			size_t uid = size_t(n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >().data());
+			if(uids.contains(uid)) n->vis_property["meshColor"].setValue( curGroupColor );
+		}
+
+		curGroupColor = qRandomColor2();
+	}
 
 	isGrouping = true;
 }
