@@ -14,6 +14,15 @@ void ShapesGallery::hide()
     all << listA << listB;
     foreach(QGraphicsItem * item, all) item->hide();
 
+	// Save names of shapes recently used
+	if( s->inputGraphs[0] && s->inputGraphs[1] )
+	{
+		QSettings settingsFile(QSettings::IniFormat, QSettings::UserScope, "GrUVi", "demo");
+		settingsFile.setValue("shapeLeft", ((ShapeItem *)listA[indexA])->property["name"].toString());
+		settingsFile.setValue("shapeRight", ((ShapeItem *)listB[indexB])->property["name"].toString());
+		settingsFile.sync();
+	}
+
     DemoPage::hide();
 }
 
@@ -146,10 +155,15 @@ void ShapesGallery::layout()
     arrangeList(listA, 0);
     arrangeList(listB, -1);
 
-    indexA = qMax(0, indexOf("ChairBasic1"));
-    indexB = qMax(0, indexOf("ChairBasic2"));
-
 	if(!listA.size()) return;
+
+	QSettings settingsFile(QSettings::IniFormat, QSettings::UserScope, "GrUVi", "demo");
+	QString shapeLeft = settingsFile.value("shapeLeft", "ChairBasic1").toString();
+	QString shapeRight = settingsFile.value("shapeRight", "ChairBasic2").toString();
+	settingsFile.sync();
+
+    indexA = qMax(0, indexOf(shapeLeft));
+    indexB = qMax(0, indexOf(shapeRight));
 
     scrollTo(listA, indexA);
     emit( shapeChanged(0, listA[indexA]) );

@@ -56,7 +56,7 @@ void TopoBlender::setupUI()
 	scheduler->widget = new SchedulerWidget( scheduler );
 	scheduler->dock = new QDockWidget( "Scheduler" );
 	scheduler->dock->setWidget( scheduler->widget );
-    QMainWindow * win = (QMainWindow *) parentWidget;
+	QMainWindow * win = (QMainWindow *) parentWidget;
 	win->addDockWidget(Qt::BottomDockWidgetArea, scheduler->dock);
 
 	scheduler->isApplyChangesUI = true;
@@ -158,6 +158,10 @@ QVector<QString> TopoBlender::cloneGraphNode( Structure::Graph *g, QString nodeI
 	// remove the original node
 	g->removeNode(nodeID);
 
+	// remove its groups
+	foreach(QVector<QString> group, g->groupsOf(nodeID))
+		g->removeGroup(group);
+
 	return cloned_node_IDs;
 }
 
@@ -172,7 +176,9 @@ void TopoBlender::correspondSuperNodes()
 		Structure::Node *ctnode = snode->clone();
 		ctnode->id = snodeID + "_null";
 
+		assert(!super_tg->getNode(ctnode->id));
 		super_tg->addNode(ctnode);
+
 		superNodeCorr[snodeID] = ctnode->id;
 	}
 
@@ -182,9 +188,28 @@ void TopoBlender::correspondSuperNodes()
 		Structure::Node *tnode = super_tg->getNode(tnodeID);
 		Structure::Node *csnode = tnode->clone();
 		csnode->id = tnodeID + "_null";
+
+		assert(!super_sg->getNode(csnode->id));
 		super_sg->addNode(csnode);
 
 		superNodeCorr[csnode->id] = tnodeID;
+	}
+
+	// Copy growing groups from target
+	QStringList nonCorresTarget;
+	foreach(QString tnodeID, gcoor->nonCorresTarget()) nonCorresTarget << tnodeID;
+	foreach(QVector<QString> tgroup, super_tg->groups)
+	{
+		// Add this groups
+		QVector<QString> sgroup;
+
+		foreach(QString tnodeID, tgroup) {
+			if(nonCorresTarget.contains(tnodeID))
+				sgroup << (tnodeID + "_null");
+		}
+
+		if(!sgroup.size()) continue;
+		super_sg->addGroup(sgroup);
 	}
 
 	// Build node correspondence for corresponded nodes
@@ -333,7 +358,7 @@ void TopoBlender::correspondTrivialEdges( Structure::Graph * source, Structure::
 	{
 		Structure::Node *sn1 = slink->n1, *sn2 = slink->n2;
 		Structure::Node *tn1 = target->getNode( sn1->property["correspond"].toString() ),
-						*tn2 = target->getNode( sn2->property["correspond"].toString() );
+			*tn2 = target->getNode( sn2->property["correspond"].toString() );
 
 		Structure::Link * tlink = target->getEdge(tn1->id, tn2->id);
 
@@ -349,7 +374,7 @@ void TopoBlender::correspondSimilarType( Structure::Graph * source, Structure::G
 	foreach(Structure::Link * slink, source->edges)
 	{
 		if (slink->property.contains("correspond")) continue;
-		 
+
 		Structure::Node *sn1 = slink->n1, *sn2 = slink->n2;
 		Structure::Node *tn1 = target->getNode(sn1->property["correspond"].toString()),
 			*tn2 = target->getNode(sn2->property["correspond"].toString());
@@ -417,7 +442,7 @@ void TopoBlender::connectNullNodes( Structure::Graph * source, Structure::Graph 
 			// Keep only subgraph with names from above
 			Structure::Graph copy(*source);
 			foreach(Node*n, source->nodes) if(!nodesKeep.contains(n->id)) copy.removeNode(n->id);
-		
+
 			// Find node with most valence, otherwise pick first
 			int bestValence = 0;
 			QString bestID = copy.nodes.front()->id;
@@ -457,6 +482,9 @@ void TopoBlender::correspondChangedEnds( Structure::Graph * source, Structure::G
 			// This will leave some nodes flying that will be deal with by later case
 			if( sedges.size() == tedges.size() && !sedges.isEmpty())
 			{
+				bool isPartOfGroup = !source->groupsOf(snode->id).front().isEmpty();
+				if( snode->id.contains("_") && isPartOfGroup ) continue;
+
 				for( int i = 0; i < (int)sedges.size(); i++)
 				{
 					Link* slink = sedges[i], *tlink = tedges[i];
@@ -736,7 +764,7 @@ void TopoBlender::generateSuperGraphs()
 	/// EDGES:
 	// Correspond edges in super graphs
 	correspondSuperEdges();
-	
+
 	postprocessSuperEdges();
 
 	active = super_sg;
@@ -777,6 +805,18 @@ void TopoBlender::postprocessSuperEdges()
 
 void TopoBlender::equalizeSuperNodeResolutions()
 {
+	foreach(QVector<QString> group, super_sg->groups){
+		int maxNum = -1;
+		foreach(QString nid, group) maxNum = qMax(maxNum, super_sg->getNode(nid)->numCtrlPnts());
+		foreach(QString nid, group) super_sg->getNode(nid)->refineControlPoints(maxNum, maxNum);
+	}
+
+	foreach(QVector<QString> group, super_tg->groups){
+		int maxNum = -1;
+		foreach(QString nid, group) maxNum = qMax(maxNum, super_tg->getNode(nid)->numCtrlPnts());
+		foreach(QString nid, group) super_tg->getNode(nid)->refineControlPoints(maxNum, maxNum);
+	}
+
 	foreach(QString snodeID, superNodeCorr.keys())
 	{
 		QString tnodeID = superNodeCorr[snodeID];
@@ -821,6 +861,19 @@ void TopoBlender::equalizeSuperNodeResolutions()
 			}
 		}
 	}
+
+	// Final phase
+	foreach(Node * snode, super_sg->nodes){
+		Node * tnode = super_tg->getNode(snode->property["correspond"].toString());
+
+		if (snode->type() == tnode->type())
+		{
+			if (snode->numCtrlPnts() < tnode->numCtrlPnts())
+				snode->equalizeControlPoints(tnode);
+			else
+				tnode->equalizeControlPoints(snode);
+		}
+	}
 }
 
 void TopoBlender::equalizeSuperNodeTypes()
@@ -853,7 +906,7 @@ void TopoBlender::equalizeSuperNodeTypes()
 		{
 			QString tnodeID = diffPairs[snodeID];
 
-            Structure::Node* snode = super_sg->getNode(snodeID);
+			Structure::Node* snode = super_sg->getNode(snodeID);
 
 			// try to convert
 			bool converted;
@@ -918,7 +971,7 @@ bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structu
 				// copy properties
 				curve1->property = node1->property;
 				curve1->property["original_sheet"].setValue(sheet1);
-			
+
 				// replace the sheet with curve
 				superG1->removeNode(nodeID1);
 				superG1->addNode(curve1);
@@ -960,7 +1013,7 @@ bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structu
 
 Structure::Node * TopoBlender::addMissingNode( Structure::Graph *toGraph, Structure::Graph * fromGraph, Structure::Node * fromNode )
 {
-    Q_UNUSED(fromGraph);
+	Q_UNUSED(fromGraph);
 
 	Structure::Node * newNode = fromNode->clone();
 
@@ -1013,6 +1066,15 @@ QString TopoBlender::correspondingNode( Structure::Link *link, int i )
 
 void TopoBlender::debugSuperGraphs( QString info )
 {
-	toGraphviz(super_sg, info + "_SourceSuper", true);
-	toGraphviz(super_tg, info + "_TargetSuper", true);
+	// Visualization: assign global unique ids
+	int viz_uid = 0;
+	foreach(Structure::Link * slink, super_sg->edges){
+		if(!slink->property.contains("correspond")) continue;
+		Link* tlink = super_tg->getEdge(slink->property["correspond"].toInt());
+		if(!tlink) continue;
+		slink->property["viz_uid"] = tlink->property["viz_uid"] = viz_uid++;
+	}
+
+	toGraphviz(super_sg, info + "_SourceSuper", true, "Super Source");
+	toGraphviz(super_tg, info + "_TargetSuper", true, "Super Target");
 }

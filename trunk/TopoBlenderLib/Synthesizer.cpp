@@ -665,7 +665,10 @@ void Synthesizer::reconstructGeometryCurve( Structure::Curve * base_curve, const
 	std::vector<Vector3f> proxy;
 	if(isApprox){
 		int steps = 100;
-		foreach(Vector4d p, base_curve->discretizedPoints( base_curve->curve.GetTotalLength() / steps).front())
+		double curveLength = base_curve->curve.GetTotalLength();
+		curveLength = qMax(curveLength, 1e-4);
+
+		foreach(Vector4d p, base_curve->discretizedPoints( curveLength / steps).front())
 			proxy.push_back( base_curve->position(p).cast<float>() );
 
 		if(!proxy.size()) isApprox = false;

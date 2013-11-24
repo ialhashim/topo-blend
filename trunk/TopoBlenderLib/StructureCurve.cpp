@@ -194,6 +194,8 @@ std::vector<Vector3d> Curve::foldTo( Vector4d & foldPoint, bool isApply)
 
 void Curve::setControlPoints( const std::vector<Vector3> & newPositions )
 {
+	assert(curve.mCtrlPoint.size() == newPositions.size());
+
 	curve.mCtrlPoint = newPositions;
 }
 
