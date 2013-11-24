@@ -63,18 +63,19 @@ void Link::replace(QString oldNodeID, Node *newNode, Array1D_Vector4d newCoord)
 	if(n1->id == oldNodeID){
 		n1 = newNode;
 		coord[0] = newCoord;
-	}
-
-	if(n2->id == oldNodeID){
+	} else if(n2->id == oldNodeID){
 		n2 = newNode;
 		coord[1] = newCoord;
+	} else {
+		qDebug() << "Warning: link replace should not happen!";
+		return;
 	}
 
 	// Change my ID
 	QString oldID = id;
-	id = id.replace( oldNodeID, newNode->id );
+	id =  QString("%1 : %2").arg(n1->id).arg(n2->id);
 
-	if(id != oldID) qDebug() << QString("Link replace [%1] to [%2]").arg(oldID, id);
+	qDebug() << QString("Link replace [%1] to [%2]").arg(oldID, id);
 }
 
 Node * Link::otherNode( QString nodeID )

@@ -950,7 +950,7 @@ namespace SEB_NAMESPACE {
   // If such an attempt to drop fails, we are done;  because then
   // the center lies even conv(support).
   {
-    SEB_DEBUG (int iteration = 0;)
+    size_t iteration = 0;
     
     SEB_TIMER_START("computation");
     
@@ -962,13 +962,13 @@ namespace SEB_NAMESPACE {
     
     // Invariant:  The ball B(center,radius_) always contains the whole
     // point set S and has the points in support on its boundary.
-    
-    while (true) {
-      
-      SEB_LOG ("debug","  iteration " << ++iteration << std::endl);
-      
-      SEB_LOG ("debug","  " << support->size()
-               << " points on boundary" << std::endl);
+
+    // while (true) // <<== This was resulting in infinite loop in weird case..
+    while (iteration < this->S.size() * 1000) 
+	{
+      ++iteration;
+      SEB_LOG ("debug","  iteration " << iteration << std::endl);
+      SEB_LOG ("debug","  " << support->size() << " points on boundary" << std::endl);
       
       // Compute a walking direction and walking vector,
       // and check if the former is perhaps too small:

@@ -86,7 +86,7 @@ void TaskCurve::prepareShrinkCurve()
 		foreach(Node* node, active->nodes){ if (ungrownNode(node->id)) exclude.push_back(node->id);}
 		GraphDistance gd( active, exclude );
 		gd.computeDistances( pointA, DIST_RESOLUTION );
-		gd.smoothPathCoordTo(pointB, path);
+		gd.smoothPathCoordTo( pointB, path);
 
 		if(path.size() == 0) return;
 

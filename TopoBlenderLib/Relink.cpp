@@ -86,7 +86,18 @@ void Relink::execute()
 				foreach(QString sibling, activeGraph->groupsOf(task->nodeID).back()){
 					Task * otherTask = s->getTaskFromNodeID( sibling );
 					if(otherTask->node()->property["taskTypeReal"].toInt() == Task::SPLIT && !otherTask->isReady)
-						otherTask->node()->setControlPoints(task->node()->controlPoints());
+					{
+						Structure::Node * fromNode = task->node();
+						Structure::Node * toNode = otherTask->node();
+
+						if(fromNode->numCtrlPnts() == toNode->numCtrlPnts())
+							toNode->setControlPoints(fromNode->controlPoints());
+						else
+						{
+							// Why would this happen? bad input? they should be equalized already..
+							toNode->moveBy( fromNode->controlPoints().front() - toNode->controlPoints().front() );
+						}
+					}
 				}
 			}
 		}
@@ -156,12 +167,6 @@ void Relink::fixTask( Task* task )
 		}
 	}
 
-	// CASE: sheets are more rigid than curves
-	{
-		if(n->type() == Structure::SHEET && consts.size() > 2)
-			fixedSize = true;
-	}
-
 	// CASE: ignore constraints of non-existing parts when connected to others
 	{
 		if(consts.size() > 1)
@@ -174,6 +179,18 @@ void Relink::fixTask( Task* task )
 			}
 			if(keep.size()) consts = keep;
 		}
+	}
+
+	// CASE: sheets are more rigid than curves
+	{
+		if(n->type() == Structure::SHEET && consts.size() > 2)
+			fixedSize = true;
+	}
+
+	// CASE: dead nodes that are still connected are rigid
+	{
+		if(task->type == Task::SHRINK && task->isDone)
+			fixedSize = true;
 	}
 
 	int N = consts.size();

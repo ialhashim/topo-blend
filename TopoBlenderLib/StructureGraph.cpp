@@ -1458,6 +1458,19 @@ bool Graph::isCutNode( QString nodeID )
 		return false;
 }
 
+bool Structure::Graph::isInCutGroup( QString nodeID )
+{
+	Structure::Graph copy(*this);
+
+	foreach(QVector<QString> nids, groupsOf(nodeID)){
+		foreach(QString nid, nids) 
+			if(copy.getNode(nid))
+				copy.removeNode(nid);
+	}
+
+	return !copy.isConnected();
+}
+
 bool Graph::isBridgeEdge( Link * link )
 {
 	Graph g = *this;

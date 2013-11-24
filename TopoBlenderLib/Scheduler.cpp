@@ -16,7 +16,7 @@
 
 Q_DECLARE_METATYPE( QSet<int> ) // for tags
 
-Scheduler::Scheduler() : globalStart(0.0), globalEnd(1.0), timeStep( 1.0 / 100.0 ), overTime(0.0), isApplyChangesUI(false)
+	Scheduler::Scheduler() : globalStart(0.0), globalEnd(1.0), timeStep( 1.0 / 100.0 ), overTime(0.0), isApplyChangesUI(false)
 {
 	rulerHeight = 25;
 
@@ -263,7 +263,7 @@ void Scheduler::order()
 		tasksByType.insert(task->type, task);
 
 	int curStart = 0;
-	
+
 	// General layout
 	for(int i = Task::SHRINK; i <= Task::GROW; i++)
 	{
@@ -313,7 +313,7 @@ void Scheduler::order()
 
 			QList<Task*> before, after;
 			splitTasksStartTime(currTask->endTime() - 1, before, after);
-			
+
 			foreach(Task* t, after)
 				t->setStart( t->start + timeSpacing );
 
@@ -496,7 +496,7 @@ void Scheduler::executeAll()
 		isForceStop = false;
 
 		emit( progressStarted() );
-	
+
 		// Tag interesting topology changes
 		{
 			property.remove("timeTags");
@@ -523,7 +523,10 @@ void Scheduler::executeAll()
 			snode->setControlPoints( Array1D_Vector3(snode->numCtrlPnts(), Vector3(0,0,0)) );
 			snode->property["zeroGeometry"] = true;
 
-			if( !activeGraph->isCutNode(sid) )
+			bool isPartOfCutGroup = activeGraph->isInCutGroup(sid);
+			bool isCutNode = activeGraph->isCutNode(sid);
+
+			if( !isCutNode && !isPartOfCutGroup )
 			{
 				// Make sure it is "effectively" linked on only one existing node
 				QMap<Link *,int> existValence;
@@ -539,17 +542,16 @@ void Scheduler::executeAll()
 
 				// Pick existing node with most valence
 				QList< QPair<int, Link *> > sorted = sortQMapByValue(existValence);
-				Link * linkKeep = sorted.front().second;
+				Link * linkKeep = sorted.back().second;
 
 				// Replace all edges of null into the kept edge
 				foreach(Link * edge, activeGraph->getEdges(sid))
 				{
-					// Keep track of original edge info
-					edge->pushState();
-
 					if(edge == linkKeep) continue;
 
+					// Keep track of original edge info
 					QString oldNode = edge->otherNode(sid)->id;
+					edge->pushState();
 					edge->replace(oldNode, linkKeep->otherNode(sid), linkKeep->getCoordOther(sid));
 				}
 
@@ -641,7 +643,7 @@ void Scheduler::executeAll()
 		qApp->restoreOverrideCursor();
 		QCursor::setPos(QCursor::pos());
 	}
-	
+
 	emit( progressDone() );
 }
 
@@ -685,7 +687,7 @@ void Scheduler::finalize()
 
 				for(int i = 0; i < (int) finalGeometry.size(); i++)
 					newGeometry.push_back( AlphaBlend(t, curGeometry[n][i], Vector3(finalGeometry[i])) );
-				
+
 				n->setControlPoints( newGeometry );
 			}
 
@@ -755,7 +757,7 @@ void Scheduler::doBlend()
 		reset();
 
 	/// Execute the tasks on a new thread
-    QtConcurrent::run( this, &Scheduler::executeAll ); // scheduler->executeAll();
+	QtConcurrent::run( this, &Scheduler::executeAll ); // scheduler->executeAll();
 }
 
 QVector<Task*> Scheduler::tasksSortedByStart()
@@ -1251,7 +1253,7 @@ QVector<Structure::Graph*> Scheduler::interestingInBetweens(int N)
 		times.push_back(midTime);
 		qSort(times);
 	}
-	
+
 	// Having a lot more samples
 	while(times.size() > N)
 	{
@@ -1267,6 +1269,6 @@ QVector<Structure::Graph*> Scheduler::interestingInBetweens(int N)
 
 	foreach(double t, times)
 		result.push_back( allGraphs[ t * (allGraphs.size() - 1) ] );
-	
+
 	return result;
 }

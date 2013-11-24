@@ -148,7 +148,7 @@ void GraphExplorer::fillNodesInfo()
 			QStringList geometryString;
 			foreach(Vector3 p, n->controlPoints())
 				geometryString << QString("%1,%2,%3").arg(p[0]).arg(p[1]).arg(p[2]);
-			n->property["geometry"].setValue( geometryString.join(" / ") );
+			n->property["geometry"].setValue( QString("[%1] =>").arg(geometryString.size()) + geometryString.join(" / ") );
 		}
 
 		fillInfoItem(n->property, nitem);

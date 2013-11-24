@@ -109,6 +109,7 @@ namespace Structure{
 
 		bool isConnected();
 		bool isCutNode( QString nodeID );
+		bool isInCutGroup( QString nodeID );
 		bool isBridgeEdge( Structure::Link * link );
 		QVector< QVector<Node*> > split( QString nodeID );
 

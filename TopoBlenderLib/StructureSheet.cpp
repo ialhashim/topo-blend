@@ -87,6 +87,8 @@ void Sheet::setControlPoints( const std::vector<Vector3> & newPositions )
 {
 	int i = 0;
 
+	assert(newPositions.size() == surface.mCtrlPoint.size() * surface.mCtrlPoint.front().size());
+
 	for(int u = 0; u < surface.mNumUCtrlPoints; u++)
 		for(int v = 0; v < surface.mNumVCtrlPoints; v++)
 			surface.mCtrlPoint[u][v] = newPositions[i++];
