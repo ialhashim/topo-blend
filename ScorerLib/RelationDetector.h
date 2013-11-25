@@ -12,19 +12,12 @@ static QString COPLANAR = "COPLANAR";
 static QString CONNECTED = "CONNECTED"; // for all connected pairs
 static QString NONE = "NONE";
 
-static QString TRANS_SYMMETRY = "TRANS_SYMMETRY"; // build from Trans pair, except AXIS_SYMMETRY
-static QString AXIS_SYMMETRY = "AXIS_SYMMETRY";
-static QString REF_SYMMETRY = "REF_SYMMETRY";
-
 class PairRelation
 {
 public:
 	PairRelation():n1(0),n2(0),tag(false),type(NONE){}
 	PairRelation(Structure::Node* node1, Structure::Node* node2):n1(node1),n2(node2){}
-	bool isDegenerated()
-	{
-		return n1==0 || n2==0;
-	}
+	bool isDegenerated(){return n1==0 || n2==0;}
 	Structure::Node* n1;
 	Structure::Node* n2;
 	QString type;
@@ -43,37 +36,58 @@ public:
     friend QTextStream& operator<<(QTextStream& os, const PairRelation& pr);
 };
 
+static QString TRANS_SYMMETRY = "TRANS_SYMMETRY"; // build from Trans pair, except AXIS_SYMMETRY
+static QString AXIS_SYMMETRY = "AXIS_SYMMETRY";
+static QString REF_SYMMETRY = "REF_SYMMETRY";
+
+struct GroupRelation
+{
+	GroupRelation():deviation(0.0){}
+
+    QVector<QString> ids; //QSet<QString> ids;
+    QString type;
+    double diameter; // group diameter
+    double deviation; // absolute mean deviation
+    bool tag;
+
+    Point_3 center; //
+    Vector_3 direction; // normalized. line direction for AXIS_SYMMETRY, normal direction for REF_SYMMETRY
+    Line_3 axis; // for co-axis symmetry or co-axis parallel symmetry
+    Plane_3 refPlane; // for ref symm group
+    // for coplanar group
+    Eigen::Vector3d normal;
+    Eigen::Vector3d point;
+
+    bool equal(GroupRelation& gr);
+    friend QTextStream& operator<<(QTextStream& os, const GroupRelation& gr);
+};
+
+bool isTaged(const PairRelation &pr);
+bool isTagedGr(const GroupRelation &gr);
+void saveToFile(QString filename, QVector<PairRelation>& prs);
+void saveToFile(QString filename, QVector<GroupRelation>& grs);
+template<class T>
+int countByType(QVector<T>& prs, QString& type)
+{
+    int i(0);
+    foreach(T pr, prs)
+    {
+        if ( 0 == type.compare(pr.type))
+            ++i;
+    }
+    return i;
+}
+
+
+
+
+
 
 class RelationDetector
 {
 public:
-	RelationDetector(Structure::Graph* g, const QString& logprefix, int ith, int logLevel=0):graph_(g),logLevel_(logLevel)
-	{
-		thRadiusRadio_ = 1.2;
-
-        thTransRadio_ = 0.03; //1.3
-        thRefRadio_ = 0.03;
-        thAxisDeviationRadio_ = 0.9;
-        thCopla_ = 0.002;//0.1
-        thParal_ = 0.001;
-        thOthog_ = 0.001;//0.1
-
-        thAxisGroup_ = 0.01;
-        thRefGroup_ = 0.01;
-        thCoplaGroup_ = 0.003;
-
-
-		if ( logLevel_ > 0)
-		{			
-			logFile_.setFileName(logprefix + QString::number(ith) + ".log");
-			if (!logFile_.open(QIODevice::WriteOnly | QIODevice::Text)) return;		
-			logStream_.setDevice(&logFile_);
-		}
-	}
-	~RelationDetector()
-	{
-		logFile_.close();
-	}
+	RelationDetector(Structure::Graph* g, const QString& logprefix, int ith, int pointLevel=1, int logLevel=0);
+	~RelationDetector(){logFile_.close();}
 	
 	//////////////////////////////////////////////////
 	// find nodes in the source or target shape
@@ -107,7 +121,22 @@ public:
     void createPlane(Structure::Node *n1,Structure::Node *n2, Eigen::Vector3d& point, Eigen::Vector3d& normal);
 	//////////////////////////////////////////////////
 	double computePairDiameter(PairRelation& pr);
+	// relative to the diameter of the graph, i.e. model
+    double computeGroupDiameter(GroupRelation& gr);
+	void findRefPlane(Structure::Node* n1, Structure::Node* n2, Eigen::Vector3d& center,Eigen::Vector3d& normal);
 	double fixDeviationByPartName(QString& s1, QString& s2, double deviation);
+
+    // we do not order part in a group by ref plane
+    // return mean deviation of the group
+    double computeRefSymmetryGroupDeviation(GroupRelation& gr, int pointLevel);
+    // order part in a group by angle around the axis
+    // return mean deviation of the group
+    double computeAxisSymmetryGroupDeviation(GroupRelation& gr, int pointLevel);
+    // compute the center and direction of the group
+    void computeTransGroupInfo(GroupRelation &gr, QSet<QString>& ids);
+protected:
+	Eigen::Vector3d computeCptsCenter(Structure::Node* nn);
+    double errorOfRefSymmGroup(std::vector<Structure::Node*> &nodes, Eigen::Vector3d& center, Eigen::Vector3d& normal, int pointLevel);
 public:
 	double thRadiusRadio_;
     double thTransRadio_;
@@ -122,6 +151,7 @@ public:
     double thCoplaGroup_;
 
 	Structure::Graph* graph_;
+	int pointLevel_;// 0 for main control points, 1 for all control points, 2 for all points.
 protected:
 	QFile logFile_;
 	QTextStream logStream_;

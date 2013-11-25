@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include "RelationDetector.h"
-
+#include "GroupRelationDetector.h"
 class GraphCorresponder;
 class Scheduler;
 
@@ -30,7 +30,9 @@ public:
 
 	// for connectivity
 	QVector<QVector<PairRelation> > connectPairs_; // connectPairs[0] is from source shape, [1] is from target shape
+
 	QVector<QVector<PairRelation> > otherPairs_;
+	QVector<QVector<GroupRelation> > groupRelations_;
 
 	// for debuging
 	int logLevel_;
@@ -38,6 +40,7 @@ signals:
     void message(QString);
 
 public slots:
+	//////////////
 	void parseConstraintPair();
 	void evaluateTopology();
 	QVector<double> evaluateTopology( QVector<Structure::Graph*> const &graphs );
@@ -47,15 +50,20 @@ public slots:
 	QVector<double> evaluatePairs( QVector<Structure::Graph*> const &graphs );
 	void evaluatePairsAuto();
 	
+	void parseConstraintGroup();
+	void evaluateGroups();
+	QVector<double> evaluateGroups( QVector<Structure::Graph*> const &graphs );
+	void evaluateGroupsAuto();
 
+	//////////////
     void parseGlobalReflectionSymm();
     void evaluateGlobalReflectionSymm();	
 	QVector<double> evaluateGlobalReflectionSymm( QVector<Structure::Graph*> const &graphs );
 	void evaluateGlobalReflectionSymmAuto();
-	
 
 	void setIsUseSourceCenter(bool);
 
+	//////////////
 	void init();
 	void clear();
 

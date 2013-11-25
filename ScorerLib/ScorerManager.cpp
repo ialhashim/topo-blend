@@ -7,6 +7,7 @@
 #include "PairRelationDetector.h"
 #include "ConnectivityScorer.h"
 #include "PairRelationScorer.h"
+#include "GroupRelationScorer.h"
 
 void saveScore(QString &filename, QVector<double> scores, QString& headline)
 {
@@ -64,7 +65,7 @@ void ScorerManager::parseConstraintPair()
     emit( message("Parse constraint pair starts: ") );
 	if ( this->inputGraphs.size() < 2)
 	{
-		emit( ("Two graphs needed!") );
+		emit( message("Two graphs needed!") );
 		return;
 	}
 
@@ -173,7 +174,7 @@ void ScorerManager::evaluatePairsAuto()
 {
     emit( message("Evaluate pair auto starts: ") );
 
-	if ( connectPairs_.empty() )
+	if ( otherPairs_.empty() )
 	{
 		emit( message("Parse constraint pair first! ") );
 		return;
@@ -185,6 +186,87 @@ void ScorerManager::evaluatePairsAuto()
 
 
     emit( message("Evaluate pair auto end. ") );
+}
+
+void ScorerManager::parseConstraintGroup()
+{
+	//////////////////
+    emit( message("Parse constraint group starts: ") );
+	if ( this->inputGraphs.size() < 2)
+	{
+		emit( message("Two graphs needed!") );
+		return;
+	}
+	if ( this->otherPairs_.size() < 2)
+	{
+		emit( message("Parse pairs first!") );
+		return;
+	}
+
+	///////////////////////
+	groupRelations_.clear();
+
+	for ( int i = 0; i < this->inputGraphs.size(); ++i)
+	{
+		Structure::Graph * g = Structure::Graph::actualGraph( this->inputGraphs[i] );
+		GroupRelationDetector grd(g, i, logLevel_);
+		grd.detect(otherPairs_[i]);
+		groupRelations_.push_back(grd.groupRelations_);
+		saveToFile("group_relation-" + QString::number(i) + ".txt", this->groupRelations_[i]);
+		saveToFile("pair_relation-" + QString::number(i) + ".txt", this->otherPairs_[i]);
+	}	
+
+    emit( message("Parse constraint group end. ") );
+}
+void ScorerManager::evaluateGroups()
+{
+	/////////////////
+    emit( message("Evaluate group starts: ") );
+
+	if ( groupRelations_.empty() )
+	{
+		emit( message("Parse constraint group first! ") );
+		return;
+	}
+
+	int idx(0);
+	Structure::Graph* g = getCurrentGraph(idx);
+	GroupRelationScorer grs(g, idx, logLevel_);
+	double score = grs.evaluate(groupRelations_, gcorr->correspondences);
+
+    emit( message("Evaluate group end. ") );
+}
+QVector<double> ScorerManager::evaluateGroups( QVector<Structure::Graph*> const &graphs )
+{
+	QVector<double> groupScore;
+	int logLevel = 0;
+	double score;
+    for (int i = 0; i < graphs.size(); ++i)
+    {
+		Structure::Graph * g = Structure::Graph::actualGraph(graphs[i] );
+        GroupRelationScorer grs(g, i, logLevel);
+		score = grs.evaluate(groupRelations_, gcorr->correspondences);
+		groupScore.push_back(score);
+    }
+	return groupScore;
+}
+void ScorerManager::evaluateGroupsAuto()
+{
+    emit( message("Evaluate group auto starts: ") );
+
+	if ( groupRelations_.empty() )
+	{
+		emit( message("Parse constraint group first! ") );
+		return;
+	}
+
+	///////////////// 
+	QVector<double> groupScore = evaluateGroups(this->scheduler->allGraphs);
+	saveScore(QString("evaluate_group_auto.txt"), groupScore, QString());	
+
+
+    emit( message("Evaluate group auto end. ") );
+	return;
 }
 
 void ScorerManager::parseGlobalReflectionSymm()

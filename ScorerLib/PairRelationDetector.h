@@ -10,9 +10,9 @@ public:
 	class PairModifier
 	{
 	public:
-		PairModifier(int pl):pointsLevel_(pl),maxAllowDeviation_(0.0){};
+		PairModifier(int pl):pointLevel_(pl),maxAllowDeviation_(0.0){};
 
-		int pointsLevel_;
+		int pointLevel_;
 		double maxAllowDeviation_;
 	};
 	class ConnectedPairModifier : public PairModifier
@@ -82,11 +82,11 @@ private:
 
 			for ( int i1 = 0; i1 < (int) nodes1.size(); ++i1)
 			{
-				Eigen::MatrixXd m1 = node2matrix(nodes1[i1], pointsLevel_);
+				Eigen::MatrixXd m1 = node2matrix(nodes1[i1], pointLevel_);
 
 				for ( int i2 = 0; i2 < (int) nodes2.size(); ++i2)
 				{
-					Eigen::MatrixXd m2 = node2matrix(nodes2[i2], pointsLevel_);
+					Eigen::MatrixXd m2 = node2matrix(nodes2[i2], pointLevel_);
 					double min_dist = fn(nodes1[i1], m1, nodes2[i2], m2);
 					
 					if (logLevel_>0 && min_dist > prb.deviation ) //
@@ -140,7 +140,6 @@ public:
 	
 private:
 	bool bSource_;
-	int pointsLevel_; // 0 for main control points, 1 for all control points, 2 for all points.
 
 	std::vector<Eigen::MatrixXd> nodesCpts_; 
     std::vector<Eigen::Vector3d> nodesCenter_;

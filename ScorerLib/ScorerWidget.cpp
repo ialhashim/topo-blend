@@ -13,6 +13,7 @@ ScorerWidget::ScorerWidget(QWidget *parent)
 	// Compute
 	s_manager->connect(ui->parseConstraintPair, SIGNAL(clicked()), SLOT(parseConstraintPair()));
     s_manager->connect(ui->parseGlobalSymm, SIGNAL(clicked()), SLOT(parseGlobalReflectionSymm()));
+	s_manager->connect(ui->parseConstraintGroup, SIGNAL(clicked()), SLOT(parseConstraintGroup()));
 	
 	// Evaluate
     s_manager->connect(ui->evaluateGlobalSymm, SIGNAL(clicked()), SLOT(evaluateGlobalReflectionSymm()));
@@ -23,6 +24,9 @@ ScorerWidget::ScorerWidget(QWidget *parent)
 
 	s_manager->connect(ui->evaluatePairs, SIGNAL(clicked()), SLOT(evaluatePairs()));
 	s_manager->connect(ui->evaluatePairsAuto, SIGNAL(clicked()), SLOT(evaluatePairsAuto()));	
+
+	s_manager->connect(ui->evaluateGroups, SIGNAL(clicked()), SLOT(evaluateGroups()));
+	s_manager->connect(ui->evaluateGroupsAuto, SIGNAL(clicked()), SLOT(evaluateGroupsAuto()));
 
 	// Options
     s_manager->connect(ui->bUseSourceCenter, SIGNAL(clicked(bool)), SLOT(setIsUseSourceCenter(bool)));

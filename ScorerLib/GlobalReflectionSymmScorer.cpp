@@ -8,7 +8,7 @@ void GlobalReflectionSymmScorer::init()
 		Structure::Node * n = graph_->nodes[i];
 
 		std::vector<Eigen::Vector3d> nodeCptsV;
-		extractCpts( n, nodeCptsV, pointsLevel_);
+		extractCpts( n, nodeCptsV, pointLevel_);
 
 		Eigen::MatrixXd nodeCptsM;
 		vectorPts2MatrixPts(nodeCptsV, nodeCptsM);

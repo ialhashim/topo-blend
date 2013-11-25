@@ -1,4 +1,76 @@
 #include "RelationDetector.h"
+#include <algorithm>
+#include <numeric>
+
+
+bool isTaged(const PairRelation &pr)
+{
+	return pr.tag;
+}
+bool isTagedGr(const GroupRelation &gr)
+{
+	return gr.tag;
+}
+
+void saveToFile(QString filename, QVector<PairRelation>& prs)
+{
+	QFile file(filename);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+		
+	QTextStream out(&file);
+	int i(0);
+	out << "pair relations number: " << prs.size() << "\n";
+	out << "    TRANS: " << countByType(prs,TRANS) << "\n";
+	out << "    REF: " << countByType(prs,REF) << "\n";
+	out << "    PARALLEL: " << countByType(prs,PARALLEL) << "\n";
+	out << "    ORTHOGONAL: " << countByType(prs,ORTHOGONAL) << "\n";
+	out << "    COPLANAR: " << countByType(prs,COPLANAR) << "\n\n";
+
+	foreach(PairRelation pr, prs)
+	{
+		out << i << " " << pr.type << ": " << pr.n1->id << ", " << pr.n2->id << ", ";
+		if ( pr.type == TRANS)
+			out << "Trans: ["<<pr.trans_vec[0]<<", "<<pr.trans_vec[1]<<", "<<pr.trans_vec[2]<< "]\n";
+		else if ( pr.type == COPLANAR)
+			out << "Plane: [" << pr.point.x()<<", "<<pr.point.y()<<", " <<pr.point.z()<<", "
+							<< pr.normal.x()<<", "<<pr.normal.y()<<", " <<pr.normal.z()<<"]\n";
+		else if ( pr.type == PARALLEL || pr.type == ORTHOGONAL)
+		{
+			out << "deviation: "<<  pr.deviation << "\n";
+		}
+		else
+			out << "\n";
+		out << ", diameter: " << pr.diameter << "\n\n";
+		++i;
+	}
+	file.close();
+}
+void saveToFile(QString filename, QVector<GroupRelation>& grs)
+{
+	QFile file(filename);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+		
+	QTextStream out(&file);
+	// output groups info
+	int i(0);
+	foreach(GroupRelation gr, grs){
+		out << i << " <group-" << gr.type << ">: ";
+		if ( gr.type == COPLANAR)
+			out << gr.point.x() << "," << gr.point.y() << "," << gr.point.z() << ","
+			    << gr.normal.x() << "," << gr.normal.y() << "," << gr.normal.z() << "\n";
+		else
+			out << "\n";
+
+		foreach(QString id, gr.ids){
+			out << id << ", ";
+		}
+		out << "</group>\n";
+		out << "diameter: " << gr.diameter << "\n";
+		out << "deviation: " << gr.deviation << "\n\n";
+		++i;
+	}
+	file.close();
+}
 
 QTextStream& operator << (QTextStream& os, const PairRelation& pr)
 {    
@@ -6,12 +78,86 @@ QTextStream& operator << (QTextStream& os, const PairRelation& pr)
 		"> deviation: " << pr.deviation << "\n";
     return os;
 }
+QTextStream& operator << (QTextStream& os, const GroupRelation& gr)
+{    
+    os << "Group <";
+	for (int i = 0; i < gr.ids.size(); ++i)
+	{
+		os << gr.ids[i] << ", ";
+	}
+	os << gr.type << ">\n";
+	os << "Center: " << gr.center.x() << ", " << gr.center.y() << ", " << gr.center.z() << "\n";
+	os << "Direction: " << gr.direction.x() << ", " << gr.direction.y() << ", " << gr.direction.z() << "\n";
+	
+	os << "normal of ref plane: " << gr.refPlane.a() << ", " << gr.refPlane.b() << ", " << gr.refPlane.c() << ", " << gr.refPlane.d() << "\n";
+
+	Vector3 normal = gr.normal;
+	Vector3 point = gr.point;
+	os << "normal of plane: " << normal.x() << ", " << normal.y() << ", " << normal.z() << "\n";
+	os << "point of plane: " << point.x() << ", " << point.y() << ", " << point.z() << "\n";
+
+	os << "Diameter: " << gr.diameter << "\n";
+	os << "Deviation: " << gr.deviation << "\n\n";
+    return os;
+}
+bool GroupRelation::equal(GroupRelation& gr)
+{
+    if (type.compare(gr.type))
+        return false;
+
+    if (ids.size() != gr.ids.size())
+        return false;
+
+    QVector<QString>::iterator it2 = gr.ids.begin();
+    for ( QVector<QString>::iterator it1=ids.begin(); it1 != ids.end(); ++it1, ++it2)
+    {
+        if ( *it1 != *it2)
+            return false;
+    }
+    return true;
+}
+
+RelationDetector::RelationDetector(Structure::Graph* g, const QString& logprefix, int ith, int pointLevel, int logLevel):graph_(g),logLevel_(logLevel),pointLevel_(pointLevel)
+{
+	thRadiusRadio_ = 1.2;
+
+    thTransRadio_ = 0.03; //1.3
+    thRefRadio_ = 0.03;
+    thAxisDeviationRadio_ = 0.9;
+    thCopla_ = 0.002;//0.1
+    thParal_ = 0.001;
+    thOthog_ = 0.001;//0.1
+
+    thAxisGroup_ = 0.01;
+    thRefGroup_ = 0.01;
+    thCoplaGroup_ = 0.003;
+
+
+	if ( logLevel_ > 0)
+	{			
+		logFile_.setFileName(logprefix + QString::number(ith) + ".log");
+		if (!logFile_.open(QIODevice::WriteOnly | QIODevice::Text)) return;		
+		logStream_.setDevice(&logFile_);
+	}
+}
+
 double RelationDetector::computePairDiameter(PairRelation& pr)
 {
 	Eigen::AlignedBox3d bbox1 = pr.n1->bbox();
 	Eigen::AlignedBox3d bbox2 = pr.n2->bbox();
 	Eigen::AlignedBox3d bbox = bbox2.merged(bbox1);
 	return bbox.diagonal().norm();
+}
+double RelationDetector::computeGroupDiameter(GroupRelation& gr)
+{
+    Eigen::AlignedBox3d bbox;
+    for ( QVector<QString>::iterator it = gr.ids.begin(); it!=gr.ids.end(); ++it)
+    {
+        Eigen::AlignedBox3d bbox1 = graph_->getNode(*it)->bbox();
+        bbox = bbox.merged(bbox1);
+    }
+    //return bbox.volume();
+    return bbox.diagonal().norm();
 }
 double RelationDetector::fixDeviationByPartName(QString& s1, QString& s2, double deviation)
 {
@@ -305,4 +451,153 @@ void RelationDetector::createPlane(Structure::Node *n1,Structure::Node *n2, Eige
         normal[0] = v2.x(); normal[1] = v2.y(); normal[2] = v2.z();
     }
     normal.normalize();
+}
+
+double RelationDetector::computeRefSymmetryGroupDeviation(GroupRelation& gr, int pointLevel)
+{
+    std::vector<Structure::Node*> nodes;
+    for ( int i = 0; i < (int) gr.ids.size(); ++i)
+    {
+        nodes.push_back( graph_->getNode(gr.ids[i]) );
+    }
+
+    double minErr = std::numeric_limits<double>::max();
+    std::pair<int, int> minNodes;
+    Eigen::Vector3d center, normal;
+    double err;
+    for ( int i = 0; i < (int) gr.ids.size(); ++i)
+    {
+        for ( int j = i+1; j < (int) gr.ids.size(); ++j)
+        {
+            findRefPlane(nodes[i], nodes[j], center,normal);
+			err = errorOfRefSymmGroup(nodes, center, normal, pointLevel);
+
+            if ( err < minErr)
+            {
+                minErr = err;
+                minNodes = std::make_pair(i,j);
+            }
+        }
+    }
+
+    findRefPlane(nodes[minNodes.first], nodes[minNodes.second], center,normal);
+    gr.refPlane = Plane_3(Point_3(gr.center.x(), gr.center.y(), gr.center.z()), Vector_3(normal.x(), normal.y(), normal.z()) );
+    return minErr/gr.ids.size()*2;
+}
+
+double RelationDetector::computeAxisSymmetryGroupDeviation(GroupRelation& gr, int pointLevel)
+{
+    double result(0.0);
+    int n = gr.ids.size();
+    double angle = 2*3.1415926/n;
+
+    QVector<QString> ids;
+    ids.push_back(gr.ids.last());
+    gr.ids.pop_back();
+
+	double min_dist, mean_dist, max_dist;
+    while(gr.ids.size())
+    {
+        Structure::Node* n1 = graph_->getNode(ids.last());
+		Eigen::MatrixXd verts1 = node2matrix(n1, pointLevel);
+
+        double err(std::numeric_limits<double>::max());
+        int k(0);
+        for ( int i = 0; i < (int) gr.ids.size(); ++i)
+        {
+            Structure::Node* n2 = graph_->getNode(gr.ids[i]);
+			Eigen::MatrixXd verts2 = node2matrix(n2, pointLevel);
+			Eigen::MatrixXd newverts2;            
+			rotate_points3d(verts2, gr.center, gr.direction, angle, newverts2);
+			distanceBetween(verts1, newverts2, min_dist, mean_dist, max_dist);
+            if ( mean_dist < err)
+			{
+                err = mean_dist;
+                k = i;
+            }
+        }
+        result += err;
+        ids.push_back(gr.ids[k]);
+        gr.ids.remove(k);
+    }
+    for ( QVector<QString>::iterator it = ids.begin(); it != ids.end(); ++it)
+        gr.ids.push_back(*it);
+
+    return result/(ids.size()-1);
+}
+
+void RelationDetector::findRefPlane(Structure::Node* n1, Structure::Node* n2, Eigen::Vector3d& center,Eigen::Vector3d& normal)
+{
+    Eigen::Vector3d c1 = computeCptsCenter(n1);
+    Eigen::Vector3d c2 = computeCptsCenter(n2);
+    normal = c1 - c2;
+    normal.normalize();
+    center = (c1+c2)*0.5;
+}
+Eigen::Vector3d RelationDetector::computeCptsCenter(Structure::Node* nn)
+{
+    Eigen::MatrixXd verts;
+    vectorPts2MatrixPts(nn->controlPoints(), verts);
+    Eigen::Vector3d center( verts.col(0).mean(), verts.col(1).mean(),verts.col(2).mean() );
+    return center;
+}
+double RelationDetector::errorOfRefSymmGroup(std::vector<Structure::Node*> &nodes, Eigen::Vector3d& center, Eigen::Vector3d& normal, int pointLevel)
+{
+    std::vector<double> error;
+    std::vector<bool> bDone(nodes.size(),false);
+	double min_dist, mean_dist, max_dist;
+
+    for ( int i = 0; i < (int) nodes.size(); ++i)
+    {
+        if ( bDone[i] ) continue;
+
+		Eigen::MatrixXd newverts1;
+        reflect_points3d(node2matrix(nodes[i], pointLevel), center, normal, newverts1);
+        double err = std::numeric_limits<double>::max();
+        int minIdx(0);
+
+        for ( int j = i; j < (int) nodes.size(); ++j)
+        {				
+            distanceBetween( node2matrix(nodes[j], pointLevel), newverts1, min_dist, mean_dist, max_dist);
+            if ( mean_dist < err)
+            {
+                err = mean_dist;
+                minIdx = j;
+            }
+        }
+        error.push_back(err);
+        bDone[i] = true; bDone[minIdx] = true;
+    }
+    return std::accumulate( error.begin(), error.end(), 0.0);
+}
+
+void RelationDetector::computeTransGroupInfo(GroupRelation &gr, QSet<QString>& ids)
+{
+    QSet<QString>::iterator it = ids.begin();
+    Structure::Node* n = graph_->getNode(*it);
+    Vector3 center = computeCptsCenter(n);
+    Vector_3 direction(0,0,0);
+    node2direction(n, direction);
+    gr.ids.push_back(*it);
+    ++it;
+    Vector_3 dc;
+    int k(1);
+    for (; it!=ids.end(); ++it,++k )
+    {
+        Structure::Node* nn = graph_->getNode(*it);
+        center += computeCptsCenter(nn);
+
+        node2direction(nn, dc);
+        if ( dot(direction, dc) > 0)
+            direction = direction + dc;
+        else
+            direction = direction - dc;
+
+        direction = direction/sqrt(direction.squaredNorm());
+        gr.ids.push_back(*it);
+    }
+    center /= k;
+    gr.center = Point_3(center.x(), center.y(), center.z());
+    gr.direction = direction;
+    gr.diameter = computeGroupDiameter(gr);
 }
