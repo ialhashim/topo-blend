@@ -42,6 +42,10 @@ public slots:
 	void evaluateTopology();
 	QVector<double> evaluateTopology( QVector<Structure::Graph*> const &graphs );
 	void evaluateTopologyAuto();
+
+	void evaluatePairs();
+	QVector<double> evaluatePairs( QVector<Structure::Graph*> const &graphs );
+	void evaluatePairsAuto();
 	
 
     void parseGlobalReflectionSymm();

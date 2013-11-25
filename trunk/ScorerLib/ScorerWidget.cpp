@@ -21,6 +21,9 @@ ScorerWidget::ScorerWidget(QWidget *parent)
 	s_manager->connect(ui->evaluateTopology, SIGNAL(clicked()), SLOT(evaluateTopology()));
 	s_manager->connect(ui->evaluateTopologyAuto, SIGNAL(clicked()), SLOT(evaluateTopologyAuto()));	
 
+	s_manager->connect(ui->evaluatePairs, SIGNAL(clicked()), SLOT(evaluatePairs()));
+	s_manager->connect(ui->evaluatePairsAuto, SIGNAL(clicked()), SLOT(evaluatePairsAuto()));	
+
 	// Options
     s_manager->connect(ui->bUseSourceCenter, SIGNAL(clicked(bool)), SLOT(setIsUseSourceCenter(bool)));
 }

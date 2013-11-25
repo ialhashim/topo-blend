@@ -58,16 +58,23 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="traceConstraints">
+       <widget class="QPushButton" name="evaluateTopology">
         <property name="text">
-         <string>functions kept</string>
+         <string>Connectivity</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="evaluateTopology">
+       <widget class="QPushButton" name="evaluatePairs">
         <property name="text">
-         <string>Connectivity</string>
+         <string>Pairs</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="evaluateGroups">
+        <property name="text">
+         <string>Groups</string>
         </property>
        </widget>
       </item>
@@ -88,6 +95,20 @@
           <widget class="QPushButton" name="evaluateTopologyAuto">
            <property name="text">
             <string>Connectivity</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="evaluatePairsAuto">
+           <property name="text">
+            <string>Pairs</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="evaluateGroupsAuto">
+           <property name="text">
+            <string>Groups</string>
            </property>
           </widget>
          </item>

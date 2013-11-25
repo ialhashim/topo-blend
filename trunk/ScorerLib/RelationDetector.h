@@ -4,10 +4,22 @@
 #include "StructureGraph.h"
 #include "GraphCorresponder.h"
 
+static QString TRANS = "TRANS";
+static QString PARALLEL = "PARALLEL";
+static QString REF = "REF";
+static QString ORTHOGONAL = "ORTHOGONAL";
+static QString COPLANAR = "COPLANAR";
+static QString CONNECTED = "CONNECTED"; // for all connected pairs
+static QString NONE = "NONE";
+
+static QString TRANS_SYMMETRY = "TRANS_SYMMETRY"; // build from Trans pair, except AXIS_SYMMETRY
+static QString AXIS_SYMMETRY = "AXIS_SYMMETRY";
+static QString REF_SYMMETRY = "REF_SYMMETRY";
+
 class PairRelation
 {
 public:
-	PairRelation():n1(0),n2(0),tag(false){}
+	PairRelation():n1(0),n2(0),tag(false),type(NONE){}
 	PairRelation(Structure::Node* node1, Structure::Node* node2):n1(node1),n2(node2){}
 	bool isDegenerated()
 	{
@@ -40,7 +52,7 @@ public:
 		thRadiusRadio_ = 1.2;
 
         thTransRadio_ = 0.03; //1.3
-        thRefRadio_ = 0.06;
+        thRefRadio_ = 0.03;
         thAxisDeviationRadio_ = 0.9;
         thCopla_ = 0.002;//0.1
         thParal_ = 0.001;
@@ -67,7 +79,7 @@ public:
 	// find nodes in the source or target shape
 	// bSource == true means that the id is from target shape, & we want to find its corresponded node in source shape, then graph should be source
 	std::vector<Structure::Node*> findNodesInST(QString id, Structure::Graph *graph, QVector<PART_LANDMARK> &corres, bool bSource);
-	// find nodes in a blended shape
+	// find nodes in a blended shape, all returned nodes are not degenerated.
 	// bSource == true means that the id is from source shape
 	std::vector<Structure::Node*> findNodesInB(QString id, Structure::Graph *graph, QVector<PART_LANDMARK> &corres, bool bSource);
 
@@ -95,6 +107,7 @@ public:
     void createPlane(Structure::Node *n1,Structure::Node *n2, Eigen::Vector3d& point, Eigen::Vector3d& normal);
 	//////////////////////////////////////////////////
 	double computePairDiameter(PairRelation& pr);
+	double fixDeviationByPartName(QString& s1, QString& s2, double deviation);
 public:
 	double thRadiusRadio_;
     double thTransRadio_;

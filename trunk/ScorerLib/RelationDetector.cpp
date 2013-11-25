@@ -3,7 +3,7 @@
 QTextStream& operator << (QTextStream& os, const PairRelation& pr)
 {    
 	os << pr.type << " Pair <" << pr.n1->id << ", " << pr.n2->id << "> size <" << pr.n1->bbox().diagonal().norm() << ", " << pr.n2->bbox().diagonal().norm() << 
-		"> Skeleton distance: " << pr.deviation << "\n";
+		"> deviation: " << pr.deviation << "\n";
     return os;
 }
 double RelationDetector::computePairDiameter(PairRelation& pr)
@@ -12,6 +12,17 @@ double RelationDetector::computePairDiameter(PairRelation& pr)
 	Eigen::AlignedBox3d bbox2 = pr.n2->bbox();
 	Eigen::AlignedBox3d bbox = bbox2.merged(bbox1);
 	return bbox.diagonal().norm();
+}
+double RelationDetector::fixDeviationByPartName(QString& s1, QString& s2, double deviation)
+{
+	double ndeviation = deviation;
+    int idx = s1.indexOf(QRegExp("\\d"), 0);
+    QString str1 = s1.left(idx);
+    QString str2 = s2.left(idx);
+    if ( str1 == str2)
+        ndeviation *= 0.5;
+
+	return ndeviation;
 }
 Eigen::MatrixXd RelationDetector::node2matrix(Structure::Node* node, int pointLevel)
 {

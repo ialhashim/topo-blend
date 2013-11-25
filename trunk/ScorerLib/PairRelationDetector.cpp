@@ -1,17 +1,5 @@
 #include "PairRelationDetector.h"
 #pragma warning(disable:4100 4101)
-	
-double fixDeviationByPartName(QString& s1, QString& s2, double deviation)
-{
-	double ndeviation = deviation;
-    int idx = s1.indexOf(QRegExp("\\d"), 0);
-    QString str1 = s1.left(idx);
-    QString str2 = s2.left(idx);
-    if ( str1 == str2)
-        ndeviation *= 0.5;
-
-	return ndeviation;
-}
 
 void PairRelationDetector::pushToOtherPairs(QVector<PairRelation>& prs, QString type)
 {
@@ -238,10 +226,9 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 	double dist1 = g->bbox().diagonal().norm();
 	modifyPairsDegree(connectedPairs_, ConnectedPairModifier(dist1, pointsLevel_), g, corres, "Connected pairs");
 
-	QString type("connected");
 	for (QVector<PairRelation>::iterator it = connectedPairs_.begin(); it != connectedPairs_.end(); ++it)
 	{
-		it->type = type;
+		it->type = CONNECTED;
 	}
 }
 void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
@@ -286,11 +273,11 @@ void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LA
 	modifyPairsDegree(coplanarPairs_, CoplanarPairModifier(pointsLevel_), g, corres, "Coplanar pairs");
 
 	
-	pushToOtherPairs(transPairs_, "trans");
-	pushToOtherPairs(refPairs_, "ref");
-	pushToOtherPairs(parallelPairs_, "parallel");
-	pushToOtherPairs(orthogonalPairs_, "orthogonal");
-	pushToOtherPairs(coplanarPairs_, "coplanar");
+	pushToOtherPairs(transPairs_, TRANS);
+	pushToOtherPairs(refPairs_, REF);
+	pushToOtherPairs(parallelPairs_, PARALLEL);
+	pushToOtherPairs(orthogonalPairs_, ORTHOGONAL);
+	pushToOtherPairs(coplanarPairs_, COPLANAR);
 }
 
 void PairRelationDetector::detect(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
