@@ -49,22 +49,6 @@ QString GraphCorresponder::tgName()
 
 // Matrix operations
 template <class Type>
-std::vector<std::vector<Type> > GraphCorresponder::transpose(const std::vector<std::vector<Type> > data)
-{
-	// this assumes that all inner vectors have the same size and
-	// allocates space for the complete result in advance
-	std::vector<std::vector<Type> > result(data[0].size(), std::vector<Type>(data.size()));
-	for (int i = 0; i < (int)data[0].size(); i++){
-		for (int j = 0; j < (int)data.size(); j++) 
-		{
-			result[i][j] = data[j][i];
-		}
-	}
-
-	return result;
-}
-
-template <class Type>
 void GraphCorresponder::initializeMatrix(std::vector< std::vector<Type> > & M, Type value)
 {
 	int sN = sg->nodes.size();

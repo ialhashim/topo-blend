@@ -78,7 +78,6 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
     gd.computeDistances( pointA, DIST_RESOLUTION );
     QVector< GraphDistance::PathPointPair > path;
     gd.smoothPathCoordTo(pointB, path);
-    path = weldPath( path );
 
     // Otherwise, self expand / contract
     if(path.size() < 1)

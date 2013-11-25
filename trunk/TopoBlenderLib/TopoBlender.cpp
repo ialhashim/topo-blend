@@ -62,41 +62,9 @@ void TopoBlender::setupUI()
 	scheduler->isApplyChangesUI = true;
 }
 
-void TopoBlender::drawDebug()
-{
-
-}
-
-// Super graphs
 bool TopoBlender::isExtraNode( Structure::Node *node )
 {
 	return node->property["correspond"].toString().contains("_null");
-}
-
-void TopoBlender::tagEdge( Structure::Link *link, QString tag )
-{
-	link->property[tag] = false;
-}
-
-bool TopoBlender::taggedEdge( Structure::Link *link, QString tag )
-{
-	return link->property.contains(tag);
-}
-
-bool TopoBlender::isCorrespondedEdge( Structure::Link *link )
-{
-	return link->property.contains("corresponded") && link->property["corresponded"].toBool();
-}
-
-bool TopoBlender::isShareCorrespondedNode( Structure::Link * slink, Structure::Link * tlink )
-{
-	QString tn1 = slink->n1->property["correspond"].toString();
-	QString tn2 = slink->n2->property["correspond"].toString();
-
-	bool has_n1 = tlink->hasNode( tn1 );
-	bool has_n2 = tlink->hasNode( tn2 );
-
-	return has_n1 || has_n2;
 }
 
 QVector<QString> TopoBlender::cloneGraphNode( Structure::Graph *g, QString nodeID, int N )
@@ -586,150 +554,6 @@ void TopoBlender::removeRedundantEdges( Structure::Graph * source )
 	}
 }
 
-void TopoBlender::removeUncorrespondedEdges( Structure::Graph * graph )
-{
-	QVector<Link*> linksToRemove;
-
-	foreach(Link * link, graph->edges) 
-		if( !link->property.contains("correspond") ) linksToRemove << link;
-
-	foreach(Link* link, linksToRemove) 
-		graph->removeEdge(link->n1, link->n2);
-}
-
-void TopoBlender::checkIntermediateCuts(Structure::Graph * original, Structure::Graph * super_s, Structure::Graph * super_t)
-{
-	foreach(Node * n, original->nodes)
-	{
-		Node * tnode = super_t->getNode( n->id );
-		if(!tnode) continue;
-
-		QString snodeID = tnode->property["correspond"].toString();
-		Node * snode = super_s->getNode( snodeID );
-		if(!snode->property.contains("isPossibleCut")) continue;
-
-		// Split original target graph and find if node [n] is part of branch
-		QVector< QVector<Node*> > parts = original->split( tnode->id );
-		foreach(QVector<Node*> part, parts){
-			int null_count = 0;
-			foreach(Node * p, part){
-				Node * tn = super_t->getNode(p->id);
-				if(!tn) continue;
-				QString sid = tn->property["correspond"].toString();
-				if(sid.contains("_null")) null_count++;
-			}
-			if(null_count == part.size()){
-				snode->property.remove("isPossibleCut");
-				foreach(Node * p, part) p->property.remove("isPossibleCut");
-				break;
-			}
-		}
-
-		// Its an actual cut
-		if(snode->property.contains("isPossibleCut"))
-		{
-			snode->property["isCutGroup"] = true;
-			tnode->property["isCutGroup"] = true;
-		}
-	}
-}
-
-void TopoBlender::removeMissingEdges( Structure::Graph * sgraph )
-{
-	foreach(Structure::Node * snode, sgraph->nodes){
-		QVector<Structure::Link*> sedges = edgesNotContain( sgraph->getEdges(snode->id), "correspond" );
-		if(!sedges.size()) continue;
-
-		foreach(Structure::Link * slink, sedges)
-			sgraph->removeEdge(slink->n1,slink->n2);
-	}
-}
-
-QVector< SetNodes > TopoBlender::nullNodeSets( Structure::Graph * sgraph, Structure::Graph * tgraph )
-{
-	QVector< SetNodes > result;
-
-	QSet<Structure::Node*> visited;
-
-	while( visited.size() < sgraph->nodes.size() )
-	{
-		QStack<Structure::Node*> nodesToVisit;
-		SetNodes curSet;
-
-		// Find a null node to start from
-		foreach(Structure::Node * node, sgraph->nodes)
-		{
-			if(visited.contains(node)) continue;
-
-			visited.insert( node );
-
-			if( node->id.contains("_null") )
-			{
-				nodesToVisit.push( node );
-				curSet.set.insert( node );
-				break;
-			}
-		}
-
-		while( !nodesToVisit.empty() )
-		{
-			Structure::Node * cur = nodesToVisit.pop();
-			visited.insert(cur);
-			curSet.set.insert(cur);
-
-			foreach( Structure::Node * adj, sgraph->adjNodes(cur) ){
-				if( !visited.contains(adj) && !curSet.set.contains(adj) ){
-					if(adj->id.contains("_null"))
-						nodesToVisit.push( adj );
-				}
-			}
-		}
-
-		// Find outer nodes
-		QSet<Structure::Node*> outerNodes;
-		foreach(Node * sn, curSet.set){
-			Node * tn = tgraph->getNode( sn->property["correspond"].toString() );
-			foreach( Structure::Link * tlink, tgraph->getEdges(tn->id) ){
-				Node * other = tlink->otherNode(tn->id);
-				if( !curSet.set.contains(other) )
-					outerNodes.insert( sgraph->getNode( other->property["correspond"].toString() ) );
-			}
-		}
-
-		// Check if current set share exactly outer nodes with previous sets
-		// If so, add current set to previous set
-		for(int i = 0; i < (int)result.size(); i++){
-			QSet<Structure::Node*> curOuter = result[i].property["outerNodes"].value< QSet<Structure::Node*> >();
-			if(curOuter != outerNodes) continue;
-
-			// Add nodes to previous set
-			result[i].set += curSet.set;
-			curSet.set.clear();
-			break;
-		}
-
-		if( curSet.set.size() ) 
-		{
-			curSet.property["outerNodes"].setValue( outerNodes );
-			result.push_back( curSet );
-		}
-	}
-
-	// Mark set elements
-	for(int i = 0; i < (int)result.size(); i++){
-		foreach(Structure::Node * n, result[i].set){
-			n->property["nullSet"] = i;
-		}
-	}
-
-	return result;
-}
-
-QVector<Structure::Link*> TopoBlender::nonCorrespondEdges( Structure::Node * node, Structure::Graph * graph )
-{
-	return edgesNotContain(graph->getEdges( node->id ), "correspond");
-}
-
 void TopoBlender::generateSuperGraphs()
 {
 	// Two super graphs have one-to-one correspondence between nodes and edges
@@ -765,6 +589,7 @@ void TopoBlender::generateSuperGraphs()
 	// Correspond edges in super graphs
 	correspondSuperEdges();
 
+	// Assign edge attributes
 	postprocessSuperEdges();
 
 	active = super_sg;
@@ -1010,19 +835,6 @@ bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structu
 	return converted;
 }
 
-
-Structure::Node * TopoBlender::addMissingNode( Structure::Graph *toGraph, Structure::Graph * fromGraph, Structure::Node * fromNode )
-{
-	Q_UNUSED(fromGraph);
-
-	Structure::Node * newNode = fromNode->clone();
-
-	newNode->id = fromNode->id + "_null";
-	newNode->property["correspond"] = fromNode->id;
-
-	return toGraph->addNode( newNode );
-}
-
 Structure::Link * TopoBlender::addMissingLink( Structure::Graph *g, Structure::Link * link )
 {
 	Structure::Node * bn1 = link->n1;
@@ -1058,12 +870,6 @@ QVector<Structure::Link*> TopoBlender::edgesNotContain( QVector<Structure::Link*
 	return result;
 }
 
-QString TopoBlender::correspondingNode( Structure::Link *link, int i )
-{
-	if(i == 0)	return link->n1->property["correspond"].toString();
-	else		return link->n2->property["correspond"].toString();
-}
-
 void TopoBlender::debugSuperGraphs( QString info )
 {
 	// Visualization: assign global unique ids
@@ -1077,4 +883,9 @@ void TopoBlender::debugSuperGraphs( QString info )
 
 	toGraphviz(super_sg, info + "_SourceSuper", true, "Super Source");
 	toGraphviz(super_tg, info + "_TargetSuper", true, "Super Target");
+}
+
+void TopoBlender::drawDebug()
+{
+
 }

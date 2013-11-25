@@ -44,11 +44,6 @@ public:
 
 	bool ungrownNode(QString nid);
 
-	QVector< GraphDistance::PathPointPair > weldPath( QVector< GraphDistance::PathPointPair > oldPath );
-	QVector< GraphDistance::PathPointPair > smoothStart( Structure::Node * n, Vector4d& startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
-	QVector< GraphDistance::PathPointPair > smoothEnd( Structure::Node * n, Vector4d& startOnNode, QVector< GraphDistance::PathPointPair > oldPath );
-	bool isPathOnSingleNode( QVector< GraphDistance::PathPointPair > path );
-
 	RMF::Frame curveFrame( Structure::Curve * curve, bool isFlip = false );
 	RMF::Frame sheetFrame( Structure::Sheet * sheet );
 	Array1D_Vector3 sheetDeltas(Structure::Sheet * sheet);
@@ -117,15 +112,12 @@ protected:
 
 };
 
-// Useful global definitions
-typedef std::vector< std::pair<double,double> > VectorPairDouble;
+static QString TaskNames[] = { "SHRINK", "MERGE", "MORPH", "SPLIT", "GROW" };
 
 // Global meta types
 Q_DECLARE_METATYPE( Task* )
 Q_DECLARE_METATYPE( Vector3 )
 Q_DECLARE_METATYPE( Vector4d )
-Q_DECLARE_METATYPE( VectorPairDouble )
-Q_DECLARE_METATYPE( GraphDistance::PathPointPair )
 Q_DECLARE_METATYPE( RMF )
 Q_DECLARE_METATYPE( RMF::Frame )
 Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
@@ -134,6 +126,10 @@ Q_DECLARE_METATYPE( QVector<QString> )
 Q_DECLARE_METATYPE( QVector<Structure::Link*> )
 Q_DECLARE_METATYPE( QVector<double> )
 
+#include "GraphDistance.h"
+Q_DECLARE_METATYPE( GraphDistance::PathPointPair )
+
+// Utility
 static inline double rad_to_deg(const double& _angle){ return 180.0*(_angle/M_PI); }
 
 // red, orange, yellow, green, blue
@@ -141,5 +137,3 @@ static inline double rad_to_deg(const double& _angle){ return 180.0*(_angle/M_PI
 static QColor TaskColors[] = { 
 	QColor(255,97,121),  QColor(255,219,88), QColor(107,255,135), QColor(255,165,107), QColor(104,126,255),
     QColor(242,5,135), QColor(113,53,242), QColor(138,109,242), QColor(3,166,60), QColor(242,203,5)};
-
-static QString TaskNames[] = { "SHRINK", "MERGE", "MORPH", "SPLIT", "GROW" };

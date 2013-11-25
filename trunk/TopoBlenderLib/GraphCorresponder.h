@@ -22,8 +22,6 @@ public:
 	QString tgName();
 
 	// Matrix operations
-	template <class Type> 
-	static std::vector<std::vector<Type> > transpose(const std::vector<std::vector<Type> > data);
 	template <class Type>
 	void initializeMatrix(std::vector< std::vector<Type> > & M, Type value);
 	void normalizeMatrix(MATRIX & M);

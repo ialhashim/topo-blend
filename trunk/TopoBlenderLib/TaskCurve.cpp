@@ -349,9 +349,9 @@ void TaskCurve::prepareCrossingMorphCurve()
 
 	if (edges.size() == 1)
 	{
-		// Start and end for both links
+		// Start and end
 		Link * link = edges.front();
-		Vector3d start = link->position(n->id);
+		Vector3d start = link->positionOther(n->id);
 		NodeCoord futureNodeCord = futureLinkCoord(link);
 		Vector3d end = active->position(futureNodeCord.first,futureNodeCord.second);
 
@@ -376,12 +376,12 @@ void TaskCurve::prepareCrossingMorphCurve()
 	{
 		// Start and end for both links
 		Link * linkA = edges.front();
-		Vector3d startA = linkA->position(n->id);
+		Vector3d startA = linkA->positionOther(n->id);
 		NodeCoord futureNodeCordA = futureLinkCoord(linkA);
 		Vector3d endA = active->position(futureNodeCordA.first,futureNodeCordA.second);
 
 		Link * linkB = edges.back();
-		Vector3d startB = linkB->position(n->id);
+		Vector3d startB = linkB->positionOther(n->id);
 		NodeCoord futureNodeCordB = futureLinkCoord(linkB);
 		Vector3d endB = active->position(futureNodeCordB.first,futureNodeCordB.second);
 
@@ -390,8 +390,11 @@ void TaskCurve::prepareCrossingMorphCurve()
 		QVector<QString> exclude = active->property["activeTasks"].value< QVector<QString> >();
 		GraphDistance gdA( active, exclude ), gdB( active, exclude );
 
-		gdA.computeDistances( endA, DIST_RESOLUTION );  gdA.smoothPathCoordTo( startA, pathA );
-		gdB.computeDistances( endB, DIST_RESOLUTION );  gdB.smoothPathCoordTo( startB, pathB );
+		gdA.computeDistances( endA, DIST_RESOLUTION );  
+		gdA.smoothPathCoordTo( startA, pathA );
+
+		gdB.computeDistances( endB, DIST_RESOLUTION );  
+		gdB.smoothPathCoordTo( startB, pathB );
 
 		// Checks
 		if(pathA.isEmpty()) pathA.push_back(GraphDistance::PathPointPair( PathPoint(futureNodeCordA.first, futureNodeCordA.second)));
