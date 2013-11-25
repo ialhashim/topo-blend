@@ -3,16 +3,14 @@
 class GlobalReflectionSymmScorer :	public RelationDetector
 {
 public:
-    GlobalReflectionSymmScorer(Structure::Graph* g, int ith, int logLevel=0):RelationDetector(g, "GlobalReflectionSymmScorer-", ith, logLevel)
+    GlobalReflectionSymmScorer(Structure::Graph* g, int ith, int logLevel=0):RelationDetector(g, "GlobalReflectionSymmScorer-", ith, 1, logLevel)
     {
-		pointsLevel_= 1;
 		init();
     }
 
     double evaluate();
 	double evaluate(Eigen::Vector3d &center, Eigen::Vector3d &normal, double maxGlobalSymmScore=1.0);
     
-	int pointsLevel_; // 0 for main control points, 1 for all control points, 2 for all points.
 	Eigen::MatrixXd cpts_; // control point of the graph
     Eigen::Vector3d center_;// center of the graph by control points, i.e. of the reflection plane
 	Eigen::Vector3d normal_; // normal of the reflection plane

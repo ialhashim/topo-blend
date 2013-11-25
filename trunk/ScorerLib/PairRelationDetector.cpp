@@ -166,17 +166,16 @@ double PairRelationDetector::CoplanarPairModifier::operator() (Structure::Node *
 	return deviation;
 }
 //////////////////////////////////////////////////////
-PairRelationDetector::PairRelationDetector(Structure::Graph* g, int ith, int logLevel):RelationDetector(g, "PairRelationDetector-", ith, logLevel)
+PairRelationDetector::PairRelationDetector(Structure::Graph* g, int ith, int logLevel):RelationDetector(g, "PairRelationDetector-", ith, 1, logLevel)
 {
 	bSource_ = ith == 0;
-	pointsLevel_ = 1;
 
 	for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
 	{
 		Structure::Node * n = graph_->nodes[i];
 
 		std::vector<Eigen::Vector3d> nodeCptsV;
-		extractCpts( n, nodeCptsV, pointsLevel_);
+		extractCpts( n, nodeCptsV, pointLevel_);
 
 		Eigen::MatrixXd nodeCptsM;
 		vectorPts2MatrixPts(nodeCptsV, nodeCptsM);
@@ -224,7 +223,7 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 	//}
 
 	double dist1 = g->bbox().diagonal().norm();
-	modifyPairsDegree(connectedPairs_, ConnectedPairModifier(dist1, pointsLevel_), g, corres, "Connected pairs");
+	modifyPairsDegree(connectedPairs_, ConnectedPairModifier(dist1, pointLevel_), g, corres, "Connected pairs");
 
 	for (QVector<PairRelation>::iterator it = connectedPairs_.begin(); it != connectedPairs_.end(); ++it)
 	{
@@ -266,11 +265,11 @@ void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LA
     }
 
 	//
-	modifyPairsDegree(transPairs_, TransPairModifier(pointsLevel_), g, corres, "Trans pairs");
-	modifyPairsDegree(refPairs_, RefPairModifier(pointsLevel_), g, corres, "Reflection pairs");
-	modifyPairsDegree(parallelPairs_, ParallelPairModifier(pointsLevel_), g, corres,"Parallel pairs");
-	modifyPairsDegree(orthogonalPairs_, OrthogonalPairModifier(pointsLevel_), g, corres, "Orthogonal pairs");
-	modifyPairsDegree(coplanarPairs_, CoplanarPairModifier(pointsLevel_), g, corres, "Coplanar pairs");
+	modifyPairsDegree(transPairs_, TransPairModifier(pointLevel_), g, corres, "Trans pairs");
+	modifyPairsDegree(refPairs_, RefPairModifier(pointLevel_), g, corres, "Reflection pairs");
+	modifyPairsDegree(parallelPairs_, ParallelPairModifier(pointLevel_), g, corres,"Parallel pairs");
+	modifyPairsDegree(orthogonalPairs_, OrthogonalPairModifier(pointLevel_), g, corres, "Orthogonal pairs");
+	modifyPairsDegree(coplanarPairs_, CoplanarPairModifier(pointLevel_), g, corres, "Coplanar pairs");
 
 	
 	pushToOtherPairs(transPairs_, TRANS);

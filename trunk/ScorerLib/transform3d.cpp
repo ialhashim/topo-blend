@@ -69,7 +69,17 @@ void reflect_point3d(const Eigen::Vector3d& ptin, const Eigen::Vector3d& center,
     ptout = ptin + v * 2;
 }
 
-Eigen::MatrixXd transform_point3d(Eigen::MatrixXd& verts, Eigen::Matrix4d& trans)
+void rotate_points3d(const Eigen::MatrixXd& ptsin, const Point_3& center, const Vector_3& direction, double angle, Eigen::MatrixXd& ptsout)
+{
+	Eigen::Vector3d c(center.x(), center.y(), center.z());
+    Eigen::Vector3d dir(direction.x(), direction.y(), direction.z());
+    Eigen::Matrix4d rotMat = create_rotation3d_line_angle(center, direction, angle);
+
+	ptsout.resize(ptsin.rows(), ptsin.cols() );
+    ptsout = transform_point3d(ptsin, rotMat);
+}
+
+Eigen::MatrixXd transform_point3d(const Eigen::MatrixXd& verts, const Eigen::Matrix4d& trans)
 {
 	int NP  = verts.rows();
 	Eigen::MatrixXd res(NP,4);
@@ -86,7 +96,7 @@ Eigen::MatrixXd transform_point3d(Eigen::MatrixXd& verts, Eigen::Matrix4d& trans
 	 
 	return res;
 }
-Eigen::Matrix4d create_translation3d(Eigen::Vector3d center)
+Eigen::Matrix4d create_translation3d(const Eigen::Vector3d center)
 {
 	double dx(center.coeff(0)),dy(center.coeff(1)),dz(center.coeff(2));
 	Eigen::Matrix4d trans;
@@ -96,7 +106,7 @@ Eigen::Matrix4d create_translation3d(Eigen::Vector3d center)
 			0,0,0,1;
 	return trans;
 }
-Eigen::Matrix4d recenter_transform3d(Eigen::Matrix4d &transfo, Eigen::Vector3d& center)
+Eigen::Matrix4d recenter_transform3d(const Eigen::Matrix4d &transfo, const Eigen::Vector3d& center)
 {
 	//% remove former translation part
 	Eigen::Matrix4d res = Eigen::Matrix4d::Identity();
@@ -110,7 +120,7 @@ Eigen::Matrix4d recenter_transform3d(Eigen::Matrix4d &transfo, Eigen::Vector3d& 
 	res = t2*res*t1;
 	return res;
 }
-Eigen::Matrix4d create_rotation3d_line_angle(Eigen::Vector3d& center,Eigen::Vector3d& v, double theta)
+Eigen::Matrix4d create_rotation3d_line_angle(const Eigen::Vector3d& center, Eigen::Vector3d v, double theta)
 {
 	//% normalize vector
 	v.normalize();
