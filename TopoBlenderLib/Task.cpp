@@ -270,34 +270,6 @@ Structure::Node * Task::targetNode()
 	return target->getNode( node()->property["correspond"].toString() );
 }
 
-QVector< GraphDistance::PathPointPair > Task::weldPath( QVector< GraphDistance::PathPointPair > oldPath )
-{
-	QVector< GraphDistance::PathPointPair > cleanPath;
-
-	// Find spatial position
-	std::vector<Vector3d> spatialPath;
-	QSet<int> allPath;
-	foreach(GraphDistance::PathPointPair nc, oldPath) 
-	{
-		spatialPath.push_back( nc.position(active) );
-		allPath.insert( allPath.size() );
-	}
-
-	std::vector<size_t> xrefs;
-	weld(spatialPath, xrefs, std::hash_Vector3d(), std::equal_to<Vector3d>());
-
-	QSet<int> goodPath; 
-    for(int i = 0; i < (int)xrefs.size(); i++)
-	{
-		oldPath[ xrefs[i] ] = oldPath[i];
-		goodPath.insert( xrefs[i] );
-	}
-
-	foreach(int i, goodPath) cleanPath.push_back( oldPath[i] );
-	
-	return cleanPath;
-}
-
 bool Task::isActive( double t )
 {
 	return (t >= 0.0 && !isDone);
@@ -652,64 +624,6 @@ void Task::postDone()
 	// Clean up:
 	n->property.remove("path");
 	n->property.remove("path2");
-}
-
-QVector< GraphDistance::PathPointPair > Task::smoothStart( Structure::Node * n, Vector4d& startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
-{
-	if(!oldPath.size()) return oldPath;
-	QVector< GraphDistance::PathPointPair > prefix_path;
-	PathPoint a = PathPoint(n->id, startOnNode), b = oldPath.front().a;
-
-	prefix_path.push_back( GraphDistance::PathPointPair(a) );
-
-	Vector3 start = active->position(a.first, a.second);
-	Vector3 end = active->position(b.first, b.second);
-	double dist = (start - end).norm();
-
-	// Add virtual path points if needed
-	if(dist > DIST_RESOLUTION){
-		int steps = dist / DIST_RESOLUTION;
-		for(int i = 1; i < steps; i++){
-			double alpha = double(i) / steps;
-			prefix_path.push_back( GraphDistance::PathPointPair( a, b, alpha ) );
-		}
-	}
-
-	return prefix_path + oldPath;
-}
-
-QVector< GraphDistance::PathPointPair > Task::smoothEnd( Structure::Node * n, Vector4d& startOnNode, QVector< GraphDistance::PathPointPair > oldPath )
-{
-	if(!oldPath.size()) return oldPath;
-	QVector< GraphDistance::PathPointPair > postfix_path;
-	PathPoint a = oldPath.back().a, b = PathPoint(n->id, startOnNode);
-
-	Vector3 start = active->position(a.first, a.second);
-	Vector3 end = active->position(b.first, b.second);
-	double dist = (start - end).norm();
-
-	// Add virtual path points if needed
-	if(dist > DIST_RESOLUTION){
-		int steps = dist / DIST_RESOLUTION;
-		for(int i = 1; i < steps; i++){
-			double alpha = double(i) / steps;
-			postfix_path.push_back( GraphDistance::PathPointPair( a, b, alpha ) );
-		}
-	}
-
-	postfix_path.push_back( GraphDistance::PathPointPair( a, b, 1.0 ) );
-
-	return oldPath + postfix_path;
-}
-
-bool Task::isPathOnSingleNode( QVector< GraphDistance::PathPointPair > path )
-{
-	QSet<QString> nodeIDs;
-
-	foreach(GraphDistance::PathPointPair p, path)
-		nodeIDs.insert( p.a.first );
-
-	return nodeIDs.size() <= 1;
 }
 
 Structure::Link * Task::getCoorespondingEdge( Structure::Link * link, Structure::Graph * otherGraph )

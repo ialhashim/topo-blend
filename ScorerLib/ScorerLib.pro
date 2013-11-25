@@ -33,6 +33,7 @@ HEADERS += ./ConnectivityScorer.h \
     ./GlobalReflectionSymmScorer.h \
     ./PairRelationDetector.h \
     ./RelationDetector.h \
+	./PairRelationScorer.h \
     ./transform3d.h \
     ./ScorerManager.h \
     ./ScorerWidget.h
@@ -40,6 +41,7 @@ SOURCES += ./ConnectivityScorer.cpp \
     ./GlobalReflectionSymmScorer.cpp \
     ./PairRelationDetector.cpp \
     ./RelationDetector.cpp \
+	./PairRelationScorer.cpp \
     ./ScorerManager.cpp \
     ./ScorerWidget.cpp \
     ./transform3d.cpp

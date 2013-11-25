@@ -506,22 +506,47 @@ void topo_blend_widget::reverseCurve()
 	foreach(QListWidgetItem * item, ui->partsList->selectedItems())
 	{
 		Structure::Node * n = g->getNode(item->text());
-		if(n->type() != Structure::CURVE) continue;
-		Structure::Curve * curve = (Structure::Curve*) n;
-
-		// Flip the selected curve
-		std::vector<Vector3> ctrlPoint = curve->controlPoints();
-		std::vector<Scalar> ctrlWeight = curve->controlWeights();
-		std::reverse(ctrlPoint.begin(), ctrlPoint.end());
-		std::reverse(ctrlWeight.begin(), ctrlWeight.end());
-
-		NURBS::NURBSCurved newCurve(ctrlPoint, ctrlWeight);
-		curve->curve = newCurve;
-
-		// Update the coordinates of its links
-		foreach( Structure::Link * l, g->getEdges(curve->id) )
+		if(n->type() == Structure::CURVE)
 		{
-			l->setCoord(curve->id, inverseCoords( l->getCoord(curve->id) ));
+			Structure::Curve * curve = (Structure::Curve*) n;
+
+			// Flip the selected curve
+			Array1D_Vector3 ctrlPoint = curve->controlPoints();
+			Array1D_Real ctrlWeight = curve->controlWeights();
+			std::reverse(ctrlPoint.begin(), ctrlPoint.end());
+			std::reverse(ctrlWeight.begin(), ctrlWeight.end());
+
+			NURBS::NURBSCurved newCurve(ctrlPoint, ctrlWeight);
+			curve->curve = newCurve;
+
+			// Update the coordinates of its links
+			foreach( Structure::Link * l, g->getEdges(n->id) )
+			{
+				l->setCoord(n->id, inverseCoords( l->getCoord(n->id) ));
+			}
+		}
+
+		if(n->type() == Structure::SHEET)
+		{
+			Structure::Sheet * sheet = (Structure::Sheet*) n;
+
+			Array2D_Vector3 ctrlPoint = transpose<Vector3>(sheet->surface.mCtrlPoint);
+			Array2D_Real ctrlWeight = transpose<Scalar>(sheet->surface.mCtrlWeight);
+
+			std::reverse(ctrlPoint.begin(), ctrlPoint.end());
+			std::reverse(ctrlWeight.begin(), ctrlWeight.end());
+
+			int degree = 3;
+			NURBS::NURBSRectangled newSurface(ctrlPoint, ctrlWeight, degree, degree, false, false, true, true); 
+			sheet->surface = newSurface;
+
+			// Update the coordinates of its links
+			foreach( Structure::Link * l, g->getEdges(n->id) )
+			{
+				Array1D_Vector4d oldCoord = l->getCoord(n->id), newCoord;
+				foreach(Vector4d c, oldCoord) newCoord.push_back(Vector4d(1- c[1], c[0], c[2], c[3]));
+				l->setCoord(n->id, newCoord);
+			}
 		}
 	}
 
