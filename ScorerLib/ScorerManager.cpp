@@ -1,9 +1,13 @@
 #include "ScorerManager.h"
 #include "../topo-blend/topo-blend.h"
 #include "Scheduler.h"
+
 #include "GlobalReflectionSymmScorer.h"
-#include "ConnectivityScorer.h"
+
 #include "PairRelationDetector.h"
+#include "ConnectivityScorer.h"
+#include "PairRelationScorer.h"
+
 void saveScore(QString &filename, QVector<double> scores, QString& headline)
 {
 	QFile file(filename);
@@ -131,6 +135,56 @@ void ScorerManager::evaluateTopologyAuto()
 
 
     emit( message("Evaluate topology auto end. ") );
+}
+
+void ScorerManager::evaluatePairs()
+{
+	/////////////////
+    emit( message("Evaluate pairs starts: ") );
+
+	if ( connectPairs_.empty() )
+	{
+		emit( message("Parse constraint pair first! ") );
+		return;
+	}
+
+	int idx(0);
+	Structure::Graph* g = getCurrentGraph(idx);
+	PairRelationScorer prs(g, idx, logLevel_);
+	double score = prs.evaluate(otherPairs_, gcorr->correspondences);
+
+    emit( message("Evaluate pairs end. ") );
+}
+QVector<double> ScorerManager::evaluatePairs( QVector<Structure::Graph*> const &graphs )
+{
+	QVector<double> pairScore;
+	int logLevel = 0;
+	double score;
+    for (int i = 0; i < graphs.size(); ++i)
+    {
+		Structure::Graph * g = Structure::Graph::actualGraph(graphs[i] );
+        PairRelationScorer prs(g, i, logLevel);
+		score = prs.evaluate(otherPairs_, gcorr->correspondences);
+		pairScore.push_back(score);
+    }
+	return pairScore;
+}
+void ScorerManager::evaluatePairsAuto()
+{
+    emit( message("Evaluate pair auto starts: ") );
+
+	if ( connectPairs_.empty() )
+	{
+		emit( message("Parse constraint pair first! ") );
+		return;
+	}
+
+	///////////////// 
+	QVector<double> pairScore = evaluatePairs(this->scheduler->allGraphs);
+	saveScore(QString("evaluate_pair_auto.txt"), pairScore, QString());	
+
+
+    emit( message("Evaluate pair auto end. ") );
 }
 
 void ScorerManager::parseGlobalReflectionSymm()
