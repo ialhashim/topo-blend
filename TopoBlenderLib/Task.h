@@ -57,6 +57,7 @@ public:
 	// Edge helpers
 	Structure::Link * getCoorespondingEdge( Structure::Link * link, Structure::Graph * otherGraph );
 	QVector<Structure::Link*> filterEdges( Structure::Node * n, QVector<Structure::Link*> all_edges );
+	QVector<Structure::Link*> filteredFromTargetEdges();
 	Structure::Link * preferredEnd(Structure::Node * n, QVector<Structure::Link*> edges, Structure::Graph * g);
 
     // Preparation and execution based on type
@@ -109,7 +110,6 @@ public:
 protected:
 	virtual QVariant itemChange ( GraphicsItemChange change, const QVariant & value );
 	QVector<Task*> allOtherTasks();
-
 };
 
 static QString TaskNames[] = { "SHRINK", "MERGE", "MORPH", "SPLIT", "GROW" };

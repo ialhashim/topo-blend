@@ -183,7 +183,7 @@ void topoblend::decorate()
 	// 3D visualization
 	glEnable(GL_LIGHTING);
 
-	if( scheduler && scheduler->allGraphs.size() == 0 )
+	if( scheduler && scheduler->allGraphs.size() == 0 && !property["forceDrawGraphs"].toBool() )
 	{
 		QVector<Structure::Graph*> currentGraphs;
 		currentGraphs.push_back(scheduler->activeGraph);
@@ -489,9 +489,15 @@ bool topoblend::keyPressEvent( QKeyEvent* event )
 	{
 		if(graphs.size())
 		{
-			graph_explorer->update(graphs.back());
+			if(graphs.size() == 2 && scheduler)
+				graph_explorer->update(scheduler->activeGraph);
+			else
+				graph_explorer->update(graphs.back());
+
 			if(graph_explorer) graph_explorer->show();
 		}
+
+		property["forceDrawGraphs"] = true;
 
 		used = true;
 	}

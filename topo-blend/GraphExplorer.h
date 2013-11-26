@@ -53,6 +53,9 @@ private:
 
 	QString dotPath;
 
+protected:
+	virtual void hideEvent(QHideEvent *);
+
 public slots:
 	void drawGraph();
 	void drawGraphSVG();
@@ -60,4 +63,5 @@ public slots:
 	void filterNodes();
 	void filterEdges();
 	void filterTree(QTreeWidget * tree, QStringList filters, int column);
+
 };

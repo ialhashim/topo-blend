@@ -17,15 +17,17 @@ public:
     /// Prepare sub-routines
     void prepareSheetOneEdge( Structure::Link * l );
     void prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link * linkB );
+	void prepareCrossingSheet();
 
     /// Execute
-    void executeCrossingSheet( double t );
+	void executeGrowShrinkSheet(double t);
     void executeMorphSheet( double t );
+	void executeCrossingSheet( double t );
 
-    // Quick access
-    Structure::Sheet * targetSheet();
-
-    // Special encoding for sheet growing
+    // Encoding for sheets as curve
     SheetEncoding encodeSheetAsCurve( Structure::Sheet * sheet, Vector3 start, Vector3 end );
-    Array1D_Vector3 decodeSheetFromCurve( double t, SheetEncoding cpCoords, Vector3 start, Vector3 end  );
+	void encodeSheet( const Vector4d& coordinateA, const Vector4d& coordinateB );
+
+	// Quick access
+	Structure::Sheet * targetSheet();
 };

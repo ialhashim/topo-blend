@@ -19,6 +19,7 @@ public:
     void prepareShrinkCurveOneEdge( Structure::Link* link );
 	void prepareGrowCurveOneEdge( Structure::Link * tlink );
 	void prepareCrossingMorphCurve();
+	void encodeCurve(const Vector4d& coordinateA, const Vector4d& coordinateB);
 
     /// Execute
     void executeCrossingCurve( double t );
