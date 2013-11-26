@@ -66,9 +66,8 @@ void TaskCurve::prepareShrinkCurve()
 	}
 
 	//Cut node case
-	else if( isCutting())
+	else if( isCutting() )
 	{
-		property["isCutNode"] = true;
 		prepareShrinkCurveOneEdge( preferredEnd(n, edges, active) );
 	}
 
@@ -156,60 +155,15 @@ void TaskCurve::prepareGrowCurveOneEdge( Structure::Link * tlink )
 void TaskCurve::prepareGrowCurve()
 {
 	Node *n = node(), *tn = targetNode();
-	QVector<Link*> all_tedges = target->getEdges(tn->id);
-
 	Curve * curve = (Curve *)n;
 	Curve * tcurve = (Curve *)tn;
 
-	// Do not consider edges with non-ready nodes
-	QVector<Link*> tedges, edges;
-	foreach(Link* edge, all_tedges)
-	{
-		Node * tother = edge->otherNode( tn->id );
-		Node * other = active->getNode( tother->property["correspond"].toString() );
-
-		// Skip not grown others
-		if( all_tedges.size() > 1 && ungrownNode(other->id) )	
-			continue;
-
-		tedges.push_back(edge);		
-	}
-
-	// Skip all but one edge of splitting nodes
-	foreach(Link * edge, tedges)
-	{
-		Node * other = active->getNode( edge->otherNode( tn->id )->property["correspond"].toString() );
-		if(other->property["taskTypeReal"].toInt() == Task::SPLIT && !other->property["taskIsReady"].toBool()){
-			if(tedges.size() > 1) 
-				tedges.remove(tedges.indexOf(edge));
-		}
-	}
-
-	// Find corresponding edges
-	foreach(Link * edge, tedges)
-	{
-		Link * slink = active->getEdge( edge->property["correspond"].toInt() );
-
-		// The edge has been removed, possibly by Task::postDone
-		if(!slink)
-		{
-			Node * n1 = active->getNode(edge->n1->property["correspond"].toString());
-			Node * n2 = active->getNode(edge->n2->property["correspond"].toString());
-			Array1D_Vector4d c1 = edge->coord.front();
-			Array1D_Vector4d c2 = edge->coord.back();
-
-			// Bring it back
-			slink = active->addEdge(n1, n2, c1, c2, active->linkName(n1,n2));
-			
-			// Correspond
-			slink->property["correspond"] = edge->property["uid"].toInt();
-			edge->property["correspond"] = slink->property["uid"].toInt();
-		}
-
-		if(slink) edges.push_back( slink );
-	}
-
-	// Save edges used
+	// Find edges to be used in growing
+	QVector<Link*> tedges;
+	QVector<Link*> edges = filteredFromTargetEdges();
+	foreach(Link* edge, edges) tedges.push_back(target->getEdge( edge->property["correspond"].toInt() ));
+ 
+	// Save the edges used
 	property["edges"].setValue( edges );
 
 	if (edges.size() == 1)
@@ -220,8 +174,6 @@ void TaskCurve::prepareGrowCurve()
 
 	if (edges.size() && isCutting(true))
 	{
-		property["isCutNode"] = true;
-
 		prepareGrowCurveOneEdge( tedges.front() );
 		return;
 	}
@@ -282,7 +234,7 @@ void TaskCurve::prepareGrowCurve()
 
 		// Separate the path into two for linkA and linkB
 		int N = path.size(), hN = N / 2;
-		if (N %2 == 0) path.insert(hN, path[hN]);
+		if (N % 2 == 0) path.insert(hN, path[hN]);
 
 		QVector<GraphDistance::PathPointPair> pathA, pathB;
 		for (int i = 0; i < hN; i++)
@@ -318,13 +270,13 @@ void TaskCurve::prepareGrowCurve()
 	}
 }
 
-void TaskCurve::prepareMorphCurve()
+void TaskCurve::encodeCurve( const Vector4d& coordinateA, const Vector4d& coordinateB )
 {
 	Node * n = node(), *tn = targetNode();
 
 	//// Parameters needed for morphing
-	Vector3 sourceA = n->position(Vector4d(0,0,0,0)), sourceB = n->position(Vector4d(1,1,1,1));
-	Vector3 targetA = tn->position(Vector4d(0,0,0,0)), targetB = tn->position(Vector4d(1,1,1,1));
+	Vector3 sourceA = n->position(coordinateA), sourceB = n->position(coordinateB);
+	Vector3 targetA = tn->position(coordinateA), targetB = tn->position(coordinateB);
 
 	// Two ends
 	property["sourceA"].setValue( sourceA ); property["sourceB"].setValue( sourceB );
@@ -333,6 +285,11 @@ void TaskCurve::prepareMorphCurve()
 	// Encoding
 	property["cpCoords"].setValue( Structure::Curve::encodeCurve((Curve*)n, sourceA, sourceB) );
 	property["cpCoordsT"].setValue( Structure::Curve::encodeCurve((Curve*)tn, targetA, targetB) );
+}
+
+void TaskCurve::prepareMorphCurve()
+{
+	encodeCurve( Vector4d(0,0,0,0), Vector4d(1,1,1,1) );
 
 	// Check crossing
 	if ( (isReady = true) && isCrossing() ) 
@@ -363,7 +320,7 @@ void TaskCurve::prepareCrossingMorphCurve()
 		gd.smoothPathCoordTo( start, path );
 
 		// Check
-		if(path.isEmpty()) path.push_back(GraphDistance::PathPointPair( PathPoint(futureNodeCord.first, futureNodeCord.second)));
+		if(path.size() < 2) { path.clear(); path.push_back(GraphDistance::PathPointPair( PathPoint(futureNodeCord.first, futureNodeCord.second))); }
 
 		property["path"].setValue( GraphDistance::positionalPath(active, path) );
 
@@ -397,18 +354,22 @@ void TaskCurve::prepareCrossingMorphCurve()
 		gdB.smoothPathCoordTo( startB, pathB );
 
 		// Checks
-		if(pathA.isEmpty()) pathA.push_back(GraphDistance::PathPointPair( PathPoint(futureNodeCordA.first, futureNodeCordA.second)));
-		if(pathB.isEmpty()) pathB.push_back(GraphDistance::PathPointPair( PathPoint(futureNodeCordB.first, futureNodeCordB.second)));
+		if(pathA.size() < 2) { pathA.clear(); pathA.push_back(GraphDistance::PathPointPair( PathPoint(futureNodeCordA.first, futureNodeCordA.second))); }
+		if(pathB.size() < 2) { pathB.clear(); pathB.push_back(GraphDistance::PathPointPair( PathPoint(futureNodeCordB.first, futureNodeCordB.second))); }
 
 		property["pathA"].setValue( GraphDistance::positionalPath(active, pathA) );
 		property["pathB"].setValue( GraphDistance::positionalPath(active, pathB) );
 
-		// Save links paths
+		// Make sure we end correctly
 		pathA.back() = GraphDistance::PathPointPair( PathPoint(futureNodeCordA.first, futureNodeCordA.second)  );
 		pathB.back() = GraphDistance::PathPointPair( PathPoint(futureNodeCordB.first, futureNodeCordB.second)  );
-		
+
+		// Save links paths
 		linkA->setProperty("path", pathA);
 		linkB->setProperty("path", pathB);
+
+		// Encode with these two links
+		encodeCurve(linkA->getCoord(n->id).front(), linkB->getCoord(n->id).front());
 	}
 
 	property["edges"].setValue( edges );
@@ -565,23 +526,6 @@ void TaskCurve::executeCrossingCurve( double t )
 		}
 
 		n->setControlPoints( blendedPnts );
-	}
-
-
-	// When task is done
-	if ( t >= 1.0 )
-	{
-		QVector<Link*> edges = property["edges"].value< QVector<Link*> >();
-
-		if(type == GROW)
-		{
-
-		}
-
-		if(type == SHRINK)
-		{
-			
-		}
 	}
 }
 

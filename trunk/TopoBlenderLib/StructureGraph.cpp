@@ -622,6 +622,9 @@ void Graph::draw( QGLViewer * drawArea )
 		{
 			if (n->property.contains("isReady") && !n->property["isReady"].toBool()) continue;
 			Vector3d position = n->bbox().center();
+
+			if(property.contains("posX")) position[0] += property["posX"].toDouble();
+
 			Vec proj = drawArea->camera()->projectedCoordinatesOf(Vec(position.x(), position.y(), position.z()));
 			drawArea->renderText(proj.x,proj.y,n->id);
 		}

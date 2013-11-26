@@ -27,7 +27,7 @@ void TaskSheet::executeSheet(double t)
     {
     case GROW:
     case SHRINK:
-        executeCrossingSheet(t);
+        executeGrowShrinkSheet(t);
         break;
     case MORPH:
 		{
@@ -80,11 +80,15 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
     gd.smoothPathCoordTo(pointB, path);
 
     // Otherwise, self expand / contract
-    if(path.size() < 1)
+    if(path.size() < 2)
     {
         QVector<Link*> twoEdges(2);
         twoEdges[0] = linkA; twoEdges[1] = linkB;
-        prepareSheetOneEdge(preferredEnd(n, twoEdges, active));
+		Structure::Link * pickedLink = preferredEnd(n, twoEdges, active);
+        prepareSheetOneEdge( pickedLink );
+
+		QVector<Link*> edges; edges.push_back(pickedLink);
+		property["edges"].setValue( edges );
         return;
     }
 
@@ -146,83 +150,41 @@ void TaskSheet::prepareGrowShrinkSheet()
     }
 }
 
-void TaskSheet::prepareMorphSheet()
+void TaskSheet::executeGrowShrinkSheet(double t)
 {
-    // Morph
-    Structure::Node * n = node();
-    Structure::Node * tn = targetNode();
-    Structure::Sheet * sheet = (Structure::Sheet *)n;
-    Structure::Sheet * tsheet = (Structure::Sheet *)tn;
-
-    // Get source and target frames
-    RMF::Frame sframe = sheetFrame( sheet );
-    RMF::Frame tframe = sheetFrame( tsheet );
-
-    // Compute rotations between source and target sheet frames
-    Eigen::Quaterniond rotation, eye = Eigen::Quaterniond::Identity();
-    AbsoluteOrientation::compute(sframe.r,sframe.s,sframe.t,
-                                 tframe.r,tframe.s,tframe.t, rotation);
-
-    // Parameters needed for morphing
-	QVector<double> rot; 
-	rot.push_back(rotation.w());
-	rot.push_back(rotation.x());
-	rot.push_back(rotation.y());
-	rot.push_back(rotation.z());
-
-    property["rotation"].setValue( rot );
-    property["sframe"].setValue( sframe );
-    property["tframe"].setValue( tframe );
-
-    property["cpCoords"].setValue( Structure::Sheet::encodeSheet(sheet, sframe.center, sframe.r,sframe.s,sframe.t) );
-    property["cpCoordsT"].setValue( Structure::Sheet::encodeSheet(tsheet, tframe.center, tframe.r,tframe.s,tframe.t) );
-
-    // Visualization
-    std::vector<RMF::Frame> frames = smoothRotateFrame(sframe, rotation, 100);
-    property["frames"].setValue( frames );
-    n->property["frames"].setValue( frames );
-    n->property["frame"].setValue( sframe );
-    tn->property["frame"].setValue( tframe );
-
-	prepareMorphEdges();
-}
-
-
-void TaskSheet::executeCrossingSheet( double t )
-{
-    Structure::Sheet* structure_sheet = ((Structure::Sheet*)node());
+	Structure::Sheet* structure_sheet = ((Structure::Sheet*)node());
 	QVector<Link*> edges = property["edges"].value< QVector<Link*> >();
 
-    /// Single edge case
-    if ( property.contains("deltas") )
-    {
-        Array2D_Vector3 cpts = property["orgCtrlPoints"].value<Array2D_Vector3>();
-        Array2D_Vector3 deltas = property["deltas"].value<Array2D_Vector3>();
+	/// Single edge case
+	if ( property.contains("deltas") )
+	{
+		Array2D_Vector3 cpts = property["orgCtrlPoints"].value<Array2D_Vector3>();
+		Array2D_Vector3 deltas = property["deltas"].value<Array2D_Vector3>();
 
-        // Grow sheet
-        for(int u = 0; u < structure_sheet->surface.mNumUCtrlPoints; u++)
-            for(int v = 0; v < structure_sheet->surface.mNumVCtrlPoints; v++)
-                structure_sheet->surface.mCtrlPoint[u][v] = cpts[u][v] + (deltas[u][v] * t);
-    }
+		// Grow sheet
+		for(int u = 0; u < structure_sheet->surface.mNumUCtrlPoints; u++)
+			for(int v = 0; v < structure_sheet->surface.mNumVCtrlPoints; v++)
+				structure_sheet->surface.mCtrlPoint[u][v] = cpts[u][v] + (deltas[u][v] * t);
+	}
 
-    /// Two edges case
-    if( property.contains("pathA") && property.contains("pathB") && property.contains("cpCoords") )
-    {
-        QVector< GraphDistance::PathPointPair > pathA = property["pathA"].value< QVector< GraphDistance::PathPointPair > >();
-        QVector< GraphDistance::PathPointPair > pathB = property["pathB"].value< QVector< GraphDistance::PathPointPair > >();
-        if(pathA.size() == 0 || pathB.size() == 0)	return;
+	/// Two edges case
+	if( property.contains("pathA") && property.contains("pathB") && property.contains("cpCoords") )
+	{
+		QVector< GraphDistance::PathPointPair > pathA = property["pathA"].value< QVector< GraphDistance::PathPointPair > >();
+		QVector< GraphDistance::PathPointPair > pathB = property["pathB"].value< QVector< GraphDistance::PathPointPair > >();
+		if(pathA.size() == 0 || pathB.size() == 0)	return;
 
-        double dt = t;
-        if(type == SHRINK) dt = 1 - t;
+		double dt = t;
+		if(type == SHRINK) dt = 1 - t;
 
 		double decodeT = qMin(1.0, dt * 2.0);
 
-        int idxA = dt * (pathA.size() - 1);
-        int idxB = dt * (pathB.size() - 1);
+		int idxA = dt * (pathA.size() - 1);
+		int idxB = dt * (pathB.size() - 1);
 
-        // Move to next step
-        Vector3 pointA = pathA[idxA].position(active);
-        Vector3 pointB = pathB[idxB].position(active);
+		// Move to next step
+		Vector3 pointA = pathA[idxA].position(active);
+		Vector3 pointB = pathB[idxB].position(active);
 
 		Structure::Link *linkA = edges.front(), *linkB = edges.back();
 		if (type == GROW){
@@ -232,29 +194,71 @@ void TaskSheet::executeCrossingSheet( double t )
 
 		Vector3d deltaA = linkA->property["delta"].value<Vector3d>() * dt;
 		Vector3d deltaB = linkB->property["delta"].value<Vector3d>() * dt;
-		
-        Array1D_Vector3 decoded = Curve::decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA + deltaA, pointB + deltaB, decodeT);
-        structure_sheet->setControlPoints( decoded );
-    }
 
-    // When the task is done
-    if ( t == 1 )
-    {
-        Structure::Node * n = node();
-        Structure::Node * tn = targetNode();
-        QVector<Structure::Link*> edges = active->getEdges(n->id);
-        QVector<Structure::Link*> tedges = target->getEdges(tn->id);
+		Array1D_Vector3 decoded = Curve::decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA + deltaA, pointB + deltaB, decodeT);
+		structure_sheet->setControlPoints( decoded );
+	}
+}
 
-        if (type == SHRINK)
-        {
-            n->property["isReady"] = false;
-        }
 
-        if (type == GROW)
-        {
+void TaskSheet::prepareMorphSheet()
+{
+	Structure::Node * n = node();
+	Structure::Node * tn = targetNode();
 
-        }
-    }
+	// Check if the sheet is crossing 
+	{
+		QVector<Structure::Link*> edges = filterEdges(n, active->getEdges(n->id));
+
+		// check if neighbors on selected edges will change
+		foreach(Link * l, edges){
+			if(l->property["modified"].toBool()) continue;
+			Structure::Link* tl = target->getEdge(l->property["correspond"].toInt());
+			if (l->otherNode(n->id)->property["correspond"].toString() != tl->otherNode(tn->id)->id)
+				property["isCrossing"] = true;
+		}
+	}
+
+	// Morph parameters
+	{
+		Structure::Sheet * sheet = (Structure::Sheet *)n;
+		Structure::Sheet * tsheet = (Structure::Sheet *)tn;
+
+		// Get source and target frames
+		RMF::Frame sframe = sheetFrame( sheet );
+		RMF::Frame tframe = sheetFrame( tsheet );
+
+		// Compute rotations between source and target sheet frames
+		Eigen::Quaterniond rotation, eye = Eigen::Quaterniond::Identity();
+		AbsoluteOrientation::compute(sframe.r,sframe.s,sframe.t,
+			tframe.r,tframe.s,tframe.t, rotation);
+
+		// Parameters needed for morphing
+		QVector<double> rot; 
+		rot.push_back(rotation.w());
+		rot.push_back(rotation.x());
+		rot.push_back(rotation.y());
+		rot.push_back(rotation.z());
+
+		property["rotation"].setValue( rot );
+		property["sframe"].setValue( sframe );
+		property["tframe"].setValue( tframe );
+
+		property["cpCoords"].setValue( Structure::Sheet::encodeSheet(sheet, sframe.center, sframe.r,sframe.s,sframe.t) );
+		property["cpCoordsT"].setValue( Structure::Sheet::encodeSheet(tsheet, tframe.center, tframe.r,tframe.s,tframe.t) );
+
+		// Visualization
+		std::vector<RMF::Frame> frames = smoothRotateFrame(sframe, rotation, 100);
+		property["frames"].setValue( frames );
+		n->property["frames"].setValue( frames );
+		n->property["frame"].setValue( sframe );
+		tn->property["frame"].setValue( tframe );
+	}
+
+	if ( property["isCrossing"].toBool() ) 
+		prepareCrossingSheet();
+	
+	prepareMorphEdges();
 }
 
 void TaskSheet::executeMorphSheet( double t )
@@ -294,15 +298,104 @@ void TaskSheet::executeMorphSheet( double t )
     sheet->setControlPoints( blendedPnts );
 }
 
+void TaskSheet::encodeSheet( const Vector4d& coordinateA, const Vector4d& coordinateB )
+{
+	Node * n = node(), *tn = targetNode();
+
+	//// Parameters needed for morphing
+	Vector3 sourceA = n->position(coordinateA), sourceB = n->position(coordinateB);
+	Vector3 targetA = tn->position(coordinateA), targetB = tn->position(coordinateB);
+
+	// Two ends
+	property["sourceA"].setValue( sourceA ); property["sourceB"].setValue( sourceB );
+	property["targetA"].setValue( targetA ); property["targetB"].setValue( targetB );
+
+	// Encoding
+	property["cpCoords"].setValue( encodeSheetAsCurve((Structure::Sheet*)n, sourceA, sourceB) );
+	property["cpCoordsT"].setValue( encodeSheetAsCurve((Structure::Sheet*)tn, targetA, targetB) );
+}
+
+void TaskSheet::prepareCrossingSheet()
+{
+	Structure::Node * n = node();
+
+	//QVector<Structure::Link*> edges = filterEdges(n, active->getEdges(n->id));
+
+	// For now, let us only use one edge:
+	QVector<Structure::Link*> edges;
+	edges.push_back( filterEdges(n, active->getEdges(n->id)).front() );
+
+	if (edges.size() == 1)
+	{
+		// Start and end
+		Link * link = edges.front();
+		Vector3d start = link->positionOther(n->id);
+		NodeCoord futureNodeCord = futureLinkCoord(link);
+		Vector3d end = active->position(futureNodeCord.first,futureNodeCord.second);
+
+		// Geodesic distances on the active graph excluding the running tasks
+		QVector< GraphDistance::PathPointPair > path;
+		QVector<QString> exclude = active->property["activeTasks"].value< QVector<QString> >();
+		GraphDistance gd( active, exclude );
+		gd.computeDistances( end, DIST_RESOLUTION );  
+		gd.smoothPathCoordTo( start, path );
+
+		// Check
+		if(path.size() < 2) { path.clear(); path.push_back(GraphDistance::PathPointPair( PathPoint(futureNodeCord.first, futureNodeCord.second))); }
+
+		property["path"].setValue( GraphDistance::positionalPath(active, path) );
+
+		// Save links paths
+		path.back() = GraphDistance::PathPointPair( PathPoint(futureNodeCord.first, futureNodeCord.second)  );
+		link->setProperty("path", path);
+	}
+
+	property["edges"].setValue( edges );
+}
+
+void TaskSheet::executeCrossingSheet( double t )
+{
+	Node *n = node(), *tn = targetNode();
+	QVector<Link*> edges = property["edges"].value< QVector<Link*> >();
+
+	if (property.contains("path"))
+	{
+		Vector3 p0 = n->position(Vec4d(0,0,0,0));
+		Vector3 delta(0,0,0);
+
+		if(!edges.isEmpty())
+		{
+			p0 = edges.front()->position(n->id);
+
+			// Blend Deltas
+			Structure::Link *slink = edges.front();
+			Structure::Link* tlink = target->getEdge(slink->property["correspond"].toInt());
+			Vector3 d1 = slink->position(n->id) - slink->positionOther(n->id);
+			Vector3 d2 = tlink->position(tn->id) - tlink->positionOther(tn->id);
+			delta = AlphaBlend(t, d1, d2);
+		}
+
+		executeMorphSheet(t);
+		
+		// Cancel any absolute movement
+		if(!edges.isEmpty())
+			n->moveBy(p0 - edges.front()->position(n->id));
+
+		// Move it to the correct position
+		Array1D_Vector3 path = property["path"].value< Array1D_Vector3 >();
+		int idx = t * (path.size() - 1);
+
+		Vector3 oldPosOnMe = p0;
+		Vector3 newPosOnMe = path[idx] + delta;
+
+		n->moveBy(newPosOnMe - p0);
+	}
+}
+
 SheetEncoding TaskSheet::encodeSheetAsCurve( Structure::Sheet * sheet, Vector3 start, Vector3 end)
 {
     Array1D_Vector3 controlPoints = sheet->controlPoints();
     return Structure::Curve::encodeCurve(controlPoints,start,end);
-}
-
-Array1D_Vector3 TaskSheet::decodeSheetFromCurve( double t, SheetEncoding cpCoords, Vector3 start, Vector3 end)
-{
-    return Structure::Curve::decodeCurve(cpCoords,start,end,t);
 }
 
 Structure::Sheet * TaskSheet::targetSheet()

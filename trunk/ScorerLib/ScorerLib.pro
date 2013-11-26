@@ -31,17 +31,21 @@ INCLUDEPATH += ../TopoBlenderLib
 HEADERS += ./ConnectivityScorer.h \
     ./Geometry.h \
     ./GlobalReflectionSymmScorer.h \
-    ./PairRelationDetector.h \
     ./RelationDetector.h \
+    ./PairRelationDetector.h \
 	./PairRelationScorer.h \
+	./GroupRelationDetector.h \
+	./GroupRelationScorer.h \
     ./transform3d.h \
     ./ScorerManager.h \
     ./ScorerWidget.h
 SOURCES += ./ConnectivityScorer.cpp \
     ./GlobalReflectionSymmScorer.cpp \
-    ./PairRelationDetector.cpp \
     ./RelationDetector.cpp \
+    ./PairRelationDetector.cpp \
 	./PairRelationScorer.cpp \
+	./GroupRelationDetector.cpp \
+	./GroupRelationScorer.cpp \
     ./ScorerManager.cpp \
     ./ScorerWidget.cpp \
     ./transform3d.cpp

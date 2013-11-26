@@ -36,6 +36,14 @@ GraphExplorer::GraphExplorer(QWidget *parent): QWidget(parent), ui(new Ui::Graph
 	ui->edgesTree->setHeaderLabels(headers);
 }
 
+void GraphExplorer::hideEvent(QHideEvent * e)
+{
+	clear();
+	g = NULL;
+
+	QWidget::hideEvent(e);
+}
+
 void GraphExplorer::update(Structure::Graph * graph)
 {
 	storeOldValues();
