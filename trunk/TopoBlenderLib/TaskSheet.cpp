@@ -80,7 +80,7 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
     gd.smoothPathCoordTo(pointB, path);
 
     // Otherwise, self expand / contract
-    if(path.size() < 2)
+    if(path.size() < 3)
     {
         QVector<Link*> twoEdges(2);
         twoEdges[0] = linkA; twoEdges[1] = linkB;
