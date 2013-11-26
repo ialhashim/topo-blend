@@ -152,22 +152,31 @@ void BlendPathRenderer::mouseMoveEvent(QMouseEvent *event)
 	}
 	else
 	{
-		SynthesisManager * s_manager = blender->s_manager.data();
-		qglviewer::Camera * sceneCamera = s_manager->property("camera").value<qglviewer::Camera*>();
+		if(event->buttons() & Qt::LeftButton)
+		{
+			SynthesisManager * s_manager = blender->s_manager.data();
+			qglviewer::Camera * sceneCamera = s_manager->property("camera").value<qglviewer::Camera*>();
 
-		QPointF startPos = property("buttonDownPos").toPointF();
-		QPointF currentPos = event->posF();
+			QPointF startPos = property("buttonDownPos").toPointF();
+			QPointF currentPos = event->posF();
 
-		// Reset
-		sceneCamera->frame()->setPosition( sceneCamera->property("startPos").value<qglviewer::Vec>() );
-		sceneCamera->frame()->setOrientation( sceneCamera->property("startOrientation").value<qglviewer::Quaternion>() );
+			// Reset
+			sceneCamera->frame()->setPosition( sceneCamera->property("startPos").value<qglviewer::Vec>() );
+			sceneCamera->frame()->setOrientation( sceneCamera->property("startOrientation").value<qglviewer::Quaternion>() );
 
-		// Rotate to new view
-		qglviewer::Quaternion rot = deformedBallQuaternion(startPos.x(), startPos.y(),
-			currentPos.x(), currentPos.y(),	r.center().x(), r.center().y(), r.width(), r.height());
-		sceneCamera->frame()->rotateAroundPoint(rot, sceneCamera->revolveAroundPoint());
+			// Rotate to new view
+			qglviewer::Quaternion rot = deformedBallQuaternion(startPos.x(), startPos.y(),
+				currentPos.x(), currentPos.y(),	r.center().x(), r.center().y(), r.width(), r.height());
+			sceneCamera->frame()->rotateAroundPoint(rot, sceneCamera->revolveAroundPoint());
 
-		update();
+			update();
+		}
+
+		if(event->buttons() & Qt::RightButton)
+		{
+			update();
+			grabFrameBuffer(true).save(QDateTime::currentDateTime().toString("dd.MM.yyyy_hh.mm.ss") + ".png");
+		}
 	}
 
 	blender->s->update();
