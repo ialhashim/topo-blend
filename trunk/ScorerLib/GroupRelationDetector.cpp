@@ -88,18 +88,15 @@ void GroupRelationDetector::detectSymmGroupByRefPair(QVector<PairRelation>& prRe
         }
 
         ///////////////
-        Eigen::Vector3d center(0,0,0);
         for ( QSet<QString>::iterator it = ids.begin(); it != ids.end(); ++it)
         {
-            Structure::Node* n1 = graph_->getNode(*it);
-            center = center + n1->center();
             gr.ids.push_back(*it);
         }
-        center = center / ids.size();
-        gr.center = Point_3(center.x(), center.y(), center.z());
         gr.diameter = computeGroupDiameter(gr);
+		computeGroupCenter(gr);
 
         ////////////////
+		gr.note = REF;
         gr.deviation = computeAxisSymmetryGroupDeviation(gr, pointLevel_);
         gr.type = AXIS_SYMMETRY;
         if ( gr.deviation / graph_->bbox().diagonal().norm() < thAxisGroup_)
@@ -174,6 +171,7 @@ void GroupRelationDetector::detectSymmGroupByTransPair(QVector<PairRelation>& pr
 
         ///////////////
         computeTransGroupInfo(gr, ids);
+		gr.note = TRANS;
         gr.deviation = computeAxisSymmetryGroupDeviation(gr, pointLevel_);
         if ( gr.deviation / graph_->bbox().diagonal().norm() < thAxisGroup_)
         {

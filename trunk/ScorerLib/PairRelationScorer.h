@@ -9,6 +9,6 @@ public:
     }
 	double evaluate(QVector<QVector<PairRelation> > &pairss, QVector<PART_LANDMARK> &corres);
 private:
-	void isParalOrthoCoplanar(PairRelation &cpr);
+	void isParalOrthoCoplanar(PairRelation &cpr);	
 };
 

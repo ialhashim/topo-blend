@@ -53,11 +53,14 @@ void saveToFile(QString filename, QVector<GroupRelation>& grs)
 	QTextStream out(&file);
 	// output groups info
 	int i(0);
-	foreach(GroupRelation gr, grs){
+	foreach(GroupRelation gr, grs)
+	{
 		out << i << " <group-" << gr.type << ">: ";
-		if ( gr.type == COPLANAR)
-			out << gr.point.x() << "," << gr.point.y() << "," << gr.point.z() << ","
-			    << gr.normal.x() << "," << gr.normal.y() << "," << gr.normal.z() << "\n";
+		if ( gr.type == COPLANAR || gr.type == REF_SYMMETRY)
+		{
+			out << "\n Point: " << gr.point.x() << "," << gr.point.y() << "," << gr.point.z() << "\n";
+			out << "normal: " << gr.normal.x() << "," << gr.normal.y() << "," << gr.normal.z() << "\n";
+		}
 		else
 			out << "\n";
 
@@ -86,15 +89,17 @@ QTextStream& operator << (QTextStream& os, const GroupRelation& gr)
 		os << gr.ids[i] << ", ";
 	}
 	os << gr.type << ">\n";
-	os << "Center: " << gr.center.x() << ", " << gr.center.y() << ", " << gr.center.z() << "\n";
-	os << "Direction: " << gr.direction.x() << ", " << gr.direction.y() << ", " << gr.direction.z() << "\n";
 	
-	os << "normal of ref plane: " << gr.refPlane.a() << ", " << gr.refPlane.b() << ", " << gr.refPlane.c() << ", " << gr.refPlane.d() << "\n";
-
-	Vector3 normal = gr.normal;
-	Vector3 point = gr.point;
-	os << "normal of plane: " << normal.x() << ", " << normal.y() << ", " << normal.z() << "\n";
-	os << "point of plane: " << point.x() << ", " << point.y() << ", " << point.z() << "\n";
+	if ( gr.type == AXIS_SYMMETRY)
+	{
+		os << "Center: " << gr.center.x() << ", " << gr.center.y() << ", " << gr.center.z() << "\n";
+		os << "Direction: " << gr.direction.x() << ", " << gr.direction.y() << ", " << gr.direction.z() << "\n";
+	}
+	else if ( gr.type == COPLANAR || gr.type == REF_SYMMETRY)
+	{
+		os << "normal of plane: " << gr.normal.x() << ", " << gr.normal.y() << ", " << gr.normal.z() << "\n";
+		os << "point of plane: " << gr.point.x() << ", " << gr.point.y() << ", " << gr.point.z() << "\n";
+	}
 
 	os << "Diameter: " << gr.diameter << "\n";
 	os << "Deviation: " << gr.deviation << "\n\n";
@@ -158,6 +163,18 @@ double RelationDetector::computeGroupDiameter(GroupRelation& gr)
     }
     //return bbox.volume();
     return bbox.diagonal().norm();
+}
+void RelationDetector::computeGroupCenter(GroupRelation& gr)
+{
+    Eigen::Vector3d center(0,0,0);
+    for ( QVector<QString>::iterator it = gr.ids.begin(); it != gr.ids.end(); ++it)
+    {
+        Structure::Node* n1 = graph_->getNode(*it);
+		center += computeCptsCenter(n1);
+        //center += n1->center();
+    }
+    center = center / gr.ids.size();
+    gr.center = Point_3(center.x(), center.y(), center.z());
 }
 double RelationDetector::fixDeviationByPartName(QString& s1, QString& s2, double deviation)
 {
@@ -463,14 +480,14 @@ double RelationDetector::computeRefSymmetryGroupDeviation(GroupRelation& gr, int
 
     double minErr = std::numeric_limits<double>::max();
     std::pair<int, int> minNodes;
-    Eigen::Vector3d center, normal;
+    Eigen::Vector3d point, normal;
     double err;
     for ( int i = 0; i < (int) gr.ids.size(); ++i)
     {
         for ( int j = i+1; j < (int) gr.ids.size(); ++j)
         {
-            findRefPlane(nodes[i], nodes[j], center,normal);
-			err = errorOfRefSymmGroup(nodes, center, normal, pointLevel);
+            findRefPlane(nodes[i], nodes[j], point,normal);
+			err = errorOfRefSymmGroup(nodes, point, normal, pointLevel);
 
             if ( err < minErr)
             {
@@ -480,8 +497,7 @@ double RelationDetector::computeRefSymmetryGroupDeviation(GroupRelation& gr, int
         }
     }
 
-    findRefPlane(nodes[minNodes.first], nodes[minNodes.second], center,normal);
-    gr.refPlane = Plane_3(Point_3(gr.center.x(), gr.center.y(), gr.center.z()), Vector_3(normal.x(), normal.y(), normal.z()) );
+    findRefPlane(nodes[minNodes.first], nodes[minNodes.second], gr.point, gr.normal);
     return minErr/gr.ids.size()*2;
 }
 
@@ -574,8 +590,7 @@ double RelationDetector::errorOfRefSymmGroup(std::vector<Structure::Node*> &node
 void RelationDetector::computeTransGroupInfo(GroupRelation &gr, QSet<QString>& ids)
 {
     QSet<QString>::iterator it = ids.begin();
-    Structure::Node* n = graph_->getNode(*it);
-    Vector3 center = computeCptsCenter(n);
+    Structure::Node* n = graph_->getNode(*it);    
     Vector_3 direction(0,0,0);
     node2direction(n, direction);
     gr.ids.push_back(*it);
@@ -584,8 +599,7 @@ void RelationDetector::computeTransGroupInfo(GroupRelation &gr, QSet<QString>& i
     int k(1);
     for (; it!=ids.end(); ++it,++k )
     {
-        Structure::Node* nn = graph_->getNode(*it);
-        center += computeCptsCenter(nn);
+        Structure::Node* nn = graph_->getNode(*it);        
 
         node2direction(nn, dc);
         if ( dot(direction, dc) > 0)
@@ -596,8 +610,8 @@ void RelationDetector::computeTransGroupInfo(GroupRelation &gr, QSet<QString>& i
         direction = direction/sqrt(direction.squaredNorm());
         gr.ids.push_back(*it);
     }
-    center /= k;
-    gr.center = Point_3(center.x(), center.y(), center.z());
+    
     gr.direction = direction;
     gr.diameter = computeGroupDiameter(gr);
+	computeGroupCenter(gr);
 }

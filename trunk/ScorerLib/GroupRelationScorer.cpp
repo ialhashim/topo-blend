@@ -6,7 +6,6 @@ double GroupRelationScorer::evaluate(QVector<QVector<GroupRelation> > &groupss, 
 {
 	double resultMax(0.0); int num(0);
 	double dist = graph_->bbox().diagonal().norm();
-
 	for ( int j = 0; j < groupss.size(); ++j)
 	{
 		QVector<GroupRelation>& groups = groupss[j];
@@ -99,14 +98,82 @@ GroupRelation GroupRelationScorer::findCorrespondenceGroup(Structure::Graph *gra
     return cgr;
 }
 
+void GroupRelationScorer::computeGroupAxis(GroupRelation& cgr, QString pairtype)
+{
+	if ( TRANS == pairtype)
+	{
+		QVector<QString>::iterator it = cgr.ids.begin();
+		Structure::Node* n = graph_->getNode(*it);    
+		Vector_3 direction(0,0,0);
+		node2direction(n, direction);
+		++it;
+		Vector_3 dc;
+		int k(1);
+		for (; it != cgr.ids.end(); ++it,++k )
+		{
+			Structure::Node* nn = graph_->getNode(*it);        
+
+			node2direction(nn, dc);
+			if ( dot(direction, dc) > 0)
+				direction = direction + dc;
+			else
+				direction = direction - dc;
+
+			direction = direction/sqrt(direction.squaredNorm());
+		}
+    
+		cgr.direction = direction;
+		return;
+	}
+
+	// for RES
+	double dotVal1(0.0);
+    Structure::Node* n1 = graph_->getNode(cgr.ids[0]);
+    Structure::Node* n2 = graph_->getNode(cgr.ids[1]);
+    Vector_3 v1, v2;
+    node2direction(n1,v1); node2direction(n2,v2);
+    dotVal1 = std::abs(dot(v1,v2));
+    if ( dotVal1 > thAxisDeviationRadio_)
+    {
+        if ( dot(v1,v2) < 0)
+            cgr.direction = v1 -v2;
+        else
+            cgr.direction = v1+v2;
+    }
+    else
+    {
+        cgr.direction = cross_product(v1, v2);
+    }
+    cgr.direction = cgr.direction/sqrt(cgr.direction.squaredNorm());
+
+    for (int j=2; j<cgr.ids.size(); ++j)
+    {     
+		Structure::Node* n = graph_->getNode(cgr.ids[j]);
+		Vector_3 dir;
+        node2direction(n,dir);
+        dir = dir/sqrt(dir.squaredNorm());
+
+        double tmp = std::abs( dot(cgr.direction, dir) );
+        if ( tmp > thAxisDeviationRadio_)
+        {
+            if ( dot(cgr.direction, dir) < 0)
+                cgr.direction = cgr.direction - dir;
+            else
+                cgr.direction = cgr.direction + dir;
+            cgr.direction = cgr.direction/sqrt(cgr.direction.squaredNorm());
+
+        }
+	}
+	return;
+}
+
 void GroupRelationScorer::computeGroupDeviationByCpts(GroupRelation& cgr, GroupRelation& gr)
 {
     cgr.type = gr.type;
     if ( cgr.type == AXIS_SYMMETRY)
     {
-		// jjcao todo if from trans, it is easy
-		//computeTransGroupInfo(cgr, ids);
-		// jjcao todo if from ref, how to compute direction?
+		computeGroupCenter(cgr);	
+		computeGroupAxis(cgr, gr.note);
         cgr.deviation = computeAxisSymmetryGroupDeviation(cgr,pointLevel_);
     }
     else if ( cgr.type == REF_SYMMETRY)
@@ -144,29 +211,21 @@ void GroupRelationScorer::computeGroupDeviationByCpts(GroupRelation& cgr, GroupR
             cgr.deviation = 0;
         else
         {
-            cgr.point = Eigen::Vector3d::Zero();
-            cgr.normal = Eigen::Vector3d::Ones();
-            for ( int i = 1; i < (int) pts.size(); ++i)
-            {
-                Eigen::Vector3d& nl = normals[i];
-                cgr.point = cgr.point + pts[i];
-                if ( cgr.normal.dot(nl) > 0)
-                    cgr.normal = cgr.normal + nl;
-                else
-                    cgr.normal = cgr.normal - nl;
-            }
-            cgr.point = cgr.point/pts.size();
-            //cgr.normal=gr.normal/pts.size();
-            cgr.normal.normalize();
+            //cgr.point = Eigen::Vector3d::Zero();
+            //cgr.normal = Eigen::Vector3d::Ones();
+            //for ( int i = 0; i < (int) pts.size(); ++i)
+            //{
+            //    Eigen::Vector3d& nl = normals[i];
+            //    cgr.point = cgr.point + pts[i];
+            //    if ( cgr.normal.dot(nl) > 0)
+            //        cgr.normal = cgr.normal + nl;
+            //    else
+            //        cgr.normal = cgr.normal - nl;
+            //}
+            //cgr.point = cgr.point/pts.size();
+            //cgr.normal.normalize();
             cgr.deviation = errorOfCoplanarGroupByCpts(cgrNodes, cgr.point, cgr.normal);
         }
-        //if ( cgr.ids[0] == "BarLeft")
-        //{
-        //	logStream_ << "\n\n\n";
-        //
-        //	Vector_3 normal = cgr.plane.orthogonal_vector();
-        //	logStream_ << "normal of plane: " << normal.x() << ", " << normal.y() << ", " << normal.z() << "\n";
-        //}
     }
 
 }
