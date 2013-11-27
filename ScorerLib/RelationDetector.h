@@ -46,17 +46,16 @@ struct GroupRelation
 
     QVector<QString> ids; //QSet<QString> ids;
     QString type;
+	QString note;// from trans or ref pair
     double diameter; // group diameter
     double deviation; // absolute mean deviation
     bool tag;
 
-    Point_3 center; //
-    Vector_3 direction; // normalized. line direction for AXIS_SYMMETRY, normal direction for REF_SYMMETRY
-    Line_3 axis; // for co-axis symmetry or co-axis parallel symmetry
-    Plane_3 refPlane; // for ref symm group
-    // for coplanar group
-    Eigen::Vector3d normal;
-    Eigen::Vector3d point;
+    Point_3 center; // for AXIS_SYMMETRY
+    Vector_3 direction; // normalized. line direction for AXIS_SYMMETRY
+    
+    Eigen::Vector3d normal;// normalized. for coplanar & REF_SYMMETRY group
+    Eigen::Vector3d point;// for coplanar group & REF_SYMMETRY group
 
     bool equal(GroupRelation& gr);
     friend QTextStream& operator<<(QTextStream& os, const GroupRelation& gr);
@@ -123,14 +122,17 @@ public:
 	double computePairDiameter(PairRelation& pr);
 	// relative to the diameter of the graph, i.e. model
     double computeGroupDiameter(GroupRelation& gr);
+	void computeGroupCenter(GroupRelation& gr);
 	void findRefPlane(Structure::Node* n1, Structure::Node* n2, Eigen::Vector3d& center,Eigen::Vector3d& normal);
 	double fixDeviationByPartName(QString& s1, QString& s2, double deviation);
 
     // we do not order part in a group by ref plane
     // return mean deviation of the group
+	// precondition: none
     double computeRefSymmetryGroupDeviation(GroupRelation& gr, int pointLevel);
     // order part in a group by angle around the axis
     // return mean deviation of the group
+	// precondition: center & direction of gr is known.
     double computeAxisSymmetryGroupDeviation(GroupRelation& gr, int pointLevel);
     // compute the center and direction of the group
     void computeTransGroupInfo(GroupRelation &gr, QSet<QString>& ids);
