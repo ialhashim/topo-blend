@@ -64,7 +64,8 @@ HEADERS += StructureNode.h \
     TaskCurve.h \
     TaskSheet.h \
     Relink.h \
-    GraphModifyWidget.h
+    GraphModifyWidget.h \
+    GraphDissimilarity.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -86,6 +87,7 @@ SOURCES += StructureGraph.cpp \
     TaskCurve.cpp \
     TaskSheet.cpp \
     Relink.cpp \
-    GraphModifyWidget.cpp
+    GraphModifyWidget.cpp \
+    GraphDissimilarity.cpp
 	
 FORMS +=  SchedulerWidget.ui GraphModifyWidget.ui
