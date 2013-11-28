@@ -65,13 +65,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="evaluatePairs">
-        <property name="text">
-         <string>Pairs</string>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QPushButton" name="evaluateGroups">
         <property name="text">
          <string>Groups</string>
@@ -95,13 +88,6 @@
           <widget class="QPushButton" name="evaluateTopologyAuto">
            <property name="text">
             <string>Connectivity</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="evaluatePairsAuto">
-           <property name="text">
-            <string>Pairs</string>
            </property>
           </widget>
          </item>

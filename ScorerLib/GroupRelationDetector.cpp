@@ -44,7 +44,7 @@ void GroupRelationDetector::detectSymmGroupByRefPair(QVector<PairRelation>& prRe
         {
             gr.direction = cross_product(v1, v2);
         }
-        gr.direction = gr.direction/sqrt(gr.direction.squaredNorm());
+		gr.direction.normalize();
 
         ///////////////
         for (int j=i+1; j<nPrs; ++j)
@@ -70,7 +70,7 @@ void GroupRelationDetector::detectSymmGroupByRefPair(QVector<PairRelation>& prRe
                     else
                         dir = cross_product(v1, v2);
                 }
-                dir = dir/sqrt(dir.squaredNorm());
+				dir.normalize();
 
                 double tmp = std::abs( dot(gr.direction, dir) );
                 if ( tmp > thAxisDeviationRadio_)
@@ -79,8 +79,8 @@ void GroupRelationDetector::detectSymmGroupByRefPair(QVector<PairRelation>& prRe
                         gr.direction = gr.direction - dir;
                     else
                         gr.direction = gr.direction + dir;
-                    gr.direction = gr.direction/sqrt(gr.direction.squaredNorm());
 
+					gr.direction.normalize();
                     ids.insert(n1->id);	ids.insert(n2->id);
                     pr2.tag = true;
                 }

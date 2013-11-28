@@ -22,9 +22,6 @@ ScorerWidget::ScorerWidget(QWidget *parent)
 	s_manager->connect(ui->evaluateTopology, SIGNAL(clicked()), SLOT(evaluateTopology()));
 	s_manager->connect(ui->evaluateTopologyAuto, SIGNAL(clicked()), SLOT(evaluateTopologyAuto()));	
 
-	s_manager->connect(ui->evaluatePairs, SIGNAL(clicked()), SLOT(evaluatePairs()));
-	s_manager->connect(ui->evaluatePairsAuto, SIGNAL(clicked()), SLOT(evaluatePairsAuto()));	
-
 	s_manager->connect(ui->evaluateGroups, SIGNAL(clicked()), SLOT(evaluateGroups()));
 	s_manager->connect(ui->evaluateGroupsAuto, SIGNAL(clicked()), SLOT(evaluateGroupsAuto()));
 
