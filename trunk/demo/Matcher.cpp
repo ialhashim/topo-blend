@@ -297,6 +297,8 @@ void Matcher::manualMode()
 
 		gcorr->clear();
 		gcorr->loadCorrespondences( filename, property["corrReversed"].toBool() );
+		
+		gcorr->correspondAllNodes();
 
 		emit( message( "Correspondence loaded from file: " + filename ) );
 	}

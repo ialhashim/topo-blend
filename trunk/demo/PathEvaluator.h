@@ -4,10 +4,10 @@
 #include "Blender.h"
 
 struct PathScore{
-	QVector<double> scores;
-	double score() const { return minScore(); }
-	double maxScore() const { return *std::max_element(scores.begin(), scores.end()); }
-	double minScore() const { return *std::min_element(scores.begin(), scores.end()); }
+	QVector< QVector<double> > scores;
+	double score() const { return minScore(0); }
+	double maxScore(int i) const { return *std::max_element(scores[i].begin(), scores[i].end()); }
+	double minScore(int i) const { return *std::min_element(scores[i].begin(), scores[i].end()); }
 	bool operator<(const PathScore& other) const { return score() < other.score(); }
 };
 
@@ -18,8 +18,13 @@ public:
     explicit PathEvaluator(Blender * blender, QObject *parent = 0);
 
 public slots:
+	// Old experiments
 	void evaluatePaths();
 	void clusterPaths();
+
+	// Current experiments
+	void test_filtering();
+	void test_topoDistinct();
 
 private:
 	Blender * b;
