@@ -6,14 +6,13 @@ GraphDissimilarity::GraphDissimilarity( Structure::Graph *graphInstance )
 {
 	N = graphInstance->nodes.size();
 
-	foreach(Structure::Node * node, graphInstance->nodes){
+	foreach(Structure::Node * node, graphInstance->nodes)
 		nodeIndex[node->id] = nodeIndex.size();
-	}
 }
 
 void GraphDissimilarity::addGraph( Structure::Graph *g )
 {
-	// Normalized Laplacian matrix (symmetric)
+	/// Normalized Laplacian matrix (symmetric):
 	MatrixXd L = MatrixXd::Zero(N,N);
 	
 	// Diagonal entires
@@ -36,7 +35,6 @@ void GraphDissimilarity::addGraph( Structure::Graph *g )
 	}
 
 	// Store input
-	laplacians.push_back( L );
 	graphs.push_back( g );
 
 	// Compute eigenvalues and eigenvectors
@@ -59,9 +57,9 @@ double GraphDissimilarity::compute( int g1, int g2 )
 	{
 		for(int j = 0; j < N; j++)
 		{
-			double term1 = pow(lamda[i] - mu[j], 2) / (lamda[i] + mu[j]);
-			double term2 = pow(u.col(i).dot(v.col(j)), 2);
-			d += term1 * term2;
+			double quotientTerm = pow(lamda[i] - mu[j], 2) / (lamda[i] + mu[j]);
+			double dotproductTerm = pow(u.col(i).dot(v.col(j)), 2);
+			d += quotientTerm * dotproductTerm;
 		}
 	}
 
@@ -83,4 +81,48 @@ QVector<Structure::Graph *> GraphDissimilarity::dissimilar( int k )
 void GraphDissimilarity::outputResults()
 {
 
+}
+
+Structure::Graph * GraphDissimilarity::fromAdjFile(QString filename)
+{
+	Structure::Graph * g = new Structure::Graph;
+	QFile file(filename);
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return g;
+	QFileInfo fileInfo(file.fileName());
+	QTextStream in(&file);
+	int numNodes = 0;
+	int lineNumber = 0;
+	QVector< QVector<int> > allEdges;
+	while (!in.atEnd()){
+		QString line = in.readLine();
+		if(line.isEmpty()) continue;
+		// Convert line to edges
+		QStringList e = line.split("\t");
+		// Get number of nodes
+		numNodes = e.size();
+		QVector<int> edges;
+		for(int i = 0; i < e.size(); i++){
+			int edgeVal = e[i].toInt();
+			if( edgeVal == 0 || i < lineNumber ) continue;
+			edges.push_back(i);
+		}
+		allEdges.push_back(edges);
+		lineNumber++;
+	}
+	// Add temp nodes
+	for(int i = 0; i < numNodes; i++){
+		NURBS::NURBSCurved curve = NURBS::NURBSCurved::createCurve(Vector3(0,0,0), Vector3(0,0,1));
+		g->addNode( new Structure::Curve(curve, QString("%1").arg(i)) );
+	}
+	// Add edges
+	for(int i = 0; i < numNodes; i++){
+		Structure::Node * n1 = g->nodes[i];
+		QVector<int> edges = allEdges[i];
+		foreach(int j, edges){
+			Structure::Node * n2 = g->nodes[j];
+			g->addEdge(n1,n2);
+		}
+	}
+	file.close();
+	return g;
 }

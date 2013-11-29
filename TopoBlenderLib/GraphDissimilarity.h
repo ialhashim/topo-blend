@@ -12,14 +12,14 @@ public:
 
 	void compute();
 
-private:
     // Locals
 	int N;
 	QMap<QString, int> nodeIndex;
 
 	// Input:
     QVector<Structure::Graph*> graphs;
-    QVector< MatrixXd > laplacians; // normalized Laplacian matrix
+    
+	// eigen decomposition of the normalized Laplacian matrix of input graphs
 	QVector< VectorXd > eigenvalues;
 	QVector< MatrixXd > eigenvectors;
 
@@ -31,4 +31,5 @@ private:
 
     // DEBUG:
     void outputResults();
+	static Structure::Graph * fromAdjFile(QString filename);
 };

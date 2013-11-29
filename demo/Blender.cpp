@@ -463,7 +463,9 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 
 		// Experiment: path evaluation
 		//pathsEval->evaluatePaths();
-		pathsEval->clusterPaths();
+		//pathsEval->clusterPaths();
+		pathsEval->test_filtering();
+		pathsEval->test_topoDistinct();
 
 		return;
 	}
