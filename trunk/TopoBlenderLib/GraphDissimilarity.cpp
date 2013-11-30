@@ -43,6 +43,12 @@ void GraphDissimilarity::addGraph( Structure::Graph *g )
 	eigenvectors.push_back( es.eigenvectors() );
 }
 
+void GraphDissimilarity::addGraphs( QVector<Structure::Graph*> fromGraphs )
+{
+	foreach(Structure::Graph* g, fromGraphs) 
+		addGraph(g);
+}
+
 double GraphDissimilarity::compute( int g1, int g2 )
 {
 	double d = 0;
@@ -57,7 +63,10 @@ double GraphDissimilarity::compute( int g1, int g2 )
 	{
 		for(int j = 0; j < N; j++)
 		{
-			double quotientTerm = pow(lamda[i] - mu[j], 2) / (lamda[i] + mu[j]);
+			double sum = (lamda[i] + mu[j]);
+			if(sum == 0) continue;
+
+			double quotientTerm = pow(lamda[i] - mu[j], 2) / sum;
 			double dotproductTerm = pow(u.col(i).dot(v.col(j)), 2);
 			d += quotientTerm * dotproductTerm;
 		}
@@ -66,9 +75,14 @@ double GraphDissimilarity::compute( int g1, int g2 )
 	return d;
 }
 
-void GraphDissimilarity::compute()
+QVector<double> GraphDissimilarity::competeDissimilar( int gidx, int startidx )
 {
+	QVector<double> scores;
 
+	for(int i = startidx; i < graphs.size(); i++)
+		scores.push_back( compute(gidx, i) );
+
+	return scores;
 }
 
 QVector<Structure::Graph *> GraphDissimilarity::dissimilar( int k )
