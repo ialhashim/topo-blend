@@ -210,7 +210,7 @@ void PathEvaluator::test_filtering()
 			{
 				// Graph
 				QPainterPath poly;
-				int padding = 20;
+				int padding = 0;
 				poly.moveTo(img.width(), padding);
 				poly.lineTo(img.width(), img.height());
 				poly.lineTo(0, img.height());
@@ -395,7 +395,7 @@ void PathEvaluator::test_topoDistinct()
 			{
 				// Graph
 				QPainterPath poly;
-				int padding = 20;
+				int padding = 0;
 				poly.moveTo(img.width(), padding);
 				poly.lineTo(img.width(), img.height());
 				poly.lineTo(0, img.height());
