@@ -308,7 +308,7 @@ void PathEvaluator::test_topoDistinct()
 	QDir d("");	d.mkpath( path ); d.mkpath( path + "/images" );
 
 	/// number of paths to evaluate:
-	int numPaths = 20;
+	int numPaths = 100;
 	int numSamplesPerPath = 100;
 	int numInBetweens = 8;
 
@@ -327,11 +327,6 @@ void PathEvaluator::test_topoDistinct()
 	/// Generate paths
 	QVector<ScheduleType> allPaths = b->m_scheduler->manyRandomSchedules( numPaths );
 
-	/// Dissimilarity measure:		
-	GraphDissimilarity differ( defaultSchedule.allGraphs.front() );
-	differ.addGraph( Structure::Graph::actualGraph(defaultSchedule.allGraphs.front()) );
-	differ.addGraph( Structure::Graph::actualGraph(defaultSchedule.allGraphs.back()) );
-	
 	//#pragma omp parallel for
 	for(int i = 0; i < allPaths.size(); i++)
 	{
@@ -351,13 +346,17 @@ void PathEvaluator::test_topoDistinct()
 			foreach( Structure::Graph* g, s.allGraphs )
 				allActualGraphs.push_back( Structure::Graph::actualGraph(g) );
 
+			/// Dissimilarity measure:		
+			GraphDissimilarity differ( defaultSchedule.allGraphs.front() );
+			differ.addGraph( Structure::Graph::actualGraph(defaultSchedule.allGraphs.front()) );
+			differ.addGraph( Structure::Graph::actualGraph(defaultSchedule.allGraphs.back()) );
 			differ.addGraphs( allActualGraphs );
 
 			diffs.push_back( differ.competeDissimilar( 0 ) );
-			diffs.push_back( differ.competeDissimilar( 1 ) );
+			//diffs.push_back( differ.competeDissimilar( 1 ) );
 
 			maxDiffs.push_back( *std::max_element(diffs[0].begin(), diffs[0].end()) );
-			maxDiffs.push_back( *std::max_element(diffs[1].begin(), diffs[1].end()) );
+			//maxDiffs.push_back( *std::max_element(diffs[1].begin(), diffs[1].end()) );
 
 			qDeleteAll( allActualGraphs );
 		}
@@ -375,13 +374,13 @@ void PathEvaluator::test_topoDistinct()
 			QPainter painter(&img);
 			painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
 
-			QVector<Structure::Graph*> inBetweens = s.interestingInBetweens( numInBetweens );
-
 			// Draw images
 			int imgWidth = 0;
 			for(int k = 0; k < numInBetweens; k++)
 			{
-				QImage inBetween = b->renderer->quickRender(inBetweens[k], Qt::white);
+				double t = double(k) / (numInBetweens-1);
+
+				QImage inBetween = b->renderer->quickRender(s.allGraphs[t * (s.allGraphs.size()-1)], Qt::white);
 				imgWidth = inBetween.width();
 
 				// Rendered shape
@@ -396,29 +395,28 @@ void PathEvaluator::test_topoDistinct()
 				// Graph
 				QPainterPath poly;
 				int padding = 0;
-				poly.moveTo(img.width(), padding);
-				poly.lineTo(img.width(), img.height());
-				poly.lineTo(0, img.height());
-				poly.lineTo(0, padding);
 
 				// Render path
 				for(int k = 0; k < numInBetweens; k++)
 				{
 					// Score graph
-					int graphIDX = qMin( int(inBetweens[k]->property["t"].toDouble() * s.allGraphs.size()), diffs[u].size() - 1 );
-					double val = diffs[u][ graphIDX ] / maxDiffs[u];
+					double t = double(k) / (numInBetweens-1);
+					double val = diffs[u][ t * (s.allGraphs.size()-1) ] / maxDiffs[u];
 
 					// Graph line
 					int newWidth = imgWidth * 0.5;
 					int startX = k * newWidth;
 					int x = startX + newWidth;
 					int y = img.height() - (img.height() * val);
-					poly.lineTo(x, y + padding);
+
+					if(k == 0)
+						poly.moveTo(x, y + padding);
+					else
+						poly.lineTo(x, y + padding);
 				}
 
 				QColor clr = colors[u];
 
-				poly.lineTo(img.width(), padding);
 				painter.setPen(QPen(clr, 3));
 				painter.setBrush(Qt::NoBrush);
 				painter.drawPath(poly);
