@@ -1,30 +1,19 @@
 #include "ConnectivityScorer.h"
 
 double ConnectivityScorer::evaluate(QVector<QVector<PairRelation> > &connectPairs, QVector<PART_LANDMARK> &corres)
-{
-	double resultMean(0.0), resultMax(0.0); int num(0);
+{	
+	double resultMax(0.0); int num(0);//double resultMean(0.0);
 	double dist = graph_->bbox().diagonal().norm();
 
 	for ( int j = 0; j < connectPairs.size(); ++j)
 	{
 		QVector<PairRelation>& pairs = connectPairs[j];
-		//if (logLevel_>0)
-		//{
-		//	if ( j == 0 )
-		//		logStream_ << "connected pairs in source shape \n";
-		//	else
-		//		logStream_ << "\n\n connected pairs in target shape \n";
-		//}
 		for ( int i = 0; i < pairs.size(); ++i)
 		{
 			PairRelation& prb = pairs[i];
 
 			std::vector<Structure::Node*> nodes1 = findNodesInB(prb.n1->id, graph_, corres, j==0);
 			std::vector<Structure::Node*> nodes2 = findNodesInB(prb.n2->id, graph_, corres, j==0);
-			//if (logLevel_>0)
-			//{
-			//	logStream_ << prb << "\n correspond to: \n";
-			//}
 
 			double min_dist, mean_dist, max_dist;
 			for ( int i1 = 0; i1 < (int) nodes1.size(); ++i1)
@@ -42,13 +31,13 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelation> > &connectPair
 					else
 						min_dist = min_dist - prb.deviation;
 
-					resultMean += min_dist;
+					//resultMean += min_dist;
 					++num;
 					if ( min_dist > resultMax)
 					{
 						resultMax = min_dist;
 					}					
-					
+////////////////////////////////////					
 					if (logLevel_>0 && min_dist > 0) //
 					{
 						logStream_ << num << "\n";
@@ -62,7 +51,7 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelation> > &connectPair
 							<< nodes1[i1]->bbox().diagonal().norm() << ", " << nodes1[i2]->bbox().diagonal().norm()
 							<< ", "<< dist << ">:" << min_dist << "\n\n";
 					}
-					
+////////////////////////////////////					
 				}
 			}
 		}
@@ -70,8 +59,8 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelation> > &connectPair
 
 	if (logLevel_>0 )
 	{
-		logStream_ << "mean score: " << 1-resultMean/num << "\n";
-		logStream_ << "max score: " << 1-resultMax << "\n";		
+		//logStream_ << "mean score: " << 1-resultMean/num << "\n";
+		logStream_ << "max score: " << 1/(1+resultMax) << "\n";		
 	}
-	return 1-resultMax;
+	return 1/(1+resultMax);
 }
