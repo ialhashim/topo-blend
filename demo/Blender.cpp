@@ -458,15 +458,19 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 		return;
 	}
 
-	// EXPERIMENT:
+	// EXPERIMENTS:
 	if(keyEvent->key() == Qt::Key_Q){
 
 		// Experiment: path evaluation
 		//pathsEval->evaluatePaths();
 		//pathsEval->clusterPaths();
 		pathsEval->test_filtering();
-		pathsEval->test_topoDistinct();
 
+		return;
+	}
+	if(keyEvent->key() == Qt::Key_W)
+	{
+		pathsEval->test_topoDistinct();
 		return;
 	}
 

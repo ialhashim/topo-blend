@@ -1290,7 +1290,15 @@ SurfaceMesh::Vector3 Graph::nodeIntersection( Node * n1, Node * n2 )
 
 int Graph::valence( Node * n )
 {
-	return this->getEdges(n->id).size();
+	// Collect set of neighbours
+	QSet<QString> neighbours;
+	foreach(Link * l, this->getEdges(n->id))
+		neighbours.insert( l->otherNode( n->id )->id );
+	
+	// remove any self edges
+	neighbours.remove(n->id);
+
+	return neighbours.size();
 }
 
 Curve* Graph::getCurve( Link * l )
