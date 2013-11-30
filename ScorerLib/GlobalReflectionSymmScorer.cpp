@@ -68,7 +68,7 @@ Eigen::Vector3d GlobalReflectionSymmScorer::findReflectPlane(const Eigen::Vector
 }
 double GlobalReflectionSymmScorer::evaluate(Eigen::Vector3d &center, Eigen::Vector3d &normal, double maxGlobalSymmScore)
 {
-	double meanScore(0.0), maxScore(0.0);
+	double maxScore(0.0);//double meanScore(0.0)
 	double gsize = graph_->bbox().diagonal().norm();
 	for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
     {
@@ -83,23 +83,23 @@ double GlobalReflectionSymmScorer::evaluate(Eigen::Vector3d &center, Eigen::Vect
 		
         distanceBetween(ptsout, nodesCpts_[j], minDist, meanDist, maxDist);
         
-        meanScore += minDist;
-        if ( minDist > maxScore)
+        //meanScore += meanDist;
+        if ( meanDist > maxScore)
         {
-            maxScore = minDist;
+            maxScore = meanDist;
         }
 
 		if(logLevel_>1)
 		{
-			minDist= minDist/gsize;
-			minDist = 1/(1+minDist);
-			logStream_ << "part: " << graph_->nodes[i]->id << ", deviation of symm: " << minDist/maxGlobalSymmScore << "\n";
+			meanDist= meanDist/gsize;
+			meanDist = 1/(1+meanDist);
+			logStream_ << "part: " << graph_->nodes[i]->id << ", deviation of symm: " << meanDist/maxGlobalSymmScore << "\n";
 		}
     }
-    meanScore = meanScore/graph_->nodes.size();
-    meanScore = meanScore/gsize;
-    meanScore = 1/(1+meanScore);
-	meanScore = meanScore/maxGlobalSymmScore;
+    //meanScore = meanScore/graph_->nodes.size();
+    //meanScore = meanScore/gsize;
+    //meanScore = 1/(1+meanScore);
+	//meanScore = meanScore/maxGlobalSymmScore;
 
     maxScore = maxScore/gsize;
     maxScore = 1/(1+maxScore);
@@ -111,7 +111,7 @@ double GlobalReflectionSymmScorer::evaluate(Eigen::Vector3d &center, Eigen::Vect
 		logStream_ << "center of reflection plane: " << center.x() << ", " << center.y() <<", " << center.z() << "\n";
 		logStream_ << "normal of reflection plane: " << normal.x() << ", " << normal.y() <<", " << normal.z() << "\n";
 		logStream_ << "max global score for normalization: " << maxGlobalSymmScore << "\n";
-		logStream_ << "mean score: " << meanScore << "\n";
+		//logStream_ << "mean score: " << meanScore << "\n";
 		logStream_ << "max score: " << maxScore << "\n";
 	}
 

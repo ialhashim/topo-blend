@@ -44,9 +44,9 @@ double GroupRelationScorer::evaluate(QVector<QVector<GroupRelation> > &groupss, 
 
 	if (logLevel_>0 )
 	{
-		logStream_ << "max score: " << 1-resultMax << "\n";		
+		logStream_ << "max score: " << 1/(1+resultMax) << "\n";		
 	}
-	return 1-resultMax;
+	return 1/(1+resultMax);
 }
 
 GroupRelation GroupRelationScorer::findCorrespondenceGroup(Structure::Graph *graph, GroupRelation &gr,QVector<PART_LANDMARK>& corres,bool bSource)
