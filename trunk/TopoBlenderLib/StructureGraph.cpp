@@ -1882,7 +1882,7 @@ QVector<Node*> Structure::Graph::leaves()
 	QVector<Node*> result;
 
 	foreach(Node* n, nodes)
-		if(getEdges(n->id).size() == 1)
+		if(valence(n) == 1)
 			result.push_back(n);
 
 	return result;
