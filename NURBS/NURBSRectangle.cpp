@@ -642,10 +642,10 @@ void NURBSRectangle<Real>::generateSurfaceQuads(double resolution)
             std::vector<Vector3> pos = Array1D_Vector3(4, Vector3(0,0,0));
             std::vector<Vector3> dU = pos, dV = pos, normal = pos;
 
-            GetFrame(valU[x]	, valV[y]	,	pos[0], dU[0], dV[0], normal[0]);
-            GetFrame(valU[x+1]	, valV[y]	,	pos[1], dU[1], dV[1], normal[1]);
-            GetFrame(valU[x+1]	, valV[y+1]	,	pos[2], dU[2], dV[2], normal[2]);
-            GetFrame(valU[x]	, valV[y+1]	,	pos[3], dU[3], dV[3], normal[3]);
+            this->GetFrame(valU[x]	, valV[y]	,	pos[0], dU[0], dV[0], normal[0]);
+            this->GetFrame(valU[x+1]	, valV[y]	,	pos[1], dU[1], dV[1], normal[1]);
+            this->GetFrame(valU[x+1]	, valV[y+1]	,	pos[2], dU[2], dV[2], normal[2]);
+            this->GetFrame(valU[x]	, valV[y+1]	,	pos[3], dU[3], dV[3], normal[3]);
 
             SurfaceQuad quad;
 
@@ -1024,7 +1024,7 @@ Vector3 NURBSRectangle<Real>::projectOnControl( Real u, Real v )
     std::vector< std::vector<Vector3> > tris = NURBSRectangle::triangulateControlCage();
 
     Vector3 pos(0,0,0), t0(0,0,0), t1(0,0,0), normal(0,0,0);
-    GetFrame(u,v, pos, t0,t1, normal);
+    this->GetFrame(u,v, pos, t0,t1, normal);
     normal.normalize();
 
     QMap<double, Vector3d> hits;
