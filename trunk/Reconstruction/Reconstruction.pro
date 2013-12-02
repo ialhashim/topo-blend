@@ -64,3 +64,4 @@ SOURCES += \
     poissonrecon.cpp
 
 unix:!mac:QMAKE_CXXFLAGS = $$QMAKE_CFLAGS -fpermissive
+mac:QMAKE_LFLAGS += -fopenmp
