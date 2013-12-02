@@ -12,7 +12,7 @@ SUBDIRS += GlSplatRendererLib
 
 # Plugins
 SUBDIRS += voxel_resampler
-#SUBDIRS += nurbs_plugin
+SUBDIRS += nurbs_plugin
 
 # Legacy
 #SUBDIRS += resample
