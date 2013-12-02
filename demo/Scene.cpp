@@ -320,5 +320,13 @@ void Scene::resizeInputShapes()
 {
 	if(!inputGraphs[0] || !inputGraphs[1]) return;
 
-	inputGraphs[0]->g->bbox();
+	double s0 = inputGraphs[0]->g->bbox().diagonal().maxCoeff();
+	double s1 = inputGraphs[1]->g->bbox().diagonal().maxCoeff();
+
+	Structure::Graph * toResize = s1 > s0 ? inputGraphs[0]->g : inputGraphs[1]->g;
+
+	toResize->scale( (s1 > s0) ? s1 / s0 : s0 / s1 );
+	toResize->property.remove("bbox"); // remove cached bounding box
+
+	update();
 }
