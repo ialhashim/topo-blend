@@ -28,6 +28,6 @@ HEADERS +=  GlSplat/GlSplat.h \
 
 SOURCES +=  GlSplat/GlSplat.cpp \
             GlSplat/Shader.cpp \
-            GlSplat/GLee.c
+            GlSplat/glee.c
 
 RESOURCES += shaders.qrc

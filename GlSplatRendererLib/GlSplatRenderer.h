@@ -1,8 +1,9 @@
 #pragma once
 
-#include "GlSplat/GlSplat.h"
-#include "SurfaceMeshModel.h"
+#include <Eigen/Core>
+
 #include "GLVertex.h"
+#include "GlSplat/GlSplat.h"
 
 class GlSplatRenderer : public GlSplat::SplatRenderer
 {

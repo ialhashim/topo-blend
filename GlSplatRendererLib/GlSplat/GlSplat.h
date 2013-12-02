@@ -17,11 +17,13 @@
 #ifndef _GLSPLAT_SPLATRENDERER_H_
 #define _GLSPLAT_SPLATRENDERER_H_
 
-#include "Shader.h"
 #include <QObject>
 #include <QAction>
 #include <QString>
 #include <map>
+
+#include "Shader.h"
+
 
 class QGLFramebufferObject;
 

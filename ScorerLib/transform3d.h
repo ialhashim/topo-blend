@@ -1,7 +1,7 @@
 #pragma once
 #include <Eigen/Dense>
 #include <vector>
-#include "geometry.h"
+#include "Geometry.h"
 
 //////////////////////////////////////////
 // compute min, mean & max distance between 2 sets of points

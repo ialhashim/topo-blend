@@ -1,10 +1,11 @@
-#include "GlSplatRenderer.h"
-GlSplatRenderer * splat_renderer = NULL;
-
 #include <QApplication>
 #include <QStack>
 #include <QFileDialog>
 #include <QtConcurrentRun>
+
+#include "GlSplatRenderer.h"
+GlSplatRenderer * splat_renderer = NULL;
+
 #include "SynthesisManager.h"
 
 // Synthesis

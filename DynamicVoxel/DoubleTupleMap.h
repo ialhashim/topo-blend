@@ -1,6 +1,6 @@
 #include <QHash>
 
-#if defined(Q_OS_MAC)
+#ifndef WIN32
 #include <tr1/functional>
 #endif
 

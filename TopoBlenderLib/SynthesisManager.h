@@ -1,12 +1,12 @@
 #pragma once
 
-#include <vector>
 #include <QObject>
 #include <QMap>
-
-#include "GLVertex.h"
+#include <vector>
 
 #include "StructureGraph.h"
+
+#include "GLVertex.h"
 
 // Forward declare
 class GraphCorresponder;

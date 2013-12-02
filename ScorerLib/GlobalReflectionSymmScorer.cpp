@@ -76,7 +76,9 @@ double GlobalReflectionSymmScorer::evaluate(Eigen::Vector3d &center, Eigen::Vect
         Eigen::Vector3d nc1;
         reflect_point3d(nc, center, normal, nc1);
         double minDist, meanDist, maxDist;
-		int j = findNearestPart(nc1, graph_->nodes[i]->type(), minDist);
+
+        QString nodeType = graph_->nodes[i]->type();
+        int j = findNearestPart(nc1, nodeType, minDist);
         
 		Eigen::MatrixXd ptsout;
         reflect_points3d(nodesCpts_[i], center, normal, ptsout);

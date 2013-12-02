@@ -1,5 +1,5 @@
 #pragma once
-#include "relationdetector.h"
+#include "RelationDetector.h"
 class PairRelationScorer :
 	public RelationDetector
 {

@@ -25,18 +25,13 @@ DESTDIR = $$PWD/$$CFG/lib
 LIBS += -L$$PWD/../NURBS/$$CFG/lib -lNURBS
 INCLUDEPATH += ../NURBS
 
-# VOXEL library
-#LIBS += -L$$PWD/../DynamicVoxel/$$CFG/lib -lDynamicVoxel
-#INCLUDEPATH += ../DynamicVoxel
-
 # Surface Reconstruction library
 LIBS += -L$$PWD/../Reconstruction/$$CFG/lib -lReconstruction
 INCLUDEPATH += ../Reconstruction
 
 # Splat Rendering library
-LIBS += -L$$PWD/../GLSplatRendererLib/$$CFG/lib -lGLSplatRendererLib
-INCLUDEPATH += ../GLSplatRendererLib
-
+LIBS += -L$$PWD/../GlSplatRendererLib/$$CFG/lib -lGlSplatRendererLib
+INCLUDEPATH += ../GlSplatRendererLib
 
 HEADERS += StructureNode.h \
     StructureGraph.h \
@@ -91,3 +86,6 @@ SOURCES += StructureGraph.cpp \
     GraphDissimilarity.cpp
 	
 FORMS +=  SchedulerWidget.ui GraphModifyWidget.ui
+
+unix:!mac:QMAKE_CXXFLAGS = $$QMAKE_CFLAGS -fpermissive
+unix:!mac:LIBS += -lGLU

@@ -24,10 +24,6 @@ CONFIG(debug, debug|release) {
 LIBS += -L$$PWD/../NURBS/$$CFG/lib -lNURBS
 INCLUDEPATH += ../NURBS
 
-# VOXEL library
-LIBS += -L$$PWD/../DynamicVoxel/$$CFG/lib -lDynamicVoxel
-INCLUDEPATH += ../DynamicVoxel
-
 # Surface Reconstruction library
 LIBS += -L$$PWD/../Reconstruction/$$CFG/lib -lReconstruction
 INCLUDEPATH += ../Reconstruction
@@ -37,8 +33,8 @@ LIBS += -L$$PWD/../TopoBlenderLib/$$CFG/lib -lTopoBlenderLib
 INCLUDEPATH += ../TopoBlenderLib
 
 # Splat Rendering library
-LIBS += -L$$PWD/../GLSplatRendererLib/$$CFG/lib -lGLSplatRendererLib
-INCLUDEPATH += ../GLSplatRendererLib
+LIBS += -L$$PWD/../GlSplatRendererLib/$$CFG/lib -lGlSplatRendererLib
+INCLUDEPATH += ../GlSplatRendererLib
 
 # Blend path scoring library
 LIBS += -L$$PWD/../ScorerLib/$$CFG/lib -lScorerLib
