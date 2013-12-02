@@ -337,7 +337,7 @@ Real NURBSCurve<Real>::timeAt( const Vector3 & pos )
 	int segmentCount = 100;
 
 	std::vector<Real> times;
-	SubdivideByLengthTime(segmentCount, times);
+	this->SubdivideByLengthTime(segmentCount, times);
 
     int minIdx = 0;
     double t = 0.0;
