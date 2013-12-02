@@ -68,13 +68,14 @@ ShapeItem *ShapesGallery::makeShapeItem( QString name, PropertyMap info, int idx
 
 void ShapesGallery::loadDataset(DatasetMap dataset)
 {
+	if(!dataset.size()) return;
+	m_dataset = dataset;
+
     foreach(QString shape, dataset.keys())
     {
         listA.push_back( makeShapeItem(shape, dataset[shape], listA.size(), false) );
         listB.push_back( makeShapeItem(shape, dataset[shape], listB.size(), true) );
     }
-
-	if(!listA.size()) return;
 
     foreach(QGraphicsItem * item, listA) s->addItem(item);
     foreach(QGraphicsItem * item, listB) s->addItem(item);
@@ -107,6 +108,47 @@ void ShapesGallery::loadDataset(DatasetMap dataset)
 
 	QString log = QString("Added [%1] shapes.").arg(listA.size());
 	emit (message(log));
+}
+
+void ShapesGallery::setCategories( PropertyMap categories )
+{
+	m_categories = categories;
+}
+
+void ShapesGallery::reloadDataset( QString filter )
+{
+	QVector<QString> keep;
+	QStringList items = m_categories[filter].value<QStringList>();
+
+	// Filter items
+	foreach(QString key, m_dataset.keys()){
+		if( items.isEmpty() ) keep.push_back(key);
+		else if( items.contains(key) ) keep.push_back(key);
+	}
+
+	// Create filterd set
+	DatasetMap filterd;
+	foreach(QString key, keep)
+		filterd[key] = m_dataset[key];
+
+	// Clear previous
+	foreach(QGraphicsItem* item, listA) s->removeItem(item);
+	foreach(QGraphicsItem* item, listB) s->removeItem(item);
+
+	listA.clear();
+	listB.clear();
+
+	// Display the current category
+	foreach(QString shape, filterd.keys())
+	{
+		listA.push_back( makeShapeItem(shape, filterd[shape], listA.size(), false) );
+		listB.push_back( makeShapeItem(shape, filterd[shape], listB.size(), true) );
+	}
+
+	foreach(QGraphicsItem * item, listA) s->addItem(item);
+	foreach(QGraphicsItem * item, listB) s->addItem(item);
+
+	this->layout();
 }
 
 void ShapesGallery::appendShape(QString name, PropertyMap data)
@@ -165,6 +207,9 @@ void ShapesGallery::layout()
     indexA = qMax(0, indexOf(shapeLeft));
     indexB = qMax(0, indexOf(shapeRight));
 
+	if(indexA == indexB && indexA == 0 && listB.size() > 1)
+		indexB++;
+
     scrollTo(listA, indexA);
     emit( shapeChanged(0, listA[indexA]) );
 
@@ -185,10 +230,13 @@ void ShapesGallery::arrangeList( QVector<QGraphicsItem*> & list, int x )
 void ShapesGallery::wheelEvent(QGraphicsSceneWheelEvent * event)
 {
     if(!this->isVisible()) return;
+	if(event->scenePos().y() > 600) return;
 
     bool isLeftSide = event->scenePos().x() < (s->width() * 0.6);
 	bool isRightSide = event->scenePos().x() > (s->width() * 0.4);
     bool isUp = event->delta() > 0;
+
+	if(!listA.size() || !listB.size()) return;
 
     if(isLeftSide)
     {

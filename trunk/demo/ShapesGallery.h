@@ -18,6 +18,9 @@ private:
 
 	int indexOf(QString graphName);
 
+	DatasetMap m_dataset;
+	PropertyMap m_categories;
+
 signals:
     void shapeChanged(int,QGraphicsItem*);
 
@@ -32,4 +35,7 @@ public slots:
 	void scrollToItem(ShapeItem* item);
 
 	void appendShape(QString name, PropertyMap data);
+
+	void setCategories( PropertyMap categories );
+	void reloadDataset( QString filter );
 };
