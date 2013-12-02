@@ -46,7 +46,7 @@ signals:
 	void message(QString);
 
 public slots:
-    
+	void resizeInputShapes();
 };
 
 // Utility:

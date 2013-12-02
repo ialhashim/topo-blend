@@ -59,8 +59,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     scene->connect(session, SIGNAL(update()), SLOT(update()));
 
 	// Everything is ready, load shapes now:
-	gallery->loadDataset( getDataset() );
+	QString datasetFolder = "dataset";
+
+	gallery->loadDataset( getDataset(datasetFolder) );
 	gallery->layout();
+
+	control->loadCategories( datasetFolder );
 }
 
 MainWindow::~MainWindow()

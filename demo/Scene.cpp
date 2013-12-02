@@ -315,3 +315,10 @@ QGraphicsProxyWidget * Scene::addButton( int x, int y, QString text, QImage icon
 	addItem(item);
 	return item;
 }
+
+void Scene::resizeInputShapes()
+{
+	if(!inputGraphs[0] || !inputGraphs[1]) return;
+
+	inputGraphs[0]->g->bbox();
+}

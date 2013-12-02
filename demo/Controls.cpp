@@ -9,6 +9,8 @@ Controls::Controls(QWidget *parent) : QWidget(parent), ui(new Ui::Controls)
 {
     ui->setupUi(this);
 
+	ui->categoriesBox->addItem("All");
+
     // Hide the stupid frame line
     QPalette p = QApplication::palette();
     p.setColor(QPalette::Dark, QColor(0,0,0,0));
@@ -21,6 +23,29 @@ Controls::Controls(QWidget *parent) : QWidget(parent), ui(new Ui::Controls)
 Controls::~Controls()
 {
     delete ui;
+}
+
+void Controls::loadCategories( QString datasetPath )
+{
+	QFile file( datasetPath + "/categories.txt" );
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+
+	PropertyMap categories;
+
+	QTextStream in(&file);
+	while (!in.atEnd()){
+		QStringList line = in.readLine().split("|");
+		if(line.size() < 2) continue;
+	
+		QString catName = line.front().trimmed();
+		QStringList catElements = line.back().split(QRegExp("[ \t]"), QString::SkipEmptyParts);
+
+		ui->categoriesBox->addItem(catName);
+
+		categories[catName] = catElements;
+	}
+
+	emit( categoriesLoaded(categories) );
 }
 
 void Controls::tabChanged(int index)

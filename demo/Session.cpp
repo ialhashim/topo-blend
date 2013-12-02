@@ -29,6 +29,11 @@ Session::Session(   Scene *scene, ShapesGallery *gallery, Controls * control,
 
 	// Gallery:
 	gallery->connect(blender, SIGNAL(exportShape(QString,PropertyMap)), SLOT(appendShape(QString,PropertyMap)));
+	gallery->connect(control, SIGNAL(categoriesLoaded(PropertyMap)), SLOT(setCategories(PropertyMap)));
+	gallery->connect(control->ui->categoriesBox, SIGNAL(currentIndexChanged(QString)), SLOT(reloadDataset(QString)));
+
+	// Scene:
+	scene->connect(control->ui->resizeButton, SIGNAL(clicked()), SLOT(resizeInputShapes()));
 }
 
 void Session::shapeChanged(int i, QGraphicsItem * shapeItem)

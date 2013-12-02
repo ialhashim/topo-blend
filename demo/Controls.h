@@ -1,6 +1,9 @@
 #pragma once
 
+#include "DemoGlobal.h"
 #include <QWidget>
+#include <QMap>
+
 namespace Ui {class Controls;}
 
 class Controls : public QWidget
@@ -10,6 +13,8 @@ class Controls : public QWidget
 public:
     explicit Controls(QWidget *parent = 0);
     ~Controls();
+
+	void loadCategories( QString datasetPath );
 
 public slots:
     void tabChanged(int index);
@@ -23,6 +28,9 @@ signals:
     void showSelect();
     void showMatch();
     void showCreate();
+
+	void categoriesLoaded(PropertyMap);
+
 public:
     Ui::Controls *ui;
 };
