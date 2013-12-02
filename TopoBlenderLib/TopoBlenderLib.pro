@@ -87,5 +87,8 @@ SOURCES += StructureGraph.cpp \
 	
 FORMS +=  SchedulerWidget.ui GraphModifyWidget.ui
 
+mac:QMAKE_CXXFLAGS += -fopenmp
+mac:QMAKE_LFLAGS += -fopenmp
+
 unix:!mac:QMAKE_CXXFLAGS = $$QMAKE_CFLAGS -fpermissive
 unix:!mac:LIBS += -lGLU
