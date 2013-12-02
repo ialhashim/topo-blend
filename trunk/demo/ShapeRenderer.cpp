@@ -1,9 +1,12 @@
-#include "GlSplatRenderer.h"
-#include "ShapeRenderer.h"
-#include <qglviewer/camera.h>
+#include <QTextStream>
+#include <QEvent>
 
 #include <SurfaceMeshHelper.h>
 using namespace SurfaceMesh;
+
+#include "GlSplat/GLee.h"
+#include "ShapeRenderer.h"
+#include "qglviewer/camera.h"
 
 ShapeRenderer::ShapeRenderer(QString filename, QColor color, int resolution) : color(color)
 {

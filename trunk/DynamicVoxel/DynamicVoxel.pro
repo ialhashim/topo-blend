@@ -19,3 +19,5 @@ DESTDIR = $$PWD/$$CFG/lib
 
 SOURCES += DynamicVoxel.cpp
 HEADERS += Voxel.h DynamicVoxel.h DoubleTupleMap.h
+
+unix:!mac:QMAKE_CXXFLAGS = $$QMAKE_CFLAGS -fpermissive

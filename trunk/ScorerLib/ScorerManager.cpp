@@ -9,7 +9,7 @@
 //#include "PairRelationScorer.h"
 #include "GroupRelationScorer.h"
 
-void saveScore(QString &filename, QVector<double> scores, QString& headline)
+void saveScore(QString filename, QVector<double> scores, QString headline)
 {
 	QFile file(filename);
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;		
@@ -132,7 +132,7 @@ void ScorerManager::evaluateTopologyAuto()
 
 	///////////////// 
 	QVector<double> topoScore = evaluateTopology(this->scheduler->allGraphs);
-	saveScore(QString("evaluate_connectivity_auto.txt"), topoScore, QString());	
+    saveScore(QString("evaluate_connectivity_auto.txt"), topoScore, QString());
 
 
     emit( message("Evaluate topology auto end. ") );

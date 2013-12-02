@@ -1,4 +1,4 @@
-#include "geometry.h"
+#include "Geometry.h"
 #include "transform3d.h"
 
 double errorOfParallel(Eigen::Vector3d& d1, Eigen::Vector3d& d2)

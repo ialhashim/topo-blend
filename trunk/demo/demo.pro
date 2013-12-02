@@ -13,10 +13,6 @@ CONFIG(debug, debug|release) {
 LIBS += -L$$PWD/../NURBS/$$CFG/lib -lNURBS
 INCLUDEPATH += ../NURBS
 
-# VOXEL library
-LIBS += -L$$PWD/../DynamicVoxel/$$CFG/lib -lDynamicVoxel
-INCLUDEPATH += ../DynamicVoxel
-
 # Surface Reconstruction library
 LIBS += -L$$PWD/../Reconstruction/$$CFG/lib -lReconstruction
 INCLUDEPATH += ../Reconstruction
@@ -25,13 +21,13 @@ INCLUDEPATH += ../Reconstruction
 LIBS += -L$$PWD/../TopoBlenderLib/$$CFG/lib -lTopoBlenderLib
 INCLUDEPATH += ../TopoBlenderLib
 
+# Splat Rendering library
+LIBS += -L$$PWD/../GlSplatRendererLib/$$CFG/lib -lGlSplatRendererLib
+INCLUDEPATH += ../GlSplatRendererLib
+
 # Blend path scoring library
 LIBS += -L$$PWD/../ScorerLib/$$CFG/lib -lScorerLib
 INCLUDEPATH += ../ScorerLib
-
-# Splat Rendering library
-LIBS += -L$$PWD/../GLSplatRendererLib/$$CFG/lib -lGLSplatRendererLib
-INCLUDEPATH += ../GLSplatRendererLib
 
 QT += core gui opengl
 
@@ -90,3 +86,10 @@ mac:ICON = images/appIcon.icns
 # Mac specific
 mac:LIBS += -framework CoreFoundation # We need this for GLee..
 mac:QMAKE_LFLAGS += -fopenmp
+
+unix:!mac:QMAKE_CXXFLAGS = $$QMAKE_CFLAGS -fpermissive
+unix:!mac:LIBS += -lGLU
+
+# This is some weird linker issue..
+unix:!mac:LIBS += $$PWD/../NURBS/$$CFG/lib/libNURBS.a
+unix:!mac:LIBS += $$PWD/../Reconstruction/$$CFG/lib/libReconstruction.a

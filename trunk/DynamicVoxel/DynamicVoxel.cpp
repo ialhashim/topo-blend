@@ -1,3 +1,9 @@
+// Eigen Library
+#include <Eigen/Sparse>
+#include <Eigen/CholmodSupport>
+using namespace Eigen;
+typedef CholmodSupernodalLLT< SparseMatrix<double> > CholmodSolver;
+
 #include <QElapsedTimer>
 
 #include "DynamicVoxel.h"
@@ -12,12 +18,6 @@ using namespace SurfaceMesh;
 #include "PolygonArea.h"
 
 using namespace DynamicVoxelLib;
-
-// Eigen Library
-#include <Eigen/Sparse>
-#include <Eigen/CholmodSupport>
-using namespace Eigen;
-typedef CholmodSupernodalLLT< SparseMatrix<double> > CholmodSolver;
 
 DynamicVoxel::DynamicVoxel(double voxelSize){
 

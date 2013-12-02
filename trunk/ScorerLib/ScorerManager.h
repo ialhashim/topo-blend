@@ -68,7 +68,7 @@ public slots:
 	void clear();
 
 private:
-	bool ScorerManager::isGlobalReflectionSymmParsed()
+    bool isGlobalReflectionSymmParsed()
 	{
 		return (-1 != maxGlobalSymmScore_);
 	}

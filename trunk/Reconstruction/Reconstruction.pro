@@ -62,3 +62,5 @@ SOURCES += \
     Src/CmdLineParser.cpp \
     Src/BSplineData.inl \
     poissonrecon.cpp
+
+unix:!mac:QMAKE_CXXFLAGS = $$QMAKE_CFLAGS -fpermissive

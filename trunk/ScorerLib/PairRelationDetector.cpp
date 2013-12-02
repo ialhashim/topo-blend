@@ -149,12 +149,14 @@ double PairRelationDetector::CoplanarPairModifier::operator() (Structure::Node *
         if ( iscurve1 )
         {
             sheet2plane(dynamic_cast<Structure::Sheet *>(n2), point, normal);
-            deviation = errorOfLineInPlane( curve2segment(n1), point, normal);
+            Segment_3 cs = curve2segment(n1);
+            deviation = errorOfLineInPlane( cs, point, normal);
         }
         else
         {
             sheet2plane(dynamic_cast<Structure::Sheet *>(n1), point, normal);
-            deviation = errorOfLineInPlane( curve2segment(n2), point, normal);
+            Segment_3 cs = curve2segment(n2);
+            deviation = errorOfLineInPlane( cs, point, normal);
         }
 	}
 	
@@ -412,12 +414,14 @@ void PairRelationDetector::isParalOrthoCoplanar(int id1, int id2)
             if ( iscurve1 )
             {
                 sheet2plane(dynamic_cast<Structure::Sheet *>(n2), point, normal);
-                error = errorOfLineInPlane( curve2segment(n1), point, normal);
+                Segment_3 cs = curve2segment(n1);
+                error = errorOfLineInPlane( cs, point, normal);
             }
             else
             {
                 sheet2plane(dynamic_cast<Structure::Sheet *>(n1), point, normal);
-                error = errorOfLineInPlane( curve2segment(n2), point, normal);
+                Segment_3 cs = curve2segment(n2);
+                error = errorOfLineInPlane( cs, point, normal);
             }
 			nerror = fixDeviationByPartName(n1->id, n2->id, error);
 
