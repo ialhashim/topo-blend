@@ -76,6 +76,7 @@ private:
 		for ( int i = 0; i < pairs.size(); ++i)
 		{
 			PairRelation& prb = pairs[i];
+			prb.tag = true;
 			std::vector<Structure::Node*> nodes1 = findNodesInST(prb.n1->id, g, corres, !bSource_);
 			std::vector<Structure::Node*> nodes2 = findNodesInST(prb.n2->id, g, corres, !bSource_);
 			fn.maxAllowDeviation_ = 0.0;
@@ -109,17 +110,26 @@ private:
 			}
 
 			/////////
-			//if (nodes1.size()*nodes2.size()>0)
-			//{
+			if (nodes1.size()*nodes2.size()>0)
+			{
 				prb.deviation = std::max(prb.deviation, fn.maxAllowDeviation_);
-			//}
+			}
+			else
+			{
+				prb.tag = false;
+			}
 		}
 
 		if( logLevel_ >1 )
 		{
 			logStream_ << "Total: " << pairs.size() << " pairs" << "\n\n";
 			for ( QVector<PairRelation>::iterator it = pairs.begin(); it != pairs.end(); ++it)
-				logStream_ << *it << "\n";
+			{
+				if ( it->tag)
+				{
+					logStream_ << *it << "\n";
+				}
+			}
 		}
 	}
 	bool has_trans_relation(int id1, int id2);
