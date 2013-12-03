@@ -303,7 +303,14 @@ void ScorerManager::evaluateGlobalReflectionSymmAuto()
 	QVector<double> symmScore = evaluateGlobalReflectionSymm(this->scheduler->allGraphs);    
 
 	QString headline = "is use source center: ";
-	headline.append(isUseSourceCenter_);
+	if ( isUseSourceCenter_)
+	{
+		headline.append("true");
+	}
+	else
+	{
+		headline.append("false");
+	}
 	headline.append("\n");
 	saveScore(QString("evaluate_global_symm_auto.txt"), symmScore, headline);		
 

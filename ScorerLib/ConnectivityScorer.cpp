@@ -27,31 +27,35 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelation> > &connectPair
 					
 					min_dist = min_dist/dist;
 					if (min_dist < prb.deviation)
+					{
 						min_dist = 0;
+					}
 					else
+					{
+////////////////////////////////////					
+						if (logLevel_>0 ) 
+						{
+							logStream_ << num << "\n";
+							if ( j == 0 )
+								logStream_ << "connected pairs in source shape \n";
+							else
+								logStream_ << "connected pairs in target shape \n";
+
+							logStream_ << prb << "correspond to: \n";
+							logStream_ << "<" << nodes1[i1]->id << ", " << nodes2[i2]->id << "> size <" 
+								<< nodes1[i1]->bbox().diagonal().norm() << ", " << nodes1[i2]->bbox().diagonal().norm()
+								<< ", "<< dist << ">:" << min_dist << ", before normalization is: " << min_dist*dist << "\n\n";
+						}
+////////////////////////////////////	
 						min_dist = min_dist - prb.deviation;
+					}
 
 					//resultMean += min_dist;
 					++num;
 					if ( min_dist > resultMax)
 					{
 						resultMax = min_dist;
-					}					
-////////////////////////////////////					
-					if (logLevel_>0 && min_dist > 0) //
-					{
-						logStream_ << num << "\n";
-						if ( j == 0 )
-							logStream_ << "connected pairs in source shape \n";
-						else
-							logStream_ << "connected pairs in target shape \n";
-
-						logStream_ << prb << "correspond to: \n";
-						logStream_ << "<" << nodes1[i1]->id << ", " << nodes2[i2]->id << "> size <" 
-							<< nodes1[i1]->bbox().diagonal().norm() << ", " << nodes1[i2]->bbox().diagonal().norm()
-							<< ", "<< dist << ">:" << min_dist << "\n\n";
 					}
-////////////////////////////////////					
 				}
 			}
 		}

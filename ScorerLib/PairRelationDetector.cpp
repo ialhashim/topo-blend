@@ -5,8 +5,11 @@ void PairRelationDetector::pushToOtherPairs(QVector<PairRelation>& prs, QString 
 {
 	for (QVector<PairRelation>::iterator it = prs.begin(); it != prs.end(); ++it)
 	{
-		it->type = type;
-		otherPairs_.push_back(*it);
+		if ( it->tag)
+		{
+			it->type = type;
+			otherPairs_.push_back(*it);
+		}
 	}
 }
 double PairRelationDetector::ConnectedPairModifier::operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2)
@@ -187,9 +190,11 @@ PairRelationDetector::PairRelationDetector(Structure::Graph* g, int ith, int log
 		nodesDiameter_.push_back(n->bbox().diagonal().norm());
 	}
 }
+
 void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
 {
-	connectedPairs_.clear();
+	QVector<PairRelation> pairs;
+	
 
 	double dist = graph_->bbox().diagonal().norm();
 	int tmp1 = graph_->edges.size();
@@ -202,7 +207,7 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 		PairRelation prb(link->n1,link->n2);
 		prb.deviation = (p1-p2).norm()/dist;
 
-		connectedPairs_.push_back(prb);
+		pairs.push_back(prb);
 	}
 
 	//int tmp1 = nodesPts_.size()-1;
@@ -225,11 +230,16 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 	//}
 
 	double dist1 = g->bbox().diagonal().norm();
-	modifyPairsDegree(connectedPairs_, ConnectedPairModifier(dist1, pointLevel_), g, corres, "Connected pairs");
+	modifyPairsDegree(pairs, ConnectedPairModifier(dist1, pointLevel_), g, corres, "Connected pairs");
 
-	for (QVector<PairRelation>::iterator it = connectedPairs_.begin(); it != connectedPairs_.end(); ++it)
+	connectedPairs_.clear();
+	for (QVector<PairRelation>::iterator it = pairs.begin(); it != pairs.end(); ++it)
 	{
-		it->type = CONNECTED;
+		if (it->tag)
+		{
+			it->type = CONNECTED;
+			connectedPairs_.push_back(*it);		
+		}
 	}
 }
 void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
@@ -273,7 +283,7 @@ void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LA
 	modifyPairsDegree(orthogonalPairs_, OrthogonalPairModifier(pointLevel_), g, corres, "Orthogonal pairs");
 	modifyPairsDegree(coplanarPairs_, CoplanarPairModifier(pointLevel_), g, corres, "Coplanar pairs");
 
-	
+	otherPairs_.clear();
 	pushToOtherPairs(transPairs_, TRANS);
 	pushToOtherPairs(refPairs_, REF);
 	pushToOtherPairs(parallelPairs_, PARALLEL);

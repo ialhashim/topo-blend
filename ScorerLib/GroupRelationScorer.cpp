@@ -66,6 +66,7 @@ GroupRelation GroupRelationScorer::findCorrespondenceGroup(Structure::Graph *gra
             if ( NULL == n) continue;
 
             tmpNodes.push_back(n);
+			diameter = n->bbox().diagonal().norm();
             nodeDiameter.push_back(diameter);
             if ( diameter > maxDiameter)
             {
@@ -197,7 +198,7 @@ void GroupRelationScorer::computeGroupDeviationByCpts(GroupRelation& cgr, GroupR
             if (error < thParal_)
             {
                 Line_3 l1 = curve2line(n);
-                error = squared_distance(l0, l1);
+                error = squared_distance_of_parallel(l0, l1);
                 if ( error < 0.001) // they are the same line
                     continue;
             }
