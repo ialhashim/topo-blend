@@ -77,7 +77,7 @@ GroupRelation GroupRelationScorer::findCorrespondenceGroup(Structure::Graph *gra
     }
 
     //////////////	use max node as the first node, the following will be transformed into it, & compare with it.
-    if ( tmpNodes.size() < gr.ids.size() )
+    if ( int(tmpNodes.size()) < gr.ids.size() )
     {
         return cgr;
     }

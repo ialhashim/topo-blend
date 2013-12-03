@@ -34,6 +34,7 @@ GraphExplorer::GraphExplorer(QWidget *parent): QWidget(parent), ui(new Ui::Graph
 	headers << "Name" << "Value";
 	ui->nodesTree->setHeaderLabels(headers);
 	ui->edgesTree->setHeaderLabels(headers);
+	ui->graphTree->setHeaderLabels(headers);
 }
 
 void GraphExplorer::hideEvent(QHideEvent * e)
@@ -61,6 +62,7 @@ void GraphExplorer::update(Structure::Graph * graph)
 	// Fill in node and edges info
 	fillNodesInfo();
 	fillEdgesInfo();
+	fillGraphInfo();
 
 	// Apply filters
 	filterNodes();
@@ -209,6 +211,16 @@ void GraphExplorer::fillEdgesInfo()
 	}
 }
 
+void GraphExplorer::fillGraphInfo()
+{
+	QTreeWidgetItem * eitem = new QTreeWidgetItem;
+	eitem->setText(0, "Graph");
+	eitem->setText(1, "");
+
+	fillInfoItem(g->property, eitem);
+	ui->graphTree->addTopLevelItem(eitem);
+}
+
 void GraphExplorer::fillInfoItem( QMap<QString,QVariant> prop, QTreeWidgetItem * item )
 {
 	foreach(QString key, prop.keys())
@@ -252,6 +264,13 @@ void GraphExplorer::fillInfoItem( QMap<QString,QVariant> prop, QTreeWidgetItem *
 		}
 		else if(typeName == "QStringList")
 			p->setText(1, val.value<QStringList>().join(", "));
+		else if(typeName == "QVector<QString>")
+		{
+			QVector<QString> vec_str = val.value< QVector<QString> >();
+			QStringList strs;
+			foreach(QString str, vec_str) strs << str;
+			p->setText(1, strs.join(", "));
+		}
 		else
 			p->setText(1, typeName);
 
@@ -275,6 +294,7 @@ void GraphExplorer::clear()
 
 	ui->nodesTree->clear();
 	ui->edgesTree->clear();
+	ui->graphTree->clear();
 }
 
 void GraphExplorer::filterNodes()

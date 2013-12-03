@@ -40,6 +40,8 @@ private:
 	void clear();
 	void fillNodesInfo();
 	void fillEdgesInfo();
+	void fillGraphInfo();
+
 	void fillInfoItem( QMap<QString,QVariant> prop, QTreeWidgetItem * item );
 
 	QStringList selectedNode();
@@ -63,5 +65,4 @@ public slots:
 	void filterNodes();
 	void filterEdges();
 	void filterTree(QTreeWidget * tree, QStringList filters, int column);
-
 };

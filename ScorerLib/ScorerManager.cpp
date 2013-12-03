@@ -102,7 +102,8 @@ void ScorerManager::evaluateTopology()
 	int idx(0);
 	Structure::Graph* g = getCurrentGraph(idx);
 	ConnectivityScorer cs(g, idx, logLevel_);
-	double score = cs.evaluate(connectPairs_, gcorr->correspondences);
+	
+	cs.evaluate(connectPairs_, gcorr->correspondences);
 
     emit( message("Evaluate topology end. ") );
 }
@@ -182,7 +183,8 @@ void ScorerManager::evaluateGroups()
 	int idx(0);
 	Structure::Graph* g = getCurrentGraph(idx);
 	GroupRelationScorer grs(g, idx, logLevel_);
-	double score = grs.evaluate(groupRelations_, gcorr->correspondences);
+	
+	grs.evaluate(groupRelations_, gcorr->correspondences);
 
     emit( message("Evaluate group end. ") );
 }
