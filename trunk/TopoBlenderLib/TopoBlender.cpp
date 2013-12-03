@@ -86,41 +86,46 @@ QVector<QString> TopoBlender::cloneGraphNode( Structure::Graph *g, QString nodeI
 	}
 
 	// Link the cloned nodes
-	int currCloned = 0;
-	foreach(Structure::Link *link, g->getEdges(nodeID))
+	bool isModifyEdges = true;
+
+	if( isModifyEdges )
 	{
-		Structure::Node * other = link->otherNode(nodeID);
-		QString otherID = other->id;
-
-		if (isExtraNode(other))
+		int currCloned = 0;
+		foreach(Structure::Link *link, g->getEdges(nodeID))
 		{
-			if (currCloned >= N)
-			{
-				continue;
-				qDebug() << "Warning: clone nodes error.";
-			}
+			Structure::Node * other = link->otherNode(nodeID);
+			QString otherID = other->id;
 
-			// Link other to one of the cloned node
-			QString clonedID = cloned_nodes[currCloned++]->id;
-			Structure::Node * cnode = g->getNode(clonedID);
-
-			LinkCoords c1 = link->getCoord(other->id);
-			LinkCoords c2 = link->getCoordOther(other->id);
-			g->addEdge(other, cnode, c1, c2, g->linkName(other,cnode));
-		}
-		else
-		{
-			// Link other to all cloned nodes
-			foreach (Structure::Node* cnode, cloned_nodes)
+			if (isExtraNode(other))
 			{
+				if (currCloned >= N)
+				{
+					continue;
+					qDebug() << "Warning: clone nodes error.";
+				}
+
+				// Link other to one of the cloned node
+				QString clonedID = cloned_nodes[currCloned++]->id;
+				Structure::Node * cnode = g->getNode(clonedID);
+
 				LinkCoords c1 = link->getCoord(other->id);
 				LinkCoords c2 = link->getCoordOther(other->id);
 				g->addEdge(other, cnode, c1, c2, g->linkName(other,cnode));
 			}
-		}
+			else
+			{
+				// Link other to all cloned nodes
+				foreach (Structure::Node* cnode, cloned_nodes)
+				{
+					LinkCoords c1 = link->getCoord(other->id);
+					LinkCoords c2 = link->getCoordOther(other->id);
+					g->addEdge(other, cnode, c1, c2, g->linkName(other,cnode));
+				}
+			}
 
-		// Remove this link
-		g->removeEdge(node, other);
+			// Remove this link
+			g->removeEdge(node, other);
+		}
 	}
 
 	// remove the original node

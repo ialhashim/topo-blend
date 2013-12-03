@@ -46,11 +46,11 @@ static inline double squared_distance( Plane_3 plane, Point_3 point )
 static inline double squared_distance_of_parallel( Line_3 mLine0, Line_3 mLine1 )
 {
 	Vector_3 diff = mLine0.point - mLine1.point;
-	double a01 = -mLine0.direction.dot(mLine1.direction);
+	//double a01 = -mLine0.direction.dot(mLine1.direction);
 	double b0 = diff.dot(mLine0.direction);
 	double c = diff.squaredNorm();
-	double det = std::abs(1.0 - a01*a01);
-	double b1, s0, s1, sqrDist;
+	//double det = std::abs(1.0 - a01*a01);
+	double s0, s1, sqrDist;
 
 	// Lines are parallel, select any closest pair of points.
 	s0 = -b0;

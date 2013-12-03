@@ -138,7 +138,7 @@ void PathEvaluator::test_filtering()
 	}
 
 	// Force number of paths
-	numPaths = 20;
+	numPaths = 5;
 
 	/// Setup schedules:
 	QVector<PathScore> ps(numPaths);
@@ -211,10 +211,9 @@ void PathEvaluator::test_filtering()
 				// Graph
 				QPainterPath poly;
 				int padding = 0;
-				poly.moveTo(img.width(), padding);
-				poly.lineTo(img.width(), img.height());
-				poly.lineTo(0, img.height());
-				poly.lineTo(0, padding);
+
+				QColor clr = colors[u];
+				painter.setPen(QPen(clr, 3));
 
 				// Render path
 				for(int k = 0; k < numInBetweens; k++)
@@ -227,14 +226,17 @@ void PathEvaluator::test_filtering()
 					int newWidth = imgWidth * 0.5;
 					int startX = k * newWidth;
 					int x = startX + newWidth;
-					int y = img.height() - (img.height() * val);
-					poly.lineTo(x, y + padding);
+					int y = padding + (img.height() - (img.height() * val));
+
+					if(k == 0)
+						poly.moveTo(x, y);
+					else
+						poly.lineTo(x, y);
+
+					// Dots
+					painter.drawEllipse(QPoint(x,y), 3, 3);
 				}
 
-				QColor clr = colors[u];
-
-				poly.lineTo(img.width(), padding);
-				painter.setPen(QPen(clr, 3));
 				painter.setBrush(Qt::NoBrush);
 				painter.drawPath(poly);
 			}
