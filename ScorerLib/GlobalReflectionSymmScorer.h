@@ -9,7 +9,7 @@ public:
     }
 
     double evaluate();
-	double evaluate(Eigen::Vector3d &center, Eigen::Vector3d &normal, double maxGlobalSymmScore=1.0);
+	double evaluate(const Eigen::Vector3d &center, const Eigen::Vector3d &normal, double maxGlobalSymmScore=1.0);
     
 	Eigen::MatrixXd cpts_; // control point of the graph
     Eigen::Vector3d center_;// center of the graph by control points, i.e. of the reflection plane
@@ -21,8 +21,10 @@ public:
 
 private:
 	void init();
-	//todo 遍历潜在对称面；目前：z冲上，所以就是过中心点的xy面或者yx面。
+	// compute min mean distance between pts and other parts in the graph.
+	double minMeanDistance(Eigen::MatrixXd& pts);
+	//todo find all possible reflection plane. Current implementation: use plane through center & paralleling with xy or xz plane, since z is up in all models.
 	Eigen::Vector3d findReflectPlane(const Eigen::Vector3d& center);
-	int findNearestPart(Eigen::Vector3d &nc, QString & type, double& dist);
+	int findNearestPart(const Eigen::Vector3d &nc, const QString & type, double size, double& dist);
 };
 

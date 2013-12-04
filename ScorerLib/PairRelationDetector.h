@@ -2,8 +2,6 @@
 
 #include "RelationDetector.h"
 
-double fixDeviationByPartName(QString& s1, QString& s2, double deviation);
-
 class PairRelationDetector : public RelationDetector
 {
 public:
@@ -14,6 +12,7 @@ public:
 
 		int pointLevel_;
 		double maxAllowDeviation_;
+		//QString type_;
 	};
 	class ConnectedPairModifier : public PairModifier
 	{
@@ -67,7 +66,7 @@ private:
 	template<class Function>
 	void modifyPairsDegree(QVector<PairRelation>& pairs, Function fn, Structure::Graph* g, QVector<PART_LANDMARK> &corres, QString title)
 	{
-		if( logLevel_ >1 )
+		if( logLevel_ >0 )
 		{
 			logStream_ << "\n*************** " << title << " *************\n";
 		}
@@ -120,12 +119,30 @@ private:
 			}
 		}
 
-		if( logLevel_ >1 )
+		if( logLevel_ >0 )
 		{
 			logStream_ << "Total: " << pairs.size() << " pairs" << "\n\n";
+			if (bSource_)
+				logStream_ << "Pairs from source & exist in target: \n";
+			else
+				logStream_ << "Pairs from target & exist in source: \n";
+
 			for ( QVector<PairRelation>::iterator it = pairs.begin(); it != pairs.end(); ++it)
 			{
 				if ( it->tag)
+				{
+					logStream_ << *it << "\n";
+				}
+			}
+
+			if (bSource_)
+				logStream_ << "Pairs from source & not exist in target: \n";
+			else
+				logStream_ << "Pairs from target & not exist in source: \n";
+
+			for ( QVector<PairRelation>::iterator it = pairs.begin(); it != pairs.end(); ++it)
+			{
+				if ( !it->tag)
 				{
 					logStream_ << *it << "\n";
 				}

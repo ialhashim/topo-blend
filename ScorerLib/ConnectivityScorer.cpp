@@ -43,7 +43,7 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelation> > &connectPair
 
 							logStream_ << prb << "correspond to: \n";
 							logStream_ << "<" << nodes1[i1]->id << ", " << nodes2[i2]->id << "> size <" 
-								<< nodes1[i1]->bbox().diagonal().norm() << ", " << nodes1[i2]->bbox().diagonal().norm()
+								<< nodes1[i1]->bbox().diagonal().norm() << ", " << nodes2[i2]->bbox().diagonal().norm()
 								<< ", "<< dist << ">:" << min_dist << ", before normalization is: " << min_dist*dist << "\n\n";
 						}
 ////////////////////////////////////	

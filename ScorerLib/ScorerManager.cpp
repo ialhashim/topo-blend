@@ -244,8 +244,8 @@ void ScorerManager::parseGlobalReflectionSymm()
 		}
     }
 
-    //this->maxGlobalSymmScore_ = std::max(symmScore[0], symmScore[1]);
-	this->maxGlobalSymmScore_ = symmScore[0];
+    this->maxGlobalSymmScore_ = std::max(symmScore[0], symmScore[1]);
+	//this->maxGlobalSymmScore_ = symmScore[0];
     emit( message("Parse global symmetry end. ") );
 }
 void ScorerManager::evaluateGlobalReflectionSymm()

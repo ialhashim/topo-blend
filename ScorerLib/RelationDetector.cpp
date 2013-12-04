@@ -176,14 +176,14 @@ void RelationDetector::computeGroupCenter(GroupRelation& gr)
     center = center / gr.ids.size();
     gr.center = Point_3(center.x(), center.y(), center.z());
 }
-double RelationDetector::fixDeviationByPartName(QString& s1, QString& s2, double deviation)
+double RelationDetector::fixDeviationByPartName(const QString& s1, const QString& s2, double deviation, double times)
 {
 	double ndeviation = deviation;
     int idx = s1.indexOf(QRegExp("\\d"), 0);
     QString str1 = s1.left(idx);
     QString str2 = s2.left(idx);
     if ( str1 == str2)
-        ndeviation *= 0.5;
+        ndeviation *= times;
 
 	return ndeviation;
 }
