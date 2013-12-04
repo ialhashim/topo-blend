@@ -769,7 +769,7 @@ bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structu
 	Structure::Node* node1 = superG1->getNode(nodeID1);
 	Structure::Node* node2 = superG2->getNode(nodeID2);
 
-	Structure::Sheet *sheet1 = (Structure::Sheet*)node1;
+	Structure::Sheet *oldSheet = (Structure::Sheet*)node1;
 	Structure::Curve *curve2 = (Structure::Curve*)node2;
 
 	// Find a for-sure link (links with corresponded ends) to determine the new curve skeleton
@@ -777,65 +777,64 @@ bool TopoBlender::convertSheetToCurve( QString nodeID1, QString nodeID2, Structu
 
 	bool converted = false;
 
-	foreach(Structure::Link* link2, edges)
-	{
+	Structure::Curve * newCurve = NULL;
+
+	// Convert the sheet into a curve
+	foreach(Structure::Link* link2, edges){
 		Structure::Node* other2 = link2->otherNode(nodeID2);
 
 		// choose type-equalized neighbours
-		if (other2->property["type_equalized"].toBool())
-		{
+		if (other2->property["type_equalized"].toBool()){
 			QString otherID1 = other2->property["correspond"].toString();
 
-			if (!converted)
-			{
-				Structure::Node* other1 = superG1->getNode(otherID1);
-				Vector4d otherCoord = link2->getCoordOther(nodeID2).front();
-				Vector3d linkOtherPos1 = other1->position(otherCoord);
+			Structure::Node* other1 = superG1->getNode(otherID1);
+			Vector4d otherCoord = link2->getCoordOther(nodeID2).front();
+			Vector3d linkOtherPos1 = other1->position(otherCoord);
 
-				Vector3d direction2 = curve2->direction();
-				NURBS::NURBSCurved new_curve = sheet1->convertToNURBSCurve(linkOtherPos1, direction2);
+			Vector3d direction2 = curve2->direction();
+			NURBS::NURBSCurved new_curve = oldSheet->convertToNURBSCurve(linkOtherPos1, direction2);
 
-				// create new curve node with the same id
-				Structure::Curve *curve1 = new Structure::Curve(new_curve, nodeID1);
+			// create new curve node with the same id
+			newCurve = new Structure::Curve(new_curve, nodeID1 + "TEMP");
 
-				// copy properties
-				curve1->property = node1->property;
-				curve1->property["original_sheet"].setValue(sheet1);
+			// copy properties
+			newCurve->property = node1->property;
+			newCurve->property["original_sheet"].setValue( oldSheet );
 
-				// replace the sheet with curve
-				superG1->removeNode(nodeID1);
-				superG1->addNode(curve1);
+			// mark the tag
+			newCurve->property["type_equalized"] = true;
+			node2->property["type_equalized"] = true;
 
-				// mark the tag
-				curve1->property["type_equalized"] = true;
-				node2->property["type_equalized"] = true;
+			converted = true;
 
-				converted = true;
-			}
-
-			// Get real coordinates
-			Node * n1 = superG1->getNode(otherID1);
-			Node * n2 = superG1->getNode(nodeID1);
-			Array1D_Vector4d c1 = link2->getCoord(n1->property["correspond"].toString());
-			Array1D_Vector4d c2 = link2->getCoord(n2->property["correspond"].toString());
-
-			// relink only the type-equalized neighbours
-			// Other neighbors will be relinked in future
-			superG1->addEdge(n1, n2, c1, c2, superG1->linkName(n1,n2));
+			break;
 		}
 	}
 
-	// Hack for broken graphs...
-	if(edges.isEmpty()){
-		Vector3 pos = sheet1->approxProjection(curve2->position(Vec4d(0,0,0,0)));
-		Structure::Curve *curve1 = new Structure::Curve(sheet1->convertToNURBSCurve(pos, curve2->direction()), nodeID1);
-		curve1->property = node1->property;
-		curve1->property["original_sheet"].setValue(sheet1);
-		superG1->removeNode(nodeID1);
-		superG1->addNode(curve1);
-		curve1->property["type_equalized"] = node2->property["type_equalized"] = true;
-		converted = true;
+	if(!newCurve) return false;
+
+	// Add the new node
+	superG1->addNode( newCurve );
+	newCurve->property["correspond"] = curve2->id;
+
+	// Copy the edges
+	foreach(Structure::Link* l, superG1->getEdges(oldSheet->id))
+	{
+		Node * n1 = newCurve;
+		Node * n2 = l->otherNode( oldSheet->id );
+
+		Array1D_Vector4d coordOnNew = Array1D_Vector4d(1, newCurve->approxCoordinates( l->position(oldSheet->id) ));
+
+		superG1->addEdge(n1, n2, coordOnNew, l->getCoord(n2->id), superG1->linkName(n1,n2));
 	}
+
+	// Remove old node
+	superG1->removeNode( oldSheet->id );
+
+	// Replace ID for new node
+	QString tempID = newCurve->id;
+	foreach(Structure::Link* l, superG1->getEdges(tempID)) l->id.replace(tempID, nodeID1);
+	newCurve->id = nodeID1;
 
 	return converted;
 }
