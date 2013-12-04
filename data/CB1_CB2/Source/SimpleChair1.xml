@@ -648,10 +648,10 @@
 	<n>Back</n>
 	<n>BarLeft</n>
 	<coord>
-		<uv>0 0.00783449 0 0</uv>
+		<uv>0 0 0 0</uv>
 	</coord>
 	<coord>
-		<uv>0.568299 0 0 0</uv>
+		<uv>0.57 0 0 0</uv>
 	</coord>
 </edge>
 
@@ -662,10 +662,10 @@
 	<n>Back</n>
 	<n>BarRight</n>
 	<coord>
-		<uv>0.24296 1 0 0</uv>
+		<uv>0 1 0 0</uv>
 	</coord>
 	<coord>
-		<uv>0.679881 0 0 0</uv>
+		<uv>0.57 0 0 0</uv>
 	</coord>
 </edge>
 

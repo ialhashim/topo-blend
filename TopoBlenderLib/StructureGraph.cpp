@@ -130,7 +130,7 @@ Eigen::AlignedBox3d Graph::bbox(bool isSkipUnready)
 Node *Graph::addNode(Node * n)
 {
     Node * found = getNode( n->id );
-    if(found) return found;
+    assert(found == NULL);
 
     nodes.push_back(n);
 
@@ -200,9 +200,6 @@ Link * Graph::addEdge(Node *n1, Node *n2)
 
 Link * Graph::addEdge(Node *n1, Node *n2, Array1D_Vector4d coord1, Array1D_Vector4d coord2, QString linkName)
 {
-	n1 = addNode(n1);
-	n2 = addNode(n2);
-
 	if(linkName.isEmpty()) linkName = this->linkName(n1,n2);
 
 	QString edgeType = POINT_EDGE;
