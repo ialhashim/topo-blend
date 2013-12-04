@@ -124,7 +124,7 @@ public:
     double computeGroupDiameter(GroupRelation& gr);
 	void computeGroupCenter(GroupRelation& gr);
 	void findRefPlane(Structure::Node* n1, Structure::Node* n2, Eigen::Vector3d& center,Eigen::Vector3d& normal);
-	double fixDeviationByPartName(QString& s1, QString& s2, double deviation);
+	double fixDeviationByPartName(const QString& s1, const QString& s2, double deviation, double times=0.5);
 
     // we do not order part in a group by ref plane
     // return mean deviation of the group

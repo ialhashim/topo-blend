@@ -66,42 +66,27 @@ Eigen::Vector3d GlobalReflectionSymmScorer::findReflectPlane(const Eigen::Vector
     }
     return rnormal;
 }
-double GlobalReflectionSymmScorer::evaluate(Eigen::Vector3d &center, Eigen::Vector3d &normal, double maxGlobalSymmScore)
+double GlobalReflectionSymmScorer::evaluate(const Eigen::Vector3d &center, const Eigen::Vector3d &normal, double maxGlobalSymmScore)
 {
-	double maxScore(0.0);//double meanScore(0.0)
+	double maxScore(0.0), deviation(0.0);
 	double gsize = graph_->bbox().diagonal().norm();
 	for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
-    {
-        Eigen::Vector3d nc = nodesCenter_[i];
-        Eigen::Vector3d nc1;
-        reflect_point3d(nc, center, normal, nc1);
-        double minDist, meanDist, maxDist;
-
-        QString nodeType = graph_->nodes[i]->type();
-        int j = findNearestPart(nc1, nodeType, minDist);
-        
+    {        
 		Eigen::MatrixXd ptsout;
         reflect_points3d(nodesCpts_[i], center, normal, ptsout);
-		
-        distanceBetween(ptsout, nodesCpts_[j], minDist, meanDist, maxDist);
+	
+		deviation = minMeanDistance(ptsout);
         
-        //meanScore += meanDist;
-        if ( meanDist > maxScore)
+        if ( deviation > maxScore)
         {
-            maxScore = meanDist;
+            maxScore = deviation;
         }
 
 		if(logLevel_>1)
 		{
-			meanDist= meanDist/gsize;
-			meanDist = 1/(1+meanDist);
-			logStream_ << "part: " << graph_->nodes[i]->id << ", deviation of symm: " << meanDist/maxGlobalSymmScore << "\n";
+			logStream_ << "part: " << graph_->nodes[i]->id << ", deviation of symm: " << deviation << "\n";
 		}
     }
-    //meanScore = meanScore/graph_->nodes.size();
-    //meanScore = meanScore/gsize;
-    //meanScore = 1/(1+meanScore);
-	//meanScore = meanScore/maxGlobalSymmScore;
 
     maxScore = maxScore/gsize;
     maxScore = 1/(1+maxScore);
@@ -113,23 +98,39 @@ double GlobalReflectionSymmScorer::evaluate(Eigen::Vector3d &center, Eigen::Vect
 		logStream_ << "center of reflection plane: " << center.x() << ", " << center.y() <<", " << center.z() << "\n";
 		logStream_ << "normal of reflection plane: " << normal.x() << ", " << normal.y() <<", " << normal.z() << "\n";
 		logStream_ << "max global score for normalization: " << maxGlobalSymmScore << "\n";
-		//logStream_ << "mean score: " << meanScore << "\n";
 		logStream_ << "max score: " << maxScore << "\n";
 	}
 
     return maxScore;
-	//return meanScore;
 }
-
-int GlobalReflectionSymmScorer::findNearestPart(Eigen::Vector3d &nc, QString & type, double& dist)
+double GlobalReflectionSymmScorer::minMeanDistance(Eigen::MatrixXd& pts)
 {
-    int no(0);
+	double minDist, meanDist, maxDist, minMean=std::numeric_limits<double>::max();
+	for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
+	{		
+        distanceBetween(pts, nodesCpts_[i], minDist, meanDist, maxDist);
+		if ( meanDist < minMean)
+			minMean = meanDist;
+	}
+	return minMean;
+}
+int GlobalReflectionSymmScorer::findNearestPart(const Eigen::Vector3d &nc, const QString & type, double size, double& dist)
+{
+    int no(0);	
     dist = std::numeric_limits<double>::max();
+	double tdist, size2;
     for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
-    {
+    {	
+		if ( graph_->nodes[i]->type() != type) continue;
+
         Eigen::Vector3d& nc1 = nodesCenter_[i];
-        double tdist = (nc-nc1).norm();
-        if ( graph_->nodes[i]->type() == type && tdist < dist)
+        tdist = (nc-nc1).norm();
+
+		size2 = graph_->nodes[i]->bbox().diagonal().norm();
+		double tmp = abs(size-size2)/(size+size2);
+		
+
+        if ( tmp < 0.7 && tdist < dist)
         {
             dist = tdist;
             no = i;
