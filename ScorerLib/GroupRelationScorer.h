@@ -4,7 +4,7 @@ class GroupRelationScorer :
 	public RelationDetector
 {
 public:
-	GroupRelationScorer(Structure::Graph* g, int ith, int logLevel=0):RelationDetector(g, "GroupScorer-", ith, 1, logLevel){ }
+	GroupRelationScorer(Structure::Graph* g, int ith, double normalizeCoef, int logLevel=0):RelationDetector(g, "GroupScorer-", ith, normalizeCoef, 1, logLevel){ }
 	double evaluate(QVector<QVector<GroupRelation> > &groupss, QVector<PART_LANDMARK> &corres);
 protected:
 	GroupRelation findCorrespondenceGroup(Structure::Graph *graph, GroupRelation &gr,QVector<PART_LANDMARK>& corres,bool bSource);

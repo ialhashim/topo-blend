@@ -3,7 +3,7 @@
 class GlobalReflectionSymmScorer :	public RelationDetector
 {
 public:
-    GlobalReflectionSymmScorer(Structure::Graph* g, int ith, int logLevel=0):RelationDetector(g, "GlobalReflectionSymmScorer-", ith, 1, logLevel)
+    GlobalReflectionSymmScorer(Structure::Graph* g, int ith, double normalizeCoef, int logLevel=0):RelationDetector(g, "GlobalReflectionSymmScorer-", ith, normalizeCoef, 1, logLevel)
     {
 		init();
     }

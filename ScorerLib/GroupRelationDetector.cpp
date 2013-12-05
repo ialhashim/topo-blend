@@ -99,7 +99,7 @@ void GroupRelationDetector::detectSymmGroupByRefPair(QVector<PairRelation>& prRe
 		gr.note = REF;
         gr.deviation = computeAxisSymmetryGroupDeviation(gr, pointLevel_);
         gr.type = AXIS_SYMMETRY;
-        if ( gr.deviation / graph_->bbox().diagonal().norm() < thAxisGroup_)
+        if ( gr.deviation / this->normalizeCoef_ < thAxisGroup_)
         {
             groupRelations_.push_back(gr);
         }
@@ -107,7 +107,7 @@ void GroupRelationDetector::detectSymmGroupByRefPair(QVector<PairRelation>& prRe
         {
             gr.type = REF_SYMMETRY;
             gr.deviation = computeRefSymmetryGroupDeviation(gr,pointLevel_);
-            if ( gr.deviation / graph_->bbox().diagonal().norm() < thRefGroup_)
+            if ( gr.deviation / this->normalizeCoef_ < thRefGroup_)
             {
                 groupRelations_.push_back(gr);
             }
@@ -173,7 +173,7 @@ void GroupRelationDetector::detectSymmGroupByTransPair(QVector<PairRelation>& pr
         computeTransGroupInfo(gr, ids);
 		gr.note = TRANS;
         gr.deviation = computeAxisSymmetryGroupDeviation(gr, pointLevel_);
-        if ( gr.deviation / graph_->bbox().diagonal().norm() < thAxisGroup_)
+        if ( gr.deviation / this->normalizeCoef_ < thAxisGroup_)
         {
             groupRelations_.push_back(gr);
             continue;
@@ -182,7 +182,7 @@ void GroupRelationDetector::detectSymmGroupByTransPair(QVector<PairRelation>& pr
         {
             gr.type = REF_SYMMETRY;
 			gr.deviation = computeRefSymmetryGroupDeviation(gr, pointLevel_);
-            if ( gr.deviation / graph_->bbox().diagonal().norm() < thRefGroup_)
+            if ( gr.deviation / this->normalizeCoef_ < thRefGroup_)
             {
                 groupRelations_.push_back(gr);
             }

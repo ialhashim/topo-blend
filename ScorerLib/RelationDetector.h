@@ -85,7 +85,7 @@ int countByType(QVector<T>& prs, QString& type)
 class RelationDetector
 {
 public:
-	RelationDetector(Structure::Graph* g, const QString& logprefix, int ith, int pointLevel=1, int logLevel=0);
+	RelationDetector(Structure::Graph* g, const QString& logprefix, int ith, double normalizeCoef, int pointLevel=1, int logLevel=0);
 	~RelationDetector(){logFile_.close();}
 	
 	//////////////////////////////////////////////////
@@ -153,6 +153,7 @@ public:
     double thCoplaGroup_;
 
 	Structure::Graph* graph_;
+	double normalizeCoef_;
 	int pointLevel_;// 0 for main control points, 1 for all control points, 2 for all points.
 protected:
 	QFile logFile_;

@@ -850,10 +850,7 @@ void topoblend::doBlend()
 	blender->setupUI();
 
 	// Update for relations widget
-	swidget->s_manager->clear();
-	swidget->s_manager->inputGraphs = this->graphs;
-	swidget->s_manager->gcorr = this->gcoor;
-	swidget->s_manager->scheduler = this->scheduler;
+	swidget->s_manager->init(this->gcoor,this->scheduler,this->graphs);
 
 	// Update active graph
 	this->connect(scheduler, SIGNAL(activeGraphChanged( Structure::Graph* )), SLOT(updateActiveGraph( Structure::Graph* )));
