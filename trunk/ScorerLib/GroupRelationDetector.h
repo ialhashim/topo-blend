@@ -5,7 +5,7 @@ class GroupRelationDetector :
 	public RelationDetector
 {
 public:
-	GroupRelationDetector(Structure::Graph* g, int ith, int logLevel): RelationDetector(g, "PairRelationDetector-", ith, 1, logLevel)
+	GroupRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, int logLevel): RelationDetector(g, "PairRelationDetector-", ith, normalizeCoef, 1, logLevel)
 	{
 	}
     QVector<GroupRelation> groupRelations_;	

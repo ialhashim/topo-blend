@@ -28,63 +28,40 @@ void saveScore(QString filename, QVector<double> scores, QString headline)
 
 ScorerManager::ScorerManager( GraphCorresponder * graph_corresponder, 
 	Scheduler * scheduler, QVector<Structure::Graph*> input_graphs )
-	: gcorr(graph_corresponder), scheduler(scheduler), inputGraphs(input_graphs)
 {
-	logLevel_ = 2;
-	init();
+	this->logLevel_ = 2;
+	this->isUseSourceCenter_ = false;
+	init( graph_corresponder, scheduler, input_graphs);
 }
 
-void ScorerManager::init()
+void ScorerManager::init(GraphCorresponder * graph_corresponder, Scheduler * scheduler, QVector<Structure::Graph*> input_graphs)
 {
-	//isTracePairs = false;
-	//isTraceGroups = true;
-	//isCheckGlobalSymm = true;
+	this->gcorr_ = graph_corresponder;
+	this->scheduler_ = scheduler;
+	this->normalizeCoef_ = 0.0;
+	for ( int i = 0; i < input_graphs.size(); ++i)
+	{
+		this->actualInputGraphs_.push_back(Structure::Graph::actualGraph( input_graphs[i] ));
+		normalizeCoef_ += this->actualInputGraphs_[i]->bbox().diagonal().norm();
+	}
+	normalizeCoef_ *= 0.5;
 
-	//pairWeight = 1;
-	//graphWeight = 4;
-	//globalSymmWeight = 0.7;
-
-	//maxPairScore = 0;
-	//maxGroupScore = 0;
-	maxGlobalSymmScore_ = -1;
-	isUseSourceCenter_ = false;
+	maxGlobalSymmScore_ = -1;	
 }
 
-void ScorerManager::clear()
-{
-	init();
-
-	//prGroups.clear();
-	//grGroups.clear();
-	//diagonals.clear();
-}
 
 void ScorerManager::parseConstraintPair()
 {
-	//////////////////
     emit( message("Parse constraint pair starts: ") );
-	if ( this->inputGraphs.size() < 2)
+
+	this->connectPairs_.clear();	this->otherPairs_.clear();
+	for ( int i = 0; i < this->actualInputGraphs_.size(); ++i)
 	{
-		emit( message("Two graphs needed!") );
-		return;
+		PairRelationDetector cpd(this->actualInputGraphs_[i], i, normalizeCoef_, logLevel_);
+		cpd.detect(this->actualInputGraphs_[(i+1)%this->actualInputGraphs_.size()], this->gcorr_->correspondences);
+		this->connectPairs_.push_back(cpd.connectedPairs_);
+		this->otherPairs_.push_back(cpd.otherPairs_);
 	}
-
-	///////////////////////
-	connectPairs_.clear();
-	
-	Structure::Graph * g = Structure::Graph::actualGraph( this->inputGraphs[0] );
-	
-    PairRelationDetector cpd0(g, 0, logLevel_);
-	cpd0.detect(this->inputGraphs[1], gcorr->correspondences);
-	connectPairs_.push_back(cpd0.connectedPairs_);
-	otherPairs_.push_back(cpd0.otherPairs_);
-
-
-	g = Structure::Graph::actualGraph( this->inputGraphs[1] );
-	PairRelationDetector cpd1(g, 1, logLevel_);
-	cpd1.detect(this->inputGraphs[0], gcorr->correspondences);
-	connectPairs_.push_back(cpd1.connectedPairs_);
-	otherPairs_.push_back(cpd1.otherPairs_);
 
     emit( message("Parse constraint pairs end. ") );
 }
@@ -101,9 +78,8 @@ void ScorerManager::evaluateTopology()
 
 	int idx(0);
 	Structure::Graph* g = getCurrentGraph(idx);
-	ConnectivityScorer cs(g, idx, logLevel_);
-	
-	cs.evaluate(connectPairs_, gcorr->correspondences);
+	ConnectivityScorer cs(g, idx, this->normalizeCoef_, this->logLevel_);	
+	cs.evaluate(this->connectPairs_, this->gcorr_->correspondences);
 
     emit( message("Evaluate topology end. ") );
 }
@@ -115,8 +91,8 @@ QVector<double> ScorerManager::evaluateTopology( QVector<Structure::Graph*> cons
     for (int i = 0; i < graphs.size(); ++i)
     {
 		Structure::Graph * g = Structure::Graph::actualGraph(graphs[i] );
-        ConnectivityScorer cs(g, i, logLevel);
-		score = cs.evaluate(connectPairs_, gcorr->correspondences);
+		ConnectivityScorer cs(g, i, this->normalizeCoef_, logLevel);	
+		score = cs.evaluate(this->connectPairs_, this->gcorr_->correspondences);
 		topoScore.push_back(score);
     }
 	return topoScore;
@@ -130,11 +106,8 @@ void ScorerManager::evaluateTopologyAuto()
 		emit( message("Parse topology first! ") );
 		return;
 	}
-
-	///////////////// 
-	QVector<double> topoScore = evaluateTopology(this->scheduler->allGraphs);
+	QVector<double> topoScore = evaluateTopology(this->scheduler_->allGraphs);
     saveScore(QString("evaluate_connectivity_auto.txt"), topoScore, QString());
-
 
     emit( message("Evaluate topology auto end. ") );
 }
@@ -143,11 +116,6 @@ void ScorerManager::parseConstraintGroup()
 {
 	//////////////////
     emit( message("Parse constraint group starts: ") );
-	if ( this->inputGraphs.size() < 2)
-	{
-		emit( message("Two graphs needed!") );
-		return;
-	}
 	if ( this->otherPairs_.size() < 2)
 	{
 		emit( message("Parse pairs first!") );
@@ -156,13 +124,12 @@ void ScorerManager::parseConstraintGroup()
 
 	///////////////////////
 	groupRelations_.clear();
-
-	for ( int i = 0; i < this->inputGraphs.size(); ++i)
+	for ( int i = 0; i < this->actualInputGraphs_.size(); ++i)
 	{
-		Structure::Graph * g = Structure::Graph::actualGraph( this->inputGraphs[i] );
-		GroupRelationDetector grd(g, i, logLevel_);
-		grd.detect(otherPairs_[i]);
-		groupRelations_.push_back(grd.groupRelations_);
+		Structure::Graph * g = Structure::Graph::actualGraph( this->actualInputGraphs_[i] );
+		GroupRelationDetector grd(g, i, this->normalizeCoef_, this->logLevel_);
+		grd.detect(this->otherPairs_[i]);
+		this->groupRelations_.push_back(grd.groupRelations_);
 		saveToFile("group_relation-" + QString::number(i) + ".txt", this->groupRelations_[i]);
 		saveToFile("pair_relation-" + QString::number(i) + ".txt", this->otherPairs_[i]);
 	}	
@@ -174,7 +141,7 @@ void ScorerManager::evaluateGroups()
 	/////////////////
     emit( message("Evaluate group starts: ") );
 
-	if ( groupRelations_.empty() )
+	if ( this->groupRelations_.empty() )
 	{
 		emit( message("Parse constraint group first! ") );
 		return;
@@ -182,9 +149,9 @@ void ScorerManager::evaluateGroups()
 
 	int idx(0);
 	Structure::Graph* g = getCurrentGraph(idx);
-	GroupRelationScorer grs(g, idx, logLevel_);
+	GroupRelationScorer grs(g, idx, this->normalizeCoef_, this->logLevel_);
 	
-	grs.evaluate(groupRelations_, gcorr->correspondences);
+	grs.evaluate(groupRelations_, this->gcorr_->correspondences);
 
     emit( message("Evaluate group end. ") );
 }
@@ -196,8 +163,8 @@ QVector<double> ScorerManager::evaluateGroups( QVector<Structure::Graph*> const 
     for (int i = 0; i < graphs.size(); ++i)
     {
 		Structure::Graph * g = Structure::Graph::actualGraph(graphs[i] );
-        GroupRelationScorer grs(g, i, logLevel);
-		score = grs.evaluate(groupRelations_, gcorr->correspondences);
+		GroupRelationScorer grs(g, i, this->normalizeCoef_, logLevel);
+		score = grs.evaluate(groupRelations_, this->gcorr_->correspondences);
 		groupScore.push_back(score);
     }
 	return groupScore;
@@ -212,10 +179,9 @@ void ScorerManager::evaluateGroupsAuto()
 		return;
 	}
 
-	///////////////// 
-	QVector<double> groupScore = evaluateGroups(this->scheduler->allGraphs);
-	saveScore(QString("evaluate_group_auto.txt"), groupScore, QString());	
 
+	QVector<double> groupScore = evaluateGroups(this->scheduler_->allGraphs);
+	saveScore(QString("evaluate_group_auto.txt"), groupScore, QString());	
 
     emit( message("Evaluate group auto end. ") );
 	return;
@@ -225,22 +191,22 @@ void ScorerManager::parseGlobalReflectionSymm()
 {
 	//////////////////
     emit( message("Parse global symmetry starts: ") );
-	if ( this->inputGraphs.size() < 2)
+	if ( this->actualInputGraphs_.size() < 2)
 	{
 		emit( ("Two graphs needed!") );
 		return;
 	}
 
     double symmScore[2];
-    for (int i = 0; i < this->inputGraphs.size(); ++i)
+    for (int i = 0; i < this->actualInputGraphs_.size(); ++i)
     {
-		Structure::Graph * g = Structure::Graph::actualGraph( this->inputGraphs[i] );
-        GlobalReflectionSymmScorer gss(g, i, logLevel_);
+		Structure::Graph * g = Structure::Graph::actualGraph( this->actualInputGraphs_[i] );
+		GlobalReflectionSymmScorer gss(g, i, this->normalizeCoef_, this->logLevel_);
         symmScore[i] = gss.evaluate();
 		if ( i == 0)
 		{
-			refCenter_ = gss.center_;
-			refNormal_ = gss.normal_;
+			this->refCenter_ = gss.center_;
+			this->refNormal_ = gss.normal_;
 		}
     }
 
@@ -261,7 +227,7 @@ void ScorerManager::evaluateGlobalReflectionSymm()
 
 	int idx(0);
 	Structure::Graph* g = getCurrentGraph(idx);
-	GlobalReflectionSymmScorer gss(g, idx, logLevel_);
+	GlobalReflectionSymmScorer gss(g, idx, this->normalizeCoef_, this->logLevel_);
 
 	double symmScore;
 	if (isUseSourceCenter_)
@@ -279,7 +245,7 @@ QVector<double> ScorerManager::evaluateGlobalReflectionSymm( QVector<Structure::
     for (int i = 0; i < graphs.size(); ++i)
     {
 		Structure::Graph * g = Structure::Graph::actualGraph(graphs[i] );
-        GlobalReflectionSymmScorer gss(g, i, logLevel);
+        GlobalReflectionSymmScorer gss(g, i, this->normalizeCoef_, logLevel);
 
 		if (isUseSourceCenter_)
 			score = gss.evaluate( this->refCenter_, this->refNormal_, this->maxGlobalSymmScore_);
@@ -302,7 +268,7 @@ void ScorerManager::evaluateGlobalReflectionSymmAuto()
 	}
 
 	///////////////// compute
-	QVector<double> symmScore = evaluateGlobalReflectionSymm(this->scheduler->allGraphs);    
+	QVector<double> symmScore = evaluateGlobalReflectionSymm(this->scheduler_->allGraphs);    
 
 	QString headline = "is use source center: ";
 	if ( isUseSourceCenter_)
@@ -330,10 +296,10 @@ void ScorerManager::setIsUseSourceCenter(bool bUse)
 }
 Structure::Graph * ScorerManager::getCurrentGraph(int& idx)
 {
-	int ct = this->scheduler->slider->currentTime();
-	idx = this->scheduler->allGraphs.size() * (double(ct) / this->scheduler->totalExecutionTime());
+	int ct = this->scheduler_->slider->currentTime();
+	idx = this->scheduler_->allGraphs.size() * (double(ct) / this->scheduler_->totalExecutionTime());
 	
-	Structure::Graph * g = Structure::Graph::actualGraph(this->scheduler->allGraphs[idx]);
+	Structure::Graph * g = Structure::Graph::actualGraph(this->scheduler_->allGraphs[idx]);
 	return g;
 }
 
@@ -353,7 +319,7 @@ Structure::Graph * ScorerManager::getCurrentGraph(int& idx)
 //	int idx(0);
 //	Structure::Graph* g = getCurrentGraph(idx);
 //	PairRelationScorer prs(g, idx, logLevel_);
-//	double score = prs.evaluate(otherPairs_, gcorr->correspondences);
+//	double score = prs.evaluate(otherPairs_, this->gcorr_->correspondences);
 //
 //    emit( message("Evaluate pairs end. ") );
 //}
@@ -366,7 +332,7 @@ Structure::Graph * ScorerManager::getCurrentGraph(int& idx)
 //    {
 //		Structure::Graph * g = Structure::Graph::actualGraph(graphs[i] );
 //        PairRelationScorer prs(g, i, logLevel);
-//		score = prs.evaluate(otherPairs_, gcorr->correspondences);
+//		score = prs.evaluate(otherPairs_, this->gcorr_->correspondences);
 //		pairScore.push_back(score);
 //    }
 //	return pairScore;
@@ -382,7 +348,7 @@ Structure::Graph * ScorerManager::getCurrentGraph(int& idx)
 //	}
 //
 //	///////////////// 
-//	QVector<double> pairScore = evaluatePairs(this->scheduler->allGraphs);
+//	QVector<double> pairScore = evaluatePairs(this->scheduler_->allGraphs);
 //	saveScore(QString("evaluate_pair_auto.txt"), pairScore, QString());	
 //
 //

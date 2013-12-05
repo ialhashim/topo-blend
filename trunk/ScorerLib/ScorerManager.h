@@ -17,10 +17,12 @@ class ScorerManager : public QObject
 
 public:
 	ScorerManager(GraphCorresponder * graph_corresponder, Scheduler * scheduler, QVector<Structure::Graph*> input_graphs);
-
-	GraphCorresponder * gcorr;
-	Scheduler * scheduler;
-	QVector<Structure::Graph*> inputGraphs;	
+	void init(GraphCorresponder * graph_corresponder, Scheduler * scheduler, QVector<Structure::Graph*> input_graphs);
+private:
+	GraphCorresponder * gcorr_;
+	Scheduler * scheduler_;
+	QVector<Structure::Graph*> actualInputGraphs_;	
+	double normalizeCoef_;
 
 	// for global symm
     double maxGlobalSymmScore_;
@@ -62,10 +64,6 @@ public slots:
 	//void evaluatePairsAuto();
 
 	void setIsUseSourceCenter(bool);
-
-	//////////////
-	void init();
-	void clear();
 
 private:
     bool isGlobalReflectionSymmParsed()

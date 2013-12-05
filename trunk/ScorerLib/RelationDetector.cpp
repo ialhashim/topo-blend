@@ -122,7 +122,8 @@ bool GroupRelation::equal(GroupRelation& gr)
     return true;
 }
 
-RelationDetector::RelationDetector(Structure::Graph* g, const QString& logprefix, int ith, int pointLevel, int logLevel):graph_(g),logLevel_(logLevel),pointLevel_(pointLevel)
+RelationDetector::RelationDetector(Structure::Graph* g, const QString& logprefix, int ith, double normalizeCoef, int pointLevel, int logLevel)
+	                              :graph_(g),logLevel_(logLevel), normalizeCoef_(normalizeCoef), pointLevel_(pointLevel)
 {
 	thRadiusRadio_ = 1.2;
 

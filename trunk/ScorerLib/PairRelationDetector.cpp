@@ -171,7 +171,8 @@ double PairRelationDetector::CoplanarPairModifier::operator() (Structure::Node *
 	return deviation;
 }
 //////////////////////////////////////////////////////
-PairRelationDetector::PairRelationDetector(Structure::Graph* g, int ith, int logLevel):RelationDetector(g, "PairRelationDetector-", ith, 1, logLevel)
+PairRelationDetector::PairRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, int logLevel)
+					 :RelationDetector(g, "PairRelationDetector-", ith, normalizeCoef, 1, logLevel)
 {
 	bSource_ = ith == 0;
 
@@ -193,10 +194,8 @@ PairRelationDetector::PairRelationDetector(Structure::Graph* g, int ith, int log
 
 void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
 {
-	QVector<PairRelation> pairs;
-	
+	QVector<PairRelation> pairs;	
 
-	double dist = graph_->bbox().diagonal().norm();
 	int tmp1 = graph_->edges.size();
 	for ( int i = 0; i < tmp1; ++i)
 	{
@@ -205,7 +204,7 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 		SurfaceMesh::Vector3 p2 = link->position(link->n2->id);
 		
 		PairRelation prb(link->n1,link->n2);
-		prb.deviation = (p1-p2).norm()/dist;
+		prb.deviation = (p1-p2).norm()/normalizeCoef_;
 
 		pairs.push_back(prb);
 	}
@@ -217,7 +216,7 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 	//	for ( int j = i+1; j < tmp1+1; ++j)
 	//	{
 	//		Eigen::MatrixXd ptsj = nodesPts_[j];
-	//		double tmpd = distanceBetween(ptsi, ptsj)/dist;
+	//		double tmpd = distanceBetween(ptsi, ptsj)/normalizeCoef_;
 	//		if (tmpd < thIntersectDist_)
 	//		{
 	//			PairRelation prb;
@@ -229,8 +228,7 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 	//	}
 	//}
 
-	double dist1 = g->bbox().diagonal().norm();
-	modifyPairsDegree(pairs, ConnectedPairModifier(dist1, pointLevel_), g, corres, "Connected pairs");
+	modifyPairsDegree(pairs, ConnectedPairModifier(normalizeCoef_, pointLevel_), g, corres, "Connected pairs");
 
 	connectedPairs_.clear();
 	for (QVector<PairRelation>::iterator it = pairs.begin(); it != pairs.end(); ++it)

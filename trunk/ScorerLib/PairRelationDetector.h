@@ -56,7 +56,7 @@ public:
 	
 	////////////////////////////////////////////////////
 public:    
-	PairRelationDetector(Structure::Graph* g, int ith, int logLevel=0);
+	PairRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, int logLevel=0);
 
     // if bSource_, g is the target shape (graph_ is source shape). else g is the source shape
 	void detect(Structure::Graph* g, QVector<PART_LANDMARK> &corres);	

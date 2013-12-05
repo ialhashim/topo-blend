@@ -5,7 +5,6 @@
 double GroupRelationScorer::evaluate(QVector<QVector<GroupRelation> > &groupss, QVector<PART_LANDMARK> &corres)
 {
 	double resultMax(0.0); int num(0);
-	double dist = graph_->bbox().diagonal().norm();
 	for ( int j = 0; j < groupss.size(); ++j)
 	{
 		QVector<GroupRelation>& groups = groupss[j];
@@ -19,7 +18,7 @@ double GroupRelationScorer::evaluate(QVector<QVector<GroupRelation> > &groupss, 
 			else
 			{
 				cgr.deviation = cgr.deviation - gr.deviation;
-				cgr.deviation = cgr.deviation * cgr.diameter / dist;
+				cgr.deviation = cgr.deviation * cgr.diameter / this->normalizeCoef_;
 			}
 
 			++num;

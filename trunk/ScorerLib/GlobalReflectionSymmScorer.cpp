@@ -69,7 +69,6 @@ Eigen::Vector3d GlobalReflectionSymmScorer::findReflectPlane(const Eigen::Vector
 double GlobalReflectionSymmScorer::evaluate(const Eigen::Vector3d &center, const Eigen::Vector3d &normal, double maxGlobalSymmScore)
 {
 	double maxScore(0.0), deviation(0.0);
-	double gsize = graph_->bbox().diagonal().norm();
 	for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
     {        
 		Eigen::MatrixXd ptsout;
@@ -88,7 +87,7 @@ double GlobalReflectionSymmScorer::evaluate(const Eigen::Vector3d &center, const
 		}
     }
 
-    maxScore = maxScore/gsize;
+	maxScore = maxScore/this->normalizeCoef_;
     maxScore = 1/(1+maxScore);
 	maxScore = maxScore/maxGlobalSymmScore;
 
