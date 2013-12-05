@@ -7,22 +7,15 @@
     <x>0</x>
     <y>0</y>
     <width>200</width>
-    <height>668</height>
+    <height>697</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
-   <item row="10" column="0">
-    <widget class="QPushButton" name="clearButton">
-     <property name="text">
-      <string>Clear All</string>
-     </property>
-    </widget>
-   </item>
-   <item row="8" column="1">
-    <widget class="QSpinBox" name="vCount">
+   <item row="6" column="1">
+    <widget class="QSpinBox" name="uCount">
      <property name="minimum">
       <number>4</number>
      </property>
@@ -31,13 +24,6 @@
      </property>
      <property name="value">
       <number>8</number>
-     </property>
-    </widget>
-   </item>
-   <item row="8" column="0">
-    <widget class="QLabel" name="label_2">
-     <property name="text">
-      <string>V count</string>
      </property>
     </widget>
    </item>
@@ -60,10 +46,37 @@
      </property>
     </widget>
    </item>
-   <item row="6" column="0">
-    <widget class="QLabel" name="label">
+   <item row="8" column="1">
+    <widget class="QSpinBox" name="vCount">
+     <property name="minimum">
+      <number>4</number>
+     </property>
+     <property name="maximum">
+      <number>500</number>
+     </property>
+     <property name="value">
+      <number>8</number>
+     </property>
+    </widget>
+   </item>
+   <item row="10" column="0">
+    <widget class="QPushButton" name="clearButton">
      <property name="text">
-      <string>U count</string>
+      <string>Clear All</string>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="0">
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>V count</string>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="0">
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Resolution</string>
      </property>
     </widget>
    </item>
@@ -74,10 +87,10 @@
      </property>
     </widget>
    </item>
-   <item row="9" column="0">
-    <widget class="QLabel" name="label_3">
+   <item row="6" column="0">
+    <widget class="QLabel" name="label">
      <property name="text">
-      <string>Resolution</string>
+      <string>U count</string>
      </property>
     </widget>
    </item>
@@ -151,6 +164,70 @@
        <widget class="QPushButton" name="curveFitButton">
         <property name="text">
          <string>Curve fit</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="4" column="0" colspan="2">
+    <widget class="QGroupBox" name="groupBox_3">
+     <property name="title">
+      <string>Quick skeleton</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_4">
+      <item row="0" column="2">
+       <widget class="QSpinBox" name="contractIterations">
+        <property name="value">
+         <number>3</number>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>Iterations</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QPushButton" name="skeletonButton">
+        <property name="text">
+         <string>Contract</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../topo-blend/topo-blend.qrc">
+          <normaloff>:/nurbs_plugin/images/bone.png</normaloff>:/nurbs_plugin/images/bone.png</iconset>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QPushButton" name="skeletonButtonStep">
+        <property name="text">
+         <string>More..</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="5" column="0" colspan="2">
+    <widget class="QGroupBox" name="groupBox_4">
+     <property name="title">
+      <string>Tools</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_5">
+      <item row="0" column="1">
+       <widget class="QPushButton" name="flipVButton">
+        <property name="text">
+         <string>Flip V</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QPushButton" name="flipUButton">
+        <property name="text">
+         <string>Flip U</string>
         </property>
        </widget>
       </item>
@@ -272,80 +349,10 @@
      </layout>
     </widget>
    </item>
-   <item row="5" column="0" colspan="2">
-    <widget class="QGroupBox" name="groupBox_4">
-     <property name="title">
-      <string>Tools</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_5">
-      <item row="0" column="1">
-       <widget class="QPushButton" name="flipVButton">
-        <property name="text">
-         <string>Flip V</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QPushButton" name="flipUButton">
-        <property name="text">
-         <string>Flip U</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="4" column="0" colspan="2">
-    <widget class="QGroupBox" name="groupBox_3">
-     <property name="title">
-      <string>Quick skeleton</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_4">
-      <item row="0" column="2">
-       <widget class="QSpinBox" name="contractIterations">
-        <property name="value">
-         <number>3</number>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Iterations</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="2">
-       <widget class="QPushButton" name="skeletonButton">
-        <property name="text">
-         <string>Contract</string>
-        </property>
-        <property name="icon">
-         <iconset resource="../topo-blend/topo-blend.qrc">
-          <normaloff>:/nurbs_plugin/images/bone.png</normaloff>:/nurbs_plugin/images/bone.png</iconset>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QPushButton" name="skeletonButtonStep">
-        <property name="text">
-         <string>More..</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="6" column="1">
-    <widget class="QSpinBox" name="uCount">
-     <property name="minimum">
-      <number>4</number>
-     </property>
-     <property name="maximum">
-      <number>500</number>
-     </property>
-     <property name="value">
-      <number>8</number>
+   <item row="11" column="0">
+    <widget class="QPushButton" name="loadButton">
+     <property name="text">
+      <string>Load..</string>
      </property>
     </widget>
    </item>
