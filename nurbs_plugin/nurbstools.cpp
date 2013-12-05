@@ -20,6 +20,7 @@ NURBSTools::NURBSTools(nurbs_plugin * usePlugin, QWidget *parent) : QWidget(pare
 
 	plugin->connect(ui->clearButton, SIGNAL(clicked()), SLOT(clearAll()));
 	plugin->connect(ui->saveButton, SIGNAL(clicked()), SLOT(saveAll()));
+	plugin->connect(ui->loadButton, SIGNAL(clicked()), SLOT(loadGraph()));
 
 	//plugin->connect(ui->skeletonButton, SIGNAL(clicked()), SLOT(skeletonizeMesh()));
 	plugin->connect(ui->skeletonButtonStep, SIGNAL(clicked()), SLOT(stepSkeletonizeMesh()));

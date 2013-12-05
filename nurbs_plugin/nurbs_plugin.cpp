@@ -1002,4 +1002,13 @@ void nurbs_plugin::updateDrawArea()
 	drawArea()->update();
 }
 
+void nurbs_plugin::loadGraph()
+{
+	QStringList fileNames = QFileDialog::getOpenFileNames(0, "Open Model",
+		mainWindow()->settings()->getString("lastUsedDirectory"), "Model Files (*.xml)");
+	if(fileNames.isEmpty()) return;
+
+	graph = new Structure::Graph(fileNames.front());
+}
+
 Q_EXPORT_PLUGIN (nurbs_plugin)

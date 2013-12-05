@@ -73,6 +73,7 @@ public:
 public slots:
 	void clearAll();
 	void saveAll();
+	void loadGraph();
 
 	void buildSamples();
 

@@ -147,9 +147,6 @@ Link * Graph::addEdge(QString n1_id, QString n2_id)
 
 Link * Graph::addEdge(Node *n1, Node *n2)
 {
-    n1 = addNode(n1);
-    n2 = addNode(n2);
-
 	Vector3 intersectPoint = nodeIntersection(n1, n2);
 
 	Array1D_Vector4d c1,c2;
