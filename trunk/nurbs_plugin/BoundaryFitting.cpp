@@ -66,7 +66,11 @@ void BoundaryFitting::doFit()
 			QVector<Vertex> nei = neighbours(i,range,boundry);
 			double sum = 0;
 
-			for(int j = 0; j < (range * 0.5); j++){
+			int halfRange = range * 0.5;
+
+			for(int j = 0; j < halfRange; j++){
+				if(j+1 > nei.size()-1) continue;
+
 				Vector3 e1 = (points[nei[j]] - points[nei[j+1]]).normalized();
 				Vector3 e2 = (points[nei[nei.size()-1 - j]] - points[nei[nei.size()-2 - j]]).normalized();
 

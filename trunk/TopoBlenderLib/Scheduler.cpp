@@ -582,7 +582,7 @@ void Scheduler::executeAll()
 		// active tasks
 		QVector<QString> aTs = activeTasks(globalTime * totalTime);
 		activeGraph->property["activeTasks"].setValue( aTs );
-		activeGraph->property["t"] = globalTime;
+		activeGraph->property["t"] = qMin(1.0, globalTime);
 
 		// For visualization
 		activeGraph->setPropertyAll("isActive", false);
@@ -668,7 +668,7 @@ void Scheduler::finalize()
 		// Reassign 't' values for generated graphs
 		double stretch = (totalExecutionTime() - overTime) / totalExecutionTime();
 		for(int i = 0; i < (int)allGraphs.size(); i++)
-			allGraphs[i]->property["t"] = stretch * (allGraphs[i]->property["t"].toDouble());
+			allGraphs[i]->property["t"] = qMin(1.0, stretch * (allGraphs[i]->property["t"].toDouble()));
 
 		QMap<Node*, Array1D_Vector3> curGeometry;
 		foreach(Node * n, activeGraph->nodes)

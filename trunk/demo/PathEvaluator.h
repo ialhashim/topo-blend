@@ -3,14 +3,6 @@
 
 #include "Blender.h"
 
-struct PathScore{
-	QVector< QVector<double> > scores;
-	double score() const { return minScore(0); }
-	double maxScore(int i) const { return *std::max_element(scores[i].begin(), scores[i].end()); }
-	double minScore(int i) const { return *std::min_element(scores[i].begin(), scores[i].end()); }
-	bool operator<(const PathScore& other) const { return score() < other.score(); }
-};
-
 class PathEvaluator : public QObject
 {
     Q_OBJECT
