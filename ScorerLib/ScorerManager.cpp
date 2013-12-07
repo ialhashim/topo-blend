@@ -303,54 +303,86 @@ Structure::Graph * ScorerManager::getCurrentGraph(int& idx)
 	return g;
 }
 
+ScorerManager::PathScore ScorerManager::pathScore( Scheduler * scheduler )
+{
+	ScorerManager::PathScore score;
 
+	QVector<Structure::Graph*> graphs = scheduler->allGraphs;
+	int N = graphs.size();
+	int logLevel = 0;
 
-//void ScorerManager::evaluatePairs()
-//{
-//	/////////////////
-//    emit( message("Evaluate pairs starts: ") );
-//
-//	if ( connectPairs_.empty() )
-//	{
-//		emit( message("Parse constraint pair first! ") );
-//		return;
-//	}
-//
-//	int idx(0);
-//	Structure::Graph* g = getCurrentGraph(idx);
-//	PairRelationScorer prs(g, idx, logLevel_);
-//	double score = prs.evaluate(otherPairs_, this->gcorr_->correspondences);
-//
-//    emit( message("Evaluate pairs end. ") );
-//}
-//QVector<double> ScorerManager::evaluatePairs( QVector<Structure::Graph*> const &graphs )
-//{
-//	QVector<double> pairScore;
-//	int logLevel = 0;
-//	double score;
-//    for (int i = 0; i < graphs.size(); ++i)
-//    {
-//		Structure::Graph * g = Structure::Graph::actualGraph(graphs[i] );
-//        PairRelationScorer prs(g, i, logLevel);
-//		score = prs.evaluate(otherPairs_, this->gcorr_->correspondences);
-//		pairScore.push_back(score);
-//    }
-//	return pairScore;
-//}
-//void ScorerManager::evaluatePairsAuto()
-//{
-//    emit( message("Evaluate pair auto starts: ") );
-//
-//	if ( otherPairs_.empty() )
-//	{
-//		emit( message("Parse constraint pair first! ") );
-//		return;
-//	}
-//
-//	///////////////// 
-//	QVector<double> pairScore = evaluatePairs(this->scheduler_->allGraphs);
-//	saveScore(QString("evaluate_pair_auto.txt"), pairScore, QString());	
-//
-//
-//    emit( message("Evaluate pair auto end. ") );
-//}
+	QVector<double> connectivity, localSymmetry, globalSymmetry;
+
+	// Compute all scores at once
+	for (int i = 0; i < N; ++i)
+	{
+		Structure::Graph * g = Structure::Graph::actualGraph(graphs[i] );
+
+		// Connectivity
+		ConnectivityScorer cs(g, i, this->normalizeCoef_, logLevel);	
+		connectivity.push_back( cs.evaluate(this->connectPairs_, this->gcorr_->correspondences) );
+
+		// Local symmetry
+		GroupRelationScorer grs(g, i, this->normalizeCoef_, logLevel);
+		localSymmetry.push_back( grs.evaluate(groupRelations_, this->gcorr_->correspondences) );
+
+		// Global symmetry
+		GlobalReflectionSymmScorer gss(g, i, this->normalizeCoef_, logLevel);
+		globalSymmetry.push_back( gss.evaluate( gss.center_, this->refNormal_, this->maxGlobalSymmScore_) );
+
+		// Clean up
+		delete g;
+	}
+
+	// Fill scores into vectors
+	score.connectivity = VectorXd::Zero(N);
+	score.localSymmetry = VectorXd::Zero(N);
+	score.globalSymmetry = VectorXd::Zero(N);
+
+	for(int i = 0; i < N; i++)
+	{
+		score.connectivity[i] = connectivity[i];
+		score.localSymmetry[i] = localSymmetry[i];
+		score.globalSymmetry[i] = globalSymmetry[i];
+	}
+
+	return score;
+}
+
+MatrixXd ScorerManager::PathScore::computeRange()
+{
+	// Columns: min, max, range, average
+	MatrixXd R(3, 4);
+
+	R(0,0) = connectivity.minCoeff();	R(0,1) = connectivity.maxCoeff();	R(0,2) = R(0,1) - R(0,0); R(0,3) = connectivity.mean();
+	R(1,0) = localSymmetry.minCoeff();	R(1,1) = localSymmetry.maxCoeff();	R(1,2) = R(1,1) - R(1,0); R(1,3) = localSymmetry.mean();
+	R(2,0) = globalSymmetry.minCoeff(); R(2,1) = globalSymmetry.maxCoeff(); R(2,2) = R(2,1) - R(2,0); R(2,3) = globalSymmetry.mean();
+
+	return R;
+}
+
+double ScorerManager::PathScore::score( Vector3d globals )
+{
+	int N = connectivity.size();
+
+	double avgConnectivity = globals[0];
+	double avgLocal = globals[1];
+	double avgGlobal = globals[2];
+
+	int belowConnect = 0;
+	int belowLocal = 0;
+	int belowGlobal = 0;
+
+	for(int i = 0; i < N; i++)
+	{
+		if( connectivity[i] < avgConnectivity ) belowConnect++;
+		if( localSymmetry[i] < avgLocal ) belowLocal++;
+		if( globalSymmetry[i] < avgGlobal ) belowGlobal++;
+	}
+
+	// Negative scoring
+	int counts = belowConnect + belowLocal + belowGlobal;
+	counts *= -1;
+
+	return counts;
+}

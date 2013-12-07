@@ -7,7 +7,6 @@
 class GraphCorresponder;
 class Scheduler;
 
-
 // todo jjcao trace pairs!
 // todo jjcao parse & trance groups!
 
@@ -18,6 +17,17 @@ class ScorerManager : public QObject
 public:
 	ScorerManager(GraphCorresponder * graph_corresponder, Scheduler * scheduler, QVector<Structure::Graph*> input_graphs);
 	void init(GraphCorresponder * graph_corresponder, Scheduler * scheduler, QVector<Structure::Graph*> input_graphs);
+
+	struct PathScore{
+		VectorXd connectivity;
+		VectorXd localSymmetry;
+		VectorXd globalSymmetry;
+
+		MatrixXd computeRange();
+
+		double score( Vector3d globals );
+	};
+
 private:
 	GraphCorresponder * gcorr_;
 	Scheduler * scheduler_;
@@ -62,6 +72,9 @@ public slots:
 	//void evaluatePairs();
 	//QVector<double> evaluatePairs( QVector<Structure::Graph*> const &graphs );
 	//void evaluatePairsAuto();
+
+	//////////////
+	PathScore pathScore( Scheduler * scheduler );
 
 	void setIsUseSourceCenter(bool);
 

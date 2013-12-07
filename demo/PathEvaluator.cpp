@@ -114,7 +114,7 @@ void PathEvaluator::test_filtering()
 
 	int timeLimit = 5000; // ms
 	int numInBetweens = 8;
-	int numSamplesPerPath = 100;
+	int numSamplesPerPath = numInBetweens * 3;
 
 	/// Get number of paths to evaluate:
 	int numPaths = 0;
@@ -138,10 +138,7 @@ void PathEvaluator::test_filtering()
 	}
 
 	// Force number of paths
-	numPaths = 5;
-
-	/// Setup schedules:
-	QVector<PathScore> ps(numPaths);
+	numPaths = 100;
 
 	// Do this once for input graphs
 	QVector<Structure::Graph*> inputGraphs;
@@ -151,6 +148,9 @@ void PathEvaluator::test_filtering()
 	r_manager.parseConstraintPair();
 	r_manager.parseConstraintGroup();
 	r_manager.parseGlobalReflectionSymm();
+
+	QVector<ScorerManager::PathScore> ps( numPaths );
+	MatrixXd allRanges( numPaths, 3 * 4 );
 
 	QVector<ScheduleType> allPaths = b->m_scheduler->manyRandomSchedules( numPaths );
 
@@ -168,19 +168,17 @@ void PathEvaluator::test_filtering()
 		s.executeAll();
 
 		// Compute its score
-		ps[i].scores.push_back( r_manager.evaluateTopology( s.allGraphs ) );
-		ps[i].scores.push_back( r_manager.evaluateGroups( s.allGraphs ) );
-		ps[i].scores.push_back( r_manager.evaluateGlobalReflectionSymm( s.allGraphs ) );
-
-		QVector<double> maxScore;
-		maxScore.push_back(ps[i].maxScore(0));
-		maxScore.push_back(ps[i].maxScore(1));
-		maxScore.push_back(ps[i].maxScore(2));
+		ps[i] = r_manager.pathScore( &s );
 
 		QVector<QColor> colors;
 		colors.push_back(QColor(255,0,0));
 		colors.push_back(QColor(0,255,0));
 		colors.push_back(QColor(0,0,255));
+
+		// Range of values
+		MatrixXd ranges = ps[i].computeRange();
+
+		allRanges.row(i) = VectorXd::Map(ranges.data(), ranges.rows()*ranges.cols());
 
 		//#pragma omp critical
 		{
@@ -189,13 +187,21 @@ void PathEvaluator::test_filtering()
 
 			QPainter painter(&img);
 			painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-			
+
+			// Text option
+			QFont font("Monospace",8);
+			font.setStyleHint(QFont::TypeWriter);
+			painter.setFont(font);
+
 			QVector<Structure::Graph*> inBetweens = s.interestingInBetweens( numInBetweens );
 
-			// Draw images
+			QVector< QVector<double> > scores(numInBetweens);
+
 			int imgWidth = 0;
+
 			for(int k = 0; k < numInBetweens; k++)
 			{
+				// Draw images
 				QImage inBetween = b->renderer->quickRender(inBetweens[k], Qt::white);
 				imgWidth = inBetween.width();
 
@@ -203,24 +209,34 @@ void PathEvaluator::test_filtering()
 				int newWidth = inBetween.width() * 0.5;
 				int startX = k * newWidth;
 				painter.drawImage(startX, 0, inBetween);
+
+				// Store scores
+				int idx = inBetweens[k]->property["t"].toDouble() * (s.allGraphs.size() - 1);
+				QVector<double> vals;
+				vals << ps[i].connectivity[idx] << ps[i].localSymmetry[idx] << ps[i].globalSymmetry[idx];
+
+				scores[k] = vals;
 			}
 			
 			// Draw score lines
-			for(int u = 0; u < ps[i].scores.size(); u++)
+			for(int u = 0; u < scores.front().size(); u++)
 			{
 				// Graph
 				QPainterPath poly;
 				int padding = 0;
 
 				QColor clr = colors[u];
-				painter.setPen(QPen(clr, 3));
+				painter.setPen(QPen(clr, 1));
 
 				// Render path
 				for(int k = 0; k < numInBetweens; k++)
 				{
 					// Score graph
-					int graphIDX = qMin( int(inBetweens[k]->property["t"].toDouble() * s.allGraphs.size()), ps[i].scores[u].size() - 1 );
-					double val = ps[i].scores[u][ graphIDX ] / maxScore[u];
+					double minVal = ranges(u,0);
+					double range = ranges(u,2);
+
+					//double val = (scores[k][u] - minVal) / range;
+					double val = scores[k][u];
 
 					// Graph line
 					int newWidth = imgWidth * 0.5;
@@ -234,19 +250,47 @@ void PathEvaluator::test_filtering()
 						poly.lineTo(x, y);
 
 					// Dots
-					painter.drawEllipse(QPoint(x,y), 3, 3);
+					painter.drawEllipse(QPoint(x,y), 2, 2);
 				}
 
 				painter.setBrush(Qt::NoBrush);
 				painter.drawPath(poly);
 			}
 
+			// Draw ranges
+			QStringList vals;
+			for(int r = 0; r < 3; r++){
+				QStringList curVals;
+				for(int c = 0; c < 4; c++)
+					curVals << QString::number(ranges(r,c),'f',2);
+				vals << curVals.join("  ");
+			}
+
+			if( false )
+			{
+				painter.setPen(Qt::white);
+				painter.drawText(11, img.height() - 9, vals.join("   #   "));
+
+				painter.setPen(Qt::black);
+				painter.drawText(10, img.height() - 10, vals.join("   #   "));
+			}
+
 			img.save( path + QString("/images/%1.png").arg(i) );
 		}
 	}
 
+	// Get global average for the measures
+	Vector3d globalAvg (allRanges.col(9).mean(), allRanges.col(10).mean(), allRanges.col(11).mean());
+
 	// Sort based on score
-	qSort(ps);
+	QMap<int,double> scoreMap;
+	for(int i = 0; i < numPaths; i++) scoreMap[i] = ps[i].score( globalAvg );
+
+	QVector<int> sortedIndices;
+	typedef QPair<double,int> ValIdx;
+	foreach(ValIdx d, sortQMapByValue( scoreMap )){
+		sortedIndices.push_back( d.second );
+	}
 
 	int timeElapsed = evalTimer.elapsed();
 	b->emitMessage( QString("Time (%1 ms), number of paths (%2)").arg(timeElapsed).arg(QString::number(numPaths)) );
@@ -263,12 +307,16 @@ void PathEvaluator::test_filtering()
 	// Inputs
 	html << QString("<div> <img src='images/source.png'/> <img src='images/target.png'/> </div>");
 
+	// Legend
+	html << QString("<div style='color:white; border:1px soild black'> <span style='background:red'>connectivity</span> - \
+		<span style='background:green'>local symmetry</span> - <span style='background:blue'>global symmetry</span> </div>");
+
 	// Outputs
 	html << "<div id='results'>" << "<table>";
 
-	for(int i = 0; i < ps.size() * 0.5; i++)
+	for(int i = 0; i < numPaths * 0.5; i++)
 	{
-		int j = (ps.size() - 1) - i;
+		int j = (numPaths - 1) - i;
 		QStringList scoreType; scoreType << "low" << "high";
 		QVector<int> idx; idx << i << j;
 
@@ -276,7 +324,7 @@ void PathEvaluator::test_filtering()
 
 		for(int h = 0; h < 2; h++)
 		{
-			html << "<td>" << QString("<div class='score-%1'>").arg(scoreType[h]) << QString::number(ps[ idx[h] ].score()) << "</div>";
+			html << "<td>" << QString("<div class='score-%1'>").arg(scoreType[h]) << QString::number(ps[ sortedIndices[idx[h]] ].score( globalAvg )) << "</div>";
 			html << "<div class='path-img'>";
 			html << QString(" <img src='images/%1.png'/> ").arg( idx[h] );
 			html << "</div>" << "</td>";
@@ -285,11 +333,29 @@ void PathEvaluator::test_filtering()
 		html << "</tr>";
 	}
 
+	// Statistics
+	html << "<h2> <table>";
+
+	QStringList rowTitles;
+	rowTitles << "min-connectivity" << "min-local" << "min-global";
+	rowTitles << "max-connectivity" << "max-local" << "max-global";
+	rowTitles << "ran-connectivity" << "ran-local" << "ran-global";
+	rowTitles << "avg-connectivity" << "avg-local" << "avg-global";
+
+	for(int c = 0; c < allRanges.cols(); c++)
+	{
+		QStringList stat;
+		stat << "min " << QString::number(allRanges.col(c).minCoeff(),'f',2);
+		stat << "max " << QString::number(allRanges.col(c).maxCoeff(),'f',2);
+		stat << "avg " << QString::number(allRanges.col(c).mean(),'f',2);
+		html << "<tr>" << QString("<td>%1</td>").arg( rowTitles[c] ) << "<td>" << stat.join("</td><td>") << "</td></tr>";
+	}
+		
+	html << "</table> </h2>";
+
 	// Footer
 	html << "</table>" << "</div>";
 	html << "<h2>Time taken: " << QString::number((timeElapsed / 1000) / 60) << " minutes</h2>";
-
-	html << "</body>" << "</html>";
 
 	QString filename( path + "/index.html"  );
 	QFile file(filename); file.open(QIODevice::WriteOnly | QIODevice::Text);
