@@ -296,26 +296,6 @@ NodeCoord Task::futureOtherNodeCoord( Structure::Link *link )
 NodeCoord Task::futureLinkCoord( Structure::Link *link )
 {
 	NodeCoord fnc = futureOtherNodeCoord(link);
-	Structure::Node * n = active->getNode(fnc.first);
-
-	// Special case when connected to null set
-	if(n->property.contains("nullSet") && !n->property["taskIsDone"].toBool())
-	{
-		Structure::Node * otherNode = link->otherNode( node()->id );
-		Structure::Link * bestEdge = NULL;
-
-		QVector<Structure::Node*> nullSet = active->nodesWithProperty("nullSet", n->property["nullSet"]);
-
-		foreach(Structure::Node * nj, nullSet){
-			if( bestEdge = active->getEdge(nj->id, otherNode->id) )
-				break;
-		}
-
-		if( bestEdge ){
-			fnc = NodeCoord( otherNode->id, bestEdge->getCoord(otherNode->id).front() );
-		}
-	}
-
 	return fnc;
 }
 
@@ -372,7 +352,8 @@ QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Struct
 {
 	// Check edge's real ownership
 	Node * tn = target->getNode(n->property["correspond"].toString());
-	if( tn ){
+	if( tn )
+	{
 		QVector<Link*> keepEdges;
 		foreach(Link * sl, allEdges)
 		{
@@ -835,7 +816,9 @@ bool Task::isCrossing()
 
 	if( isReady && !isDone )
 	{
-		foreach(Link * l, active->getEdges(n->id))
+		QVector<Link*> edges = active->getEdges(n->id);
+
+		foreach(Link * l, edges)
 		{
 			if(l->property["modified"].toBool())
 				continue;
@@ -861,6 +844,9 @@ bool Task::isCutting( bool isSkipUngrown )
 
 	Structure::Graph copyActive (*active);
 
+	// Clean up
+	copyActive.removeIsolatedNodes();
+
 	// Exclude nodes that is active and non-existing
 	QSet<QString> excludeNodes;
 
@@ -871,8 +857,39 @@ bool Task::isCutting( bool isSkipUngrown )
 	if( isSkipUngrown )
 	{
 		foreach(Node* n, active->nodes)
-			if (ungrownNode(n->id) && !copyActive.isCutNode(n->id)) 
+		{
+			if ( ungrownNode(n->id) ) 
+			{
+				// If it cuts the graph, check if both halves have grown nodes 
+				if( copyActive.isCutNode(n->id) )
+				{
+					int numGrownComponents = 0;
+
+					Structure::Graph cutCheckGraph ( copyActive );
+					cutCheckGraph.removeNode(n->id);
+
+					foreach(QSet<QString> component, cutCheckGraph.connectedComponents())
+					{
+						bool hasGrown = false;
+
+						foreach(QString element, component){
+							if( !ungrownNode(element) ){
+								hasGrown = true;
+								break;
+							}
+						}
+
+						if( hasGrown )
+							numGrownComponents++;
+					}
+
+					if( numGrownComponents > 1 )
+						continue;
+				}
+
 				excludeNodes.insert(n->id);
+			}
+		}
 	}
 
 	// Keep myself in graph for checking
@@ -880,7 +897,7 @@ bool Task::isCutting( bool isSkipUngrown )
 	foreach (QString nid, excludeNodes)	copyActive.removeNode(nid);
 
 	result = copyActive.isCutNode(nodeID);
-	
+
 	return result;
 }
 

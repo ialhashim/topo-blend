@@ -29,6 +29,8 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->numSuggestions = 4;
 	this->numInBetweens = 6;
 
+	this->numSchedules = 200;
+
 	setupBlendPathItems();
 
 	// Paths evaluation
@@ -314,7 +316,7 @@ void Blender::preparePaths()
 
 	// Generate blend paths
 	srand(0);
-	allSchedules = m_scheduler->manyRandomSchedules(50);
+	allSchedules = m_scheduler->manyRandomSchedules( numSchedules );
 	resultsPage = 0;
 
 	schedulePaths( m_scheduler, m_blender );

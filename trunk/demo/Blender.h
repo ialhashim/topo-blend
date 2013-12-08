@@ -27,7 +27,7 @@ public:
     explicit Blender(Scene * scene, QString title);
     void setupBlendPathItems();
 
-	int numSuggestions, numInBetweens;
+	int numSuggestions, numInBetweens, numSchedules;
 	int itemHeight;
 	int graphItemWidth;
 	int blendPathWidth, blendPathHeight;

@@ -41,7 +41,6 @@ public:
 	bool isActive(double t);
 	bool isCrossing();
 	bool isCutting(bool isSkipUngrown = false);
-
 	bool ungrownNode(QString nid);
 
 	RMF::Frame curveFrame( Structure::Curve * curve, bool isFlip = false );
