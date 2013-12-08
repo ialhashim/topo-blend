@@ -5,6 +5,9 @@ class GlobalReflectionSymmScorer :	public RelationDetector
 public:
     GlobalReflectionSymmScorer(Structure::Graph* g, int ith, double normalizeCoef, int logLevel=0):RelationDetector(g, "GlobalReflectionSymmScorer-", ith, normalizeCoef, 1, logLevel)
     {
+		if ( this->logLevel_ > 0)
+			this->logStream_ << "normalize coeff: " << this->normalizeCoef_ << "\n";
+
 		init();
     }
 
