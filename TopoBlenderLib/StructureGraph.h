@@ -43,11 +43,12 @@ namespace Structure{
 		Link * addEdge( Node *n1, Node *n2, Array1D_Vector4d coord1, Array1D_Vector4d coord2, QString linkName = "" );
 		Link * addEdge( QString n1_id, QString n2_id );
 
-		Node * removeNode( QString nodeID );
+		void removeNode( QString nodeID );
 		void removeEdge( int uid );
 		void removeEdge( Node * n1, Node * n2 );
 		void removeEdge( QString n1_id, QString n2_id );
 		void removeEdges( QString nodeID );
+		void removeIsolatedNodes();
 
 		void addGroup(QVector<QString> nodes);
 		void removeGroup(int groupIDX);
@@ -104,8 +105,9 @@ namespace Structure{
 		QImage fontImage;
 
 		// Analysis
-		QList<QString> nodesCanVisit( Node * node );
+		QSet<QString> nodesCanVisit( Node * node );
 		int numCanVisit( Structure::Node * node );
+		QVector< QSet<QString> > connectedComponents(); // inefficient
 
 		bool isConnected();
 		bool isCutNode( QString nodeID );

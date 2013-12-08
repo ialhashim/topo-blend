@@ -1347,7 +1347,7 @@ QVector<Link*> Graph::nodeEdges( QString nodeID )
 	return nodeLinks;
 }
 
-Node * Graph::removeNode( QString nodeID )
+void Graph::removeNode( QString nodeID )
 {
 	Node * n = getNode(nodeID);
 
@@ -1360,11 +1360,20 @@ Node * Graph::removeNode( QString nodeID )
 	}
 
 	int node_idx = nodes.indexOf(n);
+
+	if( node_idx < 0) return;
+
 	delete nodes[node_idx];
 	nodes[node_idx] = NULL;
 	nodes.remove(node_idx);
+}
 
-	return n;
+void Graph::removeIsolatedNodes()
+{
+	foreach(Node * n, nodes){
+		if( getEdges(n->id).size() == 0 )
+			removeNode(n->id);
+	}
 }
 
 QList<Link*> Graph::furthermostEdges( QString nodeID )
@@ -1379,14 +1388,13 @@ QList<Link*> Graph::furthermostEdges( QString nodeID )
 	return sortedLinks.values();
 }
 
-QList<QString> Graph::nodesCanVisit( Node * node )
+QSet<QString> Graph::nodesCanVisit( Node * node )
 {
 	QMap<QString, bool> visitedNodes;
 	QStack<QString> nodesToVisit;
 
 	nodesToVisit.push( node->id );
 
-	// Visit all nodes without going through a deleted edge
 	while(! nodesToVisit.isEmpty() )
 	{
 		QString id = nodesToVisit.pop();
@@ -1401,12 +1409,27 @@ QList<QString> Graph::nodesCanVisit( Node * node )
 		}
 	}
 
-	return visitedNodes.keys();
+	return visitedNodes.keys().toSet();
 }
 
 int Graph::numCanVisit( Node * node )
 {
 	return nodesCanVisit( node ).size();
+}
+
+QVector< QSet<QString> > Structure::Graph::connectedComponents()
+{
+	QVector< QSet<QString> > connected;
+
+	foreach(Node * n, nodes)
+	{
+		QSet<QString> curSet = nodesCanVisit( n );
+
+		if(!connected.contains(curSet))
+			connected.push_back( curSet );
+	}
+
+	return connected;
 }
 
 bool Graph::isConnected()

@@ -705,19 +705,6 @@ void Scheduler::finalize()
 	}
 }
 
-bool Scheduler::isPartOfGrowingBranch( Task* t )
-{
-	return (t->type == Task::GROW) && !(t->node()->property.contains("isCutGroup"));
-}
-
-QVector<Task*> Scheduler::getEntireBranch( Task * t )
-{
-	QVector<Task*> branch;
-	foreach(Structure::Node * n, activeGraph->nodesWithProperty("nullSet", t->node()->property["nullSet"]))
-		branch.push_back( getTaskFromNodeID(n->id) );
-	return branch;
-}
-
 void Scheduler::drawDebug()
 {
 	foreach(Task * t, tasks)

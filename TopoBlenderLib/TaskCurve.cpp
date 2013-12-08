@@ -226,7 +226,11 @@ void TaskCurve::prepareGrowCurve()
         NodeCoord rpoint( otherB->id, othercoordB );
         gd.smoothPathCoordTo( rpoint, path );
 
-		if(path.size() == 0) return;
+		// Very short paths
+		if(path.size() < 4){
+			prepareGrowCurveOneEdge( tedges.front() );
+			return;
+		}
 
 		// Use the center of the path as the start point
 		GraphDistance::PathPointPair startPointCoord = path[path.size() / 2];
@@ -277,6 +281,26 @@ void TaskCurve::encodeCurve( const Vector4d& coordinateA, const Vector4d& coordi
 	//// Parameters needed for morphing
 	Vector3 sourceA = n->position(coordinateA), sourceB = n->position(coordinateB);
 	Vector3 targetA = tn->position(coordinateA), targetB = tn->position(coordinateB);
+	
+	// Case: looped curves
+	{
+		Vector4d mid( 0.5, 0.5, 0.5, 0.5 );
+		Vector3 sourceMid = n->position(mid), targetMid = tn->position(mid);
+
+		// Source
+		{
+			double distBA = (sourceB - sourceA).norm(), distAM = (sourceA - sourceMid).norm(), distBM = (sourceB - sourceMid).norm();
+			if( distBA < qMax(distAM, distBM) )
+				distAM < distBM ? sourceA = sourceMid : sourceB = sourceMid;
+		}
+
+		// Target
+		{
+			double distBA = (targetB - targetA).norm(), distAM = (targetA - targetMid).norm(), distBM = (targetB - targetMid).norm();
+			if( distBA < qMax(distAM, distBM) )
+				distAM < distBM ? targetA = targetMid : targetB = targetMid;
+		}
+	}
 
 	// Two ends
 	property["sourceA"].setValue( sourceA ); property["sourceB"].setValue( sourceB );
@@ -294,7 +318,7 @@ void TaskCurve::prepareMorphCurve()
 	// Check crossing
 	if ( (isReady = true) && isCrossing() ) 
 		prepareCrossingMorphCurve();
-	else			  
+ 	else			  
 		prepareMorphEdges();
 }
 
@@ -303,6 +327,23 @@ void TaskCurve::prepareCrossingMorphCurve()
 	Node * n = node();
 
 	QVector<Link*> edges = filterEdges(n, active->getEdges(n->id));
+	
+	// Case: filter out edges that will change end to non-grown nodes
+	if( true )
+	{
+		QVector<Link*> keep;
+		foreach(Link* l, edges){
+			NodeCoord futureNodeCord = futureLinkCoord(l);
+			if(!ungrownNode(futureNodeCord.first))
+				keep.push_back(l);
+		}
+		if(keep.size()) edges = keep;
+	}
+
+	if( edges.isEmpty() )
+	{
+		edges.push_back( active->getEdges(n->id).front() );
+	}
 
 	if (edges.size() == 1)
 	{
@@ -315,6 +356,23 @@ void TaskCurve::prepareCrossingMorphCurve()
 		// Geodesic distances on the active graph excluding the running tasks
 		QVector< GraphDistance::PathPointPair > path;
 		QVector<QString> exclude = active->property["activeTasks"].value< QVector<QString> >();
+
+		// Exclude un-grown cutting
+		{
+			foreach(Node * n, active->nodes)
+			{
+				if( futureNodeCord.first != n->id && ungrownNode(n->id) )
+				{
+					bool isCuttingNode = n->property["task"].value<Task*>()->isCutting(true);
+
+					if( isCuttingNode ) 
+						continue;
+					else
+						exclude.push_back( n->id );
+				}
+			}
+		}
+
 		GraphDistance gd( active, exclude );
 		gd.computeDistances( end, DIST_RESOLUTION );  
 		gd.smoothPathCoordTo( start, path );
@@ -327,19 +385,23 @@ void TaskCurve::prepareCrossingMorphCurve()
 		// Save links paths
 		path.back() = GraphDistance::PathPointPair( PathPoint(futureNodeCord.first, futureNodeCord.second)  );
 		link->setProperty("path", path);
+
+		property["isSingleCrossing"] = true;
 	}
 
 	if( edges.size() == 2 )
 	{
 		// Start and end for both links
 		Link * linkA = edges.front();
-		Vector3d startA = linkA->positionOther(n->id);
+		Link * linkB = edges.back();
+		
 		NodeCoord futureNodeCordA = futureLinkCoord(linkA);
+		NodeCoord futureNodeCordB = futureLinkCoord(linkB);
+
+		Vector3d startA = linkA->positionOther(n->id);
 		Vector3d endA = active->position(futureNodeCordA.first,futureNodeCordA.second);
 
-		Link * linkB = edges.back();
 		Vector3d startB = linkB->positionOther(n->id);
-		NodeCoord futureNodeCordB = futureLinkCoord(linkB);
 		Vector3d endB = active->position(futureNodeCordB.first,futureNodeCordB.second);
 
 		// Geodesic distances on the active graph excluding the running tasks
@@ -382,16 +444,13 @@ void TaskCurve::executeCurve(double t)
 	case GROW:
 	case SHRINK:
 		{
-			// DEBUG:
-			//if(type==GROW)active->spheres.addSphere(this->node()->bbox().center(), 0.03, QColor(255,0,0,100));
-
 			if ( property.contains("deltas") )	foldCurve(t);
 			else executeCrossingCurve(t);
 		}
 		break;
 	case MORPH:
 		{
-			if( property["isCrossing"].toBool() )
+			if( property["isCrossing"].toBool())
 				executeCrossingCurve(t);
 			else
 				executeMorphCurve(t);
@@ -415,6 +474,12 @@ void TaskCurve::foldCurve( double t )
 
 	// Placement
 	QVector<Link*> edges = property["edges"].value< QVector<Link*> >();
+
+	// Only valid edges
+	QVector<Link*> keep;
+	foreach(Link* l, edges) if(l->hasNode(n->id)) keep.push_back(l);
+	edges = keep;
+
     Link * l = edges.front();
 
 	Vector3 posOnMe = l->position(n->id);
@@ -538,13 +603,14 @@ void TaskCurve::executeMorphCurve( double t )
 	Vector3 pointB = AlphaBlend(t, property["sourceB"].value<Vector3>(), property["targetB"].value<Vector3>());
 
 	// Blend geometry of skeleton
-	SheetEncoding cpCoords = property["cpCoords"].value<SheetEncoding>();
-	SheetEncoding cpCoordsT = property["cpCoordsT"].value<SheetEncoding>();
+	CurveEncoding cpCoords = property["cpCoords"].value<CurveEncoding>();
+	CurveEncoding cpCoordsT = property["cpCoordsT"].value<CurveEncoding>();
 	Array1D_Vector3 newPnts = Curve::decodeCurve(property["cpCoords"].value<CurveEncoding>(), pointA, pointB);
 	Array1D_Vector3 newPntsT = Curve::decodeCurve(property["cpCoordsT"].value<CurveEncoding>(), pointA, pointB);
 
 	Array1D_Vector3 blendedPnts;
-	for(int i = 0; i < (int)newPnts.size(); i++) blendedPnts.push_back( AlphaBlend(t, newPnts[i], newPntsT[i]) );
+	for(int i = 0; i < (int)newPnts.size(); i++) 
+		blendedPnts.push_back( AlphaBlend(t, newPnts[i], newPntsT[i]) );
+	
 	n->setControlPoints( blendedPnts );
 }
-

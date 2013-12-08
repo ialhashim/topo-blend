@@ -138,8 +138,16 @@ void Relink::fixTask( Task* task )
 	}
 
 	bool fixedSize = false;
-	if (task->type == Task::MORPH && task->isDone && !task->property["isCrossing"].toBool())
-		fixedSize = true;
+	if (task->type == Task::MORPH && task->isDone)
+	{
+		if( task->property["isCrossing"].toBool() )
+		{
+			if(task->property["isSingleCrossing"].toBool())
+				fixedSize = true;
+		}
+		else
+			fixedSize = true;
+	}
 
 	/// Ignore constraints that will cause large distortions
 	// CASE: link is moving around parts

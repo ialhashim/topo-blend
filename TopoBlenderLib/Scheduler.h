@@ -75,9 +75,6 @@ public:
 
 	void groupStart( Structure::Graph * g, QList<Task*> curTasks, int curStart, int & futureStart );
 
-	bool isPartOfGrowingBranch( Task* t );
-	QVector<Task*> getEntireBranch( Task * t );
-
 	// Task operations
 	void addMorphTask( QString nodeID );
 
