@@ -429,7 +429,7 @@ QVector<Structure::Link*> Task::filteredFromTargetEdges()
 
 		tedges.push_back(edge);		
 	}
-
+	
 	// Skip all but one edge of splitting nodes
 	foreach(Link * edge, tedges)
 	{
@@ -462,6 +462,28 @@ QVector<Structure::Link*> Task::filteredFromTargetEdges()
 		}
 
 		if(slink) edges.push_back( slink );
+	}
+
+	// Sort by valence of other
+	{
+		QMap<Link*,int> linkValence;
+		foreach(Link * l, edges){
+			Node * tn = target->getNode( l->otherNode(node()->id)->property["correspond"].toString() );
+			linkValence[l] = qMax(active->valence(l->otherNode(node()->id)), target->valence( tn ));
+		}
+
+		typedef QPair<int, Link*> ValenceLink;
+		QList< ValenceLink > sorted = sortQMapByValue(linkValence);
+
+		QVector<Link*> sortedEdges;
+		foreach(ValenceLink vl, sorted) sortedEdges.push_back( vl.second );
+		edges = sortedEdges;
+	}
+
+	// Surrounded by un-grown nodes
+	if( edges.isEmpty() )
+	{
+		edges.push_back( active->getEdges( nodeID ).front() );
 	}
 
 	return edges;

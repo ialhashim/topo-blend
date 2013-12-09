@@ -267,12 +267,18 @@ void TopoBlender::correspondSuperEdges()
 	bool CASE_6 = true;
 	bool CASE_7 = true;
 
+	bool dbg = false;
+
+	if(dbg) debugSuperGraphs("00");
+
 	/// Correspond trivial edges, i.e. both nodes exist on both graphs
 	if( CASE_1 )
 	{
 		correspondTrivialEdges ( super_sg, super_tg );
 		correspondTrivialEdges ( super_tg, super_sg );
 	}
+
+	if(dbg) debugSuperGraphs("01");
 
 	/// Correspond edges between two [extra] or two [missing] nodes
 	if( CASE_2 )
@@ -281,6 +287,8 @@ void TopoBlender::correspondSuperEdges()
 		correspondSimilarType( super_tg, super_sg );
 	}
 
+	if(dbg) debugSuperGraphs("02");
+
 	/// Creating one edge for floating null nodes [has heuristic]
 	if (CASE_3)
 	{
@@ -288,11 +296,15 @@ void TopoBlender::correspondSuperEdges()
 		connectNullNodes( super_tg, super_sg );
 	}
 
+	if(dbg) debugSuperGraphs("03");
+
 	/// Correspond edges with changed ends
 	if( CASE_4 )
 	{
 		correspondChangedEnds( super_sg, super_tg );
 	}
+
+	if(dbg) debugSuperGraphs("04");
 
 	/// Do remaining edges of null nodes
 	if( CASE_5 )
@@ -301,6 +313,8 @@ void TopoBlender::correspondSuperEdges()
 		correspondRemainingOfNull( super_tg, super_sg );
 	}
 
+	if(dbg) debugSuperGraphs("05");
+
 	/// Link flying real nodes [same as case 4 but for cores]
 	if (CASE_6)
 	{
@@ -308,12 +322,16 @@ void TopoBlender::correspondSuperEdges()
 		connectFloatingRealNodes(super_tg, super_sg);
 	}
 
+	if(dbg) debugSuperGraphs("06");
+
 	/// Remove excess edges (edges of core nodes still uncorresponded)
 	if( CASE_7 )
 	{
 		removeRedundantEdges( super_sg );
 		removeRedundantEdges( super_tg );
 	}
+
+	if(dbg) debugSuperGraphs("07");
 
 	// Visualization: assign global unique ids
 	int viz_uid = 0;
@@ -434,6 +452,38 @@ void TopoBlender::connectNullNodes( Structure::Graph * source, Structure::Graph 
 			// Add the link to source
 			Link* slink = addMissingLink(source, bestTLink);
 			correspondTwoEdges(slink, bestTLink, false, source);
+
+			/// Respect the groups:
+			foreach(QVector<QString> group, target->groupsOf(bestTNode->id)){
+				foreach(QString element, group){
+					Node * tn = target->getNode(element);
+					Node * sn = source->getNode(tn->property["correspond"].toString());
+
+					if(element == bestTNode->id) continue;
+
+					// If there is an edge on the target between me and the element of the group
+					Link * tlink = target->getEdge(tnode->id, tn->id);
+					if( tlink )
+					{
+						Link* slink = addMissingLink(source, tlink);
+						correspondTwoEdges(slink, tlink, false, source);
+					}
+				}
+			}
+
+			foreach(QVector<QString> group, source->groupsOf(bestID)){
+				foreach(QString element, group){
+					Node * sn = source->getNode(element);
+					Node * tn = target->getNode(sn->property["correspond"].toString());
+					if(element == bestID) continue;
+					Link * tlink = target->getEdge(tnode->id, tn->id);
+					if( tlink )
+					{
+						Link* slink = addMissingLink(source, tlink);
+						correspondTwoEdges(slink, tlink, false, source);
+					}
+				}
+			}
 		}
 	}
 }
@@ -451,12 +501,17 @@ void TopoBlender::correspondChangedEnds( Structure::Graph * source, Structure::G
 			QVector<Structure::Link*> sedges = edgesNotContain( source->getEdges(snode->id), "correspond" );
 			QVector<Structure::Link*> tedges = edgesNotContain( target->getEdges(tnode->id), "correspond" );
 
+			if(!sedges.size() || !tedges.size()) continue;
+
 			// Only deal with cases that are for sure (equal number of edges)
 			// This will leave some nodes flying that will be deal with by later case
 			if( sedges.size() == tedges.size() && !sedges.isEmpty())
 			{
-				bool isPartOfGroup = !source->groupsOf(snode->id).front().isEmpty();
-				if( snode->id.contains("_") && isPartOfGroup ) continue;
+				if( false )
+				{
+					bool isPartOfGroup = !source->groupsOf(snode->id).front().isEmpty();
+					if( snode->id.contains("_null") && isPartOfGroup ) continue;
+				}
 
 				for( int i = 0; i < (int)sedges.size(); i++)
 				{
@@ -885,8 +940,8 @@ void TopoBlender::debugSuperGraphs( QString info )
 		slink->property["viz_uid"] = tlink->property["viz_uid"] = viz_uid++;
 	}
 
-	toGraphviz(super_sg, info + "_SourceSuper", true, "Super Source");
-	toGraphviz(super_tg, info + "_TargetSuper", true, "Super Target");
+	toGraphviz(super_sg, info + "_SourceSuper", true, info + " Super Source");
+	toGraphviz(super_tg, info + "_TargetSuper", true, info + " Super Target");
 }
 
 void TopoBlender::drawDebug()

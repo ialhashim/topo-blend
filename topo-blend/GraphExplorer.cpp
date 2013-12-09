@@ -217,6 +217,8 @@ void GraphExplorer::fillGraphInfo()
 	eitem->setText(0, "Graph");
 	eitem->setText(1, "");
 
+	g->property["groups"].setValue( g->groups );
+
 	fillInfoItem(g->property, eitem);
 	ui->graphTree->addTopLevelItem(eitem);
 }
@@ -270,6 +272,19 @@ void GraphExplorer::fillInfoItem( QMap<QString,QVariant> prop, QTreeWidgetItem *
 			QStringList strs;
 			foreach(QString str, vec_str) strs << str;
 			p->setText(1, strs.join(", "));
+		}
+		else if(typeName == "Structure::NodeGroups")
+		{
+			QVector< QVector<QString> > groups = val.value< QVector< QVector<QString> > >();
+			QStringList groupsStr;
+
+			foreach(QVector<QString> group, groups){
+				QStringList strs;
+				foreach(QString str, group) strs << str;
+				groupsStr << ("{" + strs.join(",") + "}");
+			}
+
+			p->setText(1, groupsStr.join(" "));
 		}
 		else
 			p->setText(1, typeName);

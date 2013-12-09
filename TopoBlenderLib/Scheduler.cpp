@@ -16,7 +16,7 @@
 
 Q_DECLARE_METATYPE( QSet<int> ) // for tags
 
-	Scheduler::Scheduler() : globalStart(0.0), globalEnd(1.0), timeStep( 1.0 / 100.0 ), overTime(0.0), isApplyChangesUI(false)
+Scheduler::Scheduler() : globalStart(0.0), globalEnd(1.0), timeStep( 1.0 / 100.0 ), overTime(0.0), isApplyChangesUI(false)
 {
 	rulerHeight = 25;
 
@@ -515,11 +515,13 @@ void Scheduler::executeAll()
 
 	// Initial setup
 	{
-		// Zero the geometry for null nodes
+		// Process null nodes
 		foreach(Structure::Node * snode, activeGraph->nodes)
 		{
 			QString sid = snode->id;
 			if (!sid.contains("_null")) continue;
+
+			// Zero the geometry for null nodes
 			snode->setControlPoints( Array1D_Vector3(snode->numCtrlPnts(), Vector3(0,0,0)) );
 			snode->property["zeroGeometry"] = true;
 

@@ -32,6 +32,7 @@ struct Relink
 	void fixTask( Task* task );
 
 	// Helpers
+	void moveByConstraints( Structure::Node * n, QVector<LinkConstraint> consts );
 	Vector3 getToDelta( Structure::Link * link, QString otherID );
 	bool doesPropagate( Task* task );
 	bool isInActiveGroup( Task* task );
