@@ -137,6 +137,7 @@ void Relink::fixTask( Task* task )
 		n->property["preConsts"].setValue( listRelinks );
 	}
 
+	// Finished morphs are fixed size
 	bool fixedSize = false;
 	if (task->type == Task::MORPH && task->isDone)
 	{
@@ -151,6 +152,7 @@ void Relink::fixTask( Task* task )
 
 	/// Ignore constraints that will cause large distortions
 	// CASE: link is moving around parts
+	if( true )
 	{
 		QVector<LinkConstraint> keep;
 		foreach(LinkConstraint c, consts){
@@ -189,6 +191,26 @@ void Relink::fixTask( Task* task )
 		}
 	}
 
+	// CASE: only use one constraint per- split or merge
+	{
+		if(consts.size() > 1)
+		{
+			QVector<LinkConstraint> keep;
+			QSet<QString> seenNodes;
+
+			foreach(LinkConstraint c, consts)
+			{
+				QString nid = c.task->nodeID.split("_").front();
+				if( seenNodes.contains(nid) ) continue;
+
+				seenNodes.insert(nid);
+				keep.push_back(c);
+			}
+
+			if(keep.size()) consts = keep;
+		}
+	}
+
 	// CASE: sheets are more rigid than curves
 	{
 		if(n->type() == Structure::SHEET && consts.size() > 2)
@@ -198,6 +220,12 @@ void Relink::fixTask( Task* task )
 	// CASE: dead nodes that are still connected are rigid
 	{
 		if(task->type == Task::SHRINK && task->isDone)
+			fixedSize = true;
+	}
+
+	// CASE: parts growing from a single edge become fixed when they are done
+	{
+		if( task->isDone && task->property["isGrowSingleEdge"].toBool() )
 			fixedSize = true;
 	}
 
@@ -218,38 +246,7 @@ void Relink::fixTask( Task* task )
 	// Apply constraints
 	if ( fixedSize && N > 0 )
 	{
-		std::vector<Vector3> oldPoints, newPoints;
-
-		// Use all constraints
-		foreach(LinkConstraint c, consts)
-		{
-			Structure::Link * link = c.link;
-
-			Vector3d oldPos = link->position(n->id);
-			Vector3d linkPosOther = link->positionOther(n->id);
-			Vector3d delta = getToDelta(link, n->id);
-			Vector3 newPos = linkPosOther + delta;
-
-			oldPoints.push_back(oldPos);
-			newPoints.push_back(newPos);
-		}
-
-		Vector3 translation = QuickMinBall<Vector3>(newPoints).center - QuickMinBall<Vector3>(oldPoints).center;
-
-		n->moveBy( translation );
-
-		// Debug:
-		n->property["fixedTranslation"].setValue( translation );
-		
-		// Visualization
-		foreach(LinkConstraint c, consts)
-		{
-			Structure::Link* link = c.link;
-			Vector3 linkPosOther = link->positionOther(n->id);
-			Vector3d delta = getToDelta(link, n->id);
-
-			activeGraph->vs2.addVector( linkPosOther, delta );
-		}
+		moveByConstraints(n, consts);
 	}
 	else 
 	{
@@ -292,31 +289,64 @@ void Relink::fixTask( Task* task )
 			Vector3 deltaB = getToDelta(linkB, n->id);
 			Vector3 newPosB = linkPosOtherB + deltaB;
 
+			if(n->type() == Structure::CURVE){
+				handleA = Vector4d(handleA[0],0,0,0);
+				handleB = Vector4d(handleB[0],0,0,0);
+			}
+
 			// In case two handles or two new positions are two close
 			double handleDiff = (handleA - handleB).norm();
 			double newPosDiff = (newPosA - newPosB).norm();
 			if (newPosDiff < 0.01 || handleDiff < 0.25)
 			{
-				// Pick first one only
-				Vector3d oldPos = linkA->position(n->id);
-				Vector3d linkPosOther = linkA->positionOther(n->id);
-				Vector3d delta = getToDelta(linkA, n->id);
-				Vector3 newPos = linkPosOther + delta;
-
-				// Translate
-				n->moveBy(newPos - oldPos);
-				activeGraph->vs2.addVector( linkPosOther, delta );
+				moveByConstraints(n, consts);
 			}
 			// Deform two handles
 			else 
 			{
 				n->deformTwoHandles(handleA, newPosA, handleB, newPosB);
-
+				
 				// Visualization
 				activeGraph->vs2.addVector( linkPosOtherA, deltaA );
 				activeGraph->vs2.addVector( linkPosOtherB, deltaB );
 			}
 		}
+	}
+}
+
+void Relink::moveByConstraints( Structure::Node * n, QVector<LinkConstraint> consts )
+{
+	std::vector<Vector3> oldPoints, newPoints;
+
+	// Use all constraints
+	foreach(LinkConstraint c, consts)
+	{
+		Structure::Link * link = c.link;
+
+		Vector3d oldPos = link->position(n->id);
+		Vector3d linkPosOther = link->positionOther(n->id);
+		Vector3d delta = getToDelta(link, n->id);
+		Vector3 newPos = linkPosOther + delta;
+
+		oldPoints.push_back(oldPos);
+		newPoints.push_back(newPos);
+	}
+
+	Vector3 translation = QuickMinBall<Vector3>(newPoints).center - QuickMinBall<Vector3>(oldPoints).center;
+
+	n->moveBy( translation );
+
+	// Debug:
+	n->property["fixedTranslation"].setValue( translation );
+
+	// Visualization
+	foreach(LinkConstraint c, consts)
+	{
+		Structure::Link* link = c.link;
+		Vector3 linkPosOther = link->positionOther(n->id);
+		Vector3d delta = getToDelta(link, n->id);
+
+		activeGraph->vs2.addVector( linkPosOther, delta );
 	}
 }
 

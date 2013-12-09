@@ -150,6 +150,8 @@ void TaskCurve::prepareGrowCurveOneEdge( Structure::Link * tlink )
 	// Force blended delta
 	Structure::Link * slink = active->getEdge(tlink->property["correspond"].toInt());
 	slink->property["blendedDelta"].setValue( tlink->delta() );
+
+	property["isGrowSingleEdge"] = true;
 }
 
 void TaskCurve::prepareGrowCurve()
@@ -172,7 +174,7 @@ void TaskCurve::prepareGrowCurve()
 		return;
 	}
 
-	if (edges.size() && isCutting(true))
+	if (edges.size() && (isCutting(true) || target->isCutNode(tn->id)))
 	{
 		prepareGrowCurveOneEdge( tedges.front() );
 		return;
