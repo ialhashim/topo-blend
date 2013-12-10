@@ -18,9 +18,10 @@ public:
 	{
 	public:
 		double operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2);
-		ConnectedPairModifier(double gd, int pl):PairModifier(pl),graphDiameter_(gd){};
+		ConnectedPairModifier(Structure::Graph *graph, double gd, int pl):PairModifier(pl),graph_(graph), normalizeCoef_(gd){};
 
-		double graphDiameter_;
+		double normalizeCoef_;
+		Structure::Graph *graph_;
 	};
 	class TransPairModifier : public PairModifier
 	{
@@ -122,6 +123,8 @@ private:
 		if( logLevel_ >0 )
 		{
 			logStream_ << "Total: " << pairs.size() << " pairs" << "\n\n";
+			int num(0),k(0); double tmp(0.0); 
+
 			if (bSource_)
 				logStream_ << "Pairs from source & exist in target: \n";
 			else
@@ -131,7 +134,14 @@ private:
 			{
 				if ( it->tag)
 				{
-					logStream_ << *it << "\n";
+					if ( it->deviation > tmp)
+					{
+						tmp = it->deviation;
+						k = num;
+					}
+					 ++num;
+
+					logStream_ << num << ": " << *it << "\n";
 				}
 			}
 
@@ -144,9 +154,18 @@ private:
 			{
 				if ( !it->tag)
 				{
-					logStream_ << *it << "\n";
+					if ( it->deviation > tmp)
+					{
+						tmp = it->deviation;
+						k = num;
+					}
+					 ++num;
+
+					logStream_ << num << ": " << *it << "\n";
 				}
 			}
+
+			this->logStream_ << "pair " << k << " with max deviation: " << tmp << "\n\n";
 		}
 	}
 	bool has_trans_relation(int id1, int id2);

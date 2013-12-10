@@ -122,6 +122,33 @@ bool GroupRelation::equal(GroupRelation& gr)
     return true;
 }
 
+Structure::Link* RelationDetector::findLink(Structure::Node *n1, Structure::Node * n2, Structure::Graph * graph)
+{
+	Structure::Link* link(0);
+	int tmp1 = graph->edges.size();
+	for ( int i = 0; i < tmp1; ++i)
+	{
+		Structure::Link* tmpLink = graph->edges[i];
+		if (tmpLink->n1 == n1 && tmpLink->n2 == n2 || tmpLink->n1 == n2 && tmpLink->n2 == n1)
+		{
+			link = tmpLink;
+			break;
+		}		
+	}
+	return link;
+}
+double RelationDetector::computeDeviationByLink(Structure::Link* link)
+{
+	double deviation(0.0);
+	if (link)
+	{
+		SurfaceMesh::Vector3 p1 = link->position(link->n1->id);
+		SurfaceMesh::Vector3 p2 = link->position(link->n2->id);
+		deviation = (p1-p2).norm();
+	}
+	return deviation;
+}
+
 RelationDetector::RelationDetector(Structure::Graph* g, const QString& logprefix, int ith, double normalizeCoef, int pointLevel, int logLevel)
 	                              :graph_(g),logLevel_(logLevel), normalizeCoef_(normalizeCoef), pointLevel_(pointLevel)
 {

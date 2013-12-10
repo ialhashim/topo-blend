@@ -5,29 +5,29 @@ void PairRelationDetector::pushToOtherPairs(QVector<PairRelation>& prs, QString 
 {
 	for (QVector<PairRelation>::iterator it = prs.begin(); it != prs.end(); ++it)
 	{
-		//if ( it->tag)
-		//{
+		if ( it->tag)
+		{
 			it->type = type;
 			otherPairs_.push_back(*it);
-		//}
+		}
 	}
 }
 double PairRelationDetector::ConnectedPairModifier::operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2)
 {
-	double min_dist(-1.0), mean_dist, max_dist;
+	double deviation(-1.0);
 
 	if ( n1->id == n2->id)
-		return min_dist;
+		return deviation;
 	
-	distanceBetween(m1, m2, min_dist, mean_dist, max_dist);
-					
-	min_dist = min_dist/graphDiameter_;
-	if ( min_dist > maxAllowDeviation_)
+	Structure::Link* link = RelationDetector::findLink(n1, n2, this->graph_);	
+	deviation = RelationDetector::computeDeviationByLink(link);					
+	deviation = deviation/this->normalizeCoef_;
+	if ( deviation > this->maxAllowDeviation_)
 	{
-		maxAllowDeviation_ = min_dist;
+		this->maxAllowDeviation_ = deviation;
 	}
 
-	return min_dist;
+	return deviation;
 }
 double PairRelationDetector::TransPairModifier::operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2)
 {
@@ -206,7 +206,7 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 		SurfaceMesh::Vector3 p2 = link->position(link->n2->id);
 		
 		PairRelation prb(link->n1,link->n2);
-		prb.deviation = (p1-p2).norm()/normalizeCoef_;
+		prb.deviation = (p1-p2).norm()/this->normalizeCoef_;
 
 		pairs.push_back(prb);
 	}
@@ -232,26 +232,33 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 
 	if (bModifyDeviation_)
 	{
-		modifyPairsDegree(pairs, ConnectedPairModifier(normalizeCoef_, pointLevel_), g, corres, "Connected pairs");
+		logStream_ << "\nConnected pairs, modify deviation, normalize coeff is: " << this->normalizeCoef_ << "\n";
+		modifyPairsDegree(pairs, ConnectedPairModifier(g, normalizeCoef_, pointLevel_), g, corres, "Connected pairs");
 	}
 	else if ( this->logLevel_ > 0)
 	{
-		logStream_ << "\nConnected pairs, not modify deviation: \n";
-		int i (0);
+		logStream_ << "\nConnected pairs, not modify deviation, normalize coeff is: " << this->normalizeCoef_ << "\n";
+		int i(0),j(0); double tmp(0.0);
 		for ( QVector<PairRelation>::iterator it = pairs.begin(); it != pairs.end(); ++it, ++i)
 		{
 			logStream_ << i << " " << *it << "\n";
+			if (it->deviation > tmp)
+			{
+				tmp = it->deviation;
+				j = i;
+			}
 		}
+		this->logStream_ << "pair " << j << " with max deviation: " << tmp << "\n\n";
 	}
 
 	connectedPairs_.clear();
 	for (QVector<PairRelation>::iterator it = pairs.begin(); it != pairs.end(); ++it)
 	{
-		//if (it->tag)
-		//{
+		if (it->tag)
+		{
 			it->type = CONNECTED;
 			connectedPairs_.push_back(*it);		
-		//}
+		}
 	}
 }
 void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
@@ -289,14 +296,14 @@ void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LA
     }
 
 	//
-	if (bModifyDeviation_)
-	{
-		modifyPairsDegree(transPairs_, TransPairModifier(pointLevel_), g, corres, "Trans pairs");
-		modifyPairsDegree(refPairs_, RefPairModifier(pointLevel_), g, corres, "Reflection pairs");
-		modifyPairsDegree(parallelPairs_, ParallelPairModifier(pointLevel_), g, corres,"Parallel pairs");
-		modifyPairsDegree(orthogonalPairs_, OrthogonalPairModifier(pointLevel_), g, corres, "Orthogonal pairs");
-		modifyPairsDegree(coplanarPairs_, CoplanarPairModifier(pointLevel_), g, corres, "Coplanar pairs");
-	}
+	//if (bModifyDeviation_)
+	//{
+		//modifyPairsDegree(transPairs_, TransPairModifier(pointLevel_), g, corres, "Trans pairs");
+		//modifyPairsDegree(refPairs_, RefPairModifier(pointLevel_), g, corres, "Reflection pairs");
+		//modifyPairsDegree(parallelPairs_, ParallelPairModifier(pointLevel_), g, corres,"Parallel pairs");
+		//modifyPairsDegree(orthogonalPairs_, OrthogonalPairModifier(pointLevel_), g, corres, "Orthogonal pairs");
+		//modifyPairsDegree(coplanarPairs_, CoplanarPairModifier(pointLevel_), g, corres, "Coplanar pairs");
+	//}
 
 	otherPairs_.clear();
 	pushToOtherPairs(transPairs_, TRANS);
