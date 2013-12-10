@@ -5,16 +5,17 @@ void PairRelationDetector::pushToOtherPairs(QVector<PairRelation>& prs, QString 
 {
 	for (QVector<PairRelation>::iterator it = prs.begin(); it != prs.end(); ++it)
 	{
-		if ( it->tag)
-		{
+		//if ( it->tag)
+		//{
 			it->type = type;
 			otherPairs_.push_back(*it);
-		}
+		//}
 	}
 }
 double PairRelationDetector::ConnectedPairModifier::operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2)
 {
 	double min_dist(-1.0), mean_dist, max_dist;
+
 	if ( n1->id == n2->id)
 		return min_dist;
 	
@@ -171,10 +172,11 @@ double PairRelationDetector::CoplanarPairModifier::operator() (Structure::Node *
 	return deviation;
 }
 //////////////////////////////////////////////////////
-PairRelationDetector::PairRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, int logLevel)
+PairRelationDetector::PairRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, bool bModifyDeviation, int logLevel)
 					 :RelationDetector(g, "PairRelationDetector-", ith, normalizeCoef, 1, logLevel)
 {
 	bSource_ = ith == 0;
+	bModifyDeviation_ = bModifyDeviation;
 
 	for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
 	{
@@ -228,16 +230,28 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 	//	}
 	//}
 
-	modifyPairsDegree(pairs, ConnectedPairModifier(normalizeCoef_, pointLevel_), g, corres, "Connected pairs");
+	if (bModifyDeviation_)
+	{
+		modifyPairsDegree(pairs, ConnectedPairModifier(normalizeCoef_, pointLevel_), g, corres, "Connected pairs");
+	}
+	else if ( this->logLevel_ > 0)
+	{
+		logStream_ << "\nConnected pairs, not modify deviation: \n";
+		int i (0);
+		for ( QVector<PairRelation>::iterator it = pairs.begin(); it != pairs.end(); ++it, ++i)
+		{
+			logStream_ << i << " " << *it << "\n";
+		}
+	}
 
 	connectedPairs_.clear();
 	for (QVector<PairRelation>::iterator it = pairs.begin(); it != pairs.end(); ++it)
 	{
-		if (it->tag)
-		{
+		//if (it->tag)
+		//{
 			it->type = CONNECTED;
 			connectedPairs_.push_back(*it);		
-		}
+		//}
 	}
 }
 void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
@@ -275,11 +289,14 @@ void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LA
     }
 
 	//
-	modifyPairsDegree(transPairs_, TransPairModifier(pointLevel_), g, corres, "Trans pairs");
-	modifyPairsDegree(refPairs_, RefPairModifier(pointLevel_), g, corres, "Reflection pairs");
-	modifyPairsDegree(parallelPairs_, ParallelPairModifier(pointLevel_), g, corres,"Parallel pairs");
-	modifyPairsDegree(orthogonalPairs_, OrthogonalPairModifier(pointLevel_), g, corres, "Orthogonal pairs");
-	modifyPairsDegree(coplanarPairs_, CoplanarPairModifier(pointLevel_), g, corres, "Coplanar pairs");
+	if (bModifyDeviation_)
+	{
+		modifyPairsDegree(transPairs_, TransPairModifier(pointLevel_), g, corres, "Trans pairs");
+		modifyPairsDegree(refPairs_, RefPairModifier(pointLevel_), g, corres, "Reflection pairs");
+		modifyPairsDegree(parallelPairs_, ParallelPairModifier(pointLevel_), g, corres,"Parallel pairs");
+		modifyPairsDegree(orthogonalPairs_, OrthogonalPairModifier(pointLevel_), g, corres, "Orthogonal pairs");
+		modifyPairsDegree(coplanarPairs_, CoplanarPairModifier(pointLevel_), g, corres, "Coplanar pairs");
+	}
 
 	otherPairs_.clear();
 	pushToOtherPairs(transPairs_, TRANS);

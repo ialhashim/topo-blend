@@ -42,6 +42,7 @@ private:
 
 	// for connectivity
 	QVector<QVector<PairRelation> > connectPairs_; // connectPairs[0] is from source shape, [1] is from target shape
+	bool isUseLink_;
 
 	QVector<QVector<PairRelation> > otherPairs_;
 	QVector<QVector<GroupRelation> > groupRelations_;
@@ -77,7 +78,7 @@ public slots:
 	PathScore pathScore( Scheduler * scheduler );
 
 	void setIsUseSourceCenter(bool);
-
+	void setIsUseLink(bool);
 private:
     bool isGlobalReflectionSymmParsed()
 	{

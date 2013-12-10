@@ -340,8 +340,8 @@ std::vector<Structure::Node*> RelationDetector::findNodesInST(QString id, Struct
             {
 				if ( ids2[j] == id)
 				{
-					 ids = corres[i].first;
-					 break;
+					ids = corres[i].first;					
+					break;
 				}
             }
 			if ( !ids.isEmpty() )
@@ -382,57 +382,71 @@ std::vector<Structure::Node*> RelationDetector::findNodesInB(QString id, Structu
     {
         for ( int i = 0; i < (int) corres.size(); ++i)
         {
-            QVector<QString> ids = corres[i].first;
-            int numCorres = corres[i].second.size();
-            if ( 1 == numCorres && ids[0] == id)
-            {
-                Structure::Node* tmpNode = graph->getNode(id);
-                if ( tmpNode != NULL)
-                    result.push_back( tmpNode );
-
-                return result;
-            }
-            else if ( 1 < numCorres )
-            {
-                if ( ids[0].startsWith( id + "_", Qt::CaseSensitive) )
-                {
-                    for ( int j = 0; j < numCorres; ++j)
-                    {
-						Structure::Node* tmpNode = graph->getNode(ids[j]);
+            QVector<QString> ids1 = corres[i].first;
+			for ( int j = 0; j < ids1.size(); ++j)
+			{
+				if ( id == ids1[j])
+				{
+					QVector<QString> ids2 = corres[i].second;
+					if ( ids1.size() >= ids2.size()) // 1-1 or *-1
+					{
+						Structure::Node* tmpNode = graph->getNode(id);
 						if ( tmpNode != NULL)
-	                        result.push_back( tmpNode);
-                    }
-                    return result;
-                }
-            }
+							result.push_back( tmpNode );
+					}
+					else // 1-*
+					{
+						for ( int k = 0; k < ids2.size(); ++k)
+						{
+							QString str; str.setNum(k);  
+							Structure::Node* tmpNode = graph->getNode(id + "_" + str );
+							if ( tmpNode != NULL)
+								result.push_back( tmpNode);
+						}						
+					}
+					return result;
+				}
+			}
         }
-		Structure::Node* tmpNode = graph->getNode(id);
-		if ( tmpNode != NULL)
-			result.push_back( graph->getNode(id) );   
+		// 1-0
+        Structure::Node* tmpNode = graph->getNode(id);
+        if ( tmpNode != NULL)
+            result.push_back( tmpNode );            
     }
     else // is target
     {
         for ( int i = 0; i < (int) corres.size(); ++i)
         {
-            QVector<QString> ids1 = corres[i].first;
-            QString id2 = corres[i].second[0];
-            if ( id2 == id)
-            {
-                for ( int j = 0; j < ids1.size(); ++j)
-                {
-					Structure::Node* tmpNode = graph->getNode(ids1[j]);
-					if ( tmpNode != NULL)
-						result.push_back( tmpNode );
-                }
-                return result;
-            }
+			QVector<QString> ids2 = corres[i].second;
+			for ( int j = 0; j < ids2.size(); ++j)
+			{
+				if ( id == ids2[j])
+				{
+					 QVector<QString> ids1 = corres[i].first;
+					 if ( ids1.size() >= ids2.size()) // 1-1 or *-1
+					 {
+						 for ( int k = 0; k < ids1.size(); ++k)
+						 {
+							Structure::Node* tmpNode = graph->getNode(ids1[k]);
+							if ( tmpNode != NULL)
+								result.push_back( tmpNode );
+						 }
+					 }
+					 else // 1-*
+					 {
+						QString str; str.setNum(j);  
+						Structure::Node* tmpNode = graph->getNode(ids1[0] + "_" + str );
+						if ( tmpNode != NULL)
+							result.push_back( tmpNode);
+					 }
+					 return result;
+				}
+			}
         }
-        //
+        // 0-1
         Structure::Node* tmpNode = graph->getNode(id + "_null");
         if ( tmpNode != NULL)
-        {
             result.push_back( tmpNode );            
-        }		
     }
     //result.push_back( graph->getNode(id) );   
 	return result;
@@ -488,6 +502,9 @@ double RelationDetector::computeRefSymmetryGroupDeviation(GroupRelation& gr, int
         for ( int j = i+1; j < (int) gr.ids.size(); ++j)
         {
             findRefPlane(nodes[i], nodes[j], point,normal);
+			if ( normal.squaredNorm() == 0)
+				continue;
+
 			err = errorOfRefSymmGroup(nodes, point, normal, pointLevel);
 
             if ( err < minErr)
@@ -499,7 +516,12 @@ double RelationDetector::computeRefSymmetryGroupDeviation(GroupRelation& gr, int
     }
 
     findRefPlane(nodes[minNodes.first], nodes[minNodes.second], gr.point, gr.normal);
-    return minErr/gr.ids.size()*2;
+	if ( gr.normal.squaredNorm() == 0)
+		minErr = 0;
+	else
+		minErr = errorOfRefSymmGroup(nodes, gr.point, gr.normal, pointLevel);
+
+    return minErr/gr.ids.size();
 }
 
 double RelationDetector::computeAxisSymmetryGroupDeviation(GroupRelation& gr, int pointLevel)
@@ -548,7 +570,8 @@ void RelationDetector::findRefPlane(Structure::Node* n1, Structure::Node* n2, Ei
     Eigen::Vector3d c1 = computeCptsCenter(n1);
     Eigen::Vector3d c2 = computeCptsCenter(n2);
     normal = c1 - c2;
-    normal.normalize();
+	if ( normal.squaredNorm() != 0)
+		normal.normalize();
     center = (c1+c2)*0.5;
 }
 Eigen::Vector3d RelationDetector::computeCptsCenter(Structure::Node* nn)

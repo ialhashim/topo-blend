@@ -31,6 +31,7 @@ ScorerManager::ScorerManager( GraphCorresponder * graph_corresponder,
 {
 	this->logLevel_ = 2;
 	this->isUseSourceCenter_ = false;
+	this->isUseLink_ = true;
 	init( graph_corresponder, scheduler, input_graphs);
 }
 
@@ -57,7 +58,7 @@ void ScorerManager::parseConstraintPair()
 	this->connectPairs_.clear();	this->otherPairs_.clear();
 	for ( int i = 0; i < this->actualInputGraphs_.size(); ++i)
 	{
-		PairRelationDetector cpd(this->actualInputGraphs_[i], i, normalizeCoef_, logLevel_);
+		PairRelationDetector cpd(this->actualInputGraphs_[i], i, normalizeCoef_, false, logLevel_);
 		cpd.detect(this->actualInputGraphs_[(i+1)%this->actualInputGraphs_.size()], this->gcorr_->correspondences);
 		this->connectPairs_.push_back(cpd.connectedPairs_);
 		this->otherPairs_.push_back(cpd.otherPairs_);
@@ -78,7 +79,7 @@ void ScorerManager::evaluateTopology()
 
 	int idx(0);
 	Structure::Graph* g = getCurrentGraph(idx);
-	ConnectivityScorer cs(g, idx, this->normalizeCoef_, this->logLevel_);	
+	ConnectivityScorer cs(g, idx, this->normalizeCoef_, this->isUseLink_, this->logLevel_);	
 	cs.evaluate(this->connectPairs_, this->gcorr_->correspondences);
 
     emit( message("Evaluate topology end. ") );
@@ -91,7 +92,7 @@ QVector<double> ScorerManager::evaluateTopology( QVector<Structure::Graph*> cons
     for (int i = 0; i < graphs.size(); ++i)
     {
 		Structure::Graph * g = Structure::Graph::actualGraph(graphs[i] );
-		ConnectivityScorer cs(g, i, this->normalizeCoef_, logLevel);	
+		ConnectivityScorer cs(g, i, this->normalizeCoef_, this->isUseLink_, logLevel);	
 		score = cs.evaluate(this->connectPairs_, this->gcorr_->correspondences);
 		topoScore.push_back(score);
     }
@@ -293,6 +294,14 @@ void ScorerManager::setIsUseSourceCenter(bool bUse)
 		emit( message("use source center") );
 	else
 		emit( message("not use source center") );
+}
+void ScorerManager::setIsUseLink(bool bUse)
+{
+	isUseLink_ = bUse;
+	if (isUseLink_)
+		emit( message("use link for connectivity") );
+	else
+		emit( message("not link for connectivity") );
 }
 Structure::Graph * ScorerManager::getCurrentGraph(int& idx)
 {

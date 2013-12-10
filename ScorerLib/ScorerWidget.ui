@@ -120,6 +120,16 @@
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="QCheckBox" name="bUseLink">
+           <property name="text">
+            <string>Use link for connectivity</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </item>

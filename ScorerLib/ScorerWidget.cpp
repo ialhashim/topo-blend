@@ -27,6 +27,7 @@ ScorerWidget::ScorerWidget(QWidget *parent)
 
 	// Options
     s_manager->connect(ui->bUseSourceCenter, SIGNAL(clicked(bool)), SLOT(setIsUseSourceCenter(bool)));
+	s_manager->connect(ui->bUseLink, SIGNAL(clicked(bool)), SLOT(setIsUseLink(bool)));	
 }
 
 ScorerWidget::~ScorerWidget()
