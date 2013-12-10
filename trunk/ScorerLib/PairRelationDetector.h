@@ -56,7 +56,7 @@ public:
 	
 	////////////////////////////////////////////////////
 public:    
-	PairRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, int logLevel=0);
+	PairRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, bool bModifyDeviation=false, int logLevel=0);
 
     // if bSource_, g is the target shape (graph_ is source shape). else g is the source shape
 	void detect(Structure::Graph* g, QVector<PART_LANDMARK> &corres);	
@@ -167,7 +167,7 @@ public:
 	
 private:
 	bool bSource_;
-
+	bool bModifyDeviation_;
 	std::vector<Eigen::MatrixXd> nodesCpts_; 
     std::vector<Eigen::Vector3d> nodesCenter_;
 	std::vector<double> nodesDiameter_;
