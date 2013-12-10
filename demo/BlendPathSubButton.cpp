@@ -1,6 +1,7 @@
-#include "BlendPathSub.h"
 #include <QGraphicsScene>
 #include <QGraphicsView>
+
+#include "BlendPathSubButton.h"
 #include "BlendPathWidget.h"
 #include "BlendRenderItem.h"
 #include "BlendPathRenderer.h"

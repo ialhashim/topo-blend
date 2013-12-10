@@ -30,6 +30,14 @@ ShapeRenderer::ShapeRenderer(QString filename, QColor color, int resolution) : c
 	mesh.read(qPrintable(filename));
 	mesh.update_face_normals();
 	mesh.update_vertex_normals();
+
+	if(mesh.n_vertices() < 1)
+	{
+		mesh.add_vertex(Vector3(0,0,0));
+		mesh.add_vertex(Vector3(1,1,1));
+		mesh.add_vertex(Vector3(-1,-1,-1));
+	}
+
 	mesh.updateBoundingBox();
 
 	Vector3 bbmin = mesh.bbox().min(), bbmax = mesh.bbox().max();
@@ -121,8 +129,13 @@ void ShapeRenderer::paintGL()
 	setupCamera();
 	
 	bool isTestScene = false;
+	if(!indices.size()) isTestScene = true;
+		
 	if( isTestScene )
 	{
+		glClearColor(0, 0, 0, 1);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		// Draw a white grid "floor" for the tetrahedron to sit on.
 		glColor3f(1.0, 1.0, 1.0);
 		glBegin(GL_LINES);
@@ -142,6 +155,8 @@ void ShapeRenderer::paintGL()
 		glColor3f(1, 0, 0); glVertex3f(-1, 1, 0);
 		glEnd();
 	}
+
+	if(!vertices.size() || !indices.size()) return;
 
 	// Lighting and color
 	glEnable( GL_LIGHTING );
@@ -179,8 +194,10 @@ void ShapeRenderer::paintGL()
 
 QPixmap ShapeRenderer::render(QString filename)
 {
-   ShapeRenderer renderer(filename, QColor(203, 127, 92), 512);
-   renderer.show();
-   renderer.updateGL();
-   return QPixmap::fromImage( renderer.grabFrameBuffer(true) );
+   ShapeRenderer * renderer = new ShapeRenderer(filename, QColor(203, 127, 92), 512);
+   renderer->show();
+   renderer->updateGL();
+   QPixmap img = QPixmap::fromImage( renderer->grabFrameBuffer(true) );
+   renderer->deleteLater();
+   return img;
 }

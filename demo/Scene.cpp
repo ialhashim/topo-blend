@@ -4,7 +4,9 @@ Scene::Scene(QObject *parent) : QGraphicsScene(parent)
 {
 	inputGraphs[0] = inputGraphs[1] = NULL;
 
-	this->setSceneRect(0, 0, 1280, 720);
+	QWidget * wparent = (QWidget*)parent;
+
+	this->setSceneRect(0, 0, wparent->width(), wparent->height());
 	this->setupCamera();
 
 	this->setProperty("camera-rotate", true);
@@ -190,9 +192,20 @@ void Scene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 	QPointF startPos = event->buttonDownScenePos(Qt::LeftButton);
 	QPointF currentPos = event->scenePos();
 
-	QList<QGraphicsItem*> underMouse = items(event->scenePos());
+	QRectF cursorRect(0,0,30,30);
+	cursorRect.moveCenter(event->scenePos());
+
+	QList<QGraphicsItem*> underMouse = items( cursorRect );
+
 	bool isGraphUnderMouse = underMouse.contains(inputGraphs[0]) || underMouse.contains(inputGraphs[1]);
-	
+
+	// Stop propagating mouse event when over widgets
+	foreach( QGraphicsItem * item, underMouse )
+	{
+		QGraphicsProxyWidget * proxy = dynamic_cast<QGraphicsProxyWidget *>(item);
+		if(proxy) isGraphUnderMouse = false;
+	}
+
 	if( isGraphUnderMouse )
 	{
 		if(event->buttons() & Qt::LeftButton && event->modifiers() == Qt::ShiftModifier)

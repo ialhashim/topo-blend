@@ -7,5 +7,8 @@
         <file>images/arrowDown.png</file>
         <file>images/arrowUp.png</file>
         <file>images/dropdownArrow.png</file>
+        <file>images/circlePlus.png</file>
+        <file>images/circleUp.png</file>
+        <file>images/circleX.png</file>
     </qresource>
 </RCC>

@@ -2,6 +2,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "Controls.h"
+#include "ExporterWidget.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
 {
@@ -65,6 +66,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	gallery->layout();
 
 	control->loadCategories( datasetFolder );
+
+	// Lastly, create exporter widget
+	ExporterWidget * ewidget = new ExporterWidget( session );
+	QGraphicsProxyWidget * eproxy = scene->addWidget( ewidget, Qt::Tool | Qt::WindowTitleHint );
+	ewidget->move(20,120);
+	ewidget->resize(ewidget->sizeHint());
+	eproxy->setZValue(1e30);
 }
 
 MainWindow::~MainWindow()
