@@ -126,14 +126,17 @@ void ExporterWidget::exportSet()
 	QString path = "results/" + sessionName + "/";
 	QDir d("");	d.mkpath( path );
 
+	QString sname,tname;
+
 	for(int i = 0; i < ui->resultsTable->rowCount(); ++i)
 	{
 		QTableWidgetItem *rowItem = ui->resultsTable->item(i, 0);
 
 		QVariant graph_p = rowItem->data(Qt::UserRole);
 		Structure::Graph * g = graph_p.value<Structure::Graph*>();
-		QString sname = g->property["sourceName"].toString();
-		QString tname = g->property["targetName"].toString();
+		
+		sname = g->property["sourceName"].toString();
+		tname = g->property["targetName"].toString();
 
 		QString numString = QString("%1").arg(i, 3, 10, QChar('0'));
 
@@ -148,11 +151,6 @@ void ExporterWidget::exportSet()
 
 		// Generate the geometry and export the structure graph
 		s_manager->renderGraph(*g, filename, false, reconLevel, true);
-
-		log["reconstruction-time"] = (int)reconTimer.elapsed();
-
-		log["sname"] = sname;
-		log["tname"] = tname;
 
 		// Generate thumbnail
 		QString objFile = QDir::currentPath() + "/" + filename + ".obj";
@@ -183,8 +181,12 @@ void ExporterWidget::exportSet()
 		matcherImage.copy( matcherImage.rect().adjusted(matcherImage.width() * 0.5,0,0,0) ).save(tgtFilename);
 	}
 
-	log["session"] = sessionName;
 	log["results"] = filenames;
+	log["session"] = sessionName;
+	log["reconstruction-time"] = (int)reconTimer.elapsed();
+	log["sname"] = sname;
+	log["tname"] = tname;
+
 	log["time"] = allTimer.elapsed();
 
 	generateLog( log );
@@ -218,7 +220,7 @@ void ExporterWidget::generateLog(QMap<QString, QVariant> log)
 				QString typeName = log[key].typeName();
 
 				if(typeName == "QStringList")
-					str_value = "{" + log[key].toStringList().join(" , ") + "}";
+					str_value = "{" + log[key].toStringList().join(",") + "}";
 
 				out << key << "\t" << str_value << "\n";
 			}

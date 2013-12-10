@@ -9,6 +9,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->setupUi(this);
     this->resize(this->sizeHint());
 
+	ui->logWidget->setVisible(false);
+
     // Anti-aliasing when using QGLWidget or subclasses
     QGLFormat glf = QGLFormat::defaultFormat();
     glf.setSamples(8);
