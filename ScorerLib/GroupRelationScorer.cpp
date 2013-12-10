@@ -4,7 +4,7 @@
 
 double GroupRelationScorer::evaluate(QVector<QVector<GroupRelation> > &groupss, QVector<PART_LANDMARK> &corres)
 {
-	double resultMax(0.0); int num(0);
+	double resultMax(0.0); int num(0), maxId(0);
 	for ( int j = 0; j < groupss.size(); ++j)
 	{
 		QVector<GroupRelation>& groups = groupss[j];
@@ -25,6 +25,7 @@ double GroupRelationScorer::evaluate(QVector<QVector<GroupRelation> > &groupss, 
 			if ( resultMax < cgr.deviation)
 			{
 				resultMax = cgr.deviation;
+				maxId = num;
 			}					
 					
 			if (logLevel_>0 && cgr.deviation > 0) //
@@ -43,7 +44,7 @@ double GroupRelationScorer::evaluate(QVector<QVector<GroupRelation> > &groupss, 
 
 	if (logLevel_>0 )
 	{
-		logStream_ << "max score: " << 1/(1+resultMax) << "\n";		
+		logStream_ << "group: " << maxId << " has max score: " << 1/(1+resultMax) << "\n";		
 	}
 	return 1/(1+resultMax);
 }
@@ -76,7 +77,7 @@ GroupRelation GroupRelationScorer::findCorrespondenceGroup(Structure::Graph *gra
     }
 
     //////////////	use max node as the first node, the following will be transformed into it, & compare with it.
-    if ( int(tmpNodes.size()) < gr.ids.size() )
+    if ( int(tmpNodes.size()) < 2 )//if ( int(tmpNodes.size()) < gr.ids.size() )
     {
         return cgr;
     }

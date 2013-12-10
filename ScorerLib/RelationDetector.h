@@ -15,7 +15,7 @@ static QString NONE = "NONE";
 class PairRelation
 {
 public:
-	PairRelation():n1(0),n2(0),tag(false),type(NONE){}
+	PairRelation():n1(0),n2(0),tag(true),type(NONE){}
 	PairRelation(Structure::Node* node1, Structure::Node* node2):n1(node1),n2(node2){}
 	bool isDegenerated(){return n1==0 || n2==0;}
 	Structure::Node* n1;
@@ -136,6 +136,9 @@ public:
     double computeAxisSymmetryGroupDeviation(GroupRelation& gr, int pointLevel);
     // compute the center and direction of the group
     void computeTransGroupInfo(GroupRelation &gr, QSet<QString>& ids);
+
+	static Structure::Link* findLink(Structure::Node *n1, Structure::Node *n2, Structure::Graph * graph);
+	static double computeDeviationByLink(Structure::Link* link);
 protected:
 	Eigen::Vector3d computeCptsCenter(Structure::Node* nn);
     double errorOfRefSymmGroup(std::vector<Structure::Node*> &nodes, Eigen::Vector3d& center, Eigen::Vector3d& normal, int pointLevel);
