@@ -47,11 +47,11 @@ SOURCES +=  main.cpp\
             BlendPathRenderer.cpp \
             BlendPathSubButton.cpp \
             BlendRenderItem.cpp \
-            BlendPathSub.cpp \
             ShapeRenderer.cpp \
             BlendPathWidget.cpp \
             PathEvaluator.cpp \
-            json.cpp
+            json.cpp \
+    ExporterWidget.cpp
 
 HEADERS  += mainwindow.h \
             Scene.h \
@@ -69,14 +69,15 @@ HEADERS  += mainwindow.h \
             BlendPathRenderer.h \
             BlendPathSubButton.h \
             BlendRenderItem.h \
-            BlendPathSub.h \
             ShapeRenderer.h \
             BlendPathWidget.h \
             PathEvaluator.h \
-            json.h
+            json.h \
+    ExporterWidget.h
 
 FORMS    += mainwindow.ui \
-            Controls.ui
+            Controls.ui \
+    ExporterWidget.ui
 
 # Icons and images
 RESOURCES += resources.qrc

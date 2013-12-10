@@ -3,8 +3,8 @@
 #include "ProgressItem.h"
 #include "BlendRenderItem.h"
 #include "BlendPathRenderer.h"
-#include "BlendPathSub.h"
 #include "BlendPathWidget.h"
+#include "BlendPathSubButton.h"
 
 #include "TopoBlender.h"
 #include "Scheduler.h"
@@ -340,6 +340,8 @@ void Blender::preparePaths()
 
 void Blender::synthDataReady()
 {
+	if( property["isOverrideSynth"].toBool() ) return;
+
 	for(int i = 0; i < numSuggestions; i++)
 		this->disconnect( blendPaths[i].scheduler.data() );
 
@@ -427,17 +429,20 @@ void Blender::mousePress( QGraphicsSceneMouseEvent* mouseEvent )
 {
 	if(!visible) return;
 
-	// Block when controller is clicked
-	foreach(QGraphicsItem * i, s->items(mouseEvent->scenePos())){
-		QGraphicsProxyWidget * proxy = dynamic_cast<QGraphicsProxyWidget *>(i);
-		if(!proxy) continue; else if(qobject_cast<Controls*>(proxy->widget())) return;
-	}
-
-	foreach(QGraphicsProxyWidget * proxy, blendPathsWidgets) 
+	if( false )
 	{
-		if(proxy->sceneBoundingRect().contains(mouseEvent->scenePos())) continue;
-		QGraphicsScene * s = ((BlendPathWidget*)proxy->widget())->scene;
-		s->clearSelection();
+		// Block when controller is clicked
+		foreach(QGraphicsItem * i, s->items(mouseEvent->scenePos())){
+			QGraphicsProxyWidget * proxy = dynamic_cast<QGraphicsProxyWidget *>(i);
+			if(!proxy) continue; else if(qobject_cast<Controls*>(proxy->widget())) return;
+		}
+
+		foreach(QGraphicsProxyWidget * proxy, blendPathsWidgets) 
+		{
+			if(proxy->sceneBoundingRect().contains(mouseEvent->scenePos())) continue;
+			QGraphicsScene * s = ((BlendPathWidget*)proxy->widget())->scene;
+			s->clearSelection();
+		}
 	}
 }
 
@@ -617,25 +622,45 @@ void Blender::addBlendSubItem(double x, double y, double w, double h, int i, int
 	scene->addItem( blendSubItems[i][j].data() );
 }
 
+QVector<BlendRenderItem *> Blender::selectedInBetween()
+{
+	QVector<BlendRenderItem *> result;
+
+	QList<QGraphicsItem*> allSelected;
+	foreach(QGraphicsProxyWidget * proxy, blendPathsWidgets) allSelected << ((BlendPathWidget*)proxy->widget())->scene->selectedItems();
+	
+	foreach(QGraphicsItem * item, allSelected)
+	{
+		BlendRenderItem * renderItem = qobject_cast<BlendRenderItem *>(item->toGraphicsObject());
+		if(!renderItem) continue;
+		result.push_back( renderItem );
+	}
+
+	return result;
+}
+
+void Blender::clearSelectedInBetween()
+{
+	foreach(QGraphicsProxyWidget * proxy, blendPathsWidgets) 
+	{
+		QGraphicsScene * s = ((BlendPathWidget*)proxy->widget())->scene;
+		s->clearSelection();
+	}
+}
+
 void Blender::exportSelected()
 {
 	qApp->setOverrideCursor(Qt::WaitCursor);
 
 	QString msg = "nothing selected.";
 	
-	QList<QGraphicsItem*> allSelected;
-	foreach(QGraphicsProxyWidget * proxy, blendPathsWidgets) allSelected << ((BlendPathWidget*)proxy->widget())->scene->selectedItems();
-
-	foreach(QGraphicsItem * item, allSelected)
+	foreach(BlendRenderItem * renderItem, selectedInBetween())
 	{
-		BlendRenderItem * renderItem = qobject_cast<BlendRenderItem *>(item->toGraphicsObject());
-		if(!renderItem) continue;
-		
 		Structure::Graph * g = renderItem->graph();
 		int idx = int(g->property["t"].toDouble() * 100);
 			
 		QString sname = g->property["sourceName"].toString();
-		QString tname = g->property["sourceName"].toString();
+		QString tname = g->property["targetName"].toString();
 		QString filename = sname + tname + "." + QString::number(idx);
 
 		// Create folder
@@ -686,7 +711,7 @@ void Blender::saveJob()
 
 		Structure::Graph * g = renderItem->graph();
 		QString sname = g->property["sourceName"].toString();
-		QString tname = g->property["sourceName"].toString();
+		QString tname = g->property["targetName"].toString();
 		QString filename = sname + "." + tname;
 		blendPaths[pathID].scheduler->saveSchedule(filename);
 

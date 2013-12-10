@@ -18,7 +18,6 @@ public:
     explicit BlendPathRenderer(Blender * blender, int itemHeight, bool isViewer = false, QWidget *parent = 0);
     
 	friend class BlendPathSubButton;
-	friend class BlendPathSub;
 	friend class Blender;
 
 	QImage quickRender( Structure::Graph* graph, QColor color );

@@ -1,4 +1,5 @@
 #include "Matcher.h"
+#include "MainWindow.h"
 using namespace Structure;
 
 typedef QVector< QSet<size_t> > ForcedGroups;
@@ -124,6 +125,26 @@ void Matcher::show()
 void Matcher::hide()
 {
 	if(!s->isInputReady() || !property.contains("r0")) return;
+
+	// Save snapshot of source and target correspondence
+	if( s->property("grabMatcher").toBool() )
+	{
+		// Get list of all visible items
+		QVector<QGraphicsItem *> vis_items;
+
+		foreach(QGraphicsItem * item, s->items()) if(item->isVisible()) { vis_items.push_back(item); item->hide(); }
+
+		QGLWidget * viewer = (QGLWidget *)s->views().front()->viewport();
+
+		s->invalidate();
+		s->views().front()->viewport()->update();
+		qApp->processEvents();
+
+		QImage screenshot = viewer->grabFrameBuffer(false);
+		s->setProperty("matcherImage", screenshot);
+
+		foreach(QGraphicsItem * item, vis_items) item->setVisible(true);
+	}
 
 	// reset colors
 	QVector<Structure::Graph*> graphs; 

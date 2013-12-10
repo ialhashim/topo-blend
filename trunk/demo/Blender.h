@@ -40,10 +40,11 @@ public:
 	QVector< BlendPath > blendPaths;
 	QList< QSharedPointer<Scheduler> > jobs;
 
+	QSharedPointer<SynthesisManager> s_manager;
+
 	friend class Session;
 	friend class BlendPathRenderer;
 	friend class BlendPathSubButton;
-	friend class BlendPathSub;
 	friend class PathEvaluator;
 
 signals:
@@ -78,6 +79,8 @@ public slots:
 	void showNextResults();
 	void showResultsPage();
 
+	QVector<BlendRenderItem *> selectedInBetween();
+	void clearSelectedInBetween();
 	void exportSelected();
 	void saveJob();
 	QWidget * viewer();
@@ -92,8 +95,6 @@ private:
 	QVector< QVector< QSharedPointer<BlendPathSubButton> > > blendSubItems;
 	QVector< QGraphicsItem* > auxItems;
 	
-	QSharedPointer<SynthesisManager> s_manager;
-
 	PathEvaluator * pathsEval;
 
 	bool isSample;
