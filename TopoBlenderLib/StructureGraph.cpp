@@ -134,7 +134,7 @@ Node *Graph::addNode(Node * n)
 
     nodes.push_back(n);
 
-	// Add property : degree and id
+	// Add property : id
 	n->property["index"] = nodes.size() - 1;
 
     return n;

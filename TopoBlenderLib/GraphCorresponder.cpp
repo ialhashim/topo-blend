@@ -1167,7 +1167,7 @@ void GraphCorresponder::saveCorrespondences( QString filename, bool isWithScores
 	QTextStream outF(&file);
 
 	// Header
-	outF << (isWithScores ? "hasScore" : "" ) << " " << correspondences.size() << "\n\n";
+	outF << (isWithScores ? "hasScore" : "" ) << " " << correspondences.size() << " " << nonCorresS.size() << " " << nonCorresT.size() << "\n\n";
 
 	// Add items
 	int nCoor = correspondences.size();
@@ -1191,6 +1191,15 @@ void GraphCorresponder::saveCorrespondences( QString filename, bool isWithScores
 		outF << "\n\n";
 	}
 
+	// Non-corresponded
+	{
+		foreach(int i, nonCorresS) outF << i << '\t';
+		outF << "\n";
+
+		foreach(int i, nonCorresT) outF << i << '\t';
+		outF << "\n";
+	}
+
 	file.close();
 }
 
@@ -1206,7 +1215,15 @@ void GraphCorresponder::loadCorrespondences( QString filename, bool isReversed )
 	//inF >> nbCorr; // old way
 	QString header = inF.readLine();
 	bool isWithScores = header.contains("Score", Qt::CaseInsensitive);
-	nbCorr = header.split(" ", QString::SkipEmptyParts).back().toInt();
+	
+	QVector<int> counts;
+	QRegExp re("\\d*");
+	foreach(QString token, header.split(" ", QString::SkipEmptyParts)){
+		if(re.exactMatch(token))
+			counts.push_back(token.toInt());
+	}
+
+	nbCorr = counts.front();
 
 	for (int i = 0; i < nbCorr; i++)
 	{
@@ -1236,6 +1253,21 @@ void GraphCorresponder::loadCorrespondences( QString filename, bool isReversed )
 
 		// Store correspondence
 		addCorrespondences(sParts, tParts, score);
+	}
+
+	if(counts.size() == 3)
+	{
+		for(int i = 0; i < counts[1]; i++){
+			int nid = -1;
+			inF >> nid;
+			nonCorresS.insert(nid);
+		}
+
+		for(int i = 0; i < counts[2]; i++){
+			int nid = -1;
+			inF >> nid;
+			nonCorresT.insert(nid);
+		}
 	}
 
 	isReady = true;  // block automatic computing correspondences
