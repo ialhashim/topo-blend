@@ -68,24 +68,37 @@ Eigen::Vector3d GlobalReflectionSymmScorer::findReflectPlane(const Eigen::Vector
 }
 double GlobalReflectionSymmScorer::evaluate(const Eigen::Vector3d &center, const Eigen::Vector3d &normal, double maxGlobalSymmScore)
 {
-	double maxScore(0.0), deviation(0.0);
-	for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
-    {        
-		Eigen::MatrixXd ptsout;
-        reflect_points3d(nodesCpts_[i], center, normal, ptsout);
-	
-		deviation = minMeanDistance(ptsout);
+	double maxScore(0.0), deviation(0.0); int maxNo(0);
+	if (bUsePart_)
+	{
+		for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
+		{        
+			Eigen::MatrixXd ptsout;
+			reflect_points3d(nodesCpts_[i], center, normal, ptsout);
+	    
+			int nodeNo;
+			deviation = minMeanDistance(ptsout, nodeNo);
         
-        if ( deviation > maxScore)
-        {
-            maxScore = deviation;
-        }
+			if ( deviation > maxScore)
+			{
+				maxScore = deviation;
+				maxNo = i;
+			}
 
-		if(logLevel_>1)
-		{
-			logStream_ << "part: " << graph_->nodes[i]->id << ", deviation of symm: " << deviation << "\n";
+			if(logLevel_>1)
+			{
+				logStream_ << "part: " << graph_->nodes[i]->id << "'s correspond part: " << graph_->nodes[nodeNo]->id << ", deviation of symm: " << deviation << "\n";
+			}
 		}
-    }
+	}
+	else
+	{
+		Eigen::MatrixXd ptsout;
+		reflect_points3d(cpts_, center, normal, ptsout);
+		double minDist, meanDist;
+		distanceBetween(cpts_, ptsout, minDist, meanDist, maxScore);
+		maxNo = 0;
+	}
 
 	maxScore = maxScore/this->normalizeCoef_;
     maxScore = 1/(1+maxScore);
@@ -97,19 +110,22 @@ double GlobalReflectionSymmScorer::evaluate(const Eigen::Vector3d &center, const
 		logStream_ << "center of reflection plane: " << center.x() << ", " << center.y() <<", " << center.z() << "\n";
 		logStream_ << "normal of reflection plane: " << normal.x() << ", " << normal.y() <<", " << normal.z() << "\n";
 		logStream_ << "max global score for normalization: " << maxGlobalSymmScore << "\n";
-		logStream_ << "max score: " << maxScore << "\n";
+		logStream_ << "part: " << graph_->nodes[maxNo]->id << " leads to max score: " << maxScore << "\n";
 	}
 
     return maxScore;
 }
-double GlobalReflectionSymmScorer::minMeanDistance(Eigen::MatrixXd& pts)
+double GlobalReflectionSymmScorer::minMeanDistance(Eigen::MatrixXd& pts, int &nodeNo)
 {
 	double minDist, meanDist, maxDist, minMean=std::numeric_limits<double>::max();
 	for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
 	{		
         distanceBetween(pts, nodesCpts_[i], minDist, meanDist, maxDist);
 		if ( meanDist < minMean)
+		{
+			nodeNo = i;
 			minMean = meanDist;
+		}
 	}
 	return minMean;
 }
