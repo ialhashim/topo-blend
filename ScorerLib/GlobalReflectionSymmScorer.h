@@ -3,8 +3,9 @@
 class GlobalReflectionSymmScorer :	public RelationDetector
 {
 public:
-    GlobalReflectionSymmScorer(Structure::Graph* g, int ith, double normalizeCoef, int logLevel=0):RelationDetector(g, "GlobalReflectionSymmScorer-", ith, normalizeCoef, 1, logLevel)
+    GlobalReflectionSymmScorer(Structure::Graph* g, int ith, double normalizeCoef, bool bUsePart=false, int logLevel=0):RelationDetector(g, "GlobalReflectionSymmScorer-", ith, normalizeCoef, 1, logLevel)
     {
+		bUsePart_ = bUsePart;
 		if ( this->logLevel_ > 0)
 			this->logStream_ << "normalize coeff: " << this->normalizeCoef_ << "\n";
 
@@ -25,9 +26,11 @@ public:
 private:
 	void init();
 	// compute min mean distance between pts and other parts in the graph.
-	double minMeanDistance(Eigen::MatrixXd& pts);
+	double minMeanDistance(Eigen::MatrixXd& pts, int& nodeNo);
 	//todo find all possible reflection plane. Current implementation: use plane through center & paralleling with xy or xz plane, since z is up in all models.
 	Eigen::Vector3d findReflectPlane(const Eigen::Vector3d& center);
 	int findNearestPart(const Eigen::Vector3d &nc, const QString & type, double size, double& dist);
+
+	bool bUsePart_;
 };
 

@@ -39,6 +39,7 @@ private:
 	Eigen::Vector3d refCenter_;// center of the reflection plane
 	Eigen::Vector3d refNormal_; // normal of the reflection plane
 	bool isUseSourceCenter_;
+	bool bUsePart_;
 
 	// for connectivity
 	QVector<QVector<PairRelation> > connectPairs_; // connectPairs[0] is from source shape, [1] is from target shape

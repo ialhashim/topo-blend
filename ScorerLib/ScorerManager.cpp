@@ -32,6 +32,7 @@ ScorerManager::ScorerManager( GraphCorresponder * graph_corresponder,
 	this->logLevel_ = 2;
 	this->isUseSourceCenter_ = false;
 	this->isUseLink_ = true;
+	this->bUsePart_ = true;
 	init( graph_corresponder, scheduler, input_graphs);
 }
 
@@ -202,7 +203,7 @@ void ScorerManager::parseGlobalReflectionSymm()
     for (int i = 0; i < this->actualInputGraphs_.size(); ++i)
     {
 		Structure::Graph * g = Structure::Graph::actualGraph( this->actualInputGraphs_[i] );
-		GlobalReflectionSymmScorer gss(g, i, this->normalizeCoef_, this->logLevel_);
+		GlobalReflectionSymmScorer gss(g, i, this->normalizeCoef_, this->bUsePart_, this->logLevel_);
         symmScore[i] = gss.evaluate();
 		if ( i == 0)
 		{
@@ -228,7 +229,7 @@ void ScorerManager::evaluateGlobalReflectionSymm()
 
 	int idx(0);
 	Structure::Graph* g = getCurrentGraph(idx);
-	GlobalReflectionSymmScorer gss(g, idx, this->normalizeCoef_, this->logLevel_);
+	GlobalReflectionSymmScorer gss(g, idx, this->normalizeCoef_, this->bUsePart_, this->logLevel_);
 
 	double symmScore;
 	if (isUseSourceCenter_)
@@ -246,7 +247,7 @@ QVector<double> ScorerManager::evaluateGlobalReflectionSymm( QVector<Structure::
     for (int i = 0; i < graphs.size(); ++i)
     {
 		Structure::Graph * g = Structure::Graph::actualGraph(graphs[i] );
-        GlobalReflectionSymmScorer gss(g, i, this->normalizeCoef_, logLevel);
+        GlobalReflectionSymmScorer gss(g, i, this->normalizeCoef_, this->bUsePart_, logLevel);
 
 		if (isUseSourceCenter_)
 			score = gss.evaluate( this->refCenter_, this->refNormal_, this->maxGlobalSymmScore_);
