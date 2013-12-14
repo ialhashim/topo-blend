@@ -59,7 +59,14 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelation> > &connectPair
 							logStream_ << "connected pairs in target shape \n";
 
 						logStream_ << prb << "correspond to: \n";
-						logStream_ << "<" << nodes1[i1]->id << ", " << nodes2[i2]->id << "> ";
+						logStream_ << "<" << nodes1[i1]->id << ", " << nodes2[i2]->id << ">\n";
+						
+						if ( link !=0)
+						{
+							SurfaceMesh::Vector3 p1 = link->position(link->n1->id);
+							SurfaceMesh::Vector3 p2 = link->position(link->n2->id);
+							logStream_ << "<" << p1.x() << ", " << p1.y() << ", " << p1.z() << "; " << p2.x() << ", " << p2.y() << ", " << p2.z() << ">\n";
+						}
 						if (link==0)
 							this->logStream_ << "link does not exist, then with deviation improved by 0 \n\n";
 						else

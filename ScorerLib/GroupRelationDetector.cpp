@@ -4,8 +4,8 @@ void GroupRelationDetector::detect(QVector<PairRelation>& prRelations)
 {
     detectSymmGroupByRefPair( prRelations);
     detectSymmGroupByTransPair( prRelations);
-    detectCoplanarGroup( prRelations);
-    mergeCoplanarGroup();
+    //detectCoplanarGroup( prRelations);
+    //mergeCoplanarGroup();
     removeRedundantGroup();
 }
 

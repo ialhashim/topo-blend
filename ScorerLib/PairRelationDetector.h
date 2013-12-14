@@ -18,10 +18,11 @@ public:
 	{
 	public:
 		double operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2);
-		ConnectedPairModifier(Structure::Graph *graph, double gd, int pl):PairModifier(pl),graph_(graph), normalizeCoef_(gd){};
+		ConnectedPairModifier(Structure::Graph *graph, double gd, QTextStream& logStream, int pl):PairModifier(pl),graph_(graph), logStream_(logStream), normalizeCoef_(gd){};
 
 		double normalizeCoef_;
 		Structure::Graph *graph_;
+		QTextStream& logStream_;
 	};
 	class TransPairModifier : public PairModifier
 	{

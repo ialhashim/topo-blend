@@ -59,7 +59,7 @@ void ScorerManager::parseConstraintPair()
 	this->connectPairs_.clear();	this->otherPairs_.clear();
 	for ( int i = 0; i < this->actualInputGraphs_.size(); ++i)
 	{
-		PairRelationDetector cpd(this->actualInputGraphs_[i], i, normalizeCoef_, false, logLevel_);
+		PairRelationDetector cpd(this->actualInputGraphs_[i], i, normalizeCoef_, true, logLevel_);
 		cpd.detect(this->actualInputGraphs_[(i+1)%this->actualInputGraphs_.size()], this->gcorr_->correspondences);
 		this->connectPairs_.push_back(cpd.connectedPairs_);
 		this->otherPairs_.push_back(cpd.otherPairs_);
