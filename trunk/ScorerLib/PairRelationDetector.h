@@ -18,11 +18,13 @@ public:
 	{
 	public:
 		double operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2);
-		ConnectedPairModifier(Structure::Graph *graph, double gd, QTextStream& logStream, int pl):PairModifier(pl),graph_(graph), logStream_(logStream), normalizeCoef_(gd){};
+		ConnectedPairModifier(Structure::Graph *graph, double gd, bool bUseLink, int pl):PairModifier(pl), bUseLink_(bUseLink),graph_(graph), normalizeCoef_(gd)//, logStream_(logStream)
+		{};
 
 		double normalizeCoef_;
 		Structure::Graph *graph_;
-		QTextStream& logStream_;
+		bool bUseLink_;
+		//QTextStream& logStream_;
 	};
 	class TransPairModifier : public PairModifier
 	{
@@ -58,7 +60,7 @@ public:
 	
 	////////////////////////////////////////////////////
 public:    
-	PairRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, bool bModifyDeviation=false, int logLevel=0);
+	PairRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, bool bUseLink=false, bool bModifyDeviation=false, int logLevel=0);
 
     // if bSource_, g is the target shape (graph_ is source shape). else g is the source shape
 	void detect(Structure::Graph* g, QVector<PART_LANDMARK> &corres);	
@@ -173,6 +175,7 @@ private:
 	bool has_ref_relation(int id1, int id2);
 	void isParalOrthoCoplanar(int id1, int id2);
 	//bool has_rot_relation(int id1, int id2);
+	Eigen::MatrixXd& findCptsByNodeId(Structure::Node* node);
 
 	void pushToOtherPairs(QVector<PairRelation>& pairs, QString type);
 	QVector<PairRelation> transPairs_;
@@ -188,6 +191,7 @@ public:
 private:
 	bool bSource_;
 	bool bModifyDeviation_;
+	bool bUseLink_;
 	std::vector<Eigen::MatrixXd> nodesCpts_; 
     std::vector<Eigen::Vector3d> nodesCenter_;
 	std::vector<double> nodesDiameter_;

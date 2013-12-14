@@ -1,7 +1,7 @@
 #include "RelationDetector.h"
 #include <algorithm>
 #include <numeric>
-
+Q_DECLARE_METATYPE(Vector3)
 
 bool isTaged(const PairRelation &pr)
 {
@@ -145,6 +145,7 @@ double RelationDetector::computeDeviationByLink(Structure::Link* link)
 		SurfaceMesh::Vector3 p1 = link->position(link->n1->id);
 		SurfaceMesh::Vector3 p2 = link->position(link->n2->id);
 		deviation = (p1-p2).norm();
+		//deviation = link->property["blendedDelta"].value<Vector3>().norm();
 	}
 	return deviation;
 }
