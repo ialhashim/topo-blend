@@ -68,9 +68,11 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelation> > &connectPair
 							logStream_ << "<" << p1.x() << ", " << p1.y() << ", " << p1.z() << "; " << p2.x() << ", " << p2.y() << ", " << p2.z() << ">\n";
 						}
 						if (link==0)
-							this->logStream_ << "link does not exist, then with deviation improved by 0 \n\n";
+							this->logStream_ << "link does not exist, distance: ";
 						else
-							this->logStream_ << "link distance: " << deviation + prb.deviation << " with deviation improved by:" << deviation << "\n\n";
+							this->logStream_ << "link distance: "; 
+
+						this->logStream_ << deviation + prb.deviation << " with deviation improved by:" << deviation << "\n\n";
 					}
 				}//for ( int i2 = 0; i2 < (int) nodes2.size(); ++i2)
 			}
@@ -79,7 +81,7 @@ double ConnectivityScorer::evaluate(QVector<QVector<PairRelation> > &connectPair
 
 	if (logLevel_>0 )
 	{
-		logStream_ << "pair: " << k << " leads to max score: " << 1/(1+maxDeviation) << "\n";		
+		logStream_ << "pair: " << k << " with max deviation: "<< maxDeviation << " leads to score: " << 1/(1+maxDeviation) << "\n";		
 	}
 	return 1/(1+maxDeviation);
 }

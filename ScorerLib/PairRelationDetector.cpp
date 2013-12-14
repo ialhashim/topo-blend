@@ -14,24 +14,24 @@ void PairRelationDetector::pushToOtherPairs(QVector<PairRelation>& prs, QString 
 }
 double PairRelationDetector::ConnectedPairModifier::operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2)
 {
-	double deviation(-1.0);
+	double deviation(-1.0),mean_dist, max_dist;
 
 	if ( n1->id == n2->id)
 		return deviation;
 	
 	Structure::Link* link = RelationDetector::findLink(n1, n2, this->graph_);	
-	deviation = RelationDetector::computeDeviationByLink(link);					
+
+	if ( this->bUseLink_)
+		deviation = RelationDetector::computeDeviationByLink(link);
+	else
+	{	
+		distanceBetween(m1, m2, deviation, mean_dist, max_dist);
+	}
+		
 	deviation = deviation/this->normalizeCoef_;
 	if ( deviation > this->maxAllowDeviation_)
 	{
 		this->maxAllowDeviation_ = deviation;
-	}
-
-	if ( link != 0)
-	{
-		SurfaceMesh::Vector3 p1 = link->position(link->n1->id);
-		SurfaceMesh::Vector3 p2 = link->position(link->n2->id);
-		logStream_ << "<" << p1.x() << ", " << p1.y() << ", " << p1.z() << "; " << p2.x() << ", " << p2.y() << ", " << p2.z() << ">\n";	
 	}
 
 	return deviation;
@@ -179,10 +179,11 @@ double PairRelationDetector::CoplanarPairModifier::operator() (Structure::Node *
 	return deviation;
 }
 //////////////////////////////////////////////////////
-PairRelationDetector::PairRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, bool bModifyDeviation, int logLevel)
+PairRelationDetector::PairRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, bool bUseLink, bool bModifyDeviation, int logLevel)
 					 :RelationDetector(g, "PairRelationDetector-", ith, normalizeCoef, 1, logLevel)
 {
 	bSource_ = ith == 0;
+	bUseLink_ = bUseLink;
 	bModifyDeviation_ = bModifyDeviation;
 
 	for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
@@ -201,61 +202,77 @@ PairRelationDetector::PairRelationDetector(Structure::Graph* g, int ith, double 
 	}
 }
 
+Eigen::MatrixXd& PairRelationDetector::findCptsByNodeId(Structure::Node* node)
+{
+	for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
+	{
+		Structure::Node * n = graph_->nodes[i];
+		if (node == n)
+		{
+			return nodesCpts_[i];
+		}
+	}		
+}
 void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
 {
-	QVector<PairRelation> pairs;	
+	if ( this->logLevel_ > 0)
+	{
+		if ( this->bUseLink_)
+		{
+			logStream_ << "\nConnected pairs use link distance \n";
+		}
+		else
+		{
+			logStream_ << "\nConnected pairs use skeleton distance \n";
+		}
+	}
 
+	QVector<PairRelation> pairs;	
+	double deviation, mean_dist, max_dist;;
 	int tmp1 = graph_->edges.size();
 	for ( int i = 0; i < tmp1; ++i)
 	{
-		Structure::Link* link = graph_->edges[i];
-		SurfaceMesh::Vector3 p1 = link->position(link->n1->id);
-		SurfaceMesh::Vector3 p2 = link->position(link->n2->id);
+		Structure::Link *link = graph_->edges[i];
+		if ( this->bUseLink_)
+			deviation = RelationDetector::computeDeviationByLink(link);
+		else
+		{
+			Eigen::MatrixXd& ptsi = findCptsByNodeId(link->n1);
+			Eigen::MatrixXd& ptsj = findCptsByNodeId(link->n2);			
+			distanceBetween(ptsi, ptsj, deviation, mean_dist, max_dist);
+		}
 		
 		PairRelation prb(link->n1,link->n2);
-		prb.deviation = (p1-p2).norm()/this->normalizeCoef_;
+		prb.deviation = deviation/this->normalizeCoef_;
 
 		pairs.push_back(prb);
 	}
 
-	//int tmp1 = nodesPts_.size()-1;
-	//for ( int i = 0; i < tmp1; ++i)
-	//{
-	//	Eigen::MatrixXd ptsi = nodesPts_[i];
-	//	for ( int j = i+1; j < tmp1+1; ++j)
-	//	{
-	//		Eigen::MatrixXd ptsj = nodesPts_[j];
-	//		double tmpd = distanceBetween(ptsi, ptsj)/normalizeCoef_;
-	//		if (tmpd < thIntersectDist_)
-	//		{
-	//			PairRelation prb;
-	//			prb.n1 = graph_->nodes[i];
-	//			prb.n2 = graph_->nodes[j];
-	//			prb.miniDist = tmpd;
-	//			pairs_.push_back(prb);
-	//		}
-	//	}
-	//}
-
 	if (bModifyDeviation_)
 	{
-		logStream_ << "\nConnected pairs, modify deviation, normalize coeff is: " << this->normalizeCoef_ << "\n";
-		modifyPairsDegree(pairs, ConnectedPairModifier(g, normalizeCoef_, logStream_, pointLevel_), g, corres, "Connected pairs");
-	}
-	else if ( this->logLevel_ > 0)
-	{
-		logStream_ << "\nConnected pairs, not modify deviation, normalize coeff is: " << this->normalizeCoef_ << "\n";
-		int i(0),j(0); double tmp(0.0);
-		for ( QVector<PairRelation>::iterator it = pairs.begin(); it != pairs.end(); ++it, ++i)
+		if ( this->logLevel_ > 0)
 		{
-			logStream_ << i << " " << *it << "\n";
-			if (it->deviation > tmp)
-			{
-				tmp = it->deviation;
-				j = i;
-			}
+			logStream_ << "\nConnected pairs, modify deviation, normalize coeff is: " << this->normalizeCoef_ << "\n";
 		}
-		this->logStream_ << "pair " << j << " with max deviation: " << tmp << "\n\n";
+		modifyPairsDegree(pairs, ConnectedPairModifier(g, normalizeCoef_, bUseLink_, pointLevel_), g, corres, "Connected pairs");
+	}
+	else
+	{
+		if ( this->logLevel_ > 0)
+		{
+			logStream_ << "\nConnected pairs, not modify deviation, normalize coeff is: " << this->normalizeCoef_ << "\n";
+			int i(0),j(0); double tmp(0.0);
+			for ( QVector<PairRelation>::iterator it = pairs.begin(); it != pairs.end(); ++it, ++i)
+			{
+				logStream_ << i << " " << *it << "\n";
+				if (it->deviation > tmp)
+				{
+					tmp = it->deviation;
+					j = i;
+				}
+			}
+			this->logStream_ << "pair " << j << " with max deviation: " << tmp << "\n\n";
+		}
 	}
 
 	connectedPairs_.clear();
@@ -317,7 +334,7 @@ void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LA
 	pushToOtherPairs(refPairs_, REF);
 	pushToOtherPairs(parallelPairs_, PARALLEL);
 	pushToOtherPairs(orthogonalPairs_, ORTHOGONAL);
-	pushToOtherPairs(coplanarPairs_, COPLANAR);
+	//pushToOtherPairs(coplanarPairs_, COPLANAR);
 }
 
 void PairRelationDetector::detect(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
