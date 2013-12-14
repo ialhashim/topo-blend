@@ -27,6 +27,13 @@ double PairRelationDetector::ConnectedPairModifier::operator() (Structure::Node 
 		this->maxAllowDeviation_ = deviation;
 	}
 
+	if ( link != 0)
+	{
+		SurfaceMesh::Vector3 p1 = link->position(link->n1->id);
+		SurfaceMesh::Vector3 p2 = link->position(link->n2->id);
+		logStream_ << "<" << p1.x() << ", " << p1.y() << ", " << p1.z() << "; " << p2.x() << ", " << p2.y() << ", " << p2.z() << ">\n";	
+	}
+
 	return deviation;
 }
 double PairRelationDetector::TransPairModifier::operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2)
@@ -233,7 +240,7 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 	if (bModifyDeviation_)
 	{
 		logStream_ << "\nConnected pairs, modify deviation, normalize coeff is: " << this->normalizeCoef_ << "\n";
-		modifyPairsDegree(pairs, ConnectedPairModifier(g, normalizeCoef_, pointLevel_), g, corres, "Connected pairs");
+		modifyPairsDegree(pairs, ConnectedPairModifier(g, normalizeCoef_, logStream_, pointLevel_), g, corres, "Connected pairs");
 	}
 	else if ( this->logLevel_ > 0)
 	{
