@@ -308,7 +308,7 @@ Link *Graph::getEdge(QString id1, QString id2)
 	return NULL;
 }
 
-Link* Structure::Graph::getEdge( int edgeUID )
+Link* Graph::getEdge( int edgeUID )
 {
 	for(int i = 0; i < (int)edges.size(); i++)
 	{
@@ -320,7 +320,7 @@ Link* Structure::Graph::getEdge( int edgeUID )
 	return NULL;
 }
 
-Eigen::AlignedBox3d Structure::Graph::cached_bbox()
+Eigen::AlignedBox3d Graph::cached_bbox()
 {
 	if(!property.contains("bbox"))
 		property["bbox"].setValue( bbox() );
@@ -1101,6 +1101,46 @@ void Graph::loadFromFile( QString fileName )
 	file.close();
 }
 
+void Graph::exportAsOBJ( QString filename )
+{
+	QFile file(filename);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+	QFileInfo fileInfo(file.fileName());
+	QTextStream out(&file);
+	out << "# Exported graph model [" << fileInfo.baseName() << "] by TopoBlender\n\n";
+
+	int v_offset = 0;
+
+	foreach(Structure::Node * n, nodes)
+	{
+		if(!n->property.contains("mesh")) continue;
+
+		out << "# Starting mesh " << n->id << "\n";
+
+		SurfaceMesh::Model* m = getMesh(n->id);
+
+		// Write out vertices
+		Vector3VertexProperty points = m->vertex_property<Vector3>(VPOINT);
+		foreach( Vertex v, m->vertices() )
+			out << "v " << points[v][0] << " " << points[v][1] << " " << points[v][2] << "\n";
+
+		// Write out triangles
+		out << "g " << n->id << "\n";
+		foreach( Face f, m->faces() ){
+			out << "f ";
+			Surface_mesh::Vertex_around_face_circulator fvit = m->vertices(f), fvend = fvit;
+			do{	out << (((Surface_mesh::Vertex)fvit).idx() + 1 + v_offset) << " ";} while (++fvit != fvend);
+			out << "\n";
+		}
+
+		v_offset += m->n_vertices();
+
+		out << "# End of mesh " << n->id << "\n\n";
+	}
+
+	file.close();
+}
+
 Node *Graph::rootBySize()
 {
 	int idx = 0;
@@ -1417,7 +1457,7 @@ int Graph::numCanVisit( Node * node )
 	return nodesCanVisit( node ).size();
 }
 
-QVector< QSet<QString> > Structure::Graph::connectedComponents()
+QVector< QSet<QString> > Graph::connectedComponents()
 {
 	QVector< QSet<QString> > connected;
 
@@ -1486,7 +1526,7 @@ bool Graph::isCutNode( QString nodeID )
 		return false;
 }
 
-bool Structure::Graph::isInCutGroup( QString nodeID )
+bool Graph::isInCutGroup( QString nodeID )
 {
 	Structure::Graph copy(*this);
 
@@ -1585,7 +1625,7 @@ SurfaceMesh::Model* Graph::getMesh( QString nodeID )
 	return NULL;
 }
 
-void Graph::translate( Vector3 delta )
+void Graph::translate( Vector3 delta, bool isKeepMeshes )
 {
 	foreach (Node * node, nodes)
 	{
@@ -1596,10 +1636,13 @@ void Graph::translate( Vector3 delta )
 			((Sheet*)node)->surface.quads.clear();
 
 		// Apply to actual geometry
-		if(!node->property.contains("mesh")) continue;
-		SurfaceMesh::Model* model = getMesh(node->id);
-		Vector3VertexProperty points = model->vertex_property<Vector3d>("v:point");
-		foreach(Vertex v, model->vertices()) points[v] += delta;
+		if( !isKeepMeshes )
+		{
+			if(!node->property.contains("mesh")) continue;
+			SurfaceMesh::Model* model = getMesh(node->id);
+			Vector3VertexProperty points = model->vertex_property<Vector3d>("v:point");
+			foreach(Vertex v, model->vertices()) points[v] += delta;
+		}
 	}
 
 	// Update the bounding box
@@ -1743,7 +1786,7 @@ void Graph::addGroup(QVector<QString> newGroup)
     groups.push_back( newGroup );
 }
 
-void Structure::Graph::removeGroup( QVector<QString> groupElements )
+void Graph::removeGroup( QVector<QString> groupElements )
 {
 	int idx = -1;
 	for(int i = 0; i < groups.size(); i++) if(groups[i] == groupElements) idx = i;
@@ -1894,7 +1937,7 @@ void Graph::articulationDFS( int & cnt, int u, int v, QVector<int> & low, QVecto
 		nodes[v]->property["articulation"] = true;
 }
 
-QVector<Node*> Structure::Graph::leaves()
+QVector<Node*> Graph::leaves()
 {
 	QVector<Node*> result;
 
@@ -1903,6 +1946,23 @@ QVector<Node*> Structure::Graph::leaves()
 			result.push_back(n);
 
 	return result;
+}
+
+void Graph::moveCenterTo( Vector3 newCenter, bool isKeepMeshes )
+{
+	Eigen::AlignedBox3d curBox = bbox(true);
+	Vector3 delta = newCenter - curBox.center();
+	
+	if(!isKeepMeshes) 
+		translate( delta );
+	else
+	{
+		foreach (Node * node, nodes)
+		{
+			node->moveBy( delta );
+			if(node->type() == SHEET) ((Sheet*)node)->surface.quads.clear();
+		}
+	}
 }
 
 Structure::Graph * Graph::actualGraph(Structure::Graph * fromGraph)
@@ -1957,7 +2017,21 @@ Structure::Graph * Graph::actualGraph(Structure::Graph * fromGraph)
 						if(otherID == replacment->id) continue;
 						if(actual->shareEdge(otherID, replacment->id)) continue;
 
-						Vec4d c = replacment->approxCoordinates( replacment->approxProjection(e->position(n->id)) );
+						Vec4d c(0,0,0,0);
+
+						// More accurate but too slow..
+						//Vec4d c = replacment->approxCoordinates( replacment->approxProjection(e->position(n->id)) );
+
+						if(replacment->type() == Structure::CURVE)
+						{
+							double t = ((Structure::Curve*)replacment)->curve.fastTimeAt(e->position(n->id));
+							c = Vec4d(t,0,0,0);
+						}
+						else
+						{
+							c = ((Structure::Sheet*)replacment)->surface.fastTimeAt(e->position(n->id));
+						}
+
 						Array1D_Vector4d coord(1, c);
 
 						e->replace(n->id, replacment, coord);

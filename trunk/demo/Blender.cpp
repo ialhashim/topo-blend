@@ -416,10 +416,15 @@ void Blender::blenderDone()
 	for(int i = 0; i < numSuggestions; i++)
 	{
 		Scheduler * curSchedule = blendPaths[i].scheduler.data();
-		QVector<Structure::Graph*> inBetweens = curSchedule->interestingInBetweens( numInBetweens );
+
+		QVector<Structure::Graph*> inBetweens = curSchedule->topoVaryingInBetweens( numInBetweens );
 
 		for(int j = 0; j < numInBetweens; j++)
 		{
+			inBetweens[j]->moveCenterTo( AlphaBlend(inBetweens[j]->property["t"].toDouble(), 
+													inBetweens[j]->property["sourceGraphCenter"].value<Vector3>(), 
+													inBetweens[j]->property["targetGraphCenter"].value<Vector3>()), true);
+
 			renderer->generateItem( inBetweens[j], i, j );
 		}
 	}

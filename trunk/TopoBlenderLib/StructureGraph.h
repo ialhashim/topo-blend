@@ -94,6 +94,8 @@ namespace Structure{
 		void saveToFile(QString fileName) const;
 		void loadFromFile(QString fileName);
 
+		void exportAsOBJ( QString filename );
+
 		// TopoBlend related
 		static Structure::Graph * actualGraph(Structure::Graph * fromGraph);
 
@@ -126,10 +128,11 @@ namespace Structure{
 		// Modifier
 		void moveBottomCenterToOrigin();
 		void normalize();
-		void translate(Vector3 delta);
+		void translate( Vector3 delta, bool isKeepMeshes = false);
 		void rotate(double angle, Vector3 axis);
 		void scale(double scaleFactor);
 		void transform(QMatrix4x4 mat);
+		void moveCenterTo( Vector3 newCenter, bool isKeepMeshes );
 
 		// Point Landmarks
 		QVector<POINT_ID> selectedControlPointsByColor(QColor color);

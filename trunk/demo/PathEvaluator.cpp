@@ -11,6 +11,8 @@
 #include "GraphDissimilarity.h"
 #include "ExportDynamicGraph.h"
 
+Q_DECLARE_METATYPE( Vector3 )
+
 PathEvaluator::PathEvaluator( Blender * blender, QObject *parent ) : QObject(parent), b(blender)
 {
 	
@@ -51,7 +53,7 @@ void PathEvaluator::clusterPaths()
 
 		QtJson::JsonArray b_path;
 
-		QVector<Structure::Graph*> inBetweens = s.interestingInBetweens( numInBetweens );
+		QVector<Structure::Graph*> inBetweens = s.topoVaryingInBetweens( numInBetweens );
 		
 		for(int k = 0; k < numInBetweens; k++)
 		{
@@ -138,7 +140,7 @@ void PathEvaluator::test_filtering()
 	}
 
 	// Force number of paths
-	numPaths = 100;
+	numPaths = 30;
 
 	// Do this once for input graphs
 	QVector<Structure::Graph*> inputGraphs;
@@ -193,7 +195,7 @@ void PathEvaluator::test_filtering()
 			font.setStyleHint(QFont::TypeWriter);
 			painter.setFont(font);
 
-			QVector<Structure::Graph*> inBetweens = s.interestingInBetweens( numInBetweens );
+			QVector<Structure::Graph*> inBetweens = s.topoVaryingInBetweens( numInBetweens );
 
 			QVector< QVector<double> > scores(numInBetweens);
 
@@ -201,6 +203,10 @@ void PathEvaluator::test_filtering()
 
 			for(int k = 0; k < numInBetweens; k++)
 			{
+				inBetweens[k]->moveCenterTo( AlphaBlend(inBetweens[k]->property["t"].toDouble(), 
+					inBetweens[k]->property["sourceGraphCenter"].value<Vector3>(), 
+					inBetweens[k]->property["targetGraphCenter"].value<Vector3>()), true);
+
 				// Draw images
 				QImage inBetween = b->renderer->quickRender(inBetweens[k], Qt::white);
 				imgWidth = inBetween.width();
@@ -211,7 +217,7 @@ void PathEvaluator::test_filtering()
 				painter.drawImage(startX, 0, inBetween);
 
 				// Store scores
-				int idx = inBetweens[k]->property["t"].toDouble() * (s.allGraphs.size() - 1);
+				int idx = inBetweens[k]->property["graphIndex"].toInt();
 				QVector<double> vals;
 				vals << ps[i].connectivity[idx] << ps[i].localSymmetry[idx] << ps[i].globalSymmetry[idx];
 
@@ -324,9 +330,11 @@ void PathEvaluator::test_filtering()
 
 		for(int h = 0; h < 2; h++)
 		{
-			html << "<td>" << QString("<div class='score-%1'>").arg(scoreType[h]) << QString::number(ps[ sortedIndices[idx[h]] ].score( globalAvg )) << "</div>";
+			int index = sortedIndices[idx[h]];
+
+			html << "<td>" << QString("<div class='score-%1'>").arg(scoreType[h]) << QString::number(ps[ index ].score( globalAvg )) << "</div>";
 			html << "<div class='path-img'>";
-			html << QString(" <img src='images/%1.png'/> ").arg( idx[h] );
+			html << QString(" <img src='images/%1.png'/> ").arg( index );
 			html << "</div>" << "</td>";
 		}
 
@@ -420,8 +428,11 @@ void PathEvaluator::test_topoDistinct()
 		differ.addGraph( Structure::Graph::actualGraph(defaultSchedule.allGraphs.back()) );
 		differ.addGraphs( allActualGraphs );
 
-		diffs.push_back( differ.competeDissimilar( 0 ) );
+		diffs.push_back( differ.computeDissimilar( 0 ) );
 		//diffs.push_back( differ.competeDissimilar( 1 ) );
+
+		diffs.back().push_front(0);
+		diffs.back().push_back(differ.compute(0,1));
 
 		maxDiffs.push_back( *std::max_element(diffs[0].begin(), diffs[0].end()) );
 		//maxDiffs.push_back( *std::max_element(diffs[1].begin(), diffs[1].end()) );
@@ -446,13 +457,14 @@ void PathEvaluator::test_topoDistinct()
 			font.setStyleHint(QFont::TypeWriter);
 			painter.setFont(font);
 
+			QVector<Structure::Graph*> inBetweens = s.topoVaryingInBetweens(numInBetweens);
+
 			// Draw images
 			int imgWidth = 0;
 			for(int k = 0; k < numInBetweens; k++)
 			{
-				double t = double(k) / (numInBetweens-1);
+				QImage inBetween = b->renderer->quickRender(inBetweens[k], Qt::white);
 
-				QImage inBetween = b->renderer->quickRender(s.allGraphs[t * (s.allGraphs.size()-1)], Qt::white);
 				imgWidth = inBetween.width();
 
 				// Rendered shape
@@ -477,9 +489,8 @@ void PathEvaluator::test_topoDistinct()
 				// Render path
 				for(int k = 0; k < numInBetweens; k++)
 				{
-					// Score graph
-					double t = double(k) / (numInBetweens-1);
-					int idx = t * (s.allGraphs.size()-1);
+					int idx = inBetweens[k]->property["graphIndex"].toInt();
+
 					double val = diffs[u][ idx ] / maxDiffs[u];
 
 					// Graph line

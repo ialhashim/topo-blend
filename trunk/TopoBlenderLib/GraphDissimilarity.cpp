@@ -75,7 +75,7 @@ double GraphDissimilarity::compute( int g1, int g2 )
 	return d;
 }
 
-QVector<double> GraphDissimilarity::competeDissimilar( int gidx, int startidx )
+QVector<double> GraphDissimilarity::computeDissimilar( int gidx, int startidx )
 {
 	QVector<double> scores;
 
@@ -83,13 +83,6 @@ QVector<double> GraphDissimilarity::competeDissimilar( int gidx, int startidx )
 		scores.push_back( compute(gidx, i) );
 
 	return scores;
-}
-
-QVector<Structure::Graph *> GraphDissimilarity::dissimilar( int k )
-{
-    QVector<Structure::Graph *> result;
-
-    return result;
 }
 
 void GraphDissimilarity::outputResults()
