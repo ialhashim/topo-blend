@@ -460,42 +460,9 @@ void topo_blend_widget::exportAsOBJ()
 	QString filename = QFileDialog::getSaveFileName(0, tr("Export OBJ"), 
 		g->property["name"].toString().replace(".xml",".obj"), tr("OBJ Files (*.obj)"));
 	
-	QFile file(filename);
-	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
-	QFileInfo fileInfo(file.fileName());
-	QTextStream out(&file);
-	out << "# Exported graph model [" << fileInfo.baseName() << "] by TopoBlender\n\n";
+	if(filename.isEmpty()) return;
 
-	int v_offset = 0;
-
-	foreach(Structure::Node * n, g->nodes)
-	{
-		if(!n->property.contains("mesh")) continue;
-
-		out << "# Starting mesh " << n->id << "\n";
-		
-		SurfaceMesh::Model* m = g->getMesh(n->id);
-
-		// Write out vertices
-		Vector3VertexProperty points = m->vertex_property<Vector3>(VPOINT);
-		foreach( Vertex v, m->vertices() )
-			out << "v " << points[v][0] << " " << points[v][1] << " " << points[v][2] << "\n";
-
-		// Write out triangles
-		out << "g " << n->id << "\n";
-		foreach( Face f, m->faces() ){
-			out << "f ";
-			Surface_mesh::Vertex_around_face_circulator fvit = m->vertices(f), fvend = fvit;
-			do{	out << (((Surface_mesh::Vertex)fvit).idx() + 1 + v_offset) << " ";} while (++fvit != fvend);
-			out << "\n";
-		}
-
-		v_offset += m->n_vertices();
-
-		out << "# End of mesh " << n->id << "\n\n";
-	}
-
-	file.close();
+	g->exportAsOBJ( filename );
 }
 
 void topo_blend_widget::reverseCurve()

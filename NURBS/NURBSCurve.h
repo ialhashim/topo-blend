@@ -120,6 +120,7 @@ public:
     std::vector<Vector3> getControlPoints();
 
     Real timeAt(const Vector3 &pos);
+	Real fastTimeAt(const Vector3 &pos);
 
     std::vector<std::vector<Vector3> > toSegments(Scalar resolution);
 

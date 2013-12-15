@@ -7,6 +7,13 @@
 enum MatcherState{ CLEARED, SINGLE, BOTH };
 enum GraphHitMode{ MARKING, STROKES };
 
+struct GraphHit{ 
+	QString nid; Eigen::Vector3d p; 
+	GraphHit(QString nid = "", Eigen::Vector3d p = Eigen::Vector3d(0,0,0)) : nid(nid), p(p){}
+	bool operator==(const GraphHit &other) { return nid == other.nid; }
+	operator QString() const { return nid; }
+};
+
 class Matcher : public DemoPage
 {
     Q_OBJECT
@@ -24,7 +31,7 @@ public:
 
 private:
 	MatcherState state;
-	QVector<QString> groupA, groupB;
+	QVector<GraphHit> groupA, groupB;
 	GraphItem * prevItem;
 	
 	bool isAuto;

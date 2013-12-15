@@ -364,6 +364,30 @@ Real NURBSCurve<Real>::timeAt( const Vector3 & pos )
 }
 
 template <typename Real>
+Real NURBSCurve<Real>::fastTimeAt( const Vector3 & pos )
+{
+	int segmentCount = 6;
+	std::vector<Real> times;
+	this->SubdivideByLengthTime(segmentCount, times);
+	int minIdx = 0;
+	double t = 0.0;
+	Vector3 d(0,0,0);
+	Scalar minDist = std::numeric_limits<Scalar>::max();
+	for(int i = 0; i < ((int)times.size()) - 1; i++){
+		Line segment(this->GetPosition(times[i]), this->GetPosition(times[i+1]));
+		segment.ClosestPoint(pos, t, d);
+		Scalar dist = (pos - d).norm();
+		if(dist < minDist){
+			minDist = dist;
+			minIdx = i;
+		}
+	}
+	Line closestSegment(this->GetPosition(times[minIdx]), this->GetPosition(times[minIdx+1]));
+	closestSegment.ClosestPoint(pos, t, d);
+	return qRanged(0.0, ((1-t) * times[minIdx]) + (t * times[minIdx+1]), 1.0);
+}
+
+template <typename Real>
 void NURBSCurve<Real>::translate( const Vector3 & delta )
 {
     for(int i = 0; i < (int)mCtrlPoint.size(); i++)

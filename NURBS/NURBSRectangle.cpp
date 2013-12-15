@@ -988,6 +988,32 @@ Array1D_Vector4d NURBSRectangle<Real>::timeAt( const std::vector<Vector3> & posi
 }
 
 template <typename Real>
+Vector4d NURBSRectangle<Real>::fastTimeAt( const Vector3 & pos )
+{
+	std::vector< std::vector<Vector3> > pts;
+	std::vector<Real> valU, valV;
+	Scalar stepSize = 0.1 * (mCtrlPoint.front().front() - mCtrlPoint.back().back()).norm();
+	generateSurfacePoints(stepSize, pts, valU, valV);
+	int minIdxU = 0, minIdxV = 0;
+	Scalar minDist = std::numeric_limits<Scalar>::max();
+
+	// Approximate area search
+	for(int x = 0; x < (int)valU.size(); x++){
+		for(int y = 0; y < (int)valV.size(); y++){
+			Scalar dist = (pts[x][y] - pos).norm();
+			if(dist < minDist){
+				minDist = dist;
+				minIdxU = x;
+				minIdxV = y;
+			}
+		}
+	}
+
+	Vector4d bestUV( valU[minIdxU], valV[minIdxV], 0, 0 );
+	return bestUV;
+}
+
+template <typename Real>
 std::vector< std::vector<Vector3> > NURBSRectangle<Real>::triangulateControlCage()
 {
     int width = GetNumCtrlPoints(0);

@@ -354,6 +354,10 @@ ScorerManager::PathScore ScorerManager::pathScore( Scheduler * scheduler )
 		score.connectivity[i] = connectivity[i];
 		score.localSymmetry[i] = localSymmetry[i];
 		score.globalSymmetry[i] = globalSymmetry[i];
+
+		scheduler->allGraphs[i]->property["scoreConnectivity"] = connectivity[i];
+		scheduler->allGraphs[i]->property["scoreSymLocal"] = localSymmetry[i];
+		scheduler->allGraphs[i]->property["scoreSymGlobal"] = globalSymmetry[i];
 	}
 
 	return score;
@@ -379,20 +383,16 @@ double ScorerManager::PathScore::score( Vector3d globals )
 	double avgLocal = globals[1];
 	double avgGlobal = globals[2];
 
-	int belowConnect = 0;
-	int belowLocal = 0;
-	int belowGlobal = 0;
+	double errConnect = 0, errLocal = 0, errSymmetry = 0;
 
 	for(int i = 0; i < N; i++)
 	{
-		if( connectivity[i] < avgConnectivity ) belowConnect++;
-		if( localSymmetry[i] < avgLocal ) belowLocal++;
-		if( globalSymmetry[i] < avgGlobal ) belowGlobal++;
+		errConnect += 1.0 - connectivity[i];
+		errLocal += 1.0 - localSymmetry[i];
+		errSymmetry +=  1.0 - globalSymmetry[i];
 	}
 
-	// Negative scoring
-	int counts = belowConnect + belowLocal + belowGlobal;
-	counts *= -1;
+	double error = qMax(qMax(errConnect, errLocal), errSymmetry);
 
-	return counts;
+	return -error;
 }

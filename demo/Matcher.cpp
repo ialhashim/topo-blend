@@ -249,6 +249,10 @@ void Matcher::visualize()
 	foreach(int nidx, gcorr->nonCorresS)	sourceGraph->nodes[nidx]->vis_property["meshColor"].setValue( nonColor );
 	foreach(int nidx, gcorr->nonCorresT)	targetGraph->nodes[nidx]->vis_property["meshColor"].setValue( nonColor );
 	
+	// Record colors
+	foreach(Node * n, sourceGraph->nodes) n->property["correspondenceColor"] = n->vis_property["meshColor"];
+	foreach(Node * n, targetGraph->nodes) n->property["correspondenceColor"] = n->vis_property["meshColor"];
+
 	prevCorrAuto = gcorr->correspondences;
 	prevCorrManual = gcorr->landmarks;
 }
@@ -259,10 +263,10 @@ void Matcher::graphHit( GraphItem::HitResult hit )
 	Structure::Graph * g = hit.item->g;
 	Structure::Node * n = g->getNode( hit.nodeID );
 
-	QVector<QString> & group = (g == s->inputGraphs[0]->g) ? groupA : groupB;
+	QVector<GraphHit> & group = (g == s->inputGraphs[0]->g) ? groupA : groupB;
 
 	// Unique results: add only if not there
-	if(!group.contains(n->id)) group.push_back(n->id);
+	if(!group.contains(n->id)) group.push_back( GraphHit(n->id, hit.ipoint) );
 
 	if( hit.hitMode == MARKING && !isGrouping )
 	{
@@ -356,7 +360,55 @@ void Matcher::setMatch()
 
 	if(groupA.size() > 0 && groupB.size() > 0)
 	{
-		gcorr->addLandmarks(groupA, groupB);
+		bool isUsePointLandmarks = false;
+
+		if( isUsePointLandmarks )
+		{
+			QVector<POINT_ID> sSelections, tSelections;
+
+			foreach(GraphHit gh, groupA)
+			{
+				Structure::Node * n = gcorr->sg->getNode(gh);
+				int cid = 0;
+
+				double min_dist = DBL_MAX;
+				std::vector<Vector3> cpts = n->controlPoints();
+				for(int i = 0; i < (int)cpts.size(); i++){
+					double dist = (cpts[i] - gh.p).norm();
+					if(dist < min_dist){
+						min_dist = dist;
+						cid = i;
+					}
+				}
+				sSelections.push_back( std::make_pair(n->property["index"].toInt(), cid) );
+			}
+
+			foreach(GraphHit gh, groupB)
+			{
+				Structure::Node * n = gcorr->tg->getNode(gh);
+				int cid = 0;
+
+				double min_dist = DBL_MAX;
+				std::vector<Vector3> cpts = n->controlPoints();
+				for(int i = 0; i < (int)cpts.size(); i++){
+					double dist = (cpts[i] - gh.p).norm();
+					if(dist < min_dist){
+						min_dist = dist;
+						cid = i;
+					}
+				}
+				tSelections.push_back( std::make_pair(n->property["index"].toInt(), cid) );
+			}
+
+			gcorr->pointLandmarks.push_back( std::make_pair(sSelections, tSelections) );
+		}
+		else
+		{
+			QVector<QString> groupAstr, groupBstr;
+			foreach(GraphHit gh, groupA) groupAstr.push_back(gh);
+			foreach(GraphHit gh, groupB) groupBstr.push_back(gh);
+			gcorr->addLandmarks(groupAstr, groupBstr);
+		}
 	}
 	else
 	{

@@ -134,6 +134,7 @@ public:
     Vector4d timeAt(const Vector3 &pos);
     Vector4d timeAt(const Vector3 &pos, Vector4d &bestUV, Vector4d &minRange, Vector4d &maxRange, Real currentDist, Real threshold = 1e-4 );
     Array1D_Vector4d timeAt(const std::vector<Vector3> &positions, Real threshold);
+	Vector4d fastTimeAt(const Vector3 &pos);
 
     Vector3 projectOnControl(Real u, Real v);
 

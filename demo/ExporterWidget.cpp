@@ -168,7 +168,10 @@ void ExporterWidget::exportSet()
 	ui->resultsTable->clearSelection();
 	ui->resultsTable->clearFocus();
 
-	// Source and target images
+	log["sname"] = sname;
+	log["tname"] = tname;
+
+	// Source and target
 	{
 		QString imgPath = d.absolutePath() + "/" + path;
 		QString srcFilename = imgPath + QString("%1.png").arg(log["sname"].toString());
@@ -179,13 +182,34 @@ void ExporterWidget::exportSet()
 
 		matcherImage.copy( matcherImage.rect().adjusted(0,0,-matcherImage.width() * 0.5,0) ).save(srcFilename);
 		matcherImage.copy( matcherImage.rect().adjusted(matcherImage.width() * 0.5,0,0,0) ).save(tgtFilename);
+
+		// Write '.color' file
+		{
+			QStringList graphNames;
+			graphNames << log["sname"].toString() << log["tname"].toString();
+
+			for(int i = 0; i < 2; i++)
+			{
+				QString colorFilename = d.absolutePath() + "/" + path + graphNames[i] + ".color";
+				QFile file( colorFilename );
+				if (file.open(QIODevice::WriteOnly | QIODevice::Text)){
+					QTextStream out(&file);
+					foreach(Structure::Node * n, session->s->inputGraphs[i]->g->nodes){
+						QColor color = n->property["correspondenceColor"].value<QColor>();
+						out << QString("%1\t%2\t%3\t%4\n").arg(n->id).arg(color.red()).arg(color.green()).arg(color.blue());
+					}
+				}
+				file.close();
+
+				// Export as segmented OBJ
+				session->s->inputGraphs[i]->g->exportAsOBJ( d.absolutePath() + "/" + path + graphNames[i] + ".obj" );
+			}
+		}
 	}
 
 	log["results"] = filenames;
 	log["session"] = sessionName;
 	log["reconstruction-time"] = (int)reconTimer.elapsed();
-	log["sname"] = sname;
-	log["tname"] = tname;
 
 	log["time"] = allTimer.elapsed();
 
