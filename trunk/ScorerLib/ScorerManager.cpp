@@ -29,7 +29,7 @@ void saveScore(QString filename, QVector<double> scores, QString headline)
 ScorerManager::ScorerManager( GraphCorresponder * graph_corresponder, 
 	Scheduler * scheduler, QVector<Structure::Graph*> input_graphs )
 {
-	this->logLevel_ = 2;
+	this->logLevel_ = 0;
 	this->isUseSourceCenter_ = true;
 	this->isUseLink_ = false;
 	this->bUsePart_ = true;
@@ -132,8 +132,11 @@ void ScorerManager::parseConstraintGroup()
 		GroupRelationDetector grd(g, i, this->normalizeCoef_, this->logLevel_);
 		grd.detect(this->otherPairs_[i]);
 		this->groupRelations_.push_back(grd.groupRelations_);
-		saveToFile("group_relation-" + QString::number(i) + ".txt", this->groupRelations_[i]);
-		saveToFile("pair_relation-" + QString::number(i) + ".txt", this->otherPairs_[i]);
+		if (this->logLevel_)
+		{
+			saveToFile("group_relation-" + QString::number(i) + ".txt", this->groupRelations_[i]);
+			saveToFile("pair_relation-" + QString::number(i) + ".txt", this->otherPairs_[i]);
+		}
 	}	
 
     emit( message("Parse constraint group end. ") );
