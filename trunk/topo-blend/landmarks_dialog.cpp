@@ -702,4 +702,9 @@ void LandmarksDialog::visualizeCorr( int row, int column )
 void LandmarksDialog::loadCorrespondenceFile()
 {
 	gcorr->loadCorrespondences(QFileDialog::getOpenFileName(NULL,"Load Correspondence","./", "Text file (*.txt)"));
+	gcorr->isReady = true;
+
+	updateAll();
+	updateLandmarksTableWidget();
+	updateLandmarksTab();
 }

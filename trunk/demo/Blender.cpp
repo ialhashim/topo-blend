@@ -16,6 +16,7 @@
 
 typedef QVector< QSet<size_t> > ForcedGroups;
 Q_DECLARE_METATYPE( ForcedGroups )
+Q_DECLARE_METATYPE( ScheduleType )
 
 Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL), renderer(NULL), resultViewer(NULL)
 {
@@ -430,6 +431,8 @@ void Blender::blenderDone()
 	for(int i = 0; i < numSuggestions; i++)
 	{
 		Scheduler * curSchedule = blendPaths[i].scheduler.data();
+		ScheduleType schedule = curSchedule->getSchedule();
+
 
 		QVector<Structure::Graph*> inBetweens = curSchedule->topoVaryingInBetweens( numInBetweens );
 
@@ -438,6 +441,8 @@ void Blender::blenderDone()
 			inBetweens[j]->moveCenterTo( AlphaBlend(inBetweens[j]->property["t"].toDouble(), 
 													inBetweens[j]->property["sourceGraphCenter"].value<Vector3>(), 
 													inBetweens[j]->property["targetGraphCenter"].value<Vector3>()), true);
+
+			inBetweens[j]->property["schedule"].setValue( schedule );
 
 			renderer->generateItem( inBetweens[j], i, j );
 		}
