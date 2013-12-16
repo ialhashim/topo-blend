@@ -20,9 +20,6 @@ Q_DECLARE_METATYPE( ForcedGroups )
 Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL), renderer(NULL), resultViewer(NULL)
 {
 	this->isSample = true;
-#ifdef QT_DEBUG
-	this->isSample = false;
-#endif
 
 	this->graphItemWidth = s->width() * 0.15;
 	
@@ -31,13 +28,18 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->numSchedules = 20;
 	this->isFiltering = true;
 
+#ifdef QT_DEBUG
+	this->isSample = false;
+	this->isFiltering = false;
+	this->numSchedules = 8;
+#endif
+
 	setupBlendPathItems();
 
 	// Progress bar
 	progress = new ProgressItem("Working..", false, s);
 
 	// Connections
-	this->connect(this, SIGNAL(becameHidden()), SLOT(cleanUp()));
 	this->connect(this, SIGNAL(keyUpEvent(QKeyEvent*)), SLOT(keyReleased(QKeyEvent*)));
 
     this->connect(this, SIGNAL(blendPathsReady()), SLOT(computeBlendPaths()));
@@ -224,6 +226,8 @@ void Blender::hide()
     animGroup->start( QAbstractAnimation::DeleteWhenStopped );
 
     DemoPage::hide();
+
+	cleanUp();
 }
 
 void Blender::setGraphCorresponder( GraphCorresponder * graphCorresponder )
@@ -279,10 +283,14 @@ void Blender::preparePaths()
 	m_scheduler = QSharedPointer<Scheduler>( new Scheduler );
 	m_blender = QSharedPointer<TopoBlender>( new TopoBlender( m_gcorr, m_scheduler.data() ) );
 	
-	// Synthesis data preperation
+	// Synthesis data preparation
 	if( s_manager.isNull() )
 	{
 		int numSamples = 8000;
+
+#ifdef QT_DEBUG
+		numSamples = 100;
+#endif
 
 		s_manager = QSharedPointer<SynthesisManager>(new SynthesisManager(m_gcorr, m_scheduler.data(), m_blender.data(), numSamples));
 
