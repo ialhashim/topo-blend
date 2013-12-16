@@ -52,6 +52,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
 	// Connect matcher and blender
 	blender->connect(matcher, SIGNAL(corresponderCreated(GraphCorresponder *)), SLOT(setGraphCorresponder(GraphCorresponder *)), Qt::DirectConnection);
+	this->connect(blender, SIGNAL(showLogWindow()), SLOT(showLogWindow()));
 
 	// Connect
     gallery->connect(scene, SIGNAL(wheelEvents(QGraphicsSceneWheelEvent*)), SLOT(wheelEvent(QGraphicsSceneWheelEvent*)), Qt::DirectConnection);
@@ -118,4 +119,9 @@ void MainWindow::keyUpEvent(QKeyEvent* keyEvent)
 	{
 		ui->logWidget->setVisible(!ui->logWidget->isVisible());
 	}
+}
+
+void MainWindow::showLogWindow()
+{
+	ui->logWidget->setVisible(true);
 }

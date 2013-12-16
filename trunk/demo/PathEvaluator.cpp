@@ -3,6 +3,7 @@
 
 #include "PathEvaluator.h"
 #include "SynthesisManager.h"
+#include "GraphDistance.h"
 #include "BlendPathRenderer.h"
 #include "json.h"
 
@@ -16,95 +17,6 @@ Q_DECLARE_METATYPE( Vector3 )
 PathEvaluator::PathEvaluator( Blender * blender, QObject *parent ) : QObject(parent), b(blender)
 {
 	
-}
-
-void PathEvaluator::evaluatePaths()
-{
-}
-
-void PathEvaluator::clusterPaths()
-{
-	int numPaths = 100;
-	int numInBetweens = 20;
-	int numSamplesPerPath = 100;
-
-	// Exporting
-	QString sessionName = QString("cluster_%1").arg(QDateTime::currentDateTime().toString("dd.MM.yyyy_hh.mm.ss"));
-	QString path = "results/" + sessionName;
-	QDir d("");	d.mkpath( path ); d.mkpath( path + "/images" );
-
-	QtJson::JsonObject json;
-	QtJson::JsonArray allData;
-	
-	QVector< QVector<double> > rawData;
-	int idx = 0;
-	
-	QVector<ScheduleType> allPaths = b->m_scheduler->manyRandomSchedules( numPaths );
-
-	for(int i = 0; i < allPaths.size(); i++)
-	{
-		// Setup schedule
-		Scheduler s( *b->m_scheduler );
-		s.setSchedule( allPaths[i] );
-		s.timeStep = 1.0 / numSamplesPerPath;
-
-		// Execute blend
-		s.executeAll();
-
-		QtJson::JsonArray b_path;
-
-		QVector<Structure::Graph*> inBetweens = s.topoVaryingInBetweens( numInBetweens );
-		
-		for(int k = 0; k < numInBetweens; k++)
-		{
-			QtJson::JsonObject tvals, ibetween;
-			QVector<double> rawDataInbetweens;
-
-			foreach(Structure::Node * n, inBetweens[k]->nodes)
-			{
-				double t = n->property["t"].toDouble();
-				tvals[n->id] = t;
-
-				rawDataInbetweens.push_back(t);
-			}
-		
-			ibetween["t"] = tvals;
-			ibetween["image"] = QString("images/%1_%2.png").arg(i).arg(k);
-			ibetween["id"] = idx++;
-
-			//b->renderer->quickRender(inBetweens[k], Qt::white).save(path + "/" + ibetween["image"].toString());
-
-			b_path.append(ibetween);
-
-			rawData.push_back(rawDataInbetweens);
-		}
-
-		allData.append(b_path);
-	}
-
-	json["data"] = allData;
-
-	/// Export results:
-	{
-		QString filename( path + "/data.json"  );
-		QFile file(filename); file.open(QIODevice::WriteOnly | QIODevice::Text);
-		QTextStream out(&file);
-		out << QtJson::serialize(allData);
-		file.close();
-	}
-
-	// Raw data
-	{
-		QString filename( path + "/rawdata.csv"  );
-		QFile file(filename); file.open(QIODevice::WriteOnly | QIODevice::Text);
-		QTextStream out(&file);
-		foreach(QVector<double> shapeVector, rawData){
-			QStringList tvector;
-			foreach(double t, shapeVector) tvector << QString::number(t);
-			out << tvector.join(",") << "\n";
-		}
-		file.close();
-	}
 }
 
 void PathEvaluator::test_filtering()
@@ -238,8 +150,8 @@ void PathEvaluator::test_filtering()
 				for(int k = 0; k < numInBetweens; k++)
 				{
 					// Score graph
-					double minVal = ranges(u,0);
-					double range = ranges(u,2);
+					//double minVal = ranges(u,0);
+					//double range = ranges(u,2);
 
 					//double val = (scores[k][u] - minVal) / range;
 					double val = scores[k][u];
@@ -290,7 +202,7 @@ void PathEvaluator::test_filtering()
 
 	// Sort based on score
 	QMap<int,double> scoreMap;
-	for(int i = 0; i < numPaths; i++) scoreMap[i] = ps[i].score( globalAvg );
+	for(int i = 0; i < numPaths; i++) scoreMap[i] = ps[i].score();
 
 	QVector<int> sortedIndices;
 	typedef QPair<double,int> ValIdx;
@@ -332,7 +244,7 @@ void PathEvaluator::test_filtering()
 		{
 			int index = sortedIndices[idx[h]];
 
-			html << "<td>" << QString("<div class='score-%1'>").arg(scoreType[h]) << QString::number(ps[ index ].score( globalAvg )) << "</div>";
+			html << "<td>" << QString("<div class='score-%1'>").arg(scoreType[h]) << QString::number(ps[ index ].score( )) << "</div>";
 			html << "<div class='path-img'>";
 			html << QString(" <img src='images/%1.png'/> ").arg( index );
 			html << "</div>" << "</td>";
@@ -565,4 +477,67 @@ void PathEvaluator::test_topoDistinct()
 	file.close();
 
 	emit( evaluationDone() );
+}
+
+QVector<ScheduleType> PathEvaluator::filteredSchedules( QVector<ScheduleType> randomSchedules )
+{
+	QVector<ScheduleType> sorted;
+
+	int numSamplesPerPath = 25;
+	int numPaths = randomSchedules.size();
+
+	QVector<Structure::Graph*> inputGraphs;
+	inputGraphs << b->s->inputGraphs[0]->g << b->s->inputGraphs[1]->g;
+
+	ScorerManager r_manager(b->m_gcorr, b->m_scheduler.data(), inputGraphs);
+	r_manager.parseConstraintPair();
+	r_manager.parseConstraintGroup();
+	r_manager.parseGlobalReflectionSymm();
+
+	QVector<ScorerManager::PathScore> ps( numPaths );
+	MatrixXd allRanges( numPaths, 3 * 4 );
+
+	// Optimization
+	{
+		beginFastNURBS();
+		DIST_RESOLUTION = 0.03;
+	}
+
+	#pragma omp parallel for
+	for(int i = 0; i < numPaths; i++)
+	{
+		// Setup schedule
+		Scheduler s( *b->m_scheduler );
+		s.setSchedule( randomSchedules[i] );
+
+		s.timeStep = 1.0 / numSamplesPerPath;
+
+		// Execute blend
+		s.executeAll();
+
+		// Compute its score
+		ps[i] = r_manager.pathScore( &s );
+	}
+
+	// Optimization
+	{
+		endFastNURBS();
+		DIST_RESOLUTION = 0.015;
+	}
+
+	// Sort based on score
+	QMap<int,double> scoreMap;
+	QVector<int> sortedIndices;
+	typedef QPair<double,int> ValIdx;
+
+	for(int i = 0; i < numPaths; i++) scoreMap[i] = ps[i].score();
+
+	foreach(ValIdx d, sortQMapByValue( scoreMap ))
+		sortedIndices.push_back( d.second );
+	
+	// Add to sorted list
+	for(int i = 0; i < numPaths; i++)
+		sorted.push_back( randomSchedules[ sortedIndices[i] ] );
+
+	return sorted;
 }

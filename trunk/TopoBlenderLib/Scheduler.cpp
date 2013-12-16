@@ -1307,7 +1307,7 @@ QVector<Structure::Graph*> Scheduler::topoVaryingInBetweens(int N, bool isVisual
 
 		// Geometric dissimilarity
 		{
-			double t = g->property["t"].toDouble();
+			//double t = g->property["t"].toDouble();
 
 			//if(t < 0.1 || t > 0.9) continue;
 

@@ -56,4 +56,6 @@ signals:
 	void becameHidden();
 	void message(QString);
 	void update();
+
+	void showLogWindow();
 };

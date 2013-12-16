@@ -25,7 +25,7 @@ public:
 
 		MatrixXd computeRange();
 
-		double score( Vector3d globals );
+		double score();
 	};
 
 private:

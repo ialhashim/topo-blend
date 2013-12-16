@@ -211,7 +211,9 @@ Eigen::MatrixXd& PairRelationDetector::findCptsByNodeId(Structure::Node* node)
 		{
 			return nodesCpts_[i];
 		}
-	}		
+	}
+
+	return nodesCpts_[0];
 }
 void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
 {

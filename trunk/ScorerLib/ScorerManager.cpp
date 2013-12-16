@@ -375,13 +375,9 @@ MatrixXd ScorerManager::PathScore::computeRange()
 	return R;
 }
 
-double ScorerManager::PathScore::score( Vector3d globals )
+double ScorerManager::PathScore::score()
 {
 	int N = connectivity.size();
-
-	double avgConnectivity = globals[0];
-	double avgLocal = globals[1];
-	double avgGlobal = globals[2];
 
 	double errConnect = 0, errLocal = 0, errSymmetry = 0;
 

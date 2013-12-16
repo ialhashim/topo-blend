@@ -28,13 +28,10 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	
 	this->numSuggestions = 4;
 	this->numInBetweens = 6;
-
-	this->numSchedules = 200;
+	this->numSchedules = 20;
+	this->isFiltering = true;
 
 	setupBlendPathItems();
-
-	// Paths evaluation
-	pathsEval = new PathEvaluator(this);
 
 	// Progress bar
 	progress = new ProgressItem("Working..", false, s);
@@ -46,6 +43,10 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
     this->connect(this, SIGNAL(blendPathsReady()), SLOT(computeBlendPaths()));
     this->connect(this, SIGNAL(blendPathsDone()), SLOT(blenderDone()));
 	this->connect(this, SIGNAL(blendDone()), SLOT(blenderAllResultsDone()));
+
+	// Paths evaluation
+	pathsEval = new PathEvaluator(this);
+	progress->connect(pathsEval, SIGNAL(progressChanged(double)), SLOT(setProgress(double)));
 }
 
 void Blender::setupBlendPathItems()
@@ -266,7 +267,7 @@ void Blender::preparePaths()
 
 	// UI and logging
 	{	
-		progress->setExtra("Preparing paths ");
+		progress->setExtra("Preparing paths - ");
 		progress->show();
 
 		qApp->setOverrideCursor(Qt::WaitCursor);
@@ -278,7 +279,7 @@ void Blender::preparePaths()
 	m_scheduler = QSharedPointer<Scheduler>( new Scheduler );
 	m_blender = QSharedPointer<TopoBlender>( new TopoBlender( m_gcorr, m_scheduler.data() ) );
 	
-	// Synthesis data
+	// Synthesis data preperation
 	if( s_manager.isNull() )
 	{
 		int numSamples = 8000;
@@ -314,10 +315,15 @@ void Blender::preparePaths()
 		m_scheduler->trimTasks();
 	}
 
-	// Generate blend paths
-	srand(0);
-	allSchedules = m_scheduler->manyRandomSchedules( numSchedules );
+	/// Generate and sort blend paths:
 	resultsPage = 0;
+	srand(0);
+
+	// Get 'k' schedules sorted by filter measure
+	if( isFiltering )
+		allSchedules = pathsEval->filteredSchedules( m_scheduler->manyRandomSchedules( numSchedules ) );
+	else
+		allSchedules = m_scheduler->manyRandomSchedules( numSchedules );
 
 	schedulePaths( m_scheduler, m_blender );
 
@@ -458,6 +464,26 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 	{
 		this->isSample = !this->isSample;
 		emit( message( QString("Sampling toggled to: %1").arg(isSample) ) );
+		return;
+	}
+
+	if(keyEvent->key() == Qt::Key_A)
+	{
+		emit( showLogWindow() );
+
+		if( isFiltering )
+		{
+			this->numSchedules = 300;
+			this->isFiltering = false;
+		}
+		else
+		{
+			this->numSchedules = 20;
+			this->isFiltering = true;
+		}
+
+		emit( message( QString("Filtering [%1] Num schedules [%2]").arg(isFiltering).arg(numSchedules) ) );
+
 		return;
 	}
 

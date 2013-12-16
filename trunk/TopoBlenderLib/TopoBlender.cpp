@@ -457,7 +457,7 @@ void TopoBlender::connectNullNodes( Structure::Graph * source, Structure::Graph 
 			foreach(QVector<QString> group, target->groupsOf(bestTNode->id)){
 				foreach(QString element, group){
 					Node * tn = target->getNode(element);
-					Node * sn = source->getNode(tn->property["correspond"].toString());
+					//Node * sn = source->getNode(tn->property["correspond"].toString());
 
 					if(element == bestTNode->id) continue;
 

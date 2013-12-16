@@ -346,7 +346,7 @@ namespace kmeansFast
 
 	// ======================================================= Overall Lloyd Algorithm
 	void run_lloyd( ExtMat &X, ExtMat &Mu, ExtMat &Z, int Niter )  {
-	  double prevDist,totalDist = 0;
+	  double prevDist = 0,totalDist = 0;
 
 	  Mat Dist = Mat::Zero( X.rows(), Mu.rows() );  
 

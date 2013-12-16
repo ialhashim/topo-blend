@@ -30,4 +30,5 @@ private:
 public slots:
 	void message(QString m);
 	void keyUpEvent(QKeyEvent* keyEvent);
+	void showLogWindow();
 };

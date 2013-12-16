@@ -1,5 +1,4 @@
 #include <QApplication>
-#include <QStack>
 #include <QFileDialog>
 #include <QtConcurrentRun>
 
@@ -24,28 +23,10 @@ GlSplatRenderer * splat_renderer = NULL;
 // The following depends on the power of the GPU
 #define POINTS_LIMIT 600000
 
-Q_DECLARE_METATYPE( std::vector<bool> )
-
 QStack<double> nurbsQuality;
 
-void beginFastNURBS(){
-	nurbsQuality.clear();
-	nurbsQuality.push(TIME_ITERATIONS);
-	nurbsQuality.push(CURVE_TOLERANCE);
-	nurbsQuality.push(RombergIntegralOrder);
-
-	TIME_ITERATIONS			= 6;
-	CURVE_TOLERANCE			= 1e-05;
-	RombergIntegralOrder	= 5;
-}
-
-void endFastNURBS(){
-	if(nurbsQuality.size() < 3) return;
-	RombergIntegralOrder = nurbsQuality.pop();
-	CURVE_TOLERANCE = nurbsQuality.pop();
-	TIME_ITERATIONS = nurbsQuality.pop();
-}
-
+Q_DECLARE_METATYPE( std::vector<bool> )
+	
 SynthesisManager::SynthesisManager( GraphCorresponder * gcorr, Scheduler * scheduler, TopoBlender * blender, int samplesCount ) :
 	gcorr(gcorr), scheduler(scheduler), blender(blender), samplesCount(samplesCount), isSplatRenderer(false), 
 		splatSize(0.02), pointSize(4), color(QColor::fromRgbF(0.9, 0.9, 0.9))

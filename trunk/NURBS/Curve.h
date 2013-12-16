@@ -10,6 +10,9 @@ extern int TIME_ITERATIONS;
 extern double CURVE_TOLERANCE;
 extern int RombergIntegralOrder;
 
+static inline bool IsFiniteNumber(double x){return (x <= DBL_MAX && x >= -DBL_MAX); }   
+static inline bool IsNumber(double x) {return (x == x); }
+
 namespace NURBS
 {
 
