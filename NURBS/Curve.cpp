@@ -196,7 +196,16 @@ void Curve<Real>::SubdivideByLengthTime (int numPoints, std::vector<Real> & time
     assert(numPoints >= 2);
     times.resize(numPoints);
 
-    Real delta = GetTotalLength() / (numPoints - 1);
+	double len = GetTotalLength();
+
+	// degenerate curve check
+	if( !IsFiniteNumber(len) ){
+		for (int i = 0; i < numPoints; ++i)
+			times[i] = double(i) / numPoints - 1;
+		return;
+	}
+
+    Real delta = len / (numPoints - 1);
 
     for (int i = 0; i < numPoints; ++i)
     {

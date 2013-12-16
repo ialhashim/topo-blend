@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QMap>
+#include <QStack>
 #include <vector>
 
 #include "StructureGraph.h"
@@ -14,8 +15,25 @@ class Scheduler;
 class TopoBlender;
 typedef QMap<QString, QMap<QString, QVariant> > SynthData;
 
-static inline void beginFastNURBS();
-static inline void endFastNURBS();
+extern QStack<double> nurbsQuality;
+
+static void inline beginFastNURBS(){
+	nurbsQuality.clear();
+	nurbsQuality.push(TIME_ITERATIONS);
+	nurbsQuality.push(CURVE_TOLERANCE);
+	nurbsQuality.push(RombergIntegralOrder);
+
+	TIME_ITERATIONS			= 6;
+	CURVE_TOLERANCE			= 1e-05;
+	RombergIntegralOrder	= 5;
+}
+
+static void inline endFastNURBS(){
+	if(nurbsQuality.size() < 3) return;
+	RombergIntegralOrder = nurbsQuality.pop();
+	CURVE_TOLERANCE = nurbsQuality.pop();
+	TIME_ITERATIONS = nurbsQuality.pop();
+}
 
 class SynthesisManager : public QObject
 {

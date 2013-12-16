@@ -10,9 +10,6 @@ using namespace Structure;
 #include <GL/glu.h>
 #endif
 
-bool IsNumber(double x) {return (x == x); }
-bool IsFiniteNumber(double x) {return (x <= DBL_MAX && x >= -DBL_MAX); } 
-
 #include <Eigen/Geometry>
 
 Curve::Curve(const NURBS::NURBSCurved & newCurve, QString newID, QColor color)

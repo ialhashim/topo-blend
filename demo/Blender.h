@@ -28,6 +28,8 @@ public:
     void setupBlendPathItems();
 
 	int numSuggestions, numInBetweens, numSchedules;
+	bool isFiltering;
+
 	int itemHeight;
 	int graphItemWidth;
 	int blendPathWidth, blendPathHeight;
