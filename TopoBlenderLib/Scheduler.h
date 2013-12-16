@@ -115,6 +115,7 @@ public slots:
 	void setSchedule( ScheduleType fromSchedule );
 	ScheduleType getSchedule();
 	static ScheduleType reversedSchedule(const ScheduleType & fromSchedule);
+	static void saveSchedule(QString filename, ScheduleType s);
 
 	void defaultSchedule();
 	void shuffleSchedule();

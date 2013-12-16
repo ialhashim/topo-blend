@@ -9,6 +9,8 @@
 
 #include "ui_ExporterWidget.h"
 
+Q_DECLARE_METATYPE( ScheduleType )
+
 QString html( QString insideHTML, QString tag, QString stylesheet = ""){
 	return QString("<%1 style='%3'>%2</%1>").arg(tag).arg(insideHTML).arg(stylesheet);
 }
@@ -172,6 +174,10 @@ void ExporterWidget::exportSet()
 		QString thumbnailFile = QDir::currentPath() + "/" + filename + ".png";
 		ShapeRenderer::render( objFile ).save( thumbnailFile );
 
+		// Output schedule for this in-between
+		ScheduleType schedule = g->property["schedule"].value<ScheduleType>();
+		Scheduler::saveSchedule(QDir::currentPath() + "/" + filename + ".schedule.txt", schedule);
+
 		QDir::setCurrent( d.absolutePath() );
 
 		rowItem->setBackgroundColor(QColor(0,100,0));
@@ -219,6 +225,12 @@ void ExporterWidget::exportSet()
 				// Export as segmented OBJ
 				session->s->inputGraphs[i]->g->exportAsOBJ( d.absolutePath() + "/" + path + graphNames[i] + ".obj" );
 			}
+		}
+
+		// Write correspondence file
+		{
+			QString correspondenceFilename = d.absolutePath() + "/" + path + "correspondence.txt";
+			session->m->gcorr->saveCorrespondences( correspondenceFilename );
 		}
 	}
 

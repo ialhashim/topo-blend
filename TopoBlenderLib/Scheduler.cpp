@@ -1012,6 +1012,18 @@ void Scheduler::saveSchedule(QString filename)
 	file.close();
 }
 
+void Scheduler::saveSchedule(QString filename, ScheduleType s)
+{
+	QFile file(filename);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+	QFileInfo fileInfo(file.fileName());
+
+	QTextStream out(&file);
+	out << s.size() << "\n";
+	foreach(QString nid, s.keys())	out << nid << " " << s[nid].first << " " << s[nid].second << "\n";
+	file.close();
+}
+
 ScheduleType Scheduler::getSchedule()
 {
 	ScheduleType result;
