@@ -20,6 +20,8 @@ public:
 
 public slots:
 	void addInBetween();
+	void removeInBetween();
+
 	void exportSet();
 
 	void generateLog(QMap<QString, QVariant> log);

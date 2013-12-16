@@ -35,6 +35,7 @@ ExporterWidget::ExporterWidget(Session *session, QWidget *parent) :
 
 	// Connections
 	this->connect(ui->addButton, SIGNAL(clicked()), SLOT(addInBetween()));
+	this->connect(ui->removeButton, SIGNAL(clicked()), SLOT(removeInBetween()));
 	this->connect(ui->exportButton, SIGNAL(clicked()), SLOT(exportSet()));
 
 	this->connect(session->s, SIGNAL(keyUpEvent(QKeyEvent*)), SLOT(keyUp(QKeyEvent*)));
@@ -88,9 +89,24 @@ void ExporterWidget::addInBetween()
 	session->b->clearSelectedInBetween();
 }
 
+void ExporterWidget::removeInBetween()
+{
+	if(ui->resultsTable->rowCount() < 1) return;
+
+	QSet<int> toRemove;
+
+	foreach(QTableWidgetItem * item, ui->resultsTable->selectedItems())
+	{
+		ui->resultsTable->removeRow( item->row() );
+	}
+}
+
 void ExporterWidget::exportSet()
 {
 	if(ui->resultsTable->rowCount() < 1) return;
+
+	SynthesisManager * s_manager = session->b->s_manager.data();
+	if(!s_manager) return;
 
 	qApp->setOverrideCursor(Qt::WaitCursor);
 
@@ -107,7 +123,6 @@ void ExporterWidget::exportSet()
 	log["reconstruction-level"] = reconLevel;
 
 	// Re-sample if needed
-	SynthesisManager * s_manager = session->b->s_manager.data();
 	if( s_manager->samplesCount != requestedSamplesCount && ui->isFullRecon->isChecked() )
 	{
 		samplingTimer.start();
