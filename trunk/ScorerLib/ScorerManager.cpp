@@ -27,9 +27,9 @@ void saveScore(QString filename, QVector<double> scores, QString headline)
 }
 
 ScorerManager::ScorerManager( GraphCorresponder * graph_corresponder, 
-	Scheduler * scheduler, QVector<Structure::Graph*> input_graphs )
+	Scheduler * scheduler, QVector<Structure::Graph*> input_graphs, int logLevel )
 {
-	this->logLevel_ = 0;
+	this->logLevel_ = logLevel;
 	this->isUseSourceCenter_ = true;
 	this->isUseLink_ = false;
 	this->bUsePart_ = true;

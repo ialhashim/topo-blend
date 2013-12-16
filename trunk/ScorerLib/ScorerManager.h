@@ -15,7 +15,7 @@ class ScorerManager : public QObject
 	Q_OBJECT
 
 public:
-	ScorerManager(GraphCorresponder * graph_corresponder, Scheduler * scheduler, QVector<Structure::Graph*> input_graphs);
+	ScorerManager(GraphCorresponder * graph_corresponder, Scheduler * scheduler, QVector<Structure::Graph*> input_graphs, int logLevel=0);
 	void init(GraphCorresponder * graph_corresponder, Scheduler * scheduler, QVector<Structure::Graph*> input_graphs);
 
 	struct PathScore{
