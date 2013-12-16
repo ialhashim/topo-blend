@@ -1,5 +1,6 @@
 #include <QApplication> // For mouse icon changing
 #include <QtConcurrentRun> // For easy multi-threading
+#include <QQueue>
 
 #include "TaskCurve.h"
 #include "TaskSheet.h"
@@ -7,7 +8,13 @@
 #include "Relink.h"
 
 #include "Synthesizer.h"
-#include <QQueue>
+#include "GraphDissimilarity.h"
+
+#include "kmeans1d.h"
+#include "kmeans.h"
+#include "kmedoid.h"
+
+#include "SoftwareRenderer.h"
 
 #include "TaskGroups.h"
 
@@ -16,7 +23,7 @@
 
 Q_DECLARE_METATYPE( QSet<int> ) // for tags
 
-Scheduler::Scheduler() : globalStart(0.0), globalEnd(1.0), timeStep( 1.0 / 100.0 ), overTime(0.0), isApplyChangesUI(false)
+	Scheduler::Scheduler() : globalStart(0.0), globalEnd(1.0), timeStep( 1.0 / 100.0 ), overTime(0.0), isApplyChangesUI(false)
 {
 	rulerHeight = 25;
 
@@ -621,6 +628,7 @@ void Scheduler::executeAll()
 		linker.execute();
 
 		// Output current active graph:
+		activeGraph->property["graphIndex"] = allGraphs.size();
 		allGraphs.push_back(  new Structure::Graph( *activeGraph )  );
 
 		// DEBUG:
@@ -732,7 +740,7 @@ void Scheduler::timeChanged( int newTime )
 	int idx = allGraphs.size() * (double(newTime) / totalExecutionTime());
 
 	idx = qRanged(0, idx, allGraphs.size() - 1);
-	allGraphs[idx]->property["index"] = idx;
+	allGraphs[idx]->property["graphIndex"] = idx;
 
 	emit( activeGraphChanged(allGraphs[idx]) );
 }
@@ -1228,6 +1236,12 @@ QVector<Structure::Graph*> Scheduler::interestingInBetweens(int N)
 	}
 	qSort(times);
 
+	if(times.size() < 3){
+		times.clear();
+		times.push_back(0.1);
+		times.push_back(0.9);
+	}
+
 	// Missing some more samples
 	while(times.size() < N)
 	{
@@ -1260,4 +1274,200 @@ QVector<Structure::Graph*> Scheduler::interestingInBetweens(int N)
 		result.push_back( allGraphs[ t * (allGraphs.size() - 1) ] );
 
 	return result;
+}
+
+QVector<Structure::Graph*> Scheduler::topoVaryingInBetweens(int N, bool isVisualize)
+{
+	QVector<Structure::Graph*> samples;
+	if(allGraphs.size() < 2) return samples;
+
+	QSharedPointer<Structure::Graph> firstInstance = QSharedPointer<Structure::Graph>( Structure::Graph::actualGraph( allGraphs.front() ) );
+	QSharedPointer<Structure::Graph> lastInstance = QSharedPointer<Structure::Graph>( Structure::Graph::actualGraph( allGraphs.back() ) );
+
+	/// Topological
+	GraphDissimilarity gd( firstInstance.data() );
+
+	// compare against these
+	gd.addGraph( firstInstance.data() );
+	gd.addGraph( lastInstance.data() );
+
+	/// Geometric
+	int thumbWidth = 40;
+	MatrixXd V = MatrixXd::Zero( allGraphs.size(), thumbWidth * thumbWidth);
+
+	QString fixedPart = "";
+	Vector3 fixedCenter(0,0,0);
+
+	for(int i = 0; i < allGraphs.size(); i++)
+	{
+		Structure::Graph * g = Structure::Graph::actualGraph(allGraphs[i]);
+
+		// Topological dissimilarity
+		gd.addGraph( g );
+
+		// Geometric dissimilarity
+		{
+			double t = g->property["t"].toDouble();
+
+			//if(t < 0.1 || t > 0.9) continue;
+
+			QVector<Vector3> cpnts;
+
+			if( !fixedPart.isEmpty() )
+			{
+				Node * fixed = g->getNode(fixedPart);
+
+				// If we lost the fixed part, find another..
+				if( !fixed ){
+					foreach(Node * n, g->nodes){
+						if(n->property["fixedSize"].toBool()){
+							fixedPart = n->id;
+							fixedCenter = n->bbox().center();
+							break;
+						}
+					}
+				}
+				else
+				{
+					Vector3 delta = fixedCenter - fixed->bbox().center();
+					g->translate(delta, true);
+				}
+			}
+			else
+			{
+				foreach(Node * n, g->nodes){
+					if(n->property["fixedSize"].toBool()){
+						fixedPart = n->id;
+						fixedCenter = n->bbox().center();
+						break;
+					}
+				}
+			}
+
+			foreach(Node * n, g->nodes) foreach(Vector3 p, n->controlPoints()) cpnts << p;
+
+			MatrixXd thumbnail = SoftwareRenderer::render(cpnts, thumbWidth, thumbWidth, 2, Vector3(0,0,-0.5));
+
+			if( isVisualize )
+			{
+				SoftwareRenderer::matrixToImage(thumbnail).save(QString("skeleton_%1.png").arg(i));
+			}
+
+			// Fill to a vector
+			for(int d = 0; d < thumbWidth * thumbWidth; d++) 
+			{
+				V(i,d) = thumbnail(d);
+			}
+		}
+
+		delete g;
+	}
+
+	QVector<double> dissimilarVals = gd.computeDissimilar(0, 2);
+
+	// Add topology measure
+	for(int i = 0; i < allGraphs.size(); i++)
+	{
+		V.row(i) *= dissimilarVals[i];
+	}
+
+	QVector<int> classes(allGraphs.size());
+
+	kmeansFast::Clusters clusters = kmeansFast::kmeans(V, N);
+
+	for(int i = 0; i < allGraphs.size(); i++)
+		classes[i] = clusters.cluster[i];
+
+	QMap< int, QVector<int> > clusterMap;
+	for(int i = 0; i < (int)clusters.cluster.size(); i++){
+		clusterMap[ classes[i] ].push_back(i);
+	}
+
+	// Get midpoint for each cluster
+	QSet<int> midPoints;
+	int totalTime = totalExecutionTime();
+
+	foreach(int c, clusterMap.keys()) 
+	{
+		QVector<int> elements = clusterMap[c];
+		qSort(elements);
+
+		int idx = elements[ 0.5 * (elements.size()-1) ];
+
+		int time = allGraphs[idx]->property["t"].toDouble() * totalTime;
+		midPoints.insert( time );
+	}
+
+	samples = interestingInBetweens(N);
+
+	// DEBUG:
+	if( isVisualize )
+	{
+		QVector<int> chosenOnes;
+
+		foreach(Structure::Graph * g, samples){
+			chosenOnes.push_back( g->property["graphIndex"].toInt() );
+		}
+
+		QImage visualization(1000, 500, QImage::Format_RGB32);
+		QPainter painter(&visualization);
+		painter.setRenderHint(QPainter::Antialiasing);
+		painter.setRenderHint(QPainter::HighQualityAntialiasing);
+		painter.fillRect(visualization.rect(), Qt::white);
+		painter.translate(visualization.width() * 0.05,visualization.height() * 0.05);
+		painter.scale(0.9,0.9);
+
+		QPainterPath path;
+
+		QVector<QColor> randColors;
+		for(int i = 0; i < N; i++){
+			randColors.push_back(qRandomColor2());
+			randColors[i].setAlphaF(0.8);
+		}
+
+		for(int i = 0; i < allGraphs.size(); i++)
+		{
+			double val = 0.5;
+
+			int x = (double(i) / (allGraphs.size() - 1)) * visualization.width();
+			int y = val * visualization.height();
+
+			// invert y-axis
+			y = visualization.height() - y;
+
+			// Topology
+			if(i == 0) path.moveTo(x,y);
+			else path.lineTo(x,y);
+
+			painter.setBrush(randColors[ classes[i] ]);
+			painter.drawEllipse(QPoint(x,y),3,3);
+		}
+
+		for(int j = 0; j < chosenOnes.size(); j++)
+		{
+			int i = chosenOnes[j];
+
+			double val = 0.5;
+
+			int x = (double(i) / (allGraphs.size() - 1)) * visualization.width();
+			int y = val * visualization.height();
+
+			// invert y-axis
+			y = visualization.height() - y;
+
+			painter.setBrush(randColors[ classes[i] ]);
+			painter.drawEllipse(QPoint(x,y),10,10);
+
+			painter.drawImage( x, y, SoftwareRenderer::matrixToImage( SoftwareRenderer::vectorToMatrix(V.row(i), thumbWidth, thumbWidth) ) );
+		}
+
+		// Topology
+		painter.setPen(QColor::fromRgbF(0.5,0.5,0.5,0.8));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawPath(path);
+
+		visualization.save("vis.png");
+	}
+
+	return samples;
 }
