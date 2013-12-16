@@ -121,6 +121,7 @@ public slots:
 	QVector<ScheduleType> manyRandomSchedules(int N);
 	QVector<ScheduleType> allSchedules();
 	QVector<Structure::Graph*> interestingInBetweens(int N);
+	QVector<Structure::Graph*> topoVaryingInBetweens(int N, bool isVisualize = false);
 
 	void emitUpdateExternalViewer();
 	void emitProgressStarted();
