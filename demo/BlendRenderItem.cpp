@@ -26,7 +26,7 @@ void BlendRenderItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *o
 	{
 		painter->setBrush( Qt::NoBrush );
 		painter->setPen( QPen(Qt::yellow, 2) );
-		painter->drawRect( pixmap.rect().adjusted(10,10,-10,-10) );
+		painter->drawRect( pixmap.rect().adjusted(4,4,-4,-4) );
 	}
 
 	/// DEBUG:

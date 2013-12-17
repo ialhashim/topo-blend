@@ -129,8 +129,7 @@ Eigen::AlignedBox3d Graph::bbox(bool isSkipUnready)
 
 Node *Graph::addNode(Node * n)
 {
-    Node * found = getNode( n->id );
-    assert(found == NULL);
+    assert(getNode( n->id ) == NULL);
 
     nodes.push_back(n);
 
@@ -1022,7 +1021,7 @@ void Graph::loadFromFile( QString fileName )
 			nodeMesh->update_face_normals();
 			nodeMesh->update_vertex_normals();
 			nodeMesh->updateBoundingBox();
-			new_node->property["mesh"].setValue(nodeMesh);
+			new_node->property["mesh"].setValue( nodeMesh );
 
 			hasMeshes = true;
 		}

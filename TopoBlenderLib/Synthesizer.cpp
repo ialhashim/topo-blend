@@ -936,15 +936,15 @@ void Synthesizer::saveSynthesisData( Structure::Node *node, QString prefix, Synt
 	file.close();
 }
 
-void Synthesizer::loadSynthesisData( Structure::Node *node, QString prefix, SynthData & output )
+int Synthesizer::loadSynthesisData( Structure::Node *node, QString prefix, SynthData & output )
 {
-	if(!node) return;
+	if(!node) return 0;
 
 	QFile file(prefix + node->id + ".txt");
 	if (!file.open(QIODevice::ReadOnly)) 
 	{
 		qDebug() << QString("WARNING: Node [%1]: No synthesis data found").arg(node->id);
-		return;
+		return 0;
 	}
 
 	QDataStream inF(&file);
@@ -968,4 +968,6 @@ void Synthesizer::loadSynthesisData( Structure::Node *node, QString prefix, Synt
 	output[key]["offsets"].setValue(offsets);
 	output[key]["normals"].setValue(normals);
 	output[key]["samplesCount"].setValue(samples.size());
+
+	return num;
 }

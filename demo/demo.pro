@@ -51,7 +51,7 @@ SOURCES +=  main.cpp\
             BlendPathWidget.cpp \
             PathEvaluator.cpp \
             json.cpp \
-    ExporterWidget.cpp
+            ExporterWidget.cpp
 
 HEADERS  += mainwindow.h \
             Scene.h \
@@ -73,11 +73,11 @@ HEADERS  += mainwindow.h \
             BlendPathWidget.h \
             PathEvaluator.h \
             json.h \
-    ExporterWidget.h
+            ExporterWidget.h
 
 FORMS    += mainwindow.ui \
             Controls.ui \
-    ExporterWidget.ui
+            ExporterWidget.ui
 
 # Icons and images
 RESOURCES += resources.qrc

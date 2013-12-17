@@ -952,7 +952,19 @@ void Scheduler::blendDeltas( double globalTime, double timeStep )
 		// flip tDelta if is not consistent with sDeltas
 		Node *sn1 = l->n1;
 
+		/// Prevent large gaps
+		{
+			alpha = qMax(alpha, activeGraph->property["t"].toDouble() * 0.8 );
+		}
+
 		Vector3d blendedDelta = AlphaBlend(alpha, sDelta, tDelta);
+
+		/// Prevent large gaps
+		{
+			double gapLimiter = (0.2) * (1.0 - pow((alpha-0.5)*2, 2));
+			blendedDelta = blendedDelta * (1.0 - gapLimiter);
+		}
+
 		l->property["blendedDelta"].setValue( blendedDelta );
 
 		// Visualization
@@ -1407,6 +1419,7 @@ QVector<Structure::Graph*> Scheduler::topoVaryingInBetweens(int N, bool isVisual
 		int idx = elements[ 0.5 * (elements.size()-1) ];
 
 		int time = allGraphs[idx]->property["t"].toDouble() * totalTime;
+		
 		midPoints.insert( time );
 	}
 
