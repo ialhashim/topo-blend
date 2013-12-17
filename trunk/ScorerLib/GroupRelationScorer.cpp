@@ -181,54 +181,6 @@ void GroupRelationScorer::computeGroupDeviationByCpts(GroupRelation& cgr, GroupR
     {
         cgr.deviation = computeRefSymmetryGroupDeviation(cgr,pointLevel_);
     }
-    else if ( cgr.type == COPLANAR)
-    {
-        std::vector<Structure::Node*> cgrNodes;
-        Structure::Node* n = graph_->getNode( cgr.ids[0]);
-        cgrNodes.push_back(n);
-        Eigen::Vector3d d0 = curve2vectorNormalized(n);
-        Line_3 l0 = curve2line(n);
-        std::vector<Eigen::Vector3d> pts, normals;
-
-        for ( int j = 1; j < (int) cgr.ids.size(); ++j)
-        {
-            n = graph_->getNode( cgr.ids[j]);
-            Eigen::Vector3d d1 = curve2vectorNormalized(n);
-            double error = errorOfParallel(d0, d1);
-            if (error < thParal_)
-            {
-                Line_3 l1 = curve2line(n);
-                error = squared_distance_of_parallel(l0, l1);
-                if ( error < 0.001) // they are the same line
-                    continue;
-            }
-            createPlane( cgrNodes[0], n, cgr.point, cgr.normal);
-            pts.push_back(cgr.point);
-            normals.push_back(cgr.normal);
-
-            cgrNodes.push_back( n );
-        }
-        if ( pts.empty() )
-            cgr.deviation = 0;
-        else
-        {
-            //cgr.point = Eigen::Vector3d::Zero();
-            //cgr.normal = Eigen::Vector3d::Ones();
-            //for ( int i = 0; i < (int) pts.size(); ++i)
-            //{
-            //    Eigen::Vector3d& nl = normals[i];
-            //    cgr.point = cgr.point + pts[i];
-            //    if ( cgr.normal.dot(nl) > 0)
-            //        cgr.normal = cgr.normal + nl;
-            //    else
-            //        cgr.normal = cgr.normal - nl;
-            //}
-            //cgr.point = cgr.point/pts.size();
-            //cgr.normal.normalize();
-            cgr.deviation = errorOfCoplanarGroupByCpts(cgrNodes, cgr.point, cgr.normal);
-        }
-    }
-
 }
 
 double GroupRelationScorer::errorOfCoplanarGroupByCpts(std::vector<Structure::Node*> &nodes, Eigen::Vector3d& point, Eigen::Vector3d& normal)

@@ -21,23 +21,13 @@ void saveToFile(QString filename, QVector<PairRelation>& prs)
 	int i(0);
 	out << "pair relations number: " << prs.size() << "\n";
 	out << "    TRANS: " << countByType(prs,TRANS) << "\n";
-	out << "    REF: " << countByType(prs,REF) << "\n";
-	out << "    PARALLEL: " << countByType(prs,PARALLEL) << "\n";
-	out << "    ORTHOGONAL: " << countByType(prs,ORTHOGONAL) << "\n";
-	out << "    COPLANAR: " << countByType(prs,COPLANAR) << "\n\n";
+	out << "    REF: " << countByType(prs,REF) << "\n\n";
 
 	foreach(PairRelation pr, prs)
 	{
 		out << i << " " << pr.type << ": " << pr.n1->id << ", " << pr.n2->id << ", ";
 		if ( pr.type == TRANS)
-			out << "Trans: ["<<pr.trans_vec[0]<<", "<<pr.trans_vec[1]<<", "<<pr.trans_vec[2]<< "]\n";
-		else if ( pr.type == COPLANAR)
-			out << "Plane: [" << pr.point.x()<<", "<<pr.point.y()<<", " <<pr.point.z()<<", "
-							<< pr.normal.x()<<", "<<pr.normal.y()<<", " <<pr.normal.z()<<"]\n";
-		else if ( pr.type == PARALLEL || pr.type == ORTHOGONAL)
-		{
-			out << "deviation: "<<  pr.deviation << "\n";
-		}
+			out << "Trans: ["<<pr.trans_vec[0]<<", "<<pr.trans_vec[1]<<", "<<pr.trans_vec[2]<< "]\n";		
 		else
 			out << "\n";
 		out << ", diameter: " << pr.diameter << "\n\n";
@@ -56,7 +46,7 @@ void saveToFile(QString filename, QVector<GroupRelation>& grs)
 	foreach(GroupRelation gr, grs)
 	{
 		out << i << " <group-" << gr.type << ">: ";
-		if ( gr.type == COPLANAR || gr.type == REF_SYMMETRY)
+		if ( gr.type == REF_SYMMETRY)
 		{
 			out << "\n Point: " << gr.point.x() << "," << gr.point.y() << "," << gr.point.z() << "\n";
 			out << "normal: " << gr.normal.x() << "," << gr.normal.y() << "," << gr.normal.z() << "\n";
@@ -95,7 +85,7 @@ QTextStream& operator << (QTextStream& os, const GroupRelation& gr)
 		os << "Center: " << gr.center.x() << ", " << gr.center.y() << ", " << gr.center.z() << "\n";
 		os << "Direction: " << gr.direction.x() << ", " << gr.direction.y() << ", " << gr.direction.z() << "\n";
 	}
-	else if ( gr.type == COPLANAR || gr.type == REF_SYMMETRY)
+	else if ( gr.type == REF_SYMMETRY)
 	{
 		os << "normal of plane: " << gr.normal.x() << ", " << gr.normal.y() << ", " << gr.normal.z() << "\n";
 		os << "point of plane: " << gr.point.x() << ", " << gr.point.y() << ", " << gr.point.z() << "\n";

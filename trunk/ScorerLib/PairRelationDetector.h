@@ -38,24 +38,6 @@ public:
 		double operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2);
 		RefPairModifier(int pl):PairModifier(pl){};
 	};
-	class ParallelPairModifier : public PairModifier
-	{
-	public:
-		double operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2);
-		ParallelPairModifier(int pl):PairModifier(pl){};
-	};
-	class OrthogonalPairModifier : public PairModifier
-	{
-	public:
-		double operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2);
-		OrthogonalPairModifier(int pl):PairModifier(pl){};
-	};
-	class CoplanarPairModifier : public PairModifier
-	{
-	public:
-		double operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2);
-		CoplanarPairModifier(int pl):PairModifier(pl){};
-	};
 	
 	
 	////////////////////////////////////////////////////
@@ -180,9 +162,6 @@ private:
 	void pushToOtherPairs(QVector<PairRelation>& pairs, QString type);
 	QVector<PairRelation> transPairs_;
 	QVector<PairRelation> refPairs_;
-	QVector<PairRelation> parallelPairs_;
-	QVector<PairRelation> orthogonalPairs_;
-	QVector<PairRelation> coplanarPairs_;
 
 public:
 	QVector<PairRelation> otherPairs_; // all pairs except connected pairs are save in it.
