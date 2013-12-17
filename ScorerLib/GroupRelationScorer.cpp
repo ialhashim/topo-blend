@@ -28,7 +28,7 @@ double GroupRelationScorer::evaluate(QVector<QVector<GroupRelation> > &groupss, 
 				maxId = num;
 			}					
 					
-			if (logLevel_>0 && cgr.deviation > 0) //
+			if (logLevel_>0) // && cgr.deviation > 0
 			{
 				logStream_ << num << "\n";
 				if ( j == 0 )
@@ -44,7 +44,7 @@ double GroupRelationScorer::evaluate(QVector<QVector<GroupRelation> > &groupss, 
 
 	if (logLevel_>0 )
 	{
-		logStream_ << "group: " << maxId << " has max score: " << 1/(1+resultMax) << "\n";		
+		logStream_ << "group: " << maxId << " with max deviation: " << resultMax << ", which leads to score: " << 1/(1+resultMax) << "\n";		
 	}
 	return 1/(1+resultMax);
 }
