@@ -20,6 +20,9 @@ double PairRelationDetector::ConnectedPairModifier::operator() (Structure::Node 
 		return deviation;
 	
 	Structure::Link* link = RelationDetector::findLink(n1, n2, this->graph_);	
+	if ( link == 0)
+		return deviation;
+
 
 	if ( this->bUseLink_)
 		deviation = RelationDetector::computeDeviationByLink(link);
@@ -191,6 +194,11 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 			it->type = CONNECTED;
 			connectedPairs_.push_back(*it);		
 		}
+	}
+
+	if( logLevel_ >0 )
+	{
+		logStream_ << connectedPairs_.size() << " pairs used in tracing!" << "\n\n\n";
 	}
 }
 void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LANDMARK> &corres)

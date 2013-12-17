@@ -66,6 +66,7 @@ private:
 			std::vector<Structure::Node*> nodes2 = findNodesInST(prb.n2->id, g, corres, !bSource_);
 			fn.maxAllowDeviation_ = 0.0;
 
+			double isExistinSorT(0.0);
 			for ( int i1 = 0; i1 < (int) nodes1.size(); ++i1)
 			{
 				Eigen::MatrixXd m1 = node2matrix(nodes1[i1], pointLevel_);
@@ -74,8 +75,9 @@ private:
 				{
 					Eigen::MatrixXd m2 = node2matrix(nodes2[i2], pointLevel_);
 					double min_dist = fn(nodes1[i1], m1, nodes2[i2], m2);
-					
-					if (logLevel_>0 && min_dist > prb.deviation ) //
+					isExistinSorT += min_dist;
+
+					if (logLevel_>0) // && min_dist > prb.deviation 
 					{
 						logStream_ << num << "\n";
 						if ( bSource_ )
@@ -95,13 +97,13 @@ private:
 			}
 
 			/////////
-			if (nodes1.size()*nodes2.size()>0)
-			{
-				prb.deviation = std::max(prb.deviation, fn.maxAllowDeviation_);
+			if ( nodes1.size()*nodes2.size() == 0 || isExistinSorT == -double(nodes1.size()*nodes2.size()) )
+			{				
+				prb.tag = false;
 			}
 			else
 			{
-				prb.tag = false;
+				prb.deviation = std::max(prb.deviation, fn.maxAllowDeviation_);				
 			}
 		}
 
@@ -129,28 +131,31 @@ private:
 					logStream_ << num << ": " << *it << "\n";
 				}
 			}
+			this->logStream_ << "pair " << k << " with max deviation: " << tmp << "\n\n";
 
-			if (bSource_)
-				logStream_ << "Pairs from source & not exist in target: \n";
-			else
-				logStream_ << "Pairs from target & not exist in source: \n";
-
-			for ( QVector<PairRelation>::iterator it = pairs.begin(); it != pairs.end(); ++it)
+			if( logLevel_ >1 )
 			{
-				if ( !it->tag)
-				{
-					if ( it->deviation > tmp)
-					{
-						tmp = it->deviation;
-						k = num;
-					}
-					 ++num;
+				if (bSource_)
+					logStream_ << "Pairs from source & not exist in target: \n";
+				else
+					logStream_ << "Pairs from target & not exist in source: \n";
 
-					logStream_ << num << ": " << *it << "\n";
+				for ( QVector<PairRelation>::iterator it = pairs.begin(); it != pairs.end(); ++it)
+				{
+					if ( !it->tag)
+					{
+						//if ( it->deviation > tmp)
+						//{
+						//	tmp = it->deviation;
+						//	k = num;
+						//}
+						 ++num;
+
+						logStream_ << num << ": " << *it << "\n";
+					}
 				}
 			}
-
-			this->logStream_ << "pair " << k << " with max deviation: " << tmp << "\n\n";
+			
 		}
 	}
 	bool has_trans_relation(int id1, int id2);
