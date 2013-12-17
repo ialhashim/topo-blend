@@ -517,6 +517,16 @@ void Matcher::keyReleased( QKeyEvent* keyEvent )
 		if(QFile::remove(filename) || QFile::remove(filename2)) emit( message( "Correspondence file deleted: " + filename ) );
 		return;
 	}
+
+	if(keyEvent->key() == Qt::Key_V){
+		foreach(Node * n, s->inputGraphs[0]->g->nodes) groupA.push_back(GraphHit(n->id));
+		setMatch();
+
+		foreach(Node * n, s->inputGraphs[1]->g->nodes) groupB.push_back(GraphHit(n->id));
+		setMatch();
+
+		emit( update() );
+	}
 }
 
 void Matcher::groupingMode()

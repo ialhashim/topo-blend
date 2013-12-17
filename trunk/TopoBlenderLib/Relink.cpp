@@ -236,7 +236,6 @@ void Relink::fixTask( Task* task )
 
 	n->property["fixedSize"] = fixedSize;
 
-	// Useful for debugging:
 	{
 		QStringList listRelinks;
 		foreach(LinkConstraint c, consts) listRelinks << c.link->otherNode(n->id)->id;

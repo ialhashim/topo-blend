@@ -98,7 +98,7 @@ void BlendPathRenderer::paintGL()
 
 	// Get camera
 	SynthesisManager * s_manager = blender->s_manager.data();
-	qglviewer::Camera * sceneCamera = s_manager->property("camera").value<qglviewer::Camera*>();
+	qglviewer::Camera * sceneCamera = s_manager->property["camera"].value<qglviewer::Camera*>();
 	if(!sceneCamera) return;
 
 	// Setup viewport and camera
@@ -155,7 +155,7 @@ void BlendPathRenderer::mouseMoveEvent(QMouseEvent *event)
 		if(event->buttons() & Qt::LeftButton)
 		{
 			SynthesisManager * s_manager = blender->s_manager.data();
-			qglviewer::Camera * sceneCamera = s_manager->property("camera").value<qglviewer::Camera*>();
+			qglviewer::Camera * sceneCamera = s_manager->property["camera"].value<qglviewer::Camera*>();
 
 			QPointF startPos = property("buttonDownPos").toPointF();
 			QPointF currentPos = event->posF();
@@ -187,7 +187,7 @@ void BlendPathRenderer::mouseMoveEvent(QMouseEvent *event)
 void BlendPathRenderer::mousePressEvent(QMouseEvent *event)
 {
 	SynthesisManager * s_manager = blender->s_manager.data();
-	qglviewer::Camera * sceneCamera = s_manager->property("camera").value<qglviewer::Camera*>();
+	qglviewer::Camera * sceneCamera = s_manager->property["camera"].value<qglviewer::Camera*>();
 
 	QVariant pos, orient;
 	pos.setValue( sceneCamera->frame()->position() );

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>446</width>
-    <height>290</height>
+    <width>353</width>
+    <height>340</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -71,7 +71,7 @@ QPushButton:pressed{ background:rgb(255,153,0); border-color:#FFB444; top:2px; }
            <number>15</number>
           </property>
           <property name="value">
-           <number>5</number>
+           <number>7</number>
           </property>
          </widget>
         </item>
@@ -94,7 +94,7 @@ QPushButton:pressed{ background:rgb(255,153,0); border-color:#FFB444; top:2px; }
            <number>100</number>
           </property>
           <property name="value">
-           <number>8</number>
+           <number>20</number>
           </property>
          </widget>
         </item>
@@ -112,6 +112,13 @@ QPushButton:pressed{ background:rgb(255,153,0); border-color:#FFB444; top:2px; }
          <widget class="QCheckBox" name="isSimplify">
           <property name="text">
            <string>Simplify</string>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="0" colspan="2">
+         <widget class="QCheckBox" name="isUpload">
+          <property name="text">
+           <string>Upload cloud</string>
           </property>
          </widget>
         </item>

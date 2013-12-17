@@ -89,6 +89,8 @@ public slots:
 
 	void previewItem(BlendRenderItem*);
 
+	void filterStateChanged(int state);
+
 	void emitMessage(QString);
 
 private:

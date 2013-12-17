@@ -20,20 +20,17 @@ Q_DECLARE_METATYPE( ScheduleType )
 
 Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(NULL), s_manager(NULL), renderer(NULL), resultViewer(NULL)
 {
-	this->isSample = true;
-
-	this->graphItemWidth = s->width() * 0.15;
-	
 	this->numSuggestions = 4;
 	this->numInBetweens = 6;
-	this->numSchedules = 20;
-	this->isFiltering = true;
+	this->numSchedules = 300;
+	this->isFiltering = false;
+	this->isSample = true;
 
 #ifdef QT_DEBUG
 	this->isSample = false;
-	this->isFiltering = false;
-	this->numSchedules = 8;
 #endif
+
+	this->graphItemWidth = s->width() * 0.15;
 
 	setupBlendPathItems();
 
@@ -297,7 +294,7 @@ void Blender::preparePaths()
 
 		QVariant p_camera;
 		p_camera.setValue( s->camera );
-		s_manager->setProperty("camera", p_camera);
+		s_manager->property["camera"] = p_camera;
 
 		// Progress connections
 		progress->connect(s_manager.data(), SIGNAL(progressChanged(double)), SLOT(setProgress(double)));
@@ -473,27 +470,16 @@ void Blender::mousePress( QGraphicsSceneMouseEvent* mouseEvent )
 void Blender::keyReleased( QKeyEvent* keyEvent )
 {
 	// Special keys across all pages:
-	if(keyEvent->key() == Qt::Key_F)
+	if( keyEvent->key() == Qt::Key_F )
 	{
 		this->isSample = !this->isSample;
 		emit( message( QString("Sampling toggled to: %1").arg(isSample) ) );
 		return;
 	}
 
-	if(keyEvent->key() == Qt::Key_A)
+	if( keyEvent->key() == Qt::Key_E )
 	{
 		emit( showLogWindow() );
-
-		if( isFiltering )
-		{
-			this->numSchedules = 300;
-			this->isFiltering = false;
-		}
-		else
-		{
-			this->numSchedules = 20;
-			this->isFiltering = true;
-		}
 
 		emit( message( QString("Filtering [%1] Num schedules [%2]").arg(isFiltering).arg(numSchedules) ) );
 
@@ -504,13 +490,13 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 	if(!visible) return;
 
 	// Re-draw results
-	if(keyEvent->key() == Qt::Key_R){
+	if( keyEvent->key() == Qt::Key_R ){
 		showResultsPage();
 		return;
 	}
 
 	// EXPERIMENTS:
-	if(keyEvent->key() == Qt::Key_Q){
+	if( keyEvent->key() == Qt::Key_Q ){
 
 		// Experiment: path evaluation
 		//pathsEval->evaluatePaths();
@@ -892,4 +878,13 @@ void Blender::previewItem( BlendRenderItem* item )
 void Blender::emitMessage( QString msg )
 {
 	emit( message(msg) );
+}
+
+void Blender::filterStateChanged( int state )
+{
+	this->isFiltering = (state == Qt::Checked);
+
+	emit( message( QString("Filter state changed: ").arg(isFiltering) ) );
+
+	if( this->isFiltering ) numSchedules = 20;
 }

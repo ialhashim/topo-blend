@@ -373,15 +373,14 @@ QVector<Structure::Link*> Task::filterEdges( Structure::Node * n, QVector<Struct
 	for(int i = 0; i < (int)allEdges.size(); i++){
 		Structure::Node * otherI = allEdges[i]->otherNode(n->id);
 
-		for(int j = 0; j < (int)edges.size(); j++){
+		/*for(int j = 0; j < (int)edges.size(); j++){
 			Structure::Node * otherJ = edges[j]->otherNode(n->id);
 			double sumV = sumvec( otherI->geometricDiff(otherJ) ).norm();
-
 			if(sumV < 1e-10){
 				otherI = NULL;
 				break;
 			}
-		}
+		}*/
 
 		// Skip edges not yet made
 		if( (!otherI) || ungrownNode(otherI->id) ) continue;

@@ -5,7 +5,7 @@
 
 struct QuickMeshDraw{
 
-	static void drawMeshSolid( SurfaceMeshModel * mesh, QColor c = QColor(255,255,255,255) )
+	static void drawMeshSolid( SurfaceMeshModel * mesh, QColor c = QColor(255,255,255,255), Vector3 translation = Vector3(0,0,0) )
 	{
 		if(!mesh) return;
 
@@ -28,6 +28,9 @@ struct QuickMeshDraw{
 		Surface_mesh::Face_iterator fit, fend = mesh->faces_end();
 		Surface_mesh::Vertex_around_face_circulator fvit, fvend;
 
+		glPushMatrix();
+		glTranslated(translation[0], translation[1], translation[2]);
+
 		glBegin(GL_TRIANGLES);
 		for (fit=mesh->faces_begin(); fit!=fend; ++fit){
 			glNormal3( fnormals[fit] );
@@ -35,6 +38,8 @@ struct QuickMeshDraw{
 			do{ glVector3( points[fvit] ); } while (++fvit != fvend);
 		}
 		glEnd();
+
+		glPopMatrix();
 	}
 
 	static void drawMeshWireFrame( SurfaceMeshModel * mesh )

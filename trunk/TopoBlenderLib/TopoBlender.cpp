@@ -686,6 +686,20 @@ void TopoBlender::postprocessSuperEdges()
 
 	// Set blended delta for first time relinking
 	foreach(Link * l, super_sg->edges) l->property["blendedDelta"].setValue( l->property["delta"].value<Vector3d>() );
+
+	// Encode mesh position relative to skeleton
+	foreach(Structure::Graph * g, (QVector<Structure::Graph*>() << super_sg << super_tg) )
+	{
+		foreach(Node * n, g->nodes)
+		{
+			QSharedPointer<SurfaceMeshModel> nodeMesh = n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >();
+
+			Vector3 v0 = nodeMesh->get_vertex_property<Vector3>(VPOINT)[Vertex(0)];
+			Vector3 c0 = n->controlPoints().front();
+			Vector3 deltaMesh = v0 - c0;
+			n->property["deltaMesh"].setValue( deltaMesh );
+		}
+	}
 }
 
 void TopoBlender::equalizeSuperNodeResolutions()

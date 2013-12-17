@@ -45,6 +45,8 @@ public:
 	Scheduler * scheduler;
 	TopoBlender * blender;
 
+	PropertyMap property;
+
 	QVector<Structure::Graph*> graphs();
 	Structure::Graph * graphNamed(QString graphName);
 
@@ -53,11 +55,12 @@ public:
 	SynthData renderData;
 	int samplesCount;
 
-	// Visualization
-	QMap<QString, QMap<QString,QVariant> > sampled;
 	std::vector<GLVertex> vertices;
 	SynthData currentData;
 	QMap<QString, QVariant> currentGraph;
+
+	// Visualization
+	QMap<QString, QMap<QString,QVariant> > sampled;
 
 	// Options
 	bool isSplatRenderer;

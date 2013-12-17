@@ -23,6 +23,7 @@ Session::Session(   Scene *scene, ShapesGallery *gallery, Controls * control,
 	// Blender:
 	blender->connect(control->ui->exportButton, SIGNAL(clicked()), SLOT(exportSelected()));
 	blender->connect(control->ui->jobButton, SIGNAL(clicked()), SLOT(saveJob()));
+	blender->connect(control->ui->filterOption, SIGNAL(stateChanged(int)), SLOT(filterStateChanged(int)));
 	blender->connect(scene, SIGNAL(mousePressDownEvent(QGraphicsSceneMouseEvent*)), SLOT(mousePress(QGraphicsSceneMouseEvent*)));
 	control->connect(blender, SIGNAL(blendStarted()), SLOT(disableTabs()));
 	control->connect(blender, SIGNAL(blendDone()), SLOT(enableTabs()));

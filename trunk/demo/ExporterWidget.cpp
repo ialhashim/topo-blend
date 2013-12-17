@@ -110,6 +110,17 @@ void ExporterWidget::exportSet()
 	SynthesisManager * s_manager = session->b->s_manager.data();
 	if(!s_manager) return;
 
+	// Post reconstruction simplification or compression
+	QString simplifyCmd;
+	if( ui->isSimplify->isChecked() )
+	{
+		QString command;
+		QSettings settingsFile(QSettings::IniFormat, QSettings::UserScope, "GrUVi", "demo");
+		simplifyCmd = settingsFile.value("simplifyCmd", "ctmconv.exe %1.obj %2.ctm --no-normals --no-texcoords --no-colors --method MG2").toString();
+		settingsFile.sync();
+		simplifyCmd = QInputDialog::getText(this, "Simplification command", "Execute command", QLineEdit::Normal, simplifyCmd);
+	}
+
 	qApp->setOverrideCursor(Qt::WaitCursor);
 
 	// Logging:
@@ -145,6 +156,8 @@ void ExporterWidget::exportSet()
 
 	QString sname,tname;
 
+	reconTimer.start();
+
 	for(int i = 0; i < ui->resultsTable->rowCount(); ++i)
 	{
 		QTableWidgetItem *rowItem = ui->resultsTable->item(i, 0);
@@ -164,8 +177,6 @@ void ExporterWidget::exportSet()
 
 		QDir::setCurrent( d.absolutePath() + "/" + path + filename );
 
-		reconTimer.start();
-
 		// Generate the geometry and export the structure graph
 		s_manager->renderGraph(*g, filename, false, reconLevel, true);
 
@@ -173,6 +184,18 @@ void ExporterWidget::exportSet()
 		QString objFile = QDir::currentPath() + "/" + filename + ".obj";
 		QString thumbnailFile = QDir::currentPath() + "/" + filename + ".png";
 		ShapeRenderer::render( objFile ).save( thumbnailFile );
+
+		// Simplify if requested
+		if( ui->isSimplify->isChecked() && !simplifyCmd.isEmpty() )
+		{
+			QString curPath = QDir::currentPath();
+			QString curCmd = "..\\..\\..\\" + simplifyCmd.arg( filename ).arg( filename );
+
+			qDebug() << curCmd;
+
+			system( qPrintable(curCmd) );
+			system( "del *.obj" );
+		}
 
 		// Output schedule for this in-between
 		ScheduleType schedule = g->property["schedule"].value<ScheduleType>();

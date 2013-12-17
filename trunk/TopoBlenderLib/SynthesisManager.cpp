@@ -6,6 +6,7 @@
 GlSplatRenderer * splat_renderer = NULL;
 
 #include "SynthesisManager.h"
+#include "QuickMeshDraw.h"
 
 // Synthesis
 #include "Synthesizer.h"
@@ -29,7 +30,7 @@ Q_DECLARE_METATYPE( std::vector<bool> )
 	
 SynthesisManager::SynthesisManager( GraphCorresponder * gcorr, Scheduler * scheduler, TopoBlender * blender, int samplesCount ) :
 	gcorr(gcorr), scheduler(scheduler), blender(blender), samplesCount(samplesCount), isSplatRenderer(false), 
-		splatSize(0.02), pointSize(4), color(QColor::fromRgbF(0.9, 0.9, 0.9))
+		splatSize(0.02), pointSize(3), color(QColor::fromRgbF(0.9, 0.9, 0.9))
 {
 }
 
@@ -44,6 +45,8 @@ void SynthesisManager::clear()
 	vertices.clear();
 	currentData.clear();
 	currentGraph.clear();
+
+	property["isEnabled"] = false;
 }
 
 QVector<Structure::Graph*> SynthesisManager::graphs()
@@ -119,6 +122,8 @@ void SynthesisManager::genSynData()
 	emit( synthDataReady() );
 
     qApp->restoreOverrideCursor();
+
+	property["isEnabled"] = true;
 }
 
 void SynthesisManager::generateSynthesisData()
@@ -169,14 +174,16 @@ void SynthesisManager::loadSynthesisData(QString parentFolder)
 	Structure::Graph * sgraph = scheduler->activeGraph;
 	Structure::Graph * tgraph = scheduler->targetGraph;
 
+	int loadedSamples = 0;
+
     foreach(Structure::Node * node, sgraph->nodes)
     {
-        Synthesizer::loadSynthesisData(node, parentFolder + foldername + "/[activeGraph]", synthData[sgraph->name()]);
+        loadedSamples += Synthesizer::loadSynthesisData(node, parentFolder + foldername + "/[activeGraph]", synthData[sgraph->name()]);
     }
 
     foreach(Structure::Node * node, tgraph->nodes)
     {
-        Synthesizer::loadSynthesisData(node, parentFolder + foldername + "/[targetGraph]", synthData[tgraph->name()]);
+        loadedSamples += Synthesizer::loadSynthesisData(node, parentFolder + foldername + "/[targetGraph]", synthData[tgraph->name()]);
     }
 
 	scheduler->property["synthDataReady"] = true;
@@ -185,6 +192,8 @@ void SynthesisManager::loadSynthesisData(QString parentFolder)
 	updateViewer();
 
     dir.cdUp();
+
+	property["isEnabled"] = (loadedSamples > 0);
 }
 
 void SynthesisManager::doRenderAll()
@@ -286,7 +295,43 @@ void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bo
         QVector<Eigen::Vector3f> points = renderData[node->id]["points"].value< QVector<Eigen::Vector3f> >();
         QVector<Eigen::Vector3f> normals = renderData[node->id]["normals"].value< QVector<Eigen::Vector3f> >();
 
-        if(!points.size()) continue;
+        if(!points.size())
+		{
+			Structure::Node * n = node;
+
+			Vector3 c0 = n->controlPoints().front();
+			if( n->property["taskIsDone"].toBool() ){
+				n = scheduler->targetGraph->getNode( n->property["correspond"].toString() );
+			}
+
+			QSharedPointer<SurfaceMeshModel> nodeMesh = n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >();
+			Vector3VertexProperty origMeshPoints = nodeMesh->vertex_property<Vector3>(VPOINT);
+
+			Vector3 deltaMesh = n->property["deltaMesh"].value<Vector3>();
+			Vector3 v0 = nodeMesh->get_vertex_property<Vector3>(VPOINT)[Vertex(0)];
+			Vector3 translation = c0 - (v0 - deltaMesh);
+
+			reconMeshes[node->id] = new SurfaceMesh::Model;
+
+			// Assign a translated copy of the triangle mesh
+			foreach(Vertex v, nodeMesh->vertices()) reconMeshes[node->id]->add_vertex( origMeshPoints[v] + translation );
+			foreach(Face f, nodeMesh->faces()){
+				std::vector<Vertex> verts;
+				Surface_mesh::Vertex_around_face_circulator vit = nodeMesh->vertices(f),vend=vit;
+				do{ verts.push_back( Vertex(vit) ); } while(++vit != vend);
+				reconMeshes[node->id]->add_triangle( verts[0], verts[1], verts[2] );
+			}
+
+			if( isOutGraph )
+			{
+				// Replace node mesh with reconstructed
+				QString node_filename = node->id + ".obj";
+				node->property["mesh"].setValue( QSharedPointer<SurfaceMeshModel> (reconMeshes[node->id]) );
+				node->property["mesh_filename"].setValue( "meshes/" + node_filename );
+			}
+
+			continue;
+		}
 
         std::vector<Eigen::Vector3f> clean_points;
         foreach(Eigen::Vector3f p, points) clean_points.push_back(p);
@@ -640,19 +685,41 @@ void SynthesisManager::geometryMorph( SynthData & data, Structure::Graph * graph
 
 	foreach(Node * n, graph->nodes)
 	{
-		if(n->property.contains("isReady") && !n->property["isReady"].toBool())
-			continue;
-
 		if( n->property["zeroGeometry"].toBool() || n->property["shrunk"].toBool()) 
 			continue;
 
 		if(!n->property.contains("correspond"))
 			continue;
 
-		const QVector<float> & offsets = synthData[ag][n->id]["offsets"].value< QVector<float> >();
-		if(offsets.isEmpty()) continue;
+		// Check against expected skeleton geometry
+		{
+			Node * origN = scheduler->originalActiveGraph->getNode(n->id);
+			QString tid = n->property["corresponded"].toString();
 
-		usedNodes.push_back(n);
+			if( !tid.isEmpty() && n->property["taskIsDone"].toBool() ) origN = scheduler->originalTargetGraph->getNode( tid );
+
+			Array1D_Vector3 cp0 = origN->controlPoints();
+			Array1D_Vector3 cp1 = n->controlPoints();
+			Vector3 mean0(0,0,0); for(int i = 0; i < (int)cp0.size(); i++) { mean0 += cp0[i]; }; mean0 /= cp0.size();
+			Vector3 mean1(0,0,0); for(int i = 0; i < (int)cp1.size(); i++) { mean1 += cp1[i]; }; mean1 /= cp1.size();
+
+			double geoDiff = 0.0;
+			for(int i = 0; i < (int)cp0.size(); i++) geoDiff = ((cp0[i]-mean0) - (cp1[i]-mean1)).norm();
+			bool isSameGeometry = geoDiff < 1e-8;
+
+			if( isSameGeometry ) continue;
+		}
+
+		bool isDeformed = !n->property["fixedSize"].toBool();
+		bool isNotDone = n->property.contains("isReady") && n->property.contains("correspond") && n->property["isReady"].toBool() && !n->property["taskIsDone"].toBool();
+
+		if(isDeformed || isNotDone)
+		{
+			const QVector<float> & offsets = synthData[ag][n->id]["offsets"].value< QVector<float> >();
+			if(offsets.isEmpty()) continue;
+
+			usedNodes.push_back(n);
+		}
 	}
 
 	// Count num samples per node and total
@@ -774,11 +841,42 @@ void SynthesisManager::drawSynthesis( Structure::Graph * activeGraph )
 		}
 	}
 
+	// Do not reconstruct fixed parts
+	foreach(Node * n, activeGraph->nodes)
+	{
+		const QVector<Eigen::Vector3f> & points = currentData[n->id]["points"].value< QVector<Eigen::Vector3f> >();
+		if( points.isEmpty() && property["isEnabled"].toBool() )
+		{
+			if(!n->property["shrunk"].toBool() && !n->property["zeroGeometry"].toBool())
+			{
+				Vector3 c0 = n->controlPoints().front();
+
+				if( n->property["taskIsDone"].toBool() ){
+					n = scheduler->targetGraph->getNode( n->property["correspond"].toString() );
+				}
+
+				QSharedPointer<SurfaceMeshModel> nodeMesh = n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >();
+
+				Vector3 deltaMesh = n->property["deltaMesh"].value<Vector3>();
+
+				Vector3 v0 = nodeMesh->get_vertex_property<Vector3>(VPOINT)[Vertex(0)];
+				
+				Vector3 translation = c0 - (v0 - deltaMesh);
+
+				QuickMeshDraw::drawMeshSolid( nodeMesh.data(), color, translation );
+			}
+		}
+	}
+
 	if(!vertices.size()) 
 	{
 		activeGraph->property["showMeshes"] = false;
-		activeGraph->property["showNodes"] = true;
-		activeGraph->draw();
+		
+		if(!property["isEnabled"].toBool())
+		{
+			activeGraph->property["showNodes"] = true;
+			activeGraph->draw();
+		}
 		return;
 	}
 

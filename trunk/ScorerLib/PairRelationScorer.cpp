@@ -1,4 +1,5 @@
 #include "PairRelationScorer.h"
+
 void PairRelationScorer::isParalOrthoCoplanar(PairRelation &cpr)
 {
 	Structure::Node * n1 = cpr.n1; Structure::Node * n2 = cpr.n2;
