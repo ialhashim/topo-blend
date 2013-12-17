@@ -155,7 +155,6 @@ void ScorerManager::evaluateGroups()
 	int idx(0);
 	Structure::Graph* g = getCurrentGraph(idx);
 	GroupRelationScorer grs(g, idx, this->normalizeCoef_, this->logLevel_);
-	
 	grs.evaluate(groupRelations_, this->gcorr_->correspondences);
 
     emit( message("Evaluate group end. ") );
@@ -332,7 +331,7 @@ ScorerManager::PathScore ScorerManager::pathScore( Scheduler * scheduler )
 		Structure::Graph * g = Structure::Graph::actualGraph(graphs[i] );
 
 		// Connectivity
-		ConnectivityScorer cs(g, i, this->normalizeCoef_, logLevel);	
+		ConnectivityScorer cs(g, i, this->normalizeCoef_, this->isUseLink_, logLevel);	
 		connectivity.push_back( cs.evaluate(this->connectPairs_, this->gcorr_->correspondences) );
 
 		// Local symmetry
@@ -341,7 +340,10 @@ ScorerManager::PathScore ScorerManager::pathScore( Scheduler * scheduler )
 
 		// Global symmetry
 		GlobalReflectionSymmScorer gss(g, i, this->normalizeCoef_, logLevel);
-		globalSymmetry.push_back( gss.evaluate( gss.center_, this->refNormal_, this->maxGlobalSymmScore_) );
+		if (isUseSourceCenter_)
+			globalSymmetry.push_back( gss.evaluate( this->refCenter_, this->refNormal_, this->maxGlobalSymmScore_) );
+		else
+			globalSymmetry.push_back( gss.evaluate( gss.center_, this->refNormal_, this->maxGlobalSymmScore_) );
 
 		// Clean up
 		delete g;
