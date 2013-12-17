@@ -84,100 +84,6 @@ double PairRelationDetector::RefPairModifier::operator() (Structure::Node *n1, E
 	return deviation;
 }
 
-double PairRelationDetector::ParallelPairModifier::operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2)
-{
-	double deviation(-1.0);
-	if ( n1->id == n2->id)
-		return deviation;
-	
-	
-    Vector_3 d1, d2;
-    bool iscurve1 = node2direction(n1, d1);
-    bool iscurve2 = node2direction(n2, d2);
-
-    if ( iscurve1 != iscurve2 )
-		return deviation;
-
-	deviation = errorOfParallel(d1, d2);
-	
-	if ( deviation > maxAllowDeviation_)
-	{
-		maxAllowDeviation_ = deviation;
-	}
-
-	return deviation;
-}
-
-double PairRelationDetector::OrthogonalPairModifier::operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2)
-{
-	double deviation(-1.0);
-	if ( n1->id == n2->id)
-		return deviation;
-	
-	
-    Vector_3 d1, d2;
-    bool iscurve1 = node2direction(n1, d1);
-    bool iscurve2 = node2direction(n2, d2);
-
-    if ( iscurve1 == iscurve2 )
-	{
-		deviation = errorOfOrthogonal(d1, d2);
-	}
-	else
-	{
-		deviation = errorOfParallel(d1, d2);
-	}
-	
-	if ( deviation > maxAllowDeviation_)
-	{
-		maxAllowDeviation_ = deviation;
-	}
-
-	return deviation;
-}
-double PairRelationDetector::CoplanarPairModifier::operator() (Structure::Node *n1, Eigen::MatrixXd& m1, Structure::Node *n2, Eigen::MatrixXd& m2)
-{
-	double deviation(-1.0);
-	if ( n1->id == n2->id)
-		return deviation;
-	
-	
-    Vector_3 d1, d2;
-    bool iscurve1 = node2direction(n1, d1);
-    bool iscurve2 = node2direction(n2, d2);
-
-    if ( iscurve1 == iscurve2 )
-	{
-		if ( iscurve1 && iscurve2 )
-		{
-			Line_3 l1 = curve2line(n1), l2 = curve2line(n2);
-            deviation = squared_distance(l1, l2);
-		}
-	}
-	else
-	{
-		Vector3 point, normal;
-        if ( iscurve1 )
-        {
-            sheet2plane(dynamic_cast<Structure::Sheet *>(n2), point, normal);
-            Segment_3 cs = curve2segment(n1);
-            deviation = errorOfLineInPlane( cs, point, normal);
-        }
-        else
-        {
-            sheet2plane(dynamic_cast<Structure::Sheet *>(n1), point, normal);
-            Segment_3 cs = curve2segment(n2);
-            deviation = errorOfLineInPlane( cs, point, normal);
-        }
-	}
-	
-	if ( deviation > maxAllowDeviation_)
-	{
-		maxAllowDeviation_ = deviation;
-	}
-
-	return deviation;
-}
 //////////////////////////////////////////////////////
 PairRelationDetector::PairRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, bool bUseLink, bool bModifyDeviation, int logLevel)
 					 :RelationDetector(g, "PairRelationDetector-", ith, normalizeCoef, 1, logLevel)
@@ -290,8 +196,7 @@ void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PAR
 void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
 {
 	transPairs_.clear();    refPairs_.clear();
-	parallelPairs_.clear();	orthogonalPairs_.clear();
-	coplanarPairs_.clear(); otherPairs_.clear();
+	otherPairs_.clear();
 
     int nNodes = graph_->nodes.size();
     for (int i=0; i<nNodes; ++i)
@@ -314,10 +219,6 @@ void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LA
 						hasRef = has_ref_relation(i, j);
 				}
 			}
-            if ( !hasTrans && !hasRef )
-            {
-                isParalOrthoCoplanar(i,j);
-            }
         }
     }
 
@@ -326,17 +227,11 @@ void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LA
 	//{
 		//modifyPairsDegree(transPairs_, TransPairModifier(pointLevel_), g, corres, "Trans pairs");
 		//modifyPairsDegree(refPairs_, RefPairModifier(pointLevel_), g, corres, "Reflection pairs");
-		//modifyPairsDegree(parallelPairs_, ParallelPairModifier(pointLevel_), g, corres,"Parallel pairs");
-		//modifyPairsDegree(orthogonalPairs_, OrthogonalPairModifier(pointLevel_), g, corres, "Orthogonal pairs");
-		//modifyPairsDegree(coplanarPairs_, CoplanarPairModifier(pointLevel_), g, corres, "Coplanar pairs");
 	//}
 
 	otherPairs_.clear();
 	pushToOtherPairs(transPairs_, TRANS);
 	pushToOtherPairs(refPairs_, REF);
-	pushToOtherPairs(parallelPairs_, PARALLEL);
-	pushToOtherPairs(orthogonalPairs_, ORTHOGONAL);
-	//pushToOtherPairs(coplanarPairs_, COPLANAR);
 }
 
 void PairRelationDetector::detect(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
@@ -403,96 +298,6 @@ bool PairRelationDetector::has_ref_relation(int id1, int id2)
     else
     {
         return false;
-    }
-}
-
-void PairRelationDetector::isParalOrthoCoplanar(int id1, int id2)
-{
-    Structure::Node * n1 = graph_->nodes[id1];
-    Structure::Node * n2 = graph_->nodes[id2];
-
-    Vector_3 d1, d2;
-    bool iscurve1 = node2direction(n1, d1);
-    bool iscurve2 = node2direction(n2, d2);
-    if ( iscurve1 == iscurve2 )
-    {
-        double error = errorOfParallel(d1, d2);
-		double nerror = fixDeviationByPartName(n1->id, n2->id, error);
-        if (nerror < thParal_)
-        {
-            PairRelation pr(n1, n2);
-            pr.deviation = error;
-            pr.diameter = computePairDiameter(pr);
-            parallelPairs_.push_back(pr);
-        }
-        else
-        {
-            error = errorOfOrthogonal(d1, d2);
-			nerror = fixDeviationByPartName(n1->id, n2->id, error);
-
-            if ( nerror < thOthog_)
-            {
-                PairRelation pr(n1, n2);
-                pr.deviation = error;
-                pr.diameter = computePairDiameter(pr);
-				orthogonalPairs_.push_back( pr );
-            }
-            if (iscurve1 && iscurve2 )
-            {
-                Line_3 l1 = curve2line(n1), l2 = curve2line(n2);
-                error = squared_distance(l1, l2);
-				nerror = fixDeviationByPartName(n1->id, n2->id, error);
-
-                if ( nerror < thCopla_)
-                {
-                    PairRelation pr(n1, n2);
-                    createPlane(n1,n2, pr.point, pr.normal);
-                    pr.deviation = error;
-                    pr.diameter = computePairDiameter(pr);
-					coplanarPairs_.push_back( pr );
-                }
-            }
-        }
-    }
-    else// curve & sheet
-    {
-        double error = errorOfParallel(d1, d2);
-		double nerror = fixDeviationByPartName(n1->id, n2->id, error);
-
-        if (nerror < thOthog_)
-        {
-            PairRelation pr(n1, n2);
-            pr.deviation = error;
-            pr.diameter = computePairDiameter(pr);
-			orthogonalPairs_.push_back(pr);
-        }
-        else
-        {
-            Vector3 point, normal;
-            if ( iscurve1 )
-            {
-                sheet2plane(dynamic_cast<Structure::Sheet *>(n2), point, normal);
-                Segment_3 cs = curve2segment(n1);
-                error = errorOfLineInPlane( cs, point, normal);
-            }
-            else
-            {
-                sheet2plane(dynamic_cast<Structure::Sheet *>(n1), point, normal);
-                Segment_3 cs = curve2segment(n2);
-                error = errorOfLineInPlane( cs, point, normal);
-            }
-			nerror = fixDeviationByPartName(n1->id, n2->id, error);
-
-            if ( nerror < thCopla_)
-            {
-                PairRelation pr(n1, n2);
-                pr.point = point;
-                pr.normal = normal;
-                pr.deviation = error;
-                pr.diameter = computePairDiameter(pr);
-				coplanarPairs_.push_back(pr);
-            }
-        }
     }
 }
 

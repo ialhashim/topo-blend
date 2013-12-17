@@ -257,63 +257,6 @@ QString GroupRelationDetector::symmTypeOfTansPair(PairRelation& pr1)
     return result;
 }
 
-void GroupRelationDetector::detectCoplanarGroup(QVector<PairRelation>& prRelations)
-{
-    int nPrs = prRelations.size();
-    for (int i=0; i<nPrs; ++i)
-    {
-        prRelations[i].tag = false;
-    }
-
-    ///////////
-    for (int i=0; i<nPrs; ++i)
-    {
-        PairRelation& pr1 = prRelations[i];
-        if (pr1.tag || COPLANAR.compare(pr1.type)) continue;
-
-        GroupRelation gr;
-        QSet<QString> ids;
-        gr.type = COPLANAR;
-        ids.insert(pr1.n1->id);
-        ids.insert(pr1.n2->id);
-        gr.point = pr1.point;
-        gr.normal = pr1.normal;
-        gr.deviation = pr1.deviation;
-
-        for (int j=i+1; j<nPrs; ++j)
-        {
-            PairRelation& pr2 = prRelations[j];
-            if (pr2.tag || COPLANAR.compare(pr2.type)) continue;
-
-            double error = errorOfCoplanar(pr1.point, pr1.normal, pr2.point, pr2.normal);
-
-            if ( error < thCoplaGroup_)
-            {
-                ids.insert(pr2.n1->id);
-                ids.insert(pr2.n2->id);
-                pr2.tag = true;
-                gr.deviation += error;
-            }
-        }
-
-        ///////////////
-        gr.deviation = gr.deviation/(ids.size()-1);
-        if ( gr.deviation < thCoplaGroup_)
-        {
-            for ( QSet<QString>::iterator it = ids.begin(); it!=ids.end(); ++it)
-            {
-                gr.ids.push_back(*it);
-            }
-            gr.diameter = computeGroupDiameter(gr);
-            groupRelations_.push_back(gr);
-            pr1.tag = true;
-        }
-    }
-
-    ////////////// remove pairs have been put into groups
-    prRelations.erase( std::remove_if(prRelations.begin(), prRelations.end(), isTaged), prRelations.end() );
-}
-
 void vectorId2SetId(QVector<QString>& vec, QSet<QString>& set)
 {
 	for ( QVector<QString>::iterator it = vec.begin(); it!=vec.end(); ++it)
@@ -327,42 +270,4 @@ void setId2VectorId(QSet<QString>& set, QVector<QString>& vec)
 	{
 		vec.push_back(*it);
 	}
-}
-void GroupRelationDetector::mergeCoplanarGroup()
-{
-    for ( int i = 0; i < (int) groupRelations_.size(); ++i)
-    {
-        groupRelations_[i].tag = false;
-    }
-    for ( int i = 0; i < (int) groupRelations_.size(); ++i)
-    {
-        if ( COPLANAR != groupRelations_[i].type || groupRelations_[i].tag)
-            continue;
-
-        Vector3 pt1 = groupRelations_[i].point;
-        Vector3 normal1 = groupRelations_[i].normal;
-        QSet<QString> ids;
-        vectorId2SetId(groupRelations_[i].ids, ids);
-
-        for ( int j = i+1; j < (int) groupRelations_.size(); ++j)
-        {
-            if ( COPLANAR != groupRelations_[j].type || groupRelations_[j].tag)
-                continue;
-
-            Vector3 pt2 = groupRelations_[j].point;
-            Vector3 normal2 = groupRelations_[j].normal;
-            double err = errorOfCoplanar(pt1, normal1, pt2, normal2);
-
-            if ( err < thCoplaGroup_)
-            {
-                groupRelations_[j].tag = true;
-                vectorId2SetId(groupRelations_[j].ids, ids);
-            }
-        }
-
-        groupRelations_[i].ids.clear();
-        setId2VectorId(ids, groupRelations_[i].ids);
-    }
-
-    groupRelations_.erase( std::remove_if(groupRelations_.begin(), groupRelations_.end(), isTagedGr), groupRelations_.end() );
 }

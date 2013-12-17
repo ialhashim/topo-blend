@@ -5,10 +5,10 @@
 #include "GraphCorresponder.h"
 
 static QString TRANS = "TRANS";
-static QString PARALLEL = "PARALLEL";
 static QString REF = "REF";
-static QString ORTHOGONAL = "ORTHOGONAL";
-static QString COPLANAR = "COPLANAR";
+//static QString PARALLEL = "PARALLEL";
+//static QString ORTHOGONAL = "ORTHOGONAL";
+//static QString COPLANAR = "COPLANAR";
 static QString CONNECTED = "CONNECTED"; // for all connected pairs
 static QString NONE = "NONE";
 

@@ -20,8 +20,5 @@ protected:
     bool isSubgroup(QVector<QString>& ids1, QVector<QString>& ids2);
     QString symmTypeOfTansPair(PairRelation& pr1);
 
-	void detectCoplanarGroup(QVector<PairRelation>& prRelations);
-	// merge coplanar group
-	void mergeCoplanarGroup();
 };
 
