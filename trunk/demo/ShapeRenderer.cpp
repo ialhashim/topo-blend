@@ -8,7 +8,7 @@ using namespace SurfaceMesh;
 #include "ShapeRenderer.h"
 #include "qglviewer/camera.h"
 
-ShapeRenderer::ShapeRenderer(QString filename, QColor color, int resolution) : color(color)
+ShapeRenderer::ShapeRenderer(QString filename, QColor color, bool isFlatShading, int resolution) : color(color), isFlatShading(isFlatShading)
 {
     int w = resolution, h = resolution;
     setMinimumSize(w,h);
@@ -47,6 +47,7 @@ ShapeRenderer::ShapeRenderer(QString filename, QColor color, int resolution) : c
 	// Save into OpenGL friendly arrays
 	Vector3VertexProperty m_points = mesh.vertex_coordinates(); 
 	Vector3VertexProperty m_normals = mesh.vertex_normals();
+	Vector3FaceProperty m_fnormals = mesh.face_normals();
 
 	foreach(Vertex v, mesh.vertices()){
 		Vector3 p = m_points[v];
@@ -62,12 +63,12 @@ ShapeRenderer::ShapeRenderer(QString filename, QColor color, int resolution) : c
 
 void ShapeRenderer::initializeGL()
 {
-    // Setup lights and material
+	// Setup lights and material
 	GLfloat ambientLightColor[] = {0.2f,0.2f,0.2f,1};
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLightColor);
 
-    GLfloat diffuseLightColor[] = {0.9f,0.9f,0.9f,1};
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLightColor);
+	GLfloat diffuseLightColor[] = {0.9f,0.9f,0.9f,1};
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLightColor);
 
 	GLfloat specularLightColor[] = {0.95f,0.95f,0.95f,1};
 	glLightfv(GL_LIGHT0, GL_SPECULAR, specularLightColor);
@@ -75,13 +76,13 @@ void ShapeRenderer::initializeGL()
 	float posLight0[] = { 3, 3, 3, 0 };
 	glLightfv(GL_LIGHT0, GL_POSITION, posLight0);
 
-    glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHTING);
 
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+	glEnable(GL_COLOR_MATERIAL);
+	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 
-    // Specular lighting
+	// Specular lighting
 	float specReflection[] = { 0.8f, 0.8f, 0.8f, 1.0f };
 	glMaterialfv(GL_FRONT, GL_SPECULAR, specReflection);
 	glMateriali(GL_FRONT, GL_SHININESS, 56);
@@ -100,14 +101,14 @@ void ShapeRenderer::setupCamera()
 	sceneCamera->setUpVector(qglviewer::Vec(0,0,1));
 	sceneCamera->setPosition(qglviewer::Vec(-2,-2,1.5));
 	sceneCamera->lookAt(qglviewer::Vec());
-	sceneCamera->setType(qglviewer::Camera::PERSPECTIVE);
+	sceneCamera->setType(qglviewer::Camera::ORTHOGRAPHIC);
 
 	bool isFitToMesh = true;
 	if( isFitToMesh )
 	{
 		qglviewer::Vec viewDir = sceneCamera->viewDirection();
 		Eigen::AlignedBox3d bbox(Vector3(bmin.x(),bmin.y(),bmin.z()),Vector3(bmax.x(),bmax.y(),bmax.z()));
-		double distance = bbox.diagonal().size() * 0.9;
+		double distance = bbox.diagonal().size() * 1.2;
 		Vector3 center = bbox.center();
 		Vector3 newPos = center - (distance * Vector3(viewDir[0], viewDir[1], viewDir[2]));
 
@@ -163,38 +164,62 @@ void ShapeRenderer::paintGL()
 	qglColor( color );
 
 	// Draw mesh
-	GLuint vertexbuffer;
-	GLuint elementbuffer;
+	if( isFlatShading )
 	{
-		// Upload geometry to hardware
-		glGenBuffers(1, &vertexbuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLVertex) * vertices.size(), &vertices[0].x, GL_STATIC_DRAW);
+		glBegin(GL_TRIANGLES);
+		for(int f = 0; f < (int)indices.size() / 3; f++)
+		{
+			std::vector<GLVertex> pnts;
+			for(int i = 0; i < 3; i++)	pnts.push_back( vertices[ indices[(f*3) + i] ] );
 
-		glGenBuffers(1, &elementbuffer);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), &indices[0], GL_STATIC_DRAW);
+			Vector3 v0(pnts[0].x, pnts[0].y, pnts[0].z);
+			Vector3 v1(pnts[1].x, pnts[1].y, pnts[1].z);
+			Vector3 v2(pnts[2].x, pnts[2].y, pnts[2].z);
+
+			Vector3 fn = cross(Vector3(v1-v0),Vector3(v2-v0)).normalized();
+
+			glNormal3f( fn[0], fn[1], fn[2] );
+			glVertex3f(pnts[0].x, pnts[0].y, pnts[0].z);
+			glVertex3f(pnts[1].x, pnts[1].y, pnts[1].z);
+			glVertex3f(pnts[2].x, pnts[2].y, pnts[2].z);
+		}
+		glEnd();
 	}
+	else
+	{
+		GLuint vertexbuffer;
+		GLuint elementbuffer;
+		{
+			// Upload geometry to hardware
+			glGenBuffers(1, &vertexbuffer);
+			glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(GLVertex) * vertices.size(), &vertices[0].x, GL_STATIC_DRAW);
 
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_NORMAL_ARRAY);
+			glGenBuffers(1, &elementbuffer);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), &indices[0], GL_STATIC_DRAW);
+		}
 
-	// Bind vertices data
-	glBindBuffer( GL_ARRAY_BUFFER, vertexbuffer );
-	glVertexPointer(3, GL_FLOAT, sizeof(GLVertex), (void*)offsetof(GLVertex, x));
-	glNormalPointer(GL_FLOAT, sizeof(GLVertex), (void*)offsetof(GLVertex, nx));
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_NORMAL_ARRAY);
 
-	// Bind triangles data then draw
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+		// Bind vertices data
+		glBindBuffer( GL_ARRAY_BUFFER, vertexbuffer );
+		glVertexPointer(3, GL_FLOAT, sizeof(GLVertex), (void*)offsetof(GLVertex, x));
+		glNormalPointer(GL_FLOAT, sizeof(GLVertex), (void*)offsetof(GLVertex, nx));
 
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_NORMAL_ARRAY);
+		// Bind triangles data then draw
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
+		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+
+		glDisableClientState(GL_VERTEX_ARRAY);
+		glDisableClientState(GL_NORMAL_ARRAY);
+	}
 }
 
-QPixmap ShapeRenderer::render(QString filename)
+QPixmap ShapeRenderer::render(QString filename, bool isFlatShading)
 {
-   ShapeRenderer * renderer = new ShapeRenderer(filename, QColor(203, 127, 92), 512);
+   ShapeRenderer * renderer = new ShapeRenderer(filename, QColor(203, 127, 92), isFlatShading, 512);
    renderer->show();
    renderer->updateGL();
    QPixmap img = QPixmap::fromImage( renderer->grabFrameBuffer(true) );
