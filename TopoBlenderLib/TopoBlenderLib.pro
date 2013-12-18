@@ -8,7 +8,7 @@ StarlabTemplate(none)
 
 TEMPLATE = lib
 CONFIG += staticlib
-QT += opengl xml
+QT += opengl xml svg
 
 # Build flag
 CONFIG(debug, debug|release) {
@@ -60,7 +60,8 @@ HEADERS += StructureNode.h \
     TaskSheet.h \
     Relink.h \
     GraphModifyWidget.h \
-    GraphDissimilarity.h
+    GraphDissimilarity.h \
+    GraphExplorer.h
 
 SOURCES += StructureGraph.cpp \
     StructureCurve.cpp \
@@ -83,9 +84,14 @@ SOURCES += StructureGraph.cpp \
     TaskSheet.cpp \
     Relink.cpp \
     GraphModifyWidget.cpp \
-    GraphDissimilarity.cpp
-	
-FORMS +=  SchedulerWidget.ui GraphModifyWidget.ui
+    GraphDissimilarity.cpp \
+    GraphExplorer.cpp
+
+# Graph visualization
+SOURCES += QGraphViz/svgview.cpp
+HEADERS += QGraphViz/svgview.h
+
+FORMS +=  SchedulerWidget.ui GraphModifyWidget.ui GraphExplorer.ui
 
 mac:QMAKE_CXXFLAGS += -fopenmp
 mac:QMAKE_LFLAGS += -fopenmp

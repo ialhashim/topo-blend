@@ -1331,10 +1331,6 @@ QVector<Structure::Graph*> Scheduler::topoVaryingInBetweens(int N, bool isVisual
 
 		// Geometric dissimilarity
 		{
-			//double t = g->property["t"].toDouble();
-
-			//if(t < 0.1 || t > 0.9) continue;
-
 			QVector<Vector3> cpnts;
 
 			if( !fixedPart.isEmpty() )
@@ -1372,11 +1368,8 @@ QVector<Structure::Graph*> Scheduler::topoVaryingInBetweens(int N, bool isVisual
 
 			MatrixXd thumbnail = SoftwareRenderer::render(cpnts, thumbWidth, thumbWidth, 2, Vector3(0,0,-0.5));
 
-			if( isVisualize )
-			{
-				SoftwareRenderer::matrixToImage(thumbnail).save(QString("skeleton_%1.png").arg(i));
-			}
-
+			//if( isVisualize ) SoftwareRenderer::matrixToImage(thumbnail).save(QString("skeleton_%1.png").arg(i));
+			
 			// Fill to a vector
 			for(int d = 0; d < thumbWidth * thumbWidth; d++) 
 			{
@@ -1416,12 +1409,29 @@ QVector<Structure::Graph*> Scheduler::topoVaryingInBetweens(int N, bool isVisual
 		QVector<int> elements = clusterMap[c];
 		qSort(elements);
 
-		int idx = elements[ 0.5 * (elements.size()-1) ];
+		// Bias with respect to active tasks status
+		QMap<int, double> graphStatus;
+		foreach(int e, elements)
+		{
+			double status = 0;
+			QVector<QString> active = allGraphs[e]->property["activeTasks"].value< QVector<QString> >();
+			if(active.size()) status = allGraphs[e]->getNode(active.front())->property["t"].toDouble();
+			
+			//status = 1 - (std::abs(status - 0.5) * 2.0); // Favor end points: [0, 0.5, 1] => [1, 0, 1]
+			status = qMin(std::abs(0.25 - status), std::abs(0.75 - status)); // Favor 0.25 and 0.75 points
 
+			graphStatus[e] = status;
+		}
+
+		int idx = sortQMapByValue(graphStatus).front().second;
+
+		//int idx = elements[ 0.5 * (elements.size()-1) ]; // Arbitrary middle
 		int time = allGraphs[idx]->property["t"].toDouble() * totalTime;
 		
 		midPoints.insert( time );
 	}
+
+	property["timeTags"].setValue( midPoints );
 
 	samples = interestingInBetweens(N);
 

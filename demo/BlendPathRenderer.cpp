@@ -6,6 +6,8 @@
 #include "Blender.h"
 #include "SynthesisManager.h"
 
+#include "GraphExplorer.h"
+
 BlendPathRenderer::BlendPathRenderer( Blender * blender, int itemHeight, bool isViewer, QWidget *parent ) 
 	: QGLWidget(parent), blender(blender), isViewerMode(isViewer), activeGraph(NULL)
 {
@@ -196,6 +198,13 @@ void BlendPathRenderer::mousePressEvent(QMouseEvent *event)
 	sceneCamera->setProperty("startOrientation", orient);
 
 	setProperty("buttonDownPos", event->posF());
+
+	if(event->buttons() & Qt::RightButton)
+	{
+		GraphExplorer * ge = new GraphExplorer;
+		ge->update( activeGraph );
+		ge->show();
+	}
 
 	QGLWidget::mousePressEvent(event);
 }

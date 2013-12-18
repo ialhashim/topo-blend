@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>354</width>
-    <height>340</height>
+    <width>444</width>
+    <height>344</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,7 @@
 	color: white;
 }
 
-QWidget { background:rgb(90,90,90,128) }
+QWidget { background:rgb(90,90,90,180) }
 
 QPushButton { 
 	border: 3px solid rgb(90,90,90,0);
@@ -116,12 +116,18 @@ QPushButton:pressed{ background:rgb(255,153,0); border-color:#FFB444; top:2px; }
           <property name="text">
            <string>Simplify</string>
           </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
         <item row="6" column="0" colspan="2">
          <widget class="QCheckBox" name="isUpload">
           <property name="text">
            <string>Upload cloud</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
           </property>
          </widget>
         </item>

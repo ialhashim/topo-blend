@@ -103,6 +103,9 @@ void SchedulerWidget::progressStarted()
 void SchedulerWidget::progressDone()
 {
 	ui->progressBar->setVisible(false);
+
+	// Test: ask for topo-varying results
+	s->topoVaryingInBetweens(6);
 }
 
 void SchedulerWidget::changeReconLevel(int value)

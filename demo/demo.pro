@@ -29,7 +29,7 @@ INCLUDEPATH += ../GlSplatRendererLib
 LIBS += -L$$PWD/../ScorerLib/$$CFG/lib -lScorerLib
 INCLUDEPATH += ../ScorerLib
 
-QT += core gui opengl network
+QT += core gui opengl svg network
 
 TARGET = demo
 

@@ -139,15 +139,22 @@ void Relink::fixTask( Task* task )
 
 	// Finished morphs are fixed size
 	bool fixedSize = false;
+
 	if (task->type == Task::MORPH && task->isDone)
 	{
 		if( task->property["isCrossing"].toBool() )
 		{
 			if(task->property["isSingleCrossing"].toBool())
+			{
 				fixedSize = true;
+			}
 		}
 		else
+		{
 			fixedSize = true;
+		}
+
+		n->property["fixedDue"] = "morph done";
 	}
 
 	/// Ignore constraints that will cause large distortions
@@ -162,9 +169,14 @@ void Relink::fixTask( Task* task )
 		}
 
 		if(!keep.size()) 
+		{
 			fixedSize = true;
+			n->property["fixedDue"] = "link moving around";
+		}
 		else if (keep.size() != consts.size())
+		{
 			consts = keep;
+		}
 	}
 
 	// CASE: try to avoid using constraints that are not point based
@@ -212,9 +224,14 @@ void Relink::fixTask( Task* task )
 	}
 
 	// CASE: sheets are more rigid than curves
+	bool isOverrideFix = false;
+	if( true )
 	{
 		if(n->type() == Structure::SHEET && consts.size() > 2)
+		{
 			fixedSize = true;
+			isOverrideFix = true;
+		}
 	}
 
 	// CASE: dead nodes that are still connected are rigid
@@ -311,6 +328,8 @@ void Relink::fixTask( Task* task )
 			}
 		}
 	}
+
+	if(isOverrideFix) n->property["fixedSize"] = false;
 }
 
 void Relink::moveByConstraints( Structure::Node * n, QVector<LinkConstraint> consts )
