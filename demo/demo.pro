@@ -29,7 +29,7 @@ INCLUDEPATH += ../GlSplatRendererLib
 LIBS += -L$$PWD/../ScorerLib/$$CFG/lib -lScorerLib
 INCLUDEPATH += ../ScorerLib
 
-QT += core gui opengl
+QT += core gui opengl network
 
 TARGET = demo
 
@@ -73,7 +73,8 @@ HEADERS  += mainwindow.h \
             BlendPathWidget.h \
             PathEvaluator.h \
             json.h \
-            ExporterWidget.h
+            ExporterWidget.h \
+            HttpUploader.h
 
 FORMS    += mainwindow.ui \
             Controls.ui \

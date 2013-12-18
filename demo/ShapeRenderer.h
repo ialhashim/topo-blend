@@ -7,8 +7,8 @@ class ShapeRenderer : public QGLWidget
 {
     Q_OBJECT
 public:
-    explicit ShapeRenderer(QString filename, QColor color, int resolution);
-    static QPixmap render(QString filename);
+	explicit ShapeRenderer(QString filename, QColor color, bool isFlatShading = false, int resolution = 256);
+	static QPixmap render(QString filename, bool isFlatShading = false);
 
 protected:
     void initializeGL();
@@ -19,4 +19,6 @@ protected:
     std::vector< GLVertex > vertices;
     std::vector< GLuint > indices;
 	QVector3D bmin,bmax;
+
+	bool isFlatShading;
 };

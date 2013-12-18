@@ -27,6 +27,8 @@ public slots:
 	void generateLog(QMap<QString, QVariant> log);
 
 	void keyUp(QKeyEvent*);
-signals:
 
+	void logMessage(QString message);
+
+signals:
 };

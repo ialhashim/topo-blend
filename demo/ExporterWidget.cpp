@@ -7,6 +7,8 @@
 #include "StructureGraph.h"
 #include "ShapeRenderer.h"
 
+#include "HttpUploader.h"
+
 #include "ui_ExporterWidget.h"
 
 Q_DECLARE_METATYPE( ScheduleType )
@@ -111,14 +113,21 @@ void ExporterWidget::exportSet()
 	if(!s_manager) return;
 
 	// Post reconstruction simplification or compression
-	QString simplifyCmd;
+	QString simplifyCmd, uploadCmd;
 	if( ui->isSimplify->isChecked() )
 	{
-		QString command;
 		QSettings settingsFile(QSettings::IniFormat, QSettings::UserScope, "GrUVi", "demo");
 		simplifyCmd = settingsFile.value("simplifyCmd", "ctmconv.exe %1.obj %2.ctm --no-normals --no-texcoords --no-colors --method MG2").toString();
 		settingsFile.sync();
 		simplifyCmd = QInputDialog::getText(this, "Simplification command", "Execute command", QLineEdit::Normal, simplifyCmd);
+	}
+
+	if( ui->isUpload->isChecked() )
+	{
+		QSettings settingsFile(QSettings::IniFormat, QSettings::UserScope, "GrUVi", "demo");
+		uploadCmd = settingsFile.value("uploadCmd", "zip %1.zip -r %2").toString();
+		settingsFile.sync();
+		uploadCmd = QInputDialog::getText(this, "Upload command", "Execute command", QLineEdit::Normal, uploadCmd);
 	}
 
 	qApp->setOverrideCursor(Qt::WaitCursor);
@@ -183,28 +192,32 @@ void ExporterWidget::exportSet()
 		// Generate thumbnail
 		QString objFile = QDir::currentPath() + "/" + filename + ".obj";
 		QString thumbnailFile = QDir::currentPath() + "/" + filename + ".png";
-		ShapeRenderer::render( objFile ).save( thumbnailFile );
-
-		// Simplify if requested
-		if( ui->isSimplify->isChecked() && !simplifyCmd.isEmpty() )
-		{
-			QString curPath = QDir::currentPath();
-			QString curCmd = "..\\..\\..\\" + simplifyCmd.arg( filename ).arg( filename );
-
-			qDebug() << curCmd;
-
-			system( qPrintable(curCmd) );
-			system( "del *.obj" );
-		}
+		ShapeRenderer::render( objFile, true ).save( thumbnailFile );
 
 		// Output schedule for this in-between
 		ScheduleType schedule = g->property["schedule"].value<ScheduleType>();
 		Scheduler::saveSchedule(QDir::currentPath() + "/" + filename + ".schedule.txt", schedule);
 
+		// Simplify if requested
+		if( ui->isSimplify->isChecked() && !simplifyCmd.isEmpty() )
+		{
+			QString curCmd = "..\\..\\..\\" + simplifyCmd.arg( filename ).arg( filename );
+
+			qDebug() << curCmd;
+
+			system( qPrintable(curCmd) );
+			system( "del *.obj" ); // delete large OBJ file
+
+			logMessage( QString("Shape (%1) simplified.").arg(i) );
+		}
+
+		// Leave folder
 		QDir::setCurrent( d.absolutePath() );
 
 		rowItem->setBackgroundColor(QColor(0,100,0));
 		ui->resultsTable->setCurrentCell(i,0);
+
+		logMessage( QString("Shape (%1) done.").arg(i) );
 
 		qApp->processEvents();
 	}
@@ -262,11 +275,27 @@ void ExporterWidget::exportSet()
 	log["reconstruction-time"] = (int)reconTimer.elapsed();
 
 	log["time"] = allTimer.elapsed();
+	log["isSimplify"] = ui->isSimplify->isChecked();
+	log["isUpload"] = ui->isUpload->isChecked();
 
 	generateLog( log );
 
+	if( ui->isUpload->isChecked() && !uploadCmd.isEmpty() )
+	{
+		QString curCmd = uploadCmd.arg( sessionName ).arg( path );
+		qDebug() << curCmd;
+		system( qPrintable(curCmd) );
+
+		QString zipFilename = QString("%1.zip").arg(sessionName);
+		logMessage( QString("Upload session (%1) = %2").arg(sessionName).arg( HttpUploader::upload( "http://gruvi.cs.sfu.ca/p/topo/upload.php", zipFilename )) );
+	}
+
 	qApp->restoreOverrideCursor();
 	QCursor::setPos(QCursor::pos());
+
+	logMessage( "All done." );
+
+	QMessageBox::information(0, "Export", "All jobs done!");
 }
 
 void ExporterWidget::generateLog(QMap<QString, QVariant> log)
@@ -371,4 +400,9 @@ void ExporterWidget::generateLog(QMap<QString, QVariant> log)
 		}
 		file.close();
 	}
+}
+
+void ExporterWidget::logMessage( QString message )
+{
+	ui->log->appendPlainText( message );
 }
