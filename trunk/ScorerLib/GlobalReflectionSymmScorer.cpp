@@ -23,8 +23,8 @@ void GlobalReflectionSymmScorer::init()
 	}
 	vectorPts2MatrixPts(cptsV, cpts_);
 
-	//center_= this->graph_->bbox().center();// not extract for symm
-	center_ = Eigen::Vector3d( cpts_.col(0).mean(), cpts_.col(1).mean(), cpts_.col(2).mean());
+	center_= this->graph_->bbox().center();// not extract for symm
+	//center_ = Eigen::Vector3d( cpts_.col(0).mean(), cpts_.col(1).mean(), cpts_.col(2).mean()); // bad when some parts hidden in other parts
 
 }
 
@@ -68,7 +68,21 @@ Eigen::Vector3d GlobalReflectionSymmScorer::findReflectPlane(const Eigen::Vector
 }
 double GlobalReflectionSymmScorer::evaluate(const Eigen::Vector3d &center, const Eigen::Vector3d &normal, double maxGlobalSymmScore)
 {
-	double maxScore(0.0), deviation(0.0); int maxNo(0);
+	if(logLevel_>0)
+	{
+		if(bUsePart_)
+			logStream_ << "Use part for global symm. \n";
+		else
+			logStream_ << "not Use part for global symm. \n";
+
+		if (center == this->center_)
+			logStream_ << "Use center of blended shape. \n";
+		else
+			logStream_ << "Use center of source shape. \n";
+	}
+
+	////////////////////
+	double maxDeviation(0.0), maxScore(0.0), deviation(0.0); int maxNo(0), maxCorresNo(0);
 	if (bUsePart_)
 	{
 		for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
@@ -79,10 +93,11 @@ double GlobalReflectionSymmScorer::evaluate(const Eigen::Vector3d &center, const
 			int nodeNo;
 			deviation = minMeanDistance(ptsout, nodeNo);
         
-			if ( deviation > maxScore)
+			if ( deviation > maxDeviation)
 			{
-				maxScore = deviation;
+				maxDeviation = deviation;
 				maxNo = i;
+				maxCorresNo = nodeNo;
 			}
 
 			if(logLevel_>1)
@@ -96,12 +111,11 @@ double GlobalReflectionSymmScorer::evaluate(const Eigen::Vector3d &center, const
 		Eigen::MatrixXd ptsout;
 		reflect_points3d(cpts_, center, normal, ptsout);
 		double minDist, meanDist;
-		distanceBetween(cpts_, ptsout, minDist, meanDist, maxScore);
-		maxNo = 0;
+		distanceBetween(cpts_, ptsout, minDist, maxDeviation, meanDist);
 	}
 
-	maxScore = maxScore/this->normalizeCoef_;
-    maxScore = 1/(1+maxScore);
+	maxDeviation = maxDeviation/this->normalizeCoef_;
+    maxScore = 1/(1+maxDeviation);
 	maxScore = maxScore/maxGlobalSymmScore;
 
 	if(logLevel_>0)
@@ -110,7 +124,7 @@ double GlobalReflectionSymmScorer::evaluate(const Eigen::Vector3d &center, const
 		logStream_ << "center of reflection plane: " << center.x() << ", " << center.y() <<", " << center.z() << "\n";
 		logStream_ << "normal of reflection plane: " << normal.x() << ", " << normal.y() <<", " << normal.z() << "\n";
 		logStream_ << "max global score for normalization: " << maxGlobalSymmScore << "\n";
-		logStream_ << "part: " << graph_->nodes[maxNo]->id << " leads to max score: " << maxScore << "\n";
+		logStream_ << "part: " << graph_->nodes[maxNo]->id << " corresponds to part: " << graph_->nodes[maxCorresNo]->id << " with max deviation: " << maxDeviation << " leads to score: " << maxScore << "\n";
 	}
 
     return maxScore;

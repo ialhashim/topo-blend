@@ -30,7 +30,7 @@ ScorerManager::ScorerManager( GraphCorresponder * graph_corresponder,
 	Scheduler * scheduler, QVector<Structure::Graph*> input_graphs, int logLevel )
 {
 	this->logLevel_ = logLevel;
-	this->isUseSourceCenter_ = true;
+	this->isUseSourceCenter_ = false;
 	this->isUseLink_ = false;
 	this->bUsePart_ = true;
 	init( graph_corresponder, scheduler, input_graphs);
@@ -298,6 +298,15 @@ void ScorerManager::setIsUseSourceCenter(bool bUse)
 	else
 		emit( message("not use source center") );
 }
+void ScorerManager::setIsUsePart(bool bUse)
+{
+	this->bUsePart_ = bUse;
+	if (bUsePart_)
+		emit( message("use part for global symm") );
+	else
+		emit( message("not use part for global symm") );
+}
+
 void ScorerManager::setIsUseLink(bool bUse)
 {
 	isUseLink_ = bUse;
