@@ -8,7 +8,7 @@ ScorerWidget::ScorerWidget(QWidget *parent)
 	ui->setupUi(this);
 
 	QVector<Structure::Graph*> empty;
-	s_manager = new ScorerManager( NULL, NULL, empty, 1);
+	s_manager = new ScorerManager( NULL, NULL, empty, 2);
 
 	// Compute
 	s_manager->connect(ui->parseConstraintPair, SIGNAL(clicked()), SLOT(parseConstraintPair()));
@@ -27,6 +27,7 @@ ScorerWidget::ScorerWidget(QWidget *parent)
 
 	// Options
     s_manager->connect(ui->bUseSourceCenter, SIGNAL(clicked(bool)), SLOT(setIsUseSourceCenter(bool)));
+	s_manager->connect(ui->bUsePart, SIGNAL(clicked(bool)), SLOT(setIsUsePart(bool)));	
 	s_manager->connect(ui->bUseLink, SIGNAL(clicked(bool)), SLOT(setIsUseLink(bool)));	
 }
 

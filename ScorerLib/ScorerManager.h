@@ -79,6 +79,7 @@ public slots:
 	PathScore pathScore( Scheduler * scheduler );
 
 	void setIsUseSourceCenter(bool);
+	void setIsUsePart(bool);
 	void setIsUseLink(bool);
 private:
     bool isGlobalReflectionSymmParsed()

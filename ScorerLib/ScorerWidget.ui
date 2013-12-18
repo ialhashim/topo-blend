@@ -116,6 +116,16 @@
             <string>Use source's center</string>
            </property>
            <property name="checked">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="bUsePart">
+           <property name="text">
+            <string>Use part for global symm</string>
+           </property>
+           <property name="checked">
             <bool>true</bool>
            </property>
           </widget>
