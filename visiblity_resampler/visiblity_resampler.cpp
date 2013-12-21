@@ -30,10 +30,14 @@ void traverseOctree( Octree & octree, CubeSoup & cs )
 void visiblity_resampler::initParameters(RichParameterSet *pars)
 {
 	pars->addParam(new RichBool("uniformSampling",true,"Uniform sampling"));
-    pars->addParam(new RichBool("saveFileXYZ",true,"Save points to XYZ file"));
+    pars->addParam(new RichBool("saveFileXYZ",false,"Save points to XYZ file"));
 	pars->addParam(new RichBool("addModel",false,"Add as layer"));
 	pars->addParam(new RichBool("viz",true,"Visualize"));
 	pars->addParam(new RichInt("randSamples",1e4,"Number of random samples"));
+	pars->addParam(new RichInt("sphereSamples",5,"Samples on unit sphere"));
+    pars->addParam(new RichBool("triSoup", false, "Load as triangle soup"));
+    pars->addParam(new RichBool("exportAsSoup", false, "Export visible soup"));
+	pars->addParam(new RichBool("faceCenters", false, "Sample only face centers"));
 }
 
 std::vector<Vector3d> randomSampleSphere( int numSamples, bool isRegular )
@@ -106,31 +110,95 @@ std::vector<Vector3d> uniformSampleSphere( int numSamples = 5 )
 
 void visiblity_resampler::applyFilter(RichParameterSet *pars)
 {		
-	SurfaceMeshHelper h(mesh());
-	Vector3VertexProperty points = mesh()->vertex_property<Vector3>(VPOINT);
+    SurfaceMeshModel * meshUsed = NULL;
+
+    if( !pars->getBool("triSoup") )
+    {
+        meshUsed = mesh();
+    }
+    else
+    {
+        // Tri soup only supported for '.obj' files
+        QFile file(mesh()->path);
+        if (mesh()->path.endsWith("obj") && file.open(QIODevice::ReadOnly | QIODevice::Text))
+        {
+            meshUsed = new SurfaceMeshModel("tri_soup.obj", "tri_soup");
+            QVector<Vector3> realPoints;
+
+            QTextStream inF(&file);
+            while( !inF.atEnd() ){
+                QString line = inF.readLine();
+                if(!line.size()) continue;
+
+                if(line.at(0).toAscii() == 'v' && (line.at(1).toAscii() == ' ' || line.at(1).toAscii() == '\t'))
+                {
+                    QStringList v = line.simplified().split(" ", QString::SkipEmptyParts);
+                    realPoints.push_back( Vector3( v[1].toDouble(), v[2].toDouble(), v[3].toDouble() ) );
+                }
+
+                if(line.at(0).toAscii() == 'f')
+                {
+                    QStringList f = line.simplified().split(" ", QString::SkipEmptyParts);
+                    std::vector<SurfaceMesh::Vertex> verts;
+                    verts.push_back(meshUsed->add_vertex(realPoints[f[1].split("/", QString::SkipEmptyParts).front().toInt() - 1]));
+                    verts.push_back(meshUsed->add_vertex(realPoints[f[2].split("/", QString::SkipEmptyParts).front().toInt() - 1]));
+                    verts.push_back(meshUsed->add_vertex(realPoints[f[3].split("/", QString::SkipEmptyParts).front().toInt() - 1]));
+                    meshUsed->add_face(verts);
+                }
+            }
+
+			meshUsed->updateBoundingBox();
+			meshUsed->update_face_normals();
+			meshUsed->update_vertex_normals();
+			document()->addModel( meshUsed );
+        }
+        else
+        {
+            meshUsed = mesh();
+        }
+		file.close();
+    }
+
+    SurfaceMeshHelper h(meshUsed);
+    Vector3VertexProperty points = meshUsed->vertex_property<Vector3>(VPOINT);
 
 	double surfaceOffset = 1e-6;
 
-    Octree octree(mesh());
+    Octree octree(meshUsed);
 
-	std::vector<Vector3d> sphere = uniformSampleSphere( 5 );
+	std::vector<Vector3d> sphere = uniformSampleSphere( pars->getInt("sphereSamples") );
 	int rayCount = sphere.size();
 
 	std::vector<SamplePoint> all_samples;
 
-	if( pars->getBool("uniformSampling") )
+	if( !pars->getBool("faceCenters") )
 	{
-		// Similar sampling
-		QVector<Vector3d> points, normals;
-		points = SimilarSampler::All(mesh(),pars->getInt("randSamples"),normals);
-		for(int i = 0; i < (int)points.size(); i++)
-			all_samples.push_back(SamplePoint(points[i],normals[i]));
+		if( pars->getBool("uniformSampling") )
+		{
+			// Similar sampling
+			QVector<Vector3d> points, normals;
+			points = SimilarSampler::All(meshUsed,pars->getInt("randSamples"),normals);
+			for(int i = 0; i < (int)points.size(); i++)
+				all_samples.push_back(SamplePoint(points[i],normals[i]));
+		}
+		else
+		{
+			// Random sampling
+			Sampler sampler(meshUsed);
+			all_samples = sampler.getSamples( pars->getInt("randSamples") );
+		}
 	}
 	else
 	{
-		// Random sampling
-		Sampler sampler(mesh());
-		all_samples = sampler.getSamples( pars->getInt("randSamples") );
+		Vector3FaceProperty fcenters = h.vector3FaceProperty("f:center", Vector3(0,0,0));
+		Vector3FaceProperty fnormals = meshUsed->face_normals(true);
+		foreach( Face f, meshUsed->faces() )
+		{
+			foreach(Vertex v, meshUsed->vertices(f)) fcenters[f] += points[v];
+			fcenters[f] /= meshUsed->valence(f);
+
+			all_samples.push_back(SamplePoint( fcenters[f], fnormals[f], 1, f.idx() ));
+		}
 	}
 
 	int N = (int) all_samples.size();
@@ -148,7 +216,7 @@ void visiblity_resampler::applyFilter(RichParameterSet *pars)
 			Eigen::Vector3d rayStart = sp.pos + (d * surfaceOffset);
 			Ray ray( rayStart, d );
 			
-			if(octree.intersectRay(ray,0,true).empty())
+            if(octree.intersectRay(ray,0,true).empty())
 			{
 				isUse[i] = true;
 				break;
@@ -161,7 +229,7 @@ void visiblity_resampler::applyFilter(RichParameterSet *pars)
 	PointSoup * ps = NULL;
 	SurfaceMesh::Model * m = NULL;
 
-	QString newMeshName = QString("%1_sampled").arg(mesh()->name);
+    QString newMeshName = QString("%1_sampled").arg(meshUsed->name);
 
 	if(pars->getBool("addModel")) m = new SurfaceMesh::Model( newMeshName+".obj", newMeshName );
 	if(pars->getBool("viz")) ps = new PointSoup;
@@ -189,7 +257,9 @@ void visiblity_resampler::applyFilter(RichParameterSet *pars)
 	std::vector<size_t> corner_xrefs;
 	weld(used_samples_points, corner_xrefs, std::hash_Vector3d(), std::equal_to<Vector3d>());
 
+	QSet<int> visibleFaces;
 
+	// Use samples
 	for(int j = 0; j < (int)used_samples.size(); j++)
 	{
 		int i = corner_xrefs[j];
@@ -206,9 +276,36 @@ void visiblity_resampler::applyFilter(RichParameterSet *pars)
 			(*out) << QString("%1 %2 %3 %4 %5 %6\n").arg(p[0]).arg(p[1]).arg(p[2]).arg(n[0]).arg(n[1]).arg(n[2]);
 		}
 
+		if(pars->getBool("exportAsSoup"))
+		{
+			visibleFaces.insert( sp.findex );
+		}
 	}
 
 	file.close();
+
+	if(pars->getBool("exportAsSoup"))
+	{
+		SurfaceMeshModel * visibleSoup = new SurfaceMeshModel("visible_soup.obj", "visible_soup");
+
+		foreach(int fid, visibleFaces)
+		{
+			SurfaceMesh::Face f(fid);
+			if(!meshUsed->is_valid(f)) continue;
+
+			std::vector<Vector3> origPoints;
+			foreach(Vertex v, meshUsed->vertices(f)) 
+				origPoints.push_back( points[v] );
+
+			std::vector<SurfaceMesh::Vertex> verts;
+			verts.push_back(visibleSoup->add_vertex( origPoints[0] ));
+			verts.push_back(visibleSoup->add_vertex( origPoints[1] ));
+			verts.push_back(visibleSoup->add_vertex( origPoints[2] ));
+			visibleSoup->add_face(verts);
+		}
+
+		document()->addModel( visibleSoup );
+	}
 
 	if(pars->getBool("addModel"))
 	{
