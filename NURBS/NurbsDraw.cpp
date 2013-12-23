@@ -5,6 +5,8 @@ using namespace NURBS;
 
 void CurveDraw::draw( NURBSCurved * nc, QColor curve_color, bool drawControl, double scaling)
 {
+	if(!nc || nc->GetNumCtrlPoints() == 0) return;
+
 	glDisable(GL_LIGHTING);
 	glEnable(GL_BLEND);
 
@@ -63,6 +65,8 @@ void CurveDraw::draw( NURBSCurved * nc, QColor curve_color, bool drawControl, do
 
 void SurfaceDraw::draw( NURBSRectangled * nc, QColor sheet_color, bool drawControl, double scaling, QColor wireframe_color)
 {
+	if(!nc || nc->GetNumCtrlPoints(0) == 0 || nc->GetNumCtrlPoints(1) == 0) return;
+
     glEnable( GL_POINT_SMOOTH );
 
     int width = nc->GetNumCtrlPoints(0);

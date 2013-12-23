@@ -25,10 +25,13 @@ void GraphItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
     Q_UNUSED(widget)
 
 	painter->setPen(QPen(Qt::red));
-    
+
 	// DEBUG:
-	//painter->drawRect(this->boundingRect());
-	//painter->drawText(m_geometry.x() + 10, m_geometry.y() + 20, this->name);
+	if( property("isShowDebug").toBool() )
+	{
+		painter->drawRect(this->boundingRect());
+		painter->drawText(m_geometry.x() + 10, m_geometry.y() + 20, this->name);
+	}
 }
 
 QRectF GraphItem::setCamera()
