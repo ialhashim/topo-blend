@@ -482,7 +482,8 @@ QVector<Structure::Link*> Task::filteredFromTargetEdges()
 	// Surrounded by un-grown nodes
 	if( edges.isEmpty() )
 	{
-		edges.push_back( active->getEdges( nodeID ).front() );
+		QVector<Structure::Link*> edgs = active->getEdges( nodeID );
+		if(!edgs.isEmpty()) edges.push_back( edgs.front() );
 	}
 
 	return edges;

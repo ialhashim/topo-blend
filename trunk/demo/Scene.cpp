@@ -306,6 +306,15 @@ void Scene::mouseDoubleClickEvent( QGraphicsSceneMouseEvent * mouseEvent )
 
 void Scene::keyReleaseEvent( QKeyEvent * keyEvent )
 {
+	// DEBUG:
+	if(keyEvent->key() == Qt::Key_D){
+		if(inputGraphs[0] && inputGraphs[1]){
+			inputGraphs[0]->setProperty("isShowDebug", true);
+			inputGraphs[1]->setProperty("isShowDebug", true);
+		}
+		return;
+	}
+
 	emit( keyUpEvent(keyEvent) );
 	QGraphicsScene::keyReleaseEvent(keyEvent);
 }

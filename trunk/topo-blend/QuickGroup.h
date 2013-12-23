@@ -20,11 +20,13 @@ private:
     Structure::Graph *g;
 
 public slots:
+	void updateNodesList();
     void doGrouping();
 	void doUnGrouping();
     void visualizeSelections();
 	void updateCurrentGroups();
 	int currentSelectedIndex();
+	void groupSelected();
 
 signals:
     void updateView();

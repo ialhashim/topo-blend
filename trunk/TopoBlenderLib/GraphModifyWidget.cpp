@@ -21,6 +21,9 @@ GraphModifyWidget::GraphModifyWidget(Structure::Graph * graph, QWidget *parent) 
 	this->connect(ui->renameButton, SIGNAL(clicked()), SLOT(renameNodes()) );
 
 	updateLists();
+
+	setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+	show();
 }
 
 GraphModifyWidget::~GraphModifyWidget()

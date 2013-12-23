@@ -7,18 +7,33 @@ QuickGroup::QuickGroup(Structure::Graph * graph, QWidget *parent) : QDialog(pare
     this->g = graph;
 
     // Populate lists
-    foreach(Structure::Node * n, g->nodes) ui->list->addItem(new QListWidgetItem(n->id));
+	updateNodesList();
 	updateCurrentGroups();
 
     // Connections
     this->connect(ui->list, SIGNAL(itemSelectionChanged()), SLOT(visualizeSelections()));
 	this->connect(ui->groupButton, SIGNAL(clicked()), SLOT(doGrouping()));
 	this->connect(ui->ungroupButton, SIGNAL(clicked()), SLOT(doUnGrouping()));
+	this->connect(ui->curList, SIGNAL(itemSelectionChanged()), SLOT(groupSelected()));
+	ui->list->connect(ui->clearButton, SIGNAL(clicked()), SLOT(clearSelection()));
 }
 
 QuickGroup::~QuickGroup()
 {
     delete ui;
+}
+
+void QuickGroup::updateNodesList()
+{
+	ui->list->clear();
+
+	foreach(Structure::Node * n, g->nodes) 
+	{
+		QListWidgetItem * item = new QListWidgetItem(n->id);
+		ui->list->addItem(item);
+
+		if(g->groupsOf(n->id).front().isEmpty()) item->setBackgroundColor(QColor(255,230,230));
+	}
 }
 
 void QuickGroup::doGrouping()
@@ -33,6 +48,7 @@ void QuickGroup::doGrouping()
 	g->addGroup(nodes);
 
 	updateCurrentGroups();
+	updateNodesList();
 }
 
 void QuickGroup::doUnGrouping()
@@ -85,7 +101,26 @@ void QuickGroup::updateCurrentGroups()
 		QStringList nlist;
 		foreach(QString nodeId, group) nlist << nodeId;
 		QString groupID = QString("G%1").arg(c++);
-		ui->curList->addItem(new QListWidgetItem(groupID + ": " + nlist.join(", ")));
+
+		QListWidgetItem * newItem = new QListWidgetItem(groupID + ": " + nlist.join(", "));
+		ui->curList->addItem( newItem );
+	}
+
+	emit( updateView() );
+}
+
+void QuickGroup::groupSelected()
+{
+	if(currentSelectedIndex() < 0) return;
+
+	ui->list->clearSelection();
+	
+	foreach(QString nid, g->groups[currentSelectedIndex()])
+	{
+		foreach(QListWidgetItem* listItem, ui->list->findItems("*", Qt::MatchWildcard)){
+			if(listItem->text() == nid)
+				ui->list->setItemSelected(listItem, true);
+		}
 	}
 
 	emit( updateView() );

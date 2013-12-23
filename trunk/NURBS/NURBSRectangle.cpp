@@ -1009,6 +1009,8 @@ Vector4d NURBSRectangle<Real>::fastTimeAt( const Vector3 & pos )
 		}
 	}
 
+	if(!valU.size() || !valV.size()) return Vector4d(0,0,0,0);
+
 	Vector4d bestUV( valU[minIdxU], valV[minIdxV], 0, 0 );
 	return bestUV;
 }
