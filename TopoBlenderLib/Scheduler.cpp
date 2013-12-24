@@ -1308,6 +1308,8 @@ QVector<Structure::Graph*> Scheduler::topoVaryingInBetweens(int N, bool isVisual
 	QSharedPointer<Structure::Graph> firstInstance = QSharedPointer<Structure::Graph>( Structure::Graph::actualGraph( allGraphs.front() ) );
 	QSharedPointer<Structure::Graph> lastInstance = QSharedPointer<Structure::Graph>( Structure::Graph::actualGraph( allGraphs.back() ) );
 
+	if(!firstInstance->nodes.size() || !lastInstance->nodes.size()) return interestingInBetweens(N);
+
 	/// Topological
 	GraphDissimilarity gd( firstInstance.data() );
 
