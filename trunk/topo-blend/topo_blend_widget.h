@@ -60,7 +60,7 @@ public slots:
 	void loadJob();
 	void loadJobFile(QString job_filename);
     QString loadJobFileName();
-	static void saveJob(GraphCorresponder * gcoor, Scheduler * scheduler, TopoBlender * blender, SynthesisManager * s_manager);
+	void saveJob(GraphCorresponder * gcoor, Scheduler * scheduler, TopoBlender * blender, SynthesisManager * s_manager);
 
 private:
 	Ui::topo_blend_widget *ui;

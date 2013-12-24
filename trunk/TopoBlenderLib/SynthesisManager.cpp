@@ -230,7 +230,11 @@ void SynthesisManager::doRenderAll()
 
 void SynthesisManager::renderCurrent()
 {
-	renderCurrent(currentGraph["graph"].value<Structure::Graph*>(), "currentGraph");
+	Structure::Graph * c = currentGraph["graph"].value<Structure::Graph*>();
+
+	if(!c) return;
+
+	renderCurrent(c, "currentGraph");
 }
 
 void SynthesisManager::renderCurrent(Structure::Graph * currentGraph, QString path)
@@ -253,7 +257,10 @@ void SynthesisManager::renderCurrent(Structure::Graph * currentGraph, QString pa
 	}
 
     // Reconstruct
-    QString filename = "currentGraph";
+	int i = property["curGraphCounter"].toInt();
+	property["curGraphCounter"] = i + 1;
+
+	QString filename = "currentGraph_" + QString("%1").arg(i, 3, 10, QChar('0'));
     Structure::Graph lastGraph = *currentGraph;
     renderGraph(lastGraph, path + filename, false, reconLevel, true);
 
@@ -866,6 +873,9 @@ void SynthesisManager::drawSynthesis( Structure::Graph * activeGraph )
 				QuickMeshDraw::drawMeshSolid( nodeMesh.data(), color, translation );
 			}
 		}
+
+		if(!currentGraph["graph"].value<Structure::Graph*>() && !vertices.size())
+			currentGraph["graph"].setValue( activeGraph );
 	}
 
 	if(!vertices.size()) 
