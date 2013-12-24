@@ -203,7 +203,7 @@ void topo_blend_widget::saveJob(GraphCorresponder * gcoor, Scheduler * scheduler
 	QString sGraphName = gcoor->sgName();
 	QString tGraphName = gcoor->tgName();
 	QString graph_names = ( sGraphName + "_" + tGraphName ) + ".job";
-	QString job_filename = QFileDialog::getSaveFileName(0, tr("Save Job"), graph_names, tr("Job Files (*.job)"));
+	QString job_filename = QFileDialog::getSaveFileName(0, tr("Save Job"), tb->mainWindow()->settings()->getString("lastUsedDirectory") + "/" + graph_names, tr("Job Files (*.job)"));
 
 	QFile job_file( job_filename );
 	if (!job_file.open(QIODevice::WriteOnly | QIODevice::Text)) return;

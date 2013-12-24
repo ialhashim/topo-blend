@@ -46,7 +46,8 @@ void Scene::drawBackground(QPainter *painter, const QRectF &rect)
 	int height = rect.height();
 
 	// Background
-	bool isDrawFancyBackground = true;
+	bool isDrawFancyBackground = !this->property("isUseBackColor").toBool();
+
 	if( isDrawFancyBackground )
 	{
 		painter->beginNativePainting();
@@ -77,6 +78,10 @@ void Scene::drawBackground(QPainter *painter, const QRectF &rect)
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		painter->endNativePainting();
+	}
+	else
+	{
+		painter->fillRect(sceneRect(), property("backColor").value<QColor>());
 	}
 
 	// Typical OpenGL drawing
@@ -313,6 +318,16 @@ void Scene::keyReleaseEvent( QKeyEvent * keyEvent )
 			inputGraphs[1]->setProperty("isShowDebug", true);
 		}
 		return;
+	}
+
+	// Custom background color
+	if(keyEvent->key() == Qt::Key_B){
+		bool isUseBackColor = !property("isUseBackColor").toBool();
+		this->setProperty("isUseBackColor", isUseBackColor);
+		if( isUseBackColor ){
+			QColor backcolor = QColorDialog::getColor( property("backColor").value<QColor>() );
+			this->setProperty("backColor", backcolor);
+		}
 	}
 
 	emit( keyUpEvent(keyEvent) );
