@@ -739,6 +739,8 @@ void Blender::saveJob()
 		
 		int pathID = renderItem->property["pathID"].toInt();
 
+		if(pathID < 0 || pathID > blendPaths.size() - 1) continue; 
+
 		Structure::Graph * g = renderItem->graph();
 		QString sname = g->property["sourceName"].toString();
 		QString tname = g->property["targetName"].toString();

@@ -482,6 +482,9 @@ void TaskCurve::foldCurve( double t )
 	foreach(Link* l, edges) if(l->hasNode(n->id)) keep.push_back(l);
 	edges = keep;
 
+	// Something went wrong..
+	if(edges.isEmpty())	edges = active->getEdges(n->id);
+
     Link * l = edges.front();
 
 	Vector3 posOnMe = l->position(n->id);

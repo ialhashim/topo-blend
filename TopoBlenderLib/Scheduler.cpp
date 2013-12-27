@@ -309,7 +309,7 @@ void Scheduler::order()
 
 	// Add small spaces between tasks
 	{
-		int timeSpacing = totalExecutionTime() * timeStep + 1;
+		int timeSpacing = (totalExecutionTime() * timeStep * 3) + 1;
 
 		QVector<Task*> allTasks = tasksSortedByStart();
 
