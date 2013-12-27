@@ -88,7 +88,7 @@ void TaskSheet::prepareSheetTwoEdges( Structure::Link * linkA, Structure::Link *
         prepareSheetOneEdge( pickedLink );
 
 		QVector<Link*> edges; edges.push_back(pickedLink);
-		property["edges"].setValue( edges );
+		property["edges"].setValue( active->getEdgeIDs(edges) );
         return;
     }
 
@@ -137,7 +137,7 @@ void TaskSheet::prepareGrowShrinkSheet()
     Structure::Node * n = node();
     QVector<Structure::Link*> edges = filterEdges(n, active->getEdges(n->id));
 
-	property["edges"].setValue( edges );
+	property["edges"].setValue( active->getEdgeIDs(edges) );
 
     if (edges.size() == 1)
     {
@@ -153,7 +153,7 @@ void TaskSheet::prepareGrowShrinkSheet()
 void TaskSheet::executeGrowShrinkSheet(double t)
 {
 	Structure::Sheet* structure_sheet = ((Structure::Sheet*)node());
-	QVector<Link*> edges = property["edges"].value< QVector<Link*> >();
+	QVector<Link*> edges = active->getEdges( property["edges"].value< QVector<int> >() );
 
 	/// Single edge case
 	if ( property.contains("deltas") )
@@ -350,13 +350,14 @@ void TaskSheet::prepareCrossingSheet()
 		link->setProperty("path", path);
 	}
 
-	property["edges"].setValue( edges );
+	property["edges"].setValue( active->getEdgeIDs(edges) );
 }
 
 void TaskSheet::executeCrossingSheet( double t )
 {
 	Node *n = node(), *tn = targetNode();
-	QVector<Link*> edges = property["edges"].value< QVector<Link*> >();
+
+	QVector<Link*> edges = active->getEdges( property["edges"].value< QVector<int> >() );
 
 	if (property.contains("path"))
 	{

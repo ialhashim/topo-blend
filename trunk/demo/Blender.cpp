@@ -270,9 +270,9 @@ void Blender::preparePaths()
 	// UI and logging
 	{	
 		if( isFiltering ) 
-			progress->setExtra("Filtering / ");
+			progress->setExtra("Filtering  ");
 		else
-			progress->setExtra("Preparing paths / ");
+			progress->setExtra("Preparing paths  ");
 
 		progress->show();
 
@@ -341,7 +341,7 @@ void Blender::preparePaths()
 	{
 		qApp->restoreOverrideCursor();
 		progress->startProgress();
-		progress->setExtra("Generating samples / ");
+		progress->setExtra("Generating samples  ");
 		emit( message(QString("Paths time [%1 ms]").arg(pathsTimer.elapsed())) );
 	}
 

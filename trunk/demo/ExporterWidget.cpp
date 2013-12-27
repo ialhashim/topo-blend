@@ -27,8 +27,7 @@ QString htmlTable( QVector<QStringList> rows, QString stylesheet ){
 	return html(table, "table", stylesheet);
 }
 
-ExporterWidget::ExporterWidget(Session *session, QWidget *parent) :
-    QWidget(parent), session(session), ui(new Ui::ExporterWidget)
+ExporterWidget::ExporterWidget(Session *session, QWidget *parent) : QWidget(parent), session(session), ui(new Ui::ExporterWidget)
 {
     ui->setupUi(this);
 	this->setVisible(false);
@@ -43,6 +42,8 @@ ExporterWidget::ExporterWidget(Session *session, QWidget *parent) :
 	this->connect(ui->exportButton, SIGNAL(clicked()), SLOT(exportSet()));
 
 	this->connect(session->s, SIGNAL(keyUpEvent(QKeyEvent*)), SLOT(keyUp(QKeyEvent*)));
+
+	setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
 }
 
 ExporterWidget::~ExporterWidget()

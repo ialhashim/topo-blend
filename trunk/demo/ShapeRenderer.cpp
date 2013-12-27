@@ -101,14 +101,14 @@ void ShapeRenderer::setupCamera()
 	sceneCamera->setUpVector(qglviewer::Vec(0,0,1));
 	sceneCamera->setPosition(qglviewer::Vec(-2,-2,1.5));
 	sceneCamera->lookAt(qglviewer::Vec());
-	sceneCamera->setType(qglviewer::Camera::ORTHOGRAPHIC);
+	sceneCamera->setType(qglviewer::Camera::PERSPECTIVE);
 
 	bool isFitToMesh = true;
 	if( isFitToMesh )
 	{
 		qglviewer::Vec viewDir = sceneCamera->viewDirection();
 		Eigen::AlignedBox3d bbox(Vector3(bmin.x(),bmin.y(),bmin.z()),Vector3(bmax.x(),bmax.y(),bmax.z()));
-		double distance = bbox.diagonal().size() * 1.2;
+		double distance = bbox.diagonal().size() * 1.4;
 		Vector3 center = bbox.center();
 		Vector3 newPos = center - (distance * Vector3(viewDir[0], viewDir[1], viewDir[2]));
 

@@ -319,6 +319,23 @@ Link* Graph::getEdge( int edgeUID )
 	return NULL;
 }
 
+QVector<Link*> Graph::getEdges( QVector<int> edgeUIDs )
+{
+	QVector<Link*> result;
+	foreach(int eid, edgeUIDs){
+		Link * l = getEdge(eid);
+		if(l) result.push_back( l );
+	}
+	return result;
+}
+
+QVector<int> Structure::Graph::getEdgeIDs( QVector<Link*> forEdges )
+{
+	QVector<int> result;
+	foreach(Link * e, forEdges)	result.push_back( e->property["uid"].toInt() );
+	return result;
+}
+
 Eigen::AlignedBox3d Graph::cached_bbox()
 {
 	if(!property.contains("bbox"))

@@ -122,6 +122,7 @@ Q_DECLARE_METATYPE( RMF::Frame )
 Q_DECLARE_METATYPE( std::vector<RMF::Frame> )
 Q_DECLARE_METATYPE( CurveEncoding )
 Q_DECLARE_METATYPE( QVector<QString> )
+Q_DECLARE_METATYPE( QVector<int> )
 Q_DECLARE_METATYPE( QVector<Structure::Link*> )
 Q_DECLARE_METATYPE( QVector<double> )
 

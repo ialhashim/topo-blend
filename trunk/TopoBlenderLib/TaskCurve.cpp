@@ -58,7 +58,7 @@ void TaskCurve::prepareShrinkCurve()
 	Curve* curve = ((Curve*)n);
 
 	// Save edges used
-	property["edges"].setValue( edges );
+	property["edges"].setValue( active->getEdgeIDs(edges) );
 
 	if(edges.size() == 1)
 	{
@@ -166,7 +166,7 @@ void TaskCurve::prepareGrowCurve()
 	foreach(Link* edge, edges) tedges.push_back(target->getEdge( edge->property["correspond"].toInt() ));
  
 	// Save the edges used
-	property["edges"].setValue( edges );
+	property["edges"].setValue( active->getEdgeIDs(edges) );
 
 	if (edges.size() == 1)
 	{
@@ -255,7 +255,7 @@ void TaskCurve::prepareGrowCurve()
 		QVector<Link*> edges;
 		edges.push_back( active->getEdge( tlinkA->property["correspond"].toInt() ) );
 		edges.push_back( active->getEdge( tlinkB->property["correspond"].toInt() ) );
-		property["edges"].setValue( edges );
+		property["edges"].setValue( active->getEdgeIDs(edges) );
 
 		// Encode curve
 		property["cpCoords"].setValue( Structure::Curve::encodeCurve(tcurve, tlinkA->position(tn->id), tlinkB->position(tn->id)) );
@@ -436,7 +436,7 @@ void TaskCurve::prepareCrossingMorphCurve()
 		encodeCurve(linkA->getCoord(n->id).front(), linkB->getCoord(n->id).front());
 	}
 
-	property["edges"].setValue( edges );
+	property["edges"].setValue( active->getEdgeIDs(edges) );
 }
 
 void TaskCurve::executeCurve(double t)
@@ -475,7 +475,7 @@ void TaskCurve::foldCurve( double t )
 		structure_curve->curve.mCtrlPoint[u] = cpts[u] + (deltas[u] * t);
 
 	// Placement
-	QVector<Link*> edges = property["edges"].value< QVector<Link*> >();
+	QVector<Link*> edges = active->getEdges( property["edges"].value< QVector<int> >() );
 
 	// Only valid edges
 	QVector<Link*> keep;
@@ -483,7 +483,24 @@ void TaskCurve::foldCurve( double t )
 	edges = keep;
 
 	// Something went wrong..
-	if(edges.isEmpty())	edges = active->getEdges(n->id);
+	if( edges.isEmpty() ){
+		edges = active->getEdges(n->id);
+
+		if( edges.isEmpty() ){
+			QString tnodeID = n->property["correspond"].toString();
+			Node * selectedOther = NULL;
+			Link * selectedTargetEdge = NULL;
+			foreach( Link * tlink, target->getEdges(tnodeID) ){
+				Node * other = active->getNode(target->getNode(tlink->otherNode(tnodeID)->id)->property["correspond"].toString());
+				if(!other || other->property["taskIsDone"].toBool())
+				{
+					selectedOther = other;
+					selectedTargetEdge = tlink;
+				}
+			}
+			edges.push_back( active->addEdge(n, selectedOther, selectedTargetEdge->getCoord(tnodeID), selectedTargetEdge->getCoordOther(tnodeID) ) );
+		}
+	}
 
     Link * l = edges.front();
 
@@ -508,7 +525,8 @@ void TaskCurve::foldCurve( double t )
 void TaskCurve::executeCrossingCurve( double t )
 {
     Node *n = node();
-	QVector<Link*> edges = property["edges"].value< QVector<Link*> >();
+
+	QVector<Link*> edges = active->getEdges( property["edges"].value< QVector<int> >() );
 
 	if (property.contains("path"))
 	{

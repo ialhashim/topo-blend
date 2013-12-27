@@ -80,6 +80,8 @@ namespace Structure{
 		Link* getEdge(QString id1, QString id2);
 		Curve* getCurve(Link * l);
 		QVector<Link*> getEdges( QString nodeID );
+		QVector<Link*> getEdges( QVector<int> edgeUIDs );
+		QVector<int> getEdgeIDs( QVector<Link*> forEdges );
 		QMap< Link*, Array1D_Vector4d > linksCoords( QString nodeID );
 		QVector<Link*> nodeEdges( QString nodeID );
 		QVector<Node*> adjNodes( Node * node );
