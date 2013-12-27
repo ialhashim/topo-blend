@@ -72,10 +72,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
 	// Lastly, create exporter widget
 	ExporterWidget * ewidget = new ExporterWidget( session );
-	QGraphicsProxyWidget * eproxy = scene->addWidget( ewidget, Qt::Tool | Qt::WindowTitleHint );
 	ewidget->move(20,120);
 	ewidget->resize(ewidget->sizeHint());
-	eproxy->setZValue(1e30);
+
+	// Show inside the scene
+	if( false )
+	{
+		QGraphicsProxyWidget * eproxy = scene->addWidget( ewidget, Qt::Tool | Qt::WindowTitleHint );
+		eproxy->setZValue(1e30);
+	}
 }
 
 MainWindow::~MainWindow()

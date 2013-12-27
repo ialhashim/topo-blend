@@ -582,7 +582,8 @@ void Task::postDone()
 	n->property["taskIsDone"] = true;
 
 	// Remove paths for edges
-	QVector<Structure::Link*> edges = property["edges"].value< QVector<Structure::Link*> >();
+	QVector<Structure::Link*> edges = active->getEdges( property["edges"].value< QVector<int> >() );
+
 	foreach (Structure::Link* link, edges){
 		QVector< GraphDistance::PathPointPair > path = link->property["path"].value< QVector< GraphDistance::PathPointPair > >();
 		if(path.size()) 
@@ -762,7 +763,7 @@ void Task::prepareMorphEdges()
 		edges.push_back(l);
 	}
 
-	property["edges"].setValue( edges );
+	property["edges"].setValue( active->getEdgeIDs( edges ) );
 
 	// Compute paths for all edges
 	foreach(Link * link, edges)
@@ -805,7 +806,8 @@ void Task::executeMorphEdges( double t )
 {
 	Node * n = node();
 
-	QVector<Structure::Link*> edges = property["edges"].value< QVector<Structure::Link*> >();
+	QVector<Structure::Link*> edges = active->getEdges( property["edges"].value< QVector<int> >() );
+
 	foreach (Structure::Link* link, edges)
 	{
 		QVector< GraphDistance::PathPointPair > path = link->property["path"].value< QVector< GraphDistance::PathPointPair > >();
