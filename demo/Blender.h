@@ -37,6 +37,8 @@ public:
 	int resultsPage;
 	QVector<ScheduleType> allSchedules;
 
+    QGraphicsProxyWidget *prevButton, *nextButton;
+
 	QSharedPointer<Scheduler> m_scheduler;
 	QSharedPointer<TopoBlender> m_blender;
 	QVector< BlendPath > blendPaths;
@@ -54,6 +56,7 @@ signals:
     void blendPathsDone();
 	void blendStarted();
 	void blendDone();
+    void blendFinished();
 
 	void exportShape(QString name, PropertyMap data);
 
