@@ -151,8 +151,8 @@ void Blender::setupBlendPathItems()
 	QRectF firstGroup = blendPathsWidgets.front()->sceneBoundingRect();
 	QRectF lastGroup = blendPathsWidgets.back()->sceneBoundingRect();
 
-	QGraphicsProxyWidget * prevButton = s->addButton(0,0, "prev", colorize( QImage(":/images/arrowUp.png"), QColor(255,153,0), 2 ) );
-	QGraphicsProxyWidget * nextButton = s->addButton(0,0, "next", colorize( QImage(":/images/arrowDown.png"), QColor(255,153,0), 2 ) );
+    prevButton = s->addButton(0,0, "prev", colorize( QImage(":/images/arrowUp.png"), QColor(255,153,0), 2 ) );
+    nextButton = s->addButton(0,0, "next", colorize( QImage(":/images/arrowDown.png"), QColor(255,153,0), 2 ) );
 
 	prevButton->setPos(firstGroup.right() - prevButton->boundingRect().width(), firstGroup.top() - padding - prevButton->boundingRect().height());
 	nextButton->setPos(lastGroup.right() - nextButton->boundingRect().width(), lastGroup.bottom() + padding);
@@ -598,12 +598,13 @@ void Blender::blendResultDone(QGraphicsItem* done_item)
 
 		if(numDone == N)
 		{
-			isFinished = true;
-			emit( blendDone() );
+            isFinished = true;
 
 			progress->stopProgress();
 			progress->hide();
 			emit( message(QString("Render time [%1 ms]").arg(renderTimer.elapsed())) );
+
+            emit( blendDone() );
 		}
 	}
 }
@@ -632,6 +633,11 @@ void Blender::blenderAllResultsDone()
 			addBlendSubItem(x, pathRect.y(), w, h, i, j);
 		}
 	}
+
+    prevButton->setEnabled(true);
+    nextButton->setEnabled(true);
+
+    emit( blendFinished() );
 }
 
 void Blender::addBlendSubItem(double x, double y, double w, double h, int i, int j)
@@ -842,6 +848,9 @@ QWidget * Blender::viewer()
 
 void Blender::showPrevResults()
 {
+    prevButton->setEnabled(false);
+    emit( blendStarted() );
+
 	if(!blendPaths.size()) return;
 
 	resultsPage--;
@@ -854,6 +863,9 @@ void Blender::showPrevResults()
 
 void Blender::showNextResults()
 {
+    nextButton->setEnabled(false);
+    emit( blendStarted() );
+
 	if(!blendPaths.size()) return;
 	resultsPage++;
 	showResultsPage();

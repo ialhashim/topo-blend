@@ -27,6 +27,7 @@ Session::Session(   Scene *scene, ShapesGallery *gallery, Controls * control,
 	blender->connect(scene, SIGNAL(mousePressDownEvent(QGraphicsSceneMouseEvent*)), SLOT(mousePress(QGraphicsSceneMouseEvent*)));
 	control->connect(blender, SIGNAL(blendStarted()), SLOT(disableTabs()));
 	control->connect(blender, SIGNAL(blendDone()), SLOT(enableTabs()));
+    control->connect(blender, SIGNAL(blendFinished()), SLOT(enableTabs()));
 
 	// Gallery:
 	gallery->connect(blender, SIGNAL(exportShape(QString,PropertyMap)), SLOT(appendShape(QString,PropertyMap)));
