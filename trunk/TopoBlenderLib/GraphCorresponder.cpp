@@ -1268,6 +1268,8 @@ void GraphCorresponder::loadCorrespondences( QString filename, bool isReversed )
 			inF >> nid;
 			nonCorresT.insert(nid);
 		}
+
+		if( isReversed ) qSwap(nonCorresS, nonCorresT);
 	}
 
 	isReady = true;  // block automatic computing correspondences
