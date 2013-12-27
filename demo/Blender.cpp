@@ -269,7 +269,11 @@ void Blender::preparePaths()
 
 	// UI and logging
 	{	
-		progress->setExtra("Preparing paths - ");
+		if( isFiltering ) 
+			progress->setExtra("Filtering / ");
+		else
+			progress->setExtra("Preparing paths / ");
+
 		progress->show();
 
 		qApp->setOverrideCursor(Qt::WaitCursor);
@@ -337,7 +341,7 @@ void Blender::preparePaths()
 	{
 		qApp->restoreOverrideCursor();
 		progress->startProgress();
-		progress->setExtra("Generating samples - ");
+		progress->setExtra("Generating samples / ");
 		emit( message(QString("Paths time [%1 ms]").arg(pathsTimer.elapsed())) );
 	}
 
@@ -888,5 +892,5 @@ void Blender::filterStateChanged( int state )
 
 	emit( message( QString("Filter state changed: ").arg(isFiltering) ) );
 
-	if( this->isFiltering ) numSchedules = 20;
+	if( this->isFiltering ) numSchedules = 50;
 }

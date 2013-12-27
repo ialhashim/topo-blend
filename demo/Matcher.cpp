@@ -8,16 +8,18 @@ Q_DECLARE_METATYPE( ForcedGroups )
 Matcher::Matcher(Scene * scene, QString title) : gcorr(NULL), prevItem(NULL), isAuto(true), DemoPage(scene,title)
 {
 	// Fill in color sets
-	for(int i = 0; i < 40; i++)
+	for(int i = 0; i < 100; i++)
 	{
 		double blueH = 7.0 / 12.0;
 		double redH = 0;
-		double range = 0.12;
 
-		double coldH = fmod(1.0 + uniformRand( -range + blueH, range + blueH ), 1.0);
-		double warmH = fmod(1.0 + uniformRand( -range + redH , range + redH  ), 1.0);
+		double brange = 0.14;
+		double hrange = 0.2;
 
-		double coldSat = 0.5;
+		double coldH = fmod(1.0 + uniformRand( -brange + blueH, brange + blueH ), 1.0);
+		double warmH = fmod(1.0 + uniformRand( -hrange + redH , hrange + redH  ), 1.0);
+
+		double coldSat = 0.4;
 		double hotSat = 1.0;
 
 		coldColors.push_back(QColor::fromHsvF(coldH, coldSat, 1));
