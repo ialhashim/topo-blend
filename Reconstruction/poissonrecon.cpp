@@ -1,11 +1,10 @@
 #include "poissonrecon.h"
 
-// This is needed for template issue in non-windows
-#include "Src/MultiGridOctest.cpp"
-
 #include <QFileInfo>
 #include <QDir>
 #include <QTextStream>
+
+#include "Src/PoissonRecon.cpp"
 
 char **PoissonRecon::convertArguments(QStringList args)
 {
@@ -24,17 +23,6 @@ char **PoissonRecon::convertArguments(QStringList args)
     return argsv;
 }
 
-void PoissonRecon::makeFromCloudFile(QString filename, QString out_filename, int depth)
-{
-    QStringList args;
-
-    args << "program_name";
-    args << "--in" << filename << "--out" << out_filename;
-    args << "--depth" << QString::number(depth);
-
-    Execute< 2 >(args.size(), convertArguments(args) );
-}
-
 void PoissonRecon::makeFromCloud( std::vector< std::vector<float> > p, std::vector< std::vector<float> > n, SimpleMesh & mesh, int depth /*= 7*/ )
 {
 	QStringList args;
@@ -46,7 +34,25 @@ void PoissonRecon::makeFromCloud( std::vector< std::vector<float> > p, std::vect
 	std::vector< std::vector<float> > mesh_verts;
 	std::vector< std::vector<int> > mesh_faces;
 
-	ExecuteMemory< 2 >(args.size(), convertArguments(args), p, n, mesh.vertices, mesh.faces);
+    ExecuteMemory< 2 >(args.size(), convertArguments(args), p, n, mesh.vertices, mesh.faces);
+
+	// DEBUG: output point cloud
+	if( mesh.faces.size() == 0 )
+	{
+		QFile file( "cloud.xyz" );
+		QFileInfo fileInfo(file.fileName());
+		QDir d(""); d.mkpath(fileInfo.absolutePath());
+		if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+		QTextStream out(&file);
+
+		for(int i = 0; i < (int)p.size(); i++){
+			for(int v = 0; v < 3; v++)	out << p[i][v] << " ";
+			for(int v = 0; v < 3; v++)	out << n[i][v] << " ";
+			out << "\n";
+		}
+
+		file.close();
+	}
 }
 
 void PoissonRecon::makeFileFromCloud( std::vector< std::vector<float> > p, std::vector< std::vector<float> > n, QString out_filename, int depth /*= 7*/ )
@@ -60,7 +66,7 @@ void PoissonRecon::makeFileFromCloud( std::vector< std::vector<float> > p, std::
 	std::vector< std::vector<float> > mesh_verts;
 	std::vector< std::vector<int> > mesh_faces;
 
-	ExecuteMemory< 2 >(args.size(), convertArguments(args), p, n, mesh_verts, mesh_faces);
+    ExecuteMemory< 2 >(args.size(), convertArguments(args), p, n, mesh_verts, mesh_faces);
 
 	// Write OBJ
 	writeOBJ(out_filename, mesh_verts, mesh_faces);
