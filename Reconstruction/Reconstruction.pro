@@ -22,8 +22,8 @@ HEADERS +=  poissonrecon.h \
             Src/PPolynomial.h \
             Src/Polynomial.h \
             Src/PointStream.h \
-            Src/PlyFile.h \
             Src/Ply.h \
+            Src/PlyFile.h \
             Src/Octree.h \
             Src/MultiGridOctreeData.h \
             Src/MemoryUsage.h \
