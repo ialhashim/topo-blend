@@ -296,9 +296,6 @@ void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bo
 
 		Node * node = usedNodes[ni];
 
-        // Skip inactive nodes
-        if( node->property["zeroGeometry"].toBool() || node->property["shrunk"].toBool()) continue;
-
         QVector<Eigen::Vector3f> points = renderData[node->id]["points"].value< QVector<Eigen::Vector3f> >();
         QVector<Eigen::Vector3f> normals = renderData[node->id]["normals"].value< QVector<Eigen::Vector3f> >();
 
@@ -423,6 +420,8 @@ void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bo
 			nodeMesh->add_face( face );
 		}
 
+		assert( mesh.faces.size() != 0 );
+
 		if( isOutGraph )
 		{
 			// Replace node mesh with reconstructed
@@ -517,10 +516,10 @@ void SynthesisManager::reconstructXYZ()
     QStringList fileNames = QFileDialog::getOpenFileNames(0, "Open XYZ File","", "XYZ Files (*.xyz)");
     if(fileNames.isEmpty()) return;
 
-    foreach(QString filename, fileNames)
-    {
-        PoissonRecon::makeFromCloudFile(filename, filename + ".off", 7);
-    }
+    //foreach(QString filename, fileNames)
+    //{
+    //    PoissonRecon::makeFromCloudFile(filename, filename + ".off", 7);
+    //}
 }
 
 void SynthesisManager::renderAll()
@@ -809,8 +808,18 @@ void SynthesisManager::geometryMorph( SynthData & data, Structure::Graph * graph
 		if(n->type() == Structure::CURVE) Synthesizer::blendGeometryCurves((Structure::Curve *)n, t, ndata, points, normals, isApprox);
 		if(n->type() == Structure::SHEET) Synthesizer::blendGeometrySheets((Structure::Sheet *)n, t, ndata, points, normals, isApprox);
 
-		data[n->id]["points"].setValue( points );
-		data[n->id]["normals"].setValue( normals );
+		// Skip bad reconstructed points
+		QVector<Eigen::Vector3f> cleanPoints, cleanNormals;
+		for(int i = 0; i < points.size(); i++)
+		{
+			if( std::isnan(points[i][0]) || std::isnan(points[i][1]) || std::isnan(points[i][2]) ) continue;
+
+			cleanPoints.push_back( points[i] );
+			cleanNormals.push_back( normals[i] );
+		}
+
+		data[n->id]["points"].setValue( cleanPoints );
+		data[n->id]["normals"].setValue( cleanNormals );
 	}
 }
 

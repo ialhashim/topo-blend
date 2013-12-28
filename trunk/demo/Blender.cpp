@@ -515,6 +515,22 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 		return;
 	}
 
+	// Debug render graph function
+	if(keyEvent->key() == Qt::Key_Backspace)
+	{
+		QList<QGraphicsItem*> allSelected;
+		foreach(QGraphicsProxyWidget * proxy, blendPathsWidgets) allSelected << ((BlendPathWidget*)proxy->widget())->scene->selectedItems();
+
+		foreach(QGraphicsItem * item, allSelected)
+		{
+			BlendRenderItem * renderItem = qobject_cast<BlendRenderItem *>(item->toGraphicsObject());
+			if(!renderItem) continue;
+
+			QString filename = QString("testRender_%1.obj").arg(renderItem->property["pathID"].toInt());
+			s_manager->renderGraph(*renderItem->graph(), filename, false, 6, true);
+		}
+	}
+
 	// Show full schedule for selected item
 	if(keyEvent->key() == Qt::Key_Space)
 	{
