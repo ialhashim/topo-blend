@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>444</width>
-    <height>344</height>
+    <width>375</width>
+    <height>411</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -74,7 +74,7 @@ QPushButton:pressed{ background:rgb(255,153,0); border-color:#FFB444; top:2px; }
            <number>15</number>
           </property>
           <property name="value">
-           <number>7</number>
+           <number>6</number>
           </property>
          </widget>
         </item>
@@ -132,7 +132,13 @@ QPushButton:pressed{ background:rgb(255,153,0); border-color:#FFB444; top:2px; }
          </widget>
         </item>
         <item row="7" column="0" colspan="2">
-         <widget class="QPlainTextEdit" name="log"/>
+         <widget class="QPlainTextEdit" name="log">
+          <property name="font">
+           <font>
+            <pointsize>7</pointsize>
+           </font>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>

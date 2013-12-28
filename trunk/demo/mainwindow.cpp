@@ -71,7 +71,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	control->loadCategories( datasetFolder );
 
 	// Lastly, create exporter widget
-	ExporterWidget * ewidget = new ExporterWidget( session );
+	ewidget = new ExporterWidget( session );
 	ewidget->move(20,120);
 	ewidget->resize(ewidget->sizeHint());
 
@@ -123,6 +123,14 @@ void MainWindow::keyUpEvent(QKeyEvent* keyEvent)
 	if(keyEvent->key() == Qt::Key_L)
 	{
 		ui->logWidget->setVisible(!ui->logWidget->isVisible());
+	}
+
+	if(keyEvent->key() == Qt::Key_E)
+	{
+		int y = (QDesktopWidget().screenGeometry().height() - this->height()) * 0.5;
+		this->move(QDesktopWidget().screenGeometry().width() - this->width() - 12, y);
+		ewidget->move( this->pos().x() - ewidget->width() - 12, y );
+		this->setFocus();
 	}
 }
 

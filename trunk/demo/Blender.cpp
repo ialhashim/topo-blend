@@ -481,15 +481,6 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 		return;
 	}
 
-	if( keyEvent->key() == Qt::Key_E )
-	{
-		emit( showLogWindow() );
-
-		emit( message( QString("Filtering [%1] Num schedules [%2]").arg(isFiltering).arg(numSchedules) ) );
-
-		return;
-	}
-
 	// Regular keys
 	if(!visible) return;
 
@@ -558,6 +549,13 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 		SchedulerWidget * widget = new SchedulerWidget( m_scheduler.data() );
 		widget->setAttribute(Qt::WA_DeleteOnClose);
 		widget->show();
+		return;
+	}
+
+	if( keyEvent->key() == Qt::Key_E )
+	{
+		emit( showLogWindow() );
+		emit( message( QString("Filtering [%1] Num schedules [%2]").arg(isFiltering).arg(numSchedules) ) );
 		return;
 	}
 
