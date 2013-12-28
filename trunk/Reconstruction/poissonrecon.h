@@ -6,7 +6,10 @@
 
 #ifdef WIN32
 namespace std{  static inline bool isnan(double x){ return _isnan(x); } }
+#else
+#include <cmath>
 #endif
+
 
 struct SimpleMesh{
 	std::vector< std::vector<float> > vertices;
@@ -31,7 +34,7 @@ static inline std::vector< std::vector<float> > pointCloudf( std::vector<Vector3
 	std::vector< std::vector<float> > cloud(points.size(), std::vector<float>(3,0));
 	for(int i = 0; i < (int)points.size(); i++)
 	{
-		if( std::isnan(cloud[i][0]) || std::isnan(cloud[i][1]) || std::isnan(cloud[i][2]) ) continue;
+        if( std::isnan(cloud[i][0]) || std::isnan(cloud[i][1]) || std::isnan(cloud[i][2]) ) continue;
 
 		cloud[i][0] = points[i][0];
 		cloud[i][1] = points[i][1];
