@@ -276,7 +276,7 @@ namespace kmeansFast
 		Vec ChosenIDs = Vec::Ones(K);
 		int choice = discrete_rand( ChosenIDs );
 
-		Mu.row(0) = X.row( std::min(X.rows()-1, choice) );
+        Mu.row(0) = X.row( std::min(int(X.rows()-1), choice) );
 		ChosenIDs[0] = choice;
 		Vec minDist(N);
 		Vec curDist(N);
