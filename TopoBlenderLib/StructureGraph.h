@@ -93,7 +93,7 @@ namespace Structure{
 		Vector3 nodeIntersection( Node * n1, Node * n2 );
 
 		// Input / Output
-		void saveToFile(QString fileName) const;
+		void saveToFile(QString fileName, bool isOutParts = true) const;
 		void loadFromFile(QString fileName);
 
 		void exportAsOBJ( QString filename );

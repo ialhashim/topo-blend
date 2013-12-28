@@ -4,6 +4,7 @@
 
 #include "Session.h"
 #include "Controls.h"
+#include "ExporterWidget.h"
 
 namespace Ui {
 class MainWindow;
@@ -26,6 +27,7 @@ private:
     Scene * scene;
     Session * session;
     Controls * control;
+	ExporterWidget * ewidget;
 
 public slots:
 	void message(QString m);

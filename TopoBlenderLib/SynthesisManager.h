@@ -84,7 +84,7 @@ public slots:
     void renderAll();
 	void renderCurrent();
 	void renderCurrent( Structure::Graph * currentGraph, QString path = "" );
-	void renderGraph( Structure::Graph graph, QString filename, bool isOutPointCloud, int reconLevel, bool isOutGraph = false );
+	void renderGraph( Structure::Graph graph, QString filename, bool isOutPointCloud, int reconLevel, bool isOutGraph = false, bool isOutParts = true );
 
 	void drawSampled();
 	void geometryMorph( SynthData & data, Structure::Graph * graph, bool isApprox, int limit = -1 );

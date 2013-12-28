@@ -851,7 +851,7 @@ void Graph::drawNodeMeshNames( int & offSet )
 	}
 }
 
-void Graph::saveToFile( QString fileName ) const
+void Graph::saveToFile( QString fileName, bool isOutParts /*= true*/ ) const
 {
 	if(nodes.size() < 1) return;
 
@@ -887,7 +887,8 @@ void Graph::saveToFile( QString fileName ) const
 			QSharedPointer<SurfaceMeshModel> mesh = n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >();
 			if(mesh_filename.size() && mesh)
 			{
-				saveOBJ( mesh.data(), graphDir.path() + "/" + relativeFileName );
+				if( isOutParts )
+					saveOBJ( mesh.data(), graphDir.path() + "/" + relativeFileName );
 			}
 
 			out << QString("\t<mesh>%1</mesh>\n\n").arg( relativeFileName ); // relative

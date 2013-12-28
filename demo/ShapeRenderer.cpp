@@ -100,7 +100,7 @@ void ShapeRenderer::setupCamera()
 	sceneCamera->showEntireScene();
 	sceneCamera->setUpVector(qglviewer::Vec(0,0,1));
 	sceneCamera->setPosition(qglviewer::Vec(-2,-2,1.5));
-	sceneCamera->lookAt(qglviewer::Vec());
+	sceneCamera->lookAt(qglviewer::Vec(0,0,0));
 	sceneCamera->setType(qglviewer::Camera::PERSPECTIVE);
 
 	bool isFitToMesh = true;

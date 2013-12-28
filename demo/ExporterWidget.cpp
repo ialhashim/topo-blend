@@ -92,6 +92,8 @@ void ExporterWidget::addInBetween()
 	ui->resultsTable->resizeRowsToContents();
 
 	session->b->clearSelectedInBetween();
+
+	ui->resultsTable->setCurrentCell(ui->resultsTable->rowCount() - 1,0);
 }
 
 void ExporterWidget::removeInBetween()
@@ -148,14 +150,18 @@ void ExporterWidget::exportSet()
 	// Re-sample if needed
 	if( s_manager->samplesCount != requestedSamplesCount && ui->isFullRecon->isChecked() )
 	{
+		logMessage( QString("Sampling (%1 K sample rate)...").arg(ui->samplesCount->value()) );
+
 		samplingTimer.start();
 		session->b->property["isOverrideSynth"] = true;
 
 		s_manager->samplesCount = requestedSamplesCount;
-		s_manager->genSynData();
+		s_manager->genSynData(); // HEAVY
 
 		session->b->property["isOverrideSynth"] = false;
 		log["sampling-time"] = (int)samplingTimer.elapsed();
+
+		logMessage( "Done sampling." );
 	}
 
 	QString sessionName = QString("session_%1").arg(QDateTime::currentDateTime().toString("dd.MM.yyyy_hh.mm.ss"));
@@ -170,6 +176,8 @@ void ExporterWidget::exportSet()
 
 	for(int i = 0; i < ui->resultsTable->rowCount(); ++i)
 	{
+		logMessage( QString("Making shape (%1)...").arg(i) );
+
 		QTableWidgetItem *rowItem = ui->resultsTable->item(i, 0);
 
 		QVariant graph_p = rowItem->data(Qt::UserRole);
@@ -188,7 +196,7 @@ void ExporterWidget::exportSet()
 		QDir::setCurrent( d.absolutePath() + "/" + path + filename );
 
 		// Generate the geometry and export the structure graph
-		s_manager->renderGraph(*g, filename, false, reconLevel, true);
+		s_manager->renderGraph(*g, filename, false, reconLevel, true, !ui->isSimplify->isChecked());
 
 		// Generate thumbnail
 		QString objFile = QDir::currentPath() + "/" + filename + ".obj";
@@ -207,7 +215,9 @@ void ExporterWidget::exportSet()
 			qDebug() << curCmd;
 
 			system( qPrintable(curCmd) );
-			system( "del *.obj" ); // delete large OBJ file
+
+			// delete large OBJ file
+			system( "del *.obj" );
 
 			logMessage( QString("Shape (%1) simplified.").arg(i) );
 		}

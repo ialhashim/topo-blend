@@ -269,7 +269,8 @@ void SynthesisManager::renderCurrent(Structure::Graph * currentGraph, QString pa
     qDebug() << QString("Current graph rendered [%1 ms]").arg(timer.elapsed());
 }
 
-void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bool isOutPointCloud, int reconLevel, bool isOutGraph )
+void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bool isOutPointCloud, 
+									int reconLevel, bool isOutGraph /*= false*/, bool isOutParts /*= true */ )
 {
 	QMap<QString, SurfaceMesh::Model*> reconMeshes;
 
@@ -496,7 +497,7 @@ void SynthesisManager::renderGraph( Structure::Graph graph, QString filename, bo
 		foreach(Node * n, graph.nodes) n->id = n->id.replace("_","");
 		foreach(Link * e, graph.edges) e->id = e->id.replace("_","");
 		
-        graph.saveToFile( filename + ".xml" );
+        graph.saveToFile( filename + ".xml", isOutParts );
     }
 	else
 	{

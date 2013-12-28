@@ -17,11 +17,11 @@ void Scene::setupCamera()
 	double worldRadius = 10.0;
 
 	this->camera = new qglviewer::Camera;
+	this->camera->setUpVector(qglviewer::Vec(0,0,1));
+	this->camera->setPosition(qglviewer::Vec(2,-2,1.5));
+	this->camera->lookAt(qglviewer::Vec());
 	this->camera->setSceneRadius( worldRadius );
 	this->camera->showEntireScene();
-	this->camera->setUpVector(qglviewer::Vec(0,0,1));
-	this->camera->setPosition(qglviewer::Vec(2,-2,2));
-	this->camera->lookAt(qglviewer::Vec());
 }
 
 void Scene::setupLights()
