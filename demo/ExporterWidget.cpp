@@ -198,10 +198,14 @@ void ExporterWidget::exportSet()
 		// Generate the geometry and export the structure graph
 		s_manager->renderGraph(*g, filename, false, reconLevel, true, !ui->isSimplify->isChecked());
 
+		// Change camera location if requested
+		GLVertex camDelta;
+		if( ui->isMoveCamera->isChecked() ) camDelta = GLVertex( ui->moveCamX->value(), ui->moveCamY->value(), ui->moveCamZ->value() );
+
 		// Generate thumbnail
 		QString objFile = QDir::currentPath() + "/" + filename + ".obj";
 		QString thumbnailFile = QDir::currentPath() + "/" + filename + ".png";
-		ShapeRenderer::render( objFile, true ).save( thumbnailFile );
+		ShapeRenderer::render( objFile, true, camDelta ).save( thumbnailFile );
 
 		// Output schedule for this in-between
 		ScheduleType schedule = g->property["schedule"].value<ScheduleType>();

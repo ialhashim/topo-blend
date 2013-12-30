@@ -8,6 +8,8 @@ using namespace SurfaceMesh;
 #include "ShapeRenderer.h"
 #include "qglviewer/camera.h"
 
+Q_DECLARE_METATYPE(qglviewer::Vec)
+
 ShapeRenderer::ShapeRenderer(QString filename, QColor color, bool isFlatShading, int resolution) : color(color), isFlatShading(isFlatShading)
 {
     int w = resolution, h = resolution;
@@ -96,10 +98,12 @@ void ShapeRenderer::setupCamera()
 	glViewport( 0, 0, w, h );
 	sceneCamera->setScreenWidthAndHeight(w,h);
 
+	qglviewer::Vec cameraDelta = this->property("cameraDelta").value<qglviewer::Vec>();
+
 	sceneCamera->setSceneRadius( 10 );
 	sceneCamera->showEntireScene();
 	sceneCamera->setUpVector(qglviewer::Vec(0,0,1));
-	sceneCamera->setPosition(qglviewer::Vec(-2,-2,1.5));
+	sceneCamera->setPosition(qglviewer::Vec(-2,-2,1.5) + cameraDelta.unit());
 	sceneCamera->lookAt(qglviewer::Vec(0,0,0));
 	sceneCamera->setType(qglviewer::Camera::PERSPECTIVE);
 
@@ -108,13 +112,13 @@ void ShapeRenderer::setupCamera()
 	{
 		qglviewer::Vec viewDir = sceneCamera->viewDirection();
 		Eigen::AlignedBox3d bbox(Vector3(bmin.x(),bmin.y(),bmin.z()),Vector3(bmax.x(),bmax.y(),bmax.z()));
-		double distance = bbox.diagonal().size() * 1.4;
+		double distance = bbox.diagonal().size() * 1.4 * qMax(1.0, cameraDelta.norm());
 		Vector3 center = bbox.center();
 		Vector3 newPos = center - (distance * Vector3(viewDir[0], viewDir[1], viewDir[2]));
 
 		sceneCamera->setRevolveAroundPoint( qglviewer::Vec(center) );
 		qglviewer::Vec new_pos(newPos);
-		sceneCamera->frame()->setPositionWithConstraint(new_pos);
+		sceneCamera->frame()->setPositionWithConstraint( new_pos );
 	}
 
 	sceneCamera->loadProjectionMatrix();
@@ -217,9 +221,14 @@ void ShapeRenderer::paintGL()
 	}
 }
 
-QPixmap ShapeRenderer::render(QString filename, bool isFlatShading)
+QPixmap ShapeRenderer::render( QString filename, bool isFlatShading, GLVertex cameraDelta )
 {
    ShapeRenderer * renderer = new ShapeRenderer(filename, QColor(203, 127, 92), isFlatShading, 512);
+
+   QVariant camDelta;
+   camDelta.setValue(qglviewer::Vec(cameraDelta.x,cameraDelta.y,cameraDelta.z));
+   renderer->setProperty("cameraDelta", camDelta);
+
    renderer->show();
    renderer->updateGL();
    QPixmap img = QPixmap::fromImage( renderer->grabFrameBuffer(true) );
