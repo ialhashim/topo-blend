@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>375</width>
-    <height>411</height>
+    <width>445</width>
+    <height>408</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -54,18 +54,32 @@ QPushButton:pressed{ background:rgb(255,153,0); border-color:#FFB444; top:2px; }
        <property name="flat">
         <bool>true</bool>
        </property>
-       <layout class="QFormLayout" name="formLayout">
-        <property name="fieldGrowthPolicy">
-         <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-        </property>
-        <item row="2" column="0">
+       <layout class="QGridLayout" name="gridLayout_5">
+        <item row="0" column="0">
          <widget class="QLabel" name="label">
           <property name="text">
            <string>Levels</string>
           </property>
          </widget>
         </item>
-        <item row="2" column="1">
+        <item row="6" column="0">
+         <widget class="QDoubleSpinBox" name="moveCamX">
+          <property name="minimum">
+           <double>-100.000000000000000</double>
+          </property>
+          <property name="maximum">
+           <double>100.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>Samples</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
          <widget class="QSpinBox" name="reconLevels">
           <property name="minimum">
            <number>4</number>
@@ -78,14 +92,7 @@ QPushButton:pressed{ background:rgb(255,153,0); border-color:#FFB444; top:2px; }
           </property>
          </widget>
         </item>
-        <item row="3" column="0">
-         <widget class="QLabel" name="label_2">
-          <property name="text">
-           <string>Samples</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="1">
+        <item row="1" column="1">
          <widget class="QSpinBox" name="samplesCount">
           <property name="suffix">
            <string> K</string>
@@ -101,27 +108,37 @@ QPushButton:pressed{ background:rgb(255,153,0); border-color:#FFB444; top:2px; }
           </property>
          </widget>
         </item>
-        <item row="4" column="0" colspan="2">
-         <widget class="QCheckBox" name="isFullRecon">
-          <property name="text">
-           <string>Full</string>
+        <item row="6" column="1">
+         <widget class="QDoubleSpinBox" name="moveCamY">
+          <property name="minimum">
+           <double>-100.000000000000000</double>
           </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item row="5" column="0" colspan="2">
-         <widget class="QCheckBox" name="isSimplify">
-          <property name="text">
-           <string>Simplify</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
+          <property name="maximum">
+           <double>100.000000000000000</double>
           </property>
          </widget>
         </item>
-        <item row="6" column="0" colspan="2">
+        <item row="6" column="2">
+         <widget class="QDoubleSpinBox" name="moveCamZ">
+          <property name="minimum">
+           <double>-100.000000000000000</double>
+          </property>
+          <property name="maximum">
+           <double>100.000000000000000</double>
+          </property>
+          <property name="value">
+           <double>-1.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0" colspan="3">
+         <widget class="QCheckBox" name="isMoveCamera">
+          <property name="text">
+           <string>Move Camera</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0" colspan="3">
          <widget class="QCheckBox" name="isUpload">
           <property name="text">
            <string>Upload cloud</string>
@@ -131,7 +148,27 @@ QPushButton:pressed{ background:rgb(255,153,0); border-color:#FFB444; top:2px; }
           </property>
          </widget>
         </item>
-        <item row="7" column="0" colspan="2">
+        <item row="3" column="0" colspan="3">
+         <widget class="QCheckBox" name="isSimplify">
+          <property name="text">
+           <string>Simplify</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0" colspan="3">
+         <widget class="QCheckBox" name="isFullRecon">
+          <property name="text">
+           <string>Full</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="0" colspan="3">
          <widget class="QPlainTextEdit" name="log">
           <property name="font">
            <font>
