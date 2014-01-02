@@ -522,6 +522,19 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 		}
 	}
 
+	// Export all in-betweens on screen
+	if(keyEvent->key() == Qt::Key_A)
+	{
+		for(int i = 0; i < numSuggestions; i++)
+		{
+			for(int j = 0; j < numInBetweens; j++)
+			{
+				QString filename = QString("inbetween_%1_%2.obj").arg( i ).arg( j );
+				s_manager->renderGraph(*resultItems[i][j]->graph(), filename, false, 6, true, false);
+			}
+		}
+	}
+
 	// Show full schedule for selected item
 	if(keyEvent->key() == Qt::Key_Space)
 	{
@@ -918,5 +931,5 @@ void Blender::filterStateChanged( int state )
 
 	emit( message( QString("Filter state changed: ").arg(isFiltering) ) );
 
-	if( this->isFiltering ) numSchedules = 50;
+	if( this->isFiltering ) numSchedules = 20;
 }

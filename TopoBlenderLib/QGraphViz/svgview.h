@@ -4,6 +4,7 @@
 
 QT_BEGIN_NAMESPACE
 class QWheelEvent;
+class QKeyEvent;
 class QPaintEvent;
 class QFile;
 QT_END_NAMESPACE
@@ -26,6 +27,8 @@ public slots:
 protected:
     void wheelEvent(QWheelEvent *event);
     void paintEvent(QPaintEvent *event);
+
+	void keyReleaseEvent (QKeyEvent * event);
 
 private:
     RendererType m_renderer;

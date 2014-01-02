@@ -569,7 +569,7 @@ void TaskCurve::executeCrossingCurve( double t )
 
 		int nA = pathA.size(), nB = pathB.size();
 
-		if(nA == 0 || nB == 0)  return;
+		if(nA == 0 || nB == 0 || edges.isEmpty())  return;
 
 		int idxA = t * (pathA.size() - 1);
 		int idxB = t * (pathB.size() - 1);
