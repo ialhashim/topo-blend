@@ -103,7 +103,7 @@ void ShapeRenderer::setupCamera()
 	sceneCamera->setSceneRadius( 10 );
 	sceneCamera->showEntireScene();
 	sceneCamera->setUpVector(qglviewer::Vec(0,0,1));
-	sceneCamera->setPosition(qglviewer::Vec(-2,-2,1.5) + cameraDelta.unit());
+	sceneCamera->setPosition(qglviewer::Vec(-2,-2,1.5) + ((cameraDelta.norm() != 0.0) ? cameraDelta.unit() : qglviewer::Vec(0,0,0)) );
 	sceneCamera->lookAt(qglviewer::Vec(0,0,0));
 	sceneCamera->setType(qglviewer::Camera::PERSPECTIVE);
 
@@ -112,7 +112,11 @@ void ShapeRenderer::setupCamera()
 	{
 		qglviewer::Vec viewDir = sceneCamera->viewDirection();
 		Eigen::AlignedBox3d bbox(Vector3(bmin.x(),bmin.y(),bmin.z()),Vector3(bmax.x(),bmax.y(),bmax.z()));
-		double distance = bbox.diagonal().size() * 1.4 * qMax(1.0, cameraDelta.norm());
+		double distance = bbox.diagonal().size() * 1.4;
+
+		double n = cameraDelta.norm();
+		if(n > 0.5) distance *= n;
+
 		Vector3 center = bbox.center();
 		Vector3 newPos = center - (distance * Vector3(viewDir[0], viewDir[1], viewDir[2]));
 

@@ -199,7 +199,7 @@ void ExporterWidget::exportSet()
 		s_manager->renderGraph(*g, filename, false, reconLevel, true, !ui->isSimplify->isChecked());
 
 		// Change camera location if requested
-		GLVertex camDelta;
+		GLVertex camDelta(0,0,0);
 		if( ui->isMoveCamera->isChecked() ) camDelta = GLVertex( ui->moveCamX->value(), ui->moveCamY->value(), ui->moveCamZ->value() );
 
 		// Generate thumbnail

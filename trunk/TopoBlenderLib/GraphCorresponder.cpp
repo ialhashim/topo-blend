@@ -246,7 +246,10 @@ void GraphCorresponder::addLandmarks( QVector<QString> sParts, QVector<QString> 
 	// Mark those parts
 	foreach(QString strID, sParts)
 	{
-		int idx = sg->getNode(strID)->property["index"].toInt();
+		Structure::Node * snode = sg->getNode(strID);
+		if(!snode) continue;
+
+		int idx = snode->property["index"].toInt();
 		sIsLandmark[idx] = true;
 
 		// Make sure its not in list of non-corresponding
@@ -256,7 +259,10 @@ void GraphCorresponder::addLandmarks( QVector<QString> sParts, QVector<QString> 
 
 	foreach(QString strID, tParts)
 	{
-		int idx = tg->getNode(strID)->property["index"].toInt();
+		Structure::Node * tnode = tg->getNode(strID);
+		if(!tnode) continue;
+
+		int idx = tnode->property["index"].toInt();
 		tIsLandmark[idx] = true;
 
 		nonCorresT.remove(idx);
