@@ -9,6 +9,30 @@
 //#include "PairRelationScorer.h"
 #include "GroupRelationScorer.h"
 
+QTextStream& operator << (QTextStream& os, const ScorerManager::PathScore& pr)
+{    
+	os << "Min connectivity " << pr.connectivity.minCoeff() << "\n";
+	os << "Min localSymmetry " << pr.localSymmetry.minCoeff() << "\n";
+	os << "Min globalSymmetry " << pr.globalSymmetry.minCoeff() << "\n";
+	//int N = pr.connectivity.size();
+	//os << "Connectivity \n";
+	//for(int i = 0; i < N; ++i)
+	//{
+	//	os << pr.connectivity[i] << "\n";
+	//}
+	//os << "local symm \n";
+	//for(int i = 0; i < N; ++i)
+	//{
+	//	os << pr.localSymmetry[i] << "\n";
+	//}
+	//os << "global symm \n";
+	//for(int i = 0; i < N; ++i)
+	//{
+	//	os << pr.globalSymmetry[i] << "\n";
+	//}
+    return os;
+}
+
 void saveScore(QString filename, QVector<double> scores, QString headline)
 {
 	QFile file(filename);

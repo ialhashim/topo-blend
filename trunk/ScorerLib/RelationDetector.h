@@ -6,9 +6,9 @@
 
 static QString TRANS = "TRANS";
 static QString REF = "REF";
-static QString PARALLEL = "PARALLEL";
-static QString ORTHOGONAL = "ORTHOGONAL";
-static QString COPLANAR = "COPLANAR";
+//static QString PARALLEL = "PARALLEL";
+//static QString ORTHOGONAL = "ORTHOGONAL";
+//static QString COPLANAR = "COPLANAR";
 static QString CONNECTED = "CONNECTED"; // for all connected pairs
 static QString NONE = "NONE";
 
@@ -30,8 +30,8 @@ public:
     double diameter; // diameter of the pair
 
     Eigen::Vector3d trans_vec;// for TRANS
-	Eigen::Vector3d normal; // for coplanar
-    Eigen::Vector3d point; // for coplanar
+	//Eigen::Vector3d normal; // for coplanar
+    //Eigen::Vector3d point; // for coplanar
 
     friend QTextStream& operator<<(QTextStream& os, const PairRelation& pr);
 };

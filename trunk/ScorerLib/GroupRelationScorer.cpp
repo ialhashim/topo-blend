@@ -183,24 +183,24 @@ void GroupRelationScorer::computeGroupDeviationByCpts(GroupRelation& cgr, GroupR
     }
 }
 
-double GroupRelationScorer::errorOfCoplanarGroupByCpts(std::vector<Structure::Node*> &nodes, Eigen::Vector3d& point, Eigen::Vector3d& normal)
-{
-    double err(0.0);
-    Point_3 p(point[0],point[1],point[2]);
-    Vector_3 n(normal[0],normal[1],normal[2]);
-    Plane_3 plane(p, n);
-
-    for ( int i = 0; i < (int) nodes.size(); ++i)
-    {
-        Eigen::Vector3d pt1 = nodes[i]->controlPoint(0);
-        int ncp = nodes[i]->numCtrlPnts();
-        Eigen::Vector3d pt2 = nodes[i]->controlPoint( ncp-1 );
-        Point_3 p1(pt1.x(), pt1.y(), pt1.z());
-        Point_3 p2(pt2.x(), pt2.y(), pt2.z());
-
-        double dist1 = squared_distance(plane, p1);
-        double dist2 = squared_distance(plane, p2);
-        err += (dist1+dist2);
-    }
-    return err;
-}
+//double GroupRelationScorer::errorOfCoplanarGroupByCpts(std::vector<Structure::Node*> &nodes, Eigen::Vector3d& point, Eigen::Vector3d& normal)
+//{
+//    double err(0.0);
+//    Point_3 p(point[0],point[1],point[2]);
+//    Vector_3 n(normal[0],normal[1],normal[2]);
+//    Plane_3 plane(p, n);
+//
+//    for ( int i = 0; i < (int) nodes.size(); ++i)
+//    {
+//        Eigen::Vector3d pt1 = nodes[i]->controlPoint(0);
+//        int ncp = nodes[i]->numCtrlPnts();
+//        Eigen::Vector3d pt2 = nodes[i]->controlPoint( ncp-1 );
+//        Point_3 p1(pt1.x(), pt1.y(), pt1.z());
+//        Point_3 p2(pt2.x(), pt2.y(), pt2.z());
+//
+//        double dist1 = squared_distance(plane, p1);
+//        double dist2 = squared_distance(plane, p2);
+//        err += (dist1+dist2);
+//    }
+//    return err;
+//}
