@@ -26,7 +26,7 @@ public:
 		MatrixXd computeRange();
 
 		double score();
-	};
+	};	
 
 private:
 	GraphCorresponder * gcorr_;
@@ -88,6 +88,7 @@ private:
 	}
 	Structure::Graph * getCurrentGraph(int &idx);
 };
-	
+
+QTextStream& operator << (QTextStream& os, const ScorerManager::PathScore& pr);
 
 #endif // SCORERMANAGER_H
