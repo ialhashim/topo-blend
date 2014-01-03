@@ -694,6 +694,8 @@ void TopoBlender::postprocessSuperEdges()
 		{
 			QSharedPointer<SurfaceMeshModel> nodeMesh = n->property["mesh"].value< QSharedPointer<SurfaceMeshModel> >();
 
+			if(!nodeMesh) continue;
+
 			Vector3 v0 = nodeMesh->get_vertex_property<Vector3>(VPOINT)[Vertex(0)];
 			Vector3 c0 = n->controlPoints().front();
 			Vector3 deltaMesh = v0 - c0;
