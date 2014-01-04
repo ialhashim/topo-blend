@@ -25,6 +25,7 @@ Blender::Blender(Scene * scene, QString title) : DemoPage(scene,title), m_gcorr(
 	this->numSchedules = 300;
 	this->isFiltering = false;
 	this->isSample = true;
+	this->isUniformPath = false;
 
 #ifdef QT_DEBUG
 	this->isSample = false;
@@ -434,8 +435,16 @@ void Blender::blenderDone()
 		Scheduler * curSchedule = blendPaths[i].scheduler.data();
 		ScheduleType schedule = curSchedule->getSchedule();
 
-
-		QVector<Structure::Graph*> inBetweens = curSchedule->topoVaryingInBetweens( numInBetweens );
+		QVector<Structure::Graph*> inBetweens;
+		
+		if( isUniformPath )
+		{
+			inBetweens = curSchedule->topoVaryingInBetweens( numInBetweens );
+		}
+		else
+		{
+			inBetweens = curSchedule->interestingInBetweens( numInBetweens );
+		}
 
 		for(int j = 0; j < numInBetweens; j++)
 		{
@@ -487,6 +496,13 @@ void Blender::keyReleased( QKeyEvent* keyEvent )
 	// Re-draw results
 	if( keyEvent->key() == Qt::Key_R ){
 		showResultsPage();
+		return;
+	}
+
+	// Sampling type
+	if( keyEvent->key() == Qt::Key_U ){
+		this->isUniformPath = !this->isUniformPath;
+		emit( message( QString("Uniform sampling on path: %1").arg( this->isUniformPath ) ) );
 		return;
 	}
 

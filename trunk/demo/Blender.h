@@ -29,6 +29,7 @@ public:
 
 	int numSuggestions, numInBetweens, numSchedules;
 	bool isFiltering;
+	bool isUniformPath;
 
 	int itemHeight;
 	int graphItemWidth;
