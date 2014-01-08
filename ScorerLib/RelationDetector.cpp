@@ -152,7 +152,7 @@ RelationDetector::RelationDetector(Structure::Graph* g, const QString& logprefix
     thParal_ = 0.001;
     thOthog_ = 0.001;//0.1
 
-    thAxisGroup_ = 0.01;
+    thAxisGroup_ = 0.03;
     thRefGroup_ = 0.01;
     thCoplaGroup_ = 0.003;
 

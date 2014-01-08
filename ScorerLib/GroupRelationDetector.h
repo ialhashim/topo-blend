@@ -5,8 +5,14 @@ class GroupRelationDetector :
 	public RelationDetector
 {
 public:
-	GroupRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, int logLevel): RelationDetector(g, "PairRelationDetector-", ith, normalizeCoef, 1, logLevel)
+	GroupRelationDetector(Structure::Graph* g, int ith, double normalizeCoef, int logLevel): RelationDetector(g, "GroupRelationDetector-", ith, normalizeCoef, 1, logLevel)
 	{
+		if ( this->logLevel_ > 0)
+		{
+			logStream_ << "Threshold for axis group: " << thAxisGroup_ << "\n";
+			logStream_ << "Threshold for ref group: " << thRefGroup_ << "\n";
+			logStream_ << "Normalization coefficient: " << normalizeCoef_ << "\n";
+		}
 	}
     QVector<GroupRelation> groupRelations_;	
 
