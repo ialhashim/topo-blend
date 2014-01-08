@@ -98,17 +98,27 @@ void GroupRelationDetector::detectSymmGroupByRefPair(QVector<PairRelation>& prRe
         ////////////////
 		gr.note = REF;
         gr.deviation = computeAxisSymmetryGroupDeviation(gr, pointLevel_);
-        gr.type = AXIS_SYMMETRY;
+		if ( this->logLevel_ > 0)
+		{
+			logStream_ << gr;
+			logStream_ << "Normalized axis gourp deviation: " << gr.deviation / this->normalizeCoef_ << "\n";
+		}        
         if ( gr.deviation / this->normalizeCoef_ < thAxisGroup_)
         {
+			gr.type = AXIS_SYMMETRY;
             groupRelations_.push_back(gr);
         }
         else
-        {
-            gr.type = REF_SYMMETRY;
+        {            
             gr.deviation = computeRefSymmetryGroupDeviation(gr,pointLevel_);
+			if ( this->logLevel_ > 0)
+			{
+				logStream_ << gr;
+				logStream_ << "Normalized ref gourp deviation: " << gr.deviation / this->normalizeCoef_ << "\n";
+			}
             if ( gr.deviation / this->normalizeCoef_ < thRefGroup_)
             {
+				gr.type = REF_SYMMETRY;
                 groupRelations_.push_back(gr);
             }
         }
@@ -120,6 +130,11 @@ void GroupRelationDetector::detectSymmGroupByRefPair(QVector<PairRelation>& prRe
 
 void GroupRelationDetector::detectSymmGroupByTransPair(QVector<PairRelation>& prRelations)
 {
+	if ( this->logLevel_ > 0)
+	{
+		logStream_ << "GroupRelationDetector::detectSymmGroupByTransPair called! \n";
+	}
+
     int nPrs = prRelations.size();
     for (int i=0; i<nPrs; ++i)
         prRelations[i].tag = false;
@@ -173,6 +188,11 @@ void GroupRelationDetector::detectSymmGroupByTransPair(QVector<PairRelation>& pr
         computeTransGroupInfo(gr, ids);
 		gr.note = TRANS;
         gr.deviation = computeAxisSymmetryGroupDeviation(gr, pointLevel_);
+		if ( this->logLevel_ > 0)
+		{
+			logStream_ << gr;
+			logStream_ << "Normalized axis gourp deviation: " << gr.deviation / this->normalizeCoef_ << "\n";
+		}
         if ( gr.deviation / this->normalizeCoef_ < thAxisGroup_)
         {
             groupRelations_.push_back(gr);
@@ -182,6 +202,11 @@ void GroupRelationDetector::detectSymmGroupByTransPair(QVector<PairRelation>& pr
         {
             gr.type = REF_SYMMETRY;
 			gr.deviation = computeRefSymmetryGroupDeviation(gr, pointLevel_);
+			if ( this->logLevel_ > 0)
+			{
+				logStream_ << gr;
+				logStream_ << "Normalized ref gourp deviation: " << gr.deviation / this->normalizeCoef_ << "\n";
+			}
             if ( gr.deviation / this->normalizeCoef_ < thRefGroup_)
             {
                 groupRelations_.push_back(gr);

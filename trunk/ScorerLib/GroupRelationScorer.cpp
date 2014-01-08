@@ -13,13 +13,9 @@ double GroupRelationScorer::evaluate(QVector<QVector<GroupRelation> > &groupss, 
 		{
 			GroupRelation& gr = groups[i];			
 			GroupRelation cgr = findCorrespondenceGroup(this->graph_,gr,corres, 0==j);
-			if (cgr.deviation < gr.deviation)
-				cgr.deviation = 0;
-			else
-			{
-				cgr.deviation = cgr.deviation - gr.deviation;
-				cgr.deviation = cgr.deviation * cgr.diameter / this->normalizeCoef_;
-			}
+			cgr.deviation = cgr.deviation - gr.deviation;
+			cgr.deviation = cgr.deviation * cgr.diameter / this->normalizeCoef_;
+			cgr.deviation = std::max(0.0, cgr.deviation);
 
 			++num;
 			if ( resultMax < cgr.deviation)
