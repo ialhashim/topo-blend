@@ -10,6 +10,7 @@ protected:
 	GroupRelation findCorrespondenceGroup(Structure::Graph *graph, GroupRelation &gr,QVector<PART_LANDMARK>& corres,bool bSource);
 	void computeGroupDeviationByCpts(GroupRelation& cgr, GroupRelation& gr);
 	//double errorOfCoplanarGroupByCpts(std::vector<Structure::Node*> &nodes, Eigen::Vector3d& point, Eigen::Vector3d& normal);
+	// for RES
 	void computeGroupAxis(GroupRelation& cgr, QString pairtype);
 };
 

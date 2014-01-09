@@ -111,6 +111,7 @@ public:
 
 	static std::vector<Point_3> sheet2rect(Structure::Node * n);
 	static void sheet2plane(Structure::Sheet * s, Vector3& point, Vector3& normal);
+	// normalized
 	static bool node2direction(Structure::Node * n, Vector_3& result);
 
 	// output:
@@ -133,7 +134,12 @@ public:
     // order part in a group by angle around the axis
     // return mean deviation of the group
 	// precondition: center & direction of gr is known.
-    double computeAxisSymmetryGroupDeviation(GroupRelation& gr, int pointLevel);
+    double computeAxisSymmetryGroupDeviationSortParts(GroupRelation& gr, int pointLevel);	
+    // return mean deviation of the group
+	// precondition 1: center & direction of gr is known.
+	// precondition 2: order of parts is determined
+	double computeAxisSymmetryGroupDeviation(const GroupRelation& gr, int pointLevel);
+
     // compute the center and direction of the group
     void computeTransGroupInfo(GroupRelation &gr, QSet<QString>& ids);
 

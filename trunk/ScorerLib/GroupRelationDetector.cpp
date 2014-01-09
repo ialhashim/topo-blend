@@ -3,7 +3,7 @@
 void GroupRelationDetector::detect(QVector<PairRelation>& prRelations)
 {
     detectSymmGroupByRefPair( prRelations);
-    detectSymmGroupByTransPair( prRelations);
+    detectRefSymmGroupByTransPair( prRelations);
     //detectCoplanarGroup( prRelations);
     //mergeCoplanarGroup();
     removeRedundantGroup();
@@ -15,110 +15,107 @@ void GroupRelationDetector::detectSymmGroupByRefPair(QVector<PairRelation>& prRe
     for (int i=0; i<nPrs; ++i)
         prRelations[i].tag = false;
 
-    double dotVal1(0.0), dotVal2(0.0);
+    double dotVal1(0.0);
     ///////////
-    // build group from REF pair
+    // build group from REF pair with assumption that no TRANS pair is detected as REF pair
     for (int i=0; i<nPrs; ++i)
     {
+		//////////////////// detect group
         PairRelation& pr1 = prRelations[i];
         if ( pr1.tag || REF.compare(pr1.type)) continue;
                 
-        Structure::Node* n1 = pr1.n1;
-        Structure::Node* n2 = pr1.n2;
 		QSet<QString> ids;
-		GroupRelation gr;
-		ids.insert( n1->id);			ids.insert(n2->id);
-        pr1.tag = true;
-
-        Vector_3 v1, v2;
-        node2direction(n1,v1); node2direction(n2,v2);
-        dotVal1 = std::abs(dot(v1,v2));
-        if ( dotVal1 > thAxisDeviationRadio_)
-        {
-            if ( dot(v1,v2) < 0)
-                gr.direction = v1 -v2;
-            else
-                gr.direction = v1+v2;
-        }
-        else
-        {
-            gr.direction = cross_product(v1, v2);
-        }
-		gr.direction.normalize();
-
-        ///////////////
-        for (int j=i+1; j<nPrs; ++j)
+		ids.insert( pr1.n1->id);			ids.insert(pr1.n2->id);
+		pr1.tag = true;
+		
+		for (int j=i+1; j<nPrs; ++j)
         {
             PairRelation& pr2 = prRelations[j];
             if ( pr2.tag || REF.compare(pr2.type)) continue;
-
             if ( isIntersected(ids, pr2) )
             {
-                n1 = pr2.n1;
-                n2 = pr2.n2;
-                node2direction(n1,v1); node2direction(n2,v2);
-                Vector_3 dir;
-                if ( dotVal1 > thAxisDeviationRadio_)
-                {
-                    dir = v1 + v2;
-                }
-                else
-                {
-                    dotVal2 = std::abs( dot(v1,v2) );
-                    if ( dotVal2 > thAxisDeviationRadio_)
-                        continue;
-                    else
-                        dir = cross_product(v1, v2);
-                }
-				dir.normalize();
+				ids.insert(pr2.n1->id);	ids.insert(pr2.n2->id);
+                pr2.tag = true;
+			}
+		}
 
-                double tmp = std::abs( dot(gr.direction, dir) );
-                if ( tmp > thAxisDeviationRadio_)
-                {
-                    if ( dot(gr.direction, dir) < 0)
-                        gr.direction = gr.direction - dir;
-                    else
-                        gr.direction = gr.direction + dir;
+		//////////////////// sort
+		GroupRelation gr;
+		gr.ids.push_back( *ids.begin() );
+		ids.erase(ids.begin());		
+		
+		Structure::Node *n1, *n2;
+		while(!ids.isEmpty())
+		{
+			n1 = graph_->getNode(gr.ids.last());
+			Vector_3 v1, v2;
+			node2direction(n1,v1); 
 
-					gr.direction.normalize();
-                    ids.insert(n1->id);	ids.insert(n2->id);
-                    pr2.tag = true;
-                }
-            }
-        }
+			double angle = -2;
+			QSet<QString>::iterator itor;
+			for ( QSet<QString>::iterator it = ids.begin(); it != ids.end(); ++it)
+			{
+				n2 = graph_->getNode(*it);
+				node2direction(n2,v2); 				
+				dotVal1 = v1.dot(v2);
+				
+				if ( angle < dotVal1)
+				{
+					angle = dotVal1;
+					itor = it;
+				}
+			}
+			gr.ids.push_back( *itor);
+			ids.erase(itor);
+		}
 
-        ///////////////
-        for ( QSet<QString>::iterator it = ids.begin(); it != ids.end(); ++it)
-        {
-            gr.ids.push_back(*it);
-        }
+		//////////////////// detect axis
+		int n = gr.ids.size();
+		gr.direction = Eigen::Vector3d(0.0,0.0,0.0);
+		for (int j=0; j<n; ++j)
+		{
+			n1 = graph_->getNode(gr.ids[j]);
+			n2 = graph_->getNode(gr.ids[(j+1)%n]);
+
+			Vector_3 v1, v2;
+			node2direction(n1,v1); node2direction(n2,v2);
+            Vector_3 dir = cross_product(v1, v2);
+			dir.normalize();
+			if ( dir.dot(gr.direction) < 0)
+				gr.direction = gr.direction - dir;
+			else
+				gr.direction = gr.direction + dir;
+		}
+		gr.direction.normalize();
+
+		////////////////////
         gr.diameter = computeGroupDiameter(gr);
 		computeGroupCenter(gr);
 
         ////////////////
 		gr.note = REF;
-        gr.deviation = computeAxisSymmetryGroupDeviation(gr, pointLevel_);
+        gr.deviation = computeAxisSymmetryGroupDeviationSortParts(gr, pointLevel_);
+		gr.type = AXIS_SYMMETRY;
 		if ( this->logLevel_ > 0)
 		{
 			logStream_ << gr;
 			logStream_ << "Normalized axis gourp deviation: " << gr.deviation / this->normalizeCoef_ << "\n";
 		}        
         if ( gr.deviation / this->normalizeCoef_ < thAxisGroup_)
-        {
-			gr.type = AXIS_SYMMETRY;
+        {			
             groupRelations_.push_back(gr);
         }
         else
         {            
             gr.deviation = computeRefSymmetryGroupDeviation(gr,pointLevel_);
+			gr.type = REF_SYMMETRY;
 			if ( this->logLevel_ > 0)
 			{
 				logStream_ << gr;
 				logStream_ << "Normalized ref gourp deviation: " << gr.deviation / this->normalizeCoef_ << "\n";
 			}
             if ( gr.deviation / this->normalizeCoef_ < thRefGroup_)
-            {
-				gr.type = REF_SYMMETRY;
+            {				
                 groupRelations_.push_back(gr);
             }
         }
@@ -128,7 +125,7 @@ void GroupRelationDetector::detectSymmGroupByRefPair(QVector<PairRelation>& prRe
     prRelations.erase( std::remove_if(prRelations.begin(), prRelations.end(), isTaged), prRelations.end() );
 }
 
-void GroupRelationDetector::detectSymmGroupByTransPair(QVector<PairRelation>& prRelations)
+void GroupRelationDetector::detectRefSymmGroupByTransPair(QVector<PairRelation>& prRelations)
 {
 	if ( this->logLevel_ > 0)
 	{
@@ -186,32 +183,19 @@ void GroupRelationDetector::detectSymmGroupByTransPair(QVector<PairRelation>& pr
 
         ///////////////
         computeTransGroupInfo(gr, ids);
-		gr.note = TRANS;
-        gr.deviation = computeAxisSymmetryGroupDeviation(gr, pointLevel_);
+		gr.note = TRANS;       
+        gr.type = REF_SYMMETRY;
+		gr.deviation = computeRefSymmetryGroupDeviation(gr, pointLevel_);
 		if ( this->logLevel_ > 0)
 		{
 			logStream_ << gr;
-			logStream_ << "Normalized axis gourp deviation: " << gr.deviation / this->normalizeCoef_ << "\n";
+			logStream_ << "Normalized ref gourp deviation: " << gr.deviation / this->normalizeCoef_ << "\n";
 		}
-        if ( gr.deviation / this->normalizeCoef_ < thAxisGroup_)
+        if ( gr.deviation / this->normalizeCoef_ < thRefGroup_)
         {
             groupRelations_.push_back(gr);
-            continue;
         }
-        else
-        {
-            gr.type = REF_SYMMETRY;
-			gr.deviation = computeRefSymmetryGroupDeviation(gr, pointLevel_);
-			if ( this->logLevel_ > 0)
-			{
-				logStream_ << gr;
-				logStream_ << "Normalized ref gourp deviation: " << gr.deviation / this->normalizeCoef_ << "\n";
-			}
-            if ( gr.deviation / this->normalizeCoef_ < thRefGroup_)
-            {
-                groupRelations_.push_back(gr);
-            }
-        }
+
     }
     ////////////// remove pairs have been put into groups
     prRelations.erase( std::remove_if(prRelations.begin(), prRelations.end(), isTaged), prRelations.end() );
