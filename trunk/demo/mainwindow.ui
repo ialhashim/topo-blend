@@ -6,14 +6,20 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1280</width>
-    <height>837</height>
+    <width>80</width>
+    <height>186</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
+   <property name="baseSize">
+    <size>
+     <width>1280</width>
+     <height>720</height>
+    </size>
+   </property>
    <property name="styleSheet">
     <string notr="true">background:black;</string>
    </property>
@@ -26,12 +32,6 @@
     </property>
     <item row="0" column="0">
      <widget class="QGraphicsView" name="graphicsView">
-      <property name="minimumSize">
-       <size>
-        <width>1280</width>
-        <height>720</height>
-       </size>
-      </property>
       <property name="frameShape">
        <enum>QFrame::NoFrame</enum>
       </property>
@@ -47,7 +47,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1280</width>
+     <width>80</width>
      <height>21</height>
     </rect>
    </property>

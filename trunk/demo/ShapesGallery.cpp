@@ -59,7 +59,7 @@ ShapeItem *ShapesGallery::makeShapeItem( QString name, PropertyMap info, int idx
 	item->property["isRight"] = isRight;
 	this->connect(item, SIGNAL(scrollToMe(ShapeItem*)), SLOT(scrollToItem(ShapeItem*)));
 
-	double s = 128.0 / item->width;
+	double s = (0.1 * scene()->sceneRect().width()) / item->width;
 
     item->setScale( s );
 
@@ -230,7 +230,7 @@ void ShapesGallery::arrangeList( QVector<QGraphicsItem*> & list, int x )
 void ShapesGallery::wheelEvent(QGraphicsSceneWheelEvent * event)
 {
     if(!this->isVisible()) return;
-	if(event->scenePos().y() > 600) return;
+	if(event->scenePos().y() > (scene()->sceneRect().height() - scene()->property("controlsWidgetHeight").toInt())) return;
 
     bool isLeftSide = event->scenePos().x() < (s->width() * 0.6);
 	bool isRightSide = event->scenePos().x() > (s->width() * 0.4);
