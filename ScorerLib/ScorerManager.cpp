@@ -87,6 +87,11 @@ void ScorerManager::parseConstraintPair()
 		cpd.detect(this->actualInputGraphs_[(i+1)%this->actualInputGraphs_.size()], this->gcorr_->correspondences);
 		this->connectPairs_.push_back(cpd.connectedPairs_);
 		this->otherPairs_.push_back(cpd.otherPairs_);
+
+		if (this->logLevel_)
+		{
+			saveToFile("pair_relation-" + QString::number(i) + ".txt", cpd.otherPairs_);
+		}
 	}
 
     emit( message("Parse constraint pairs end. ") );

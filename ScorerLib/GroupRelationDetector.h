@@ -18,7 +18,7 @@ public:
 
     void detect(QVector<PairRelation>& prRelations);
 protected:
-	void detectSymmGroupByTransPair(QVector<PairRelation>& prRelations);
+	void detectRefSymmGroupByTransPair(QVector<PairRelation>& prRelations);
 	void detectSymmGroupByRefPair(QVector<PairRelation>& prRelations);
     bool isIntersected(QSet<QString>& ids, PairRelation& pr2);
     void removeRedundantGroup();

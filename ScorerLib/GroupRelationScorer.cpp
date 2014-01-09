@@ -48,11 +48,6 @@ double GroupRelationScorer::evaluate(QVector<QVector<GroupRelation> > &groupss, 
 GroupRelation GroupRelationScorer::findCorrespondenceGroup(Structure::Graph *graph, GroupRelation &gr,QVector<PART_LANDMARK>& corres,bool bSource)
 {
     GroupRelation cgr;
-    std::vector<double> nodeDiameter;
-    double diameter, maxDiameter(0.0);
-    int maxIdx(0);
-
-    std::vector<Structure::Node*> tmpNodes;
     for ( int i = 0; i < (int) gr.ids.size(); ++i)
     {
         std::vector<Structure::Node*> nodes = findNodesInB(gr.ids[i], graph, corres, bSource);
@@ -60,107 +55,38 @@ GroupRelation GroupRelationScorer::findCorrespondenceGroup(Structure::Graph *gra
         {
             Structure::Node* n = nodes[j];
             if ( NULL == n) continue;
-
-            tmpNodes.push_back(n);
-			diameter = n->bbox().diagonal().norm();
-            nodeDiameter.push_back(diameter);
-            if ( diameter > maxDiameter)
-            {
-                maxDiameter = diameter;
-                maxIdx = tmpNodes.size()-1;
-            }
+			cgr.ids.push_back(n->id);
         }
     }
-
-    //////////////	use max node as the first node, the following will be transformed into it, & compare with it.
-    if ( int(tmpNodes.size()) < 2 )//if ( int(tmpNodes.size()) < gr.ids.size() )
+    if ( int(cgr.ids.size()) < 2 )
     {
+		cgr.ids.clear();
         return cgr;
     }
-
-    for ( int i = maxIdx; i < (int) tmpNodes.size(); ++i)
-    {
-        Structure::Node* n = tmpNodes[i];
-        cgr.ids.push_back(n->id);
-    }
-    for ( int i = 0; i < (int) maxIdx; ++i)
-    {
-        Structure::Node* n = tmpNodes[i];
-        cgr.ids.push_back(n->id);
-    }
     cgr.diameter = computeGroupDiameter(cgr);
-
-    //////////////////////
     computeGroupDeviationByCpts(cgr, gr);
     return cgr;
 }
 
 void GroupRelationScorer::computeGroupAxis(GroupRelation& cgr, QString pairtype)
-{
-	if ( TRANS == pairtype)
+{	
+	int n = cgr.ids.size();
+	cgr.direction = Eigen::Vector3d(0.0,0.0,0.0);
+	for (int j=0; j<n; ++j)
 	{
-		QVector<QString>::iterator it = cgr.ids.begin();
-		Structure::Node* n = graph_->getNode(*it);    
-		Vector_3 direction(0,0,0);
-		node2direction(n, direction);
-		++it;
-		Vector_3 dc;
-		int k(1);
-		for (; it != cgr.ids.end(); ++it,++k )
-		{
-			Structure::Node* nn = graph_->getNode(*it);        
+		Structure::Node* n1 = graph_->getNode(cgr.ids[j]);
+		Structure::Node* n2 = graph_->getNode(cgr.ids[(j+1)%n]);
 
-			node2direction(nn, dc);
-			if ( dot(direction, dc) > 0)
-				direction = direction + dc;
-			else
-				direction = direction - dc;
-
-			direction = direction/sqrt(direction.squaredNorm());
-		}
-    
-		cgr.direction = direction;
-		return;
+		Vector_3 v1, v2;
+		node2direction(n1,v1); node2direction(n2,v2);
+        Vector_3 dir = cross_product(v1, v2);
+		dir.normalize();
+		if ( dir.dot(cgr.direction) < 0)
+			cgr.direction = cgr.direction - dir;
+		else
+			cgr.direction = cgr.direction + dir;
 	}
-
-	// for RES
-	double dotVal1(0.0);
-    Structure::Node* n1 = graph_->getNode(cgr.ids[0]);
-    Structure::Node* n2 = graph_->getNode(cgr.ids[1]);
-    Vector_3 v1, v2;
-    node2direction(n1,v1); node2direction(n2,v2);
-    dotVal1 = std::abs(dot(v1,v2));
-    if ( dotVal1 > thAxisDeviationRadio_)
-    {
-        if ( dot(v1,v2) < 0)
-            cgr.direction = v1 -v2;
-        else
-            cgr.direction = v1+v2;
-    }
-    else
-    {
-        cgr.direction = cross_product(v1, v2);
-    }
-    cgr.direction = cgr.direction/sqrt(cgr.direction.squaredNorm());
-
-    for (int j=2; j<cgr.ids.size(); ++j)
-    {     
-		Structure::Node* n = graph_->getNode(cgr.ids[j]);
-		Vector_3 dir;
-        node2direction(n,dir);
-        dir = dir/sqrt(dir.squaredNorm());
-
-        double tmp = std::abs( dot(cgr.direction, dir) );
-        if ( tmp > thAxisDeviationRadio_)
-        {
-            if ( dot(cgr.direction, dir) < 0)
-                cgr.direction = cgr.direction - dir;
-            else
-                cgr.direction = cgr.direction + dir;
-            cgr.direction = cgr.direction/sqrt(cgr.direction.squaredNorm());
-
-        }
-	}
+	cgr.direction.normalize();
 	return;
 }
 
@@ -171,7 +97,7 @@ void GroupRelationScorer::computeGroupDeviationByCpts(GroupRelation& cgr, GroupR
     {
 		computeGroupCenter(cgr);	
 		computeGroupAxis(cgr, gr.note);
-        cgr.deviation = computeAxisSymmetryGroupDeviation(cgr,pointLevel_);
+        cgr.deviation = computeAxisSymmetryGroupDeviationSortParts(cgr,pointLevel_);
     }
     else if ( cgr.type == REF_SYMMETRY)
     {

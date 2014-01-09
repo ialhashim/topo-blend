@@ -51,6 +51,11 @@ void saveToFile(QString filename, QVector<GroupRelation>& grs)
 			out << "\n Point: " << gr.point.x() << "," << gr.point.y() << "," << gr.point.z() << "\n";
 			out << "normal: " << gr.normal.x() << "," << gr.normal.y() << "," << gr.normal.z() << "\n";
 		}
+		else if ( gr.type == AXIS_SYMMETRY)
+		{
+			out << "\n Center: " << gr.center.x() << "," << gr.center.y() << "," << gr.center.z() << "\n";
+			out << "direction: " << gr.direction.x() << "," << gr.direction.y() << "," << gr.direction.z() << "\n";
+		}
 		else
 			out << "\n";
 
@@ -143,16 +148,16 @@ double RelationDetector::computeDeviationByLink(Structure::Link* link)
 RelationDetector::RelationDetector(Structure::Graph* g, const QString& logprefix, int ith, double normalizeCoef, int pointLevel, int logLevel)
 	                              :graph_(g),logLevel_(logLevel), normalizeCoef_(normalizeCoef), pointLevel_(pointLevel)
 {
-	thRadiusRadio_ = 1.2;
+	thRadiusRadio_ = 1.1;
 
-    thTransRadio_ = 0.03; //1.3
+    thTransRadio_ = 0.01; //0.3
     thRefRadio_ = 0.03;
     thAxisDeviationRadio_ = 0.9;
     thCopla_ = 0.002;//0.1
     thParal_ = 0.001;
     thOthog_ = 0.001;//0.1
 
-    thAxisGroup_ = 0.03;
+    thAxisGroup_ = 0.01;
     thRefGroup_ = 0.01;
     thCoplaGroup_ = 0.003;
 
@@ -341,7 +346,7 @@ bool RelationDetector::node2direction(Structure::Node * n, Vector_3& result)
 		result = Vector_3(normal.x(), normal.y(), normal.z());
 		iscurve = false;
 	}	
-	result = result/sqrt(result.squaredNorm());
+	result.normalize();
 	return iscurve;
 }
 
@@ -542,7 +547,7 @@ double RelationDetector::computeRefSymmetryGroupDeviation(GroupRelation& gr, int
     return minErr/gr.ids.size();
 }
 
-double RelationDetector::computeAxisSymmetryGroupDeviation(GroupRelation& gr, int pointLevel)
+double RelationDetector::computeAxisSymmetryGroupDeviationSortParts(GroupRelation& gr, int pointLevel)
 {
     double result(0.0);
     int n = gr.ids.size();
@@ -581,6 +586,29 @@ double RelationDetector::computeAxisSymmetryGroupDeviation(GroupRelation& gr, in
         gr.ids.push_back(*it);
 
     return result/(ids.size()-1);
+}
+double RelationDetector::computeAxisSymmetryGroupDeviation(const GroupRelation& gr, int pointLevel)
+{
+    double result(0.0);
+    int n = gr.ids.size();
+    double angle = 2*3.1415926/n;
+
+	double min_dist, mean_dist, max_dist;
+    for ( int i = 0; i < n; ++i)
+    {
+		Structure::Node* n1 = graph_->getNode(gr.ids[i]);
+		Eigen::MatrixXd verts1 = node2matrix(n1, pointLevel);
+
+        Structure::Node* n2 = graph_->getNode(gr.ids[(i+1)%n]);
+		Eigen::MatrixXd verts2 = node2matrix(n2, pointLevel);
+
+		Eigen::MatrixXd newverts2;            
+		rotate_points3d(verts2, gr.center, gr.direction, angle, newverts2);
+		distanceBetween(verts1, newverts2, min_dist, mean_dist, max_dist);
+		result += mean_dist;
+    } 
+
+    return result/n;
 }
 
 void RelationDetector::findRefPlane(Structure::Node* n1, Structure::Node* n2, Eigen::Vector3d& center,Eigen::Vector3d& normal)

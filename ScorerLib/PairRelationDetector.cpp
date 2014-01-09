@@ -95,6 +95,24 @@ PairRelationDetector::PairRelationDetector(Structure::Graph* g, int ith, double 
 	bUseLink_ = bUseLink;
 	bModifyDeviation_ = bModifyDeviation;
 
+	if ( this->logLevel_ > 0)
+	{
+		logStream_ << "Point level: " << pointLevel_ << "\n";
+		logStream_ << "Radius Radio: " << thRadiusRadio_ << "\n";
+		logStream_ << "Trans Radio: " << thTransRadio_ << "\n";
+		logStream_ << "Ref Radio: " << thRefRadio_ << "\n";
+		logStream_ << "Axis deviation Radio: " << thAxisDeviationRadio_ << "\n";
+
+		if ( this->bUseLink_)
+		{
+			logStream_ << "Connected pairs use link distance \n";
+		}
+		else
+		{
+			logStream_ << "Connected pairs use skeleton distance \n";
+		}
+	}
+
 	for ( int i = 0; i < (int) graph_->nodes.size(); ++i)
 	{
 		Structure::Node * n = graph_->nodes[i];
@@ -126,18 +144,6 @@ Eigen::MatrixXd& PairRelationDetector::findCptsByNodeId(Structure::Node* node)
 }
 void PairRelationDetector::detectConnectedPairs(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
 {
-	if ( this->logLevel_ > 0)
-	{
-		if ( this->bUseLink_)
-		{
-			logStream_ << "\nConnected pairs use link distance \n";
-		}
-		else
-		{
-			logStream_ << "\nConnected pairs use skeleton distance \n";
-		}
-	}
-
 	QVector<PairRelation> pairs;	
 	double deviation, mean_dist, max_dist;;
 	int tmp1 = graph_->edges.size();
@@ -231,15 +237,15 @@ void PairRelationDetector::detectOtherPairs(Structure::Graph* g, QVector<PART_LA
     }
 
 	//
+	otherPairs_.clear();
 	//if (bModifyDeviation_)
 	//{
 		//modifyPairsDegree(transPairs_, TransPairModifier(pointLevel_), g, corres, "Trans pairs");
 		//modifyPairsDegree(refPairs_, RefPairModifier(pointLevel_), g, corres, "Reflection pairs");
 	//}
-
-	otherPairs_.clear();
 	pushToOtherPairs(transPairs_, TRANS);
 	pushToOtherPairs(refPairs_, REF);
+
 }
 
 void PairRelationDetector::detect(Structure::Graph* g, QVector<PART_LANDMARK> &corres)
@@ -266,6 +272,7 @@ bool PairRelationDetector::has_trans_relation(int id1, int id2)
         pr.trans_vec = transVec;
         pr.diameter = computePairDiameter(pr);
         pr.deviation = error;
+		pr.tag = true;
         transPairs_.push_back(pr);
         return true;
     }
@@ -300,6 +307,7 @@ bool PairRelationDetector::has_ref_relation(int id1, int id2)
 		PairRelation pr(graph_->nodes[id1], graph_->nodes[id2]);
         pr.diameter = computePairDiameter(pr);
         pr.deviation = error;
+		pr.tag = true;
         refPairs_.push_back(pr);
         return true;
     }
