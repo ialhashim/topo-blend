@@ -271,7 +271,7 @@ void Blender::preparePaths()
 	// UI and logging
 	{	
 		if( isFiltering ) 
-			progress->setExtra("Filtering  ");
+			progress->setExtra("Filtering / ");
 		else
 			progress->setExtra("Preparing paths  ");
 
@@ -328,13 +328,17 @@ void Blender::preparePaths()
 
 	/// Generate and sort blend paths:
 	resultsPage = 0;
-	srand(0);
+	srand(time(NULL));
 
 	// Get 'k' schedules sorted by filter measure
 	if( isFiltering )
+	{
 		allSchedules = pathsEval->filteredSchedules( m_scheduler->manyRandomSchedules( numSchedules ) );
+	}
 	else
+	{
 		allSchedules = m_scheduler->manyRandomSchedules( numSchedules );
+	}
 
 	schedulePaths( m_scheduler, m_blender );
 
@@ -754,7 +758,7 @@ void Blender::exportSelected()
 		QDir::setCurrent( d.absolutePath() + "/" + filename );
 
 		// Generate the geometry and export the structure graph
-		s_manager->renderGraph(*g, filename, false, 5, true);
+		s_manager->renderGraph(*g, filename, false, 6, true);
 
 		// Generate thumbnail
 		QString objFile = d.absolutePath() + "/" + filename + "/" + filename + ".obj";
@@ -911,6 +915,35 @@ void Blender::showNextResults()
 
 	if(!blendPaths.size()) return;
 	resultsPage++;
+
+	if( isFiltering )
+	{
+		int cutOff = allSchedules.size() * 0.5;
+
+		// Generate more filtered results
+		if((resultsPage * numSuggestions) > cutOff){
+
+			// UI and logging
+			{	
+				progress->setExtra("Filtering / ");
+				progress->show();
+				progress->update();
+				pathsTimer.restart();
+
+				s->update();
+				qApp->processEvents();
+			}
+
+			allSchedules = pathsEval->filteredSchedules( m_scheduler->manyRandomSchedules( numSchedules ) );
+			resultsPage = 0;
+
+			// UI and logging
+			{
+				emit( message(QString("Paths filtering time [%1 ms]").arg(pathsTimer.elapsed())) );
+			}
+		}
+	}
+
 	showResultsPage();
 }
 
@@ -947,5 +980,5 @@ void Blender::filterStateChanged( int state )
 
 	emit( message( QString("Filter state changed: ").arg(isFiltering) ) );
 
-	if( this->isFiltering ) numSchedules = 20;
+	if( this->isFiltering ) numSchedules = 30;
 }
