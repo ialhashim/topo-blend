@@ -47,6 +47,19 @@ BlendRenderItem * BlendPathRenderer::genItem( Structure::Graph* newGraph, int pa
 	pixmapItem->property["blendIDX"].setValue( blendIDX );
 	pixmapItem->property["graph"].setValue( newGraph );
 
+	// DEBUG:
+	if( true )
+	{
+		if(newGraph->property.contains("scoreConnectivity"))
+		{
+			QPainter qPainter( &pixmapItem->pixmap );
+			qPainter.drawText(0,10, QString::number(newGraph->property["scoreConnectivity"].toDouble()));
+			qPainter.drawText(0,20, QString::number(newGraph->property["scoreSymLocal"].toDouble()));
+			qPainter.drawText(0,30, QString::number(newGraph->property["scoreSymGlobal"].toDouble()));
+			qPainter.drawText(0,50, QString::number(newGraph->property["score"].toDouble()));
+		}
+	}
+
 	return pixmapItem;
 }
 

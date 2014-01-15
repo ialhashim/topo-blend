@@ -23,6 +23,7 @@ public:
 	// Compute dissimilarity between two graphs of input
 	double compute( int g1, int g2 );
 	QVector<double> computeDissimilar( int gidx, int startidx = 2 );
+	QVector< QPair<double,double> > computeDissimilarPairs( int startidx = 2 );
 
     // DEBUG:
     void outputResults();

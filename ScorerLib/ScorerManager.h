@@ -76,11 +76,11 @@ public slots:
 	//void evaluatePairsAuto();
 
 	//////////////
-	PathScore pathScore( Scheduler * scheduler );
-
+	PathScore pathScore( QVector<Structure::Graph*> graphs );
 	void setIsUseSourceCenter(bool);
 	void setIsUsePart(bool);
 	void setIsUseLink(bool);
+
 private:
     bool isGlobalReflectionSymmParsed()
 	{

@@ -440,7 +440,7 @@ void Blender::blenderDone()
 		ScheduleType schedule = curSchedule->getSchedule();
 
 		QVector<Structure::Graph*> inBetweens;
-		
+
 		if( isUniformPath )
 		{
 			inBetweens = curSchedule->topoVaryingInBetweens( numInBetweens );
@@ -980,5 +980,5 @@ void Blender::filterStateChanged( int state )
 
 	emit( message( QString("Filter state changed: ").arg(isFiltering) ) );
 
-	if( this->isFiltering ) numSchedules = 30;
+	if( this->isFiltering ) numSchedules = 20;
 }

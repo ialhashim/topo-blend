@@ -353,11 +353,10 @@ Structure::Graph * ScorerManager::getCurrentGraph(int& idx)
 	return g;
 }
 
-ScorerManager::PathScore ScorerManager::pathScore( Scheduler * scheduler )
+ScorerManager::PathScore ScorerManager::pathScore( QVector<Structure::Graph*> graphs )
 {
 	ScorerManager::PathScore score;
 
-	QVector<Structure::Graph*> graphs = scheduler->allGraphs;
 	int N = graphs.size();
 	int logLevel = 0;
 
@@ -398,9 +397,12 @@ ScorerManager::PathScore ScorerManager::pathScore( Scheduler * scheduler )
 		score.localSymmetry[i] = localSymmetry[i];
 		score.globalSymmetry[i] = globalSymmetry[i];
 
-		scheduler->allGraphs[i]->property["scoreConnectivity"] = connectivity[i];
-		scheduler->allGraphs[i]->property["scoreSymLocal"] = localSymmetry[i];
-		scheduler->allGraphs[i]->property["scoreSymGlobal"] = globalSymmetry[i];
+		graphs[i]->property["scoreConnectivity"] = 1 - connectivity[i];
+		graphs[i]->property["scoreSymLocal"] = 1 - localSymmetry[i];
+		graphs[i]->property["scoreSymGlobal"] = 1 - globalSymmetry[i];
+
+		double error = qMax(qMax(connectivity[i], localSymmetry[i]), globalSymmetry[i]);
+		graphs[i]->property["score"] = -error;
 	}
 
 	return score;

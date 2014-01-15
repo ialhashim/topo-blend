@@ -16,6 +16,8 @@ public slots:
 
 	QVector<ScheduleType> filteredSchedules( QVector<ScheduleType> randomSchedules );
 
+	void evaluateFilter( QVector<Structure::Graph*> allGraphs );
+
 private:
 	Blender * b;
 

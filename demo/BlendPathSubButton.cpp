@@ -6,6 +6,8 @@
 #include "BlendRenderItem.h"
 #include "BlendPathRenderer.h"
 
+Q_DECLARE_METATYPE(Vector3)
+
 BlendPathSubButton::BlendPathSubButton(int width, int height, Blender * blender, int z_order) : blender(blender)
 {
 	setAcceptHoverEvents(true);
@@ -117,6 +119,10 @@ void BlendPathSubButton::mousePressEvent( QGraphicsSceneMouseEvent * event )
 	{
 		double t = start + (step * (i+1));
 		Structure::Graph * g = scheduler->allGraphs[qMin(N-1, int(t * N))];
+
+		g->moveCenterTo( AlphaBlend(g->property["t"].toDouble(), 
+									g->property["sourceGraphCenter"].value<Vector3>(), 
+									g->property["targetGraphCenter"].value<Vector3>()), true);
 
 		BlendRenderItem * item = renderer->genItem(g, -1, -1);
 		item->pixmap = item->pixmap.copy(item->pixmap.rect());

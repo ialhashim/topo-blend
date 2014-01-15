@@ -214,7 +214,7 @@ namespace SoftwareRenderer{
 
 		// Camera and projection
 		Eigen::Vector2d viewArea( width, height );
-		Matrix4 pmat = CreateProjectionMatrix( 80, double(width) / height );
+		Matrix4 pmat = CreateProjectionMatrix( 90, double(width) / height );
 		Matrix4 wmat = CreateWorldMatrix( translate[0], translate[1], translate[2] );
 		Matrix4 vmat = CreateViewMatrix();
 		Matrix4 transformMatrix = wmat * vmat * pmat;
