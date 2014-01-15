@@ -82,7 +82,7 @@ void PathEvaluator::test_filtering()
 		s.executeAll();
 
 		// Compute its score
-		ps[i] = r_manager.pathScore( &s );
+		ps[i] = r_manager.pathScore( s.allGraphs );
 
 		QVector<QColor> colors;
 		colors.push_back(QColor(255,0,0));
@@ -479,6 +479,20 @@ void PathEvaluator::test_topoDistinct()
 	emit( evaluationDone() );
 }
 
+void PathEvaluator::evaluateFilter( QVector<Structure::Graph*> allGraphs )
+{
+	QVector<Structure::Graph*> inputGraphs;
+	inputGraphs << b->s->inputGraphs[0]->g << b->s->inputGraphs[1]->g;
+
+	ScorerManager r_manager(b->m_gcorr, b->m_scheduler.data(), inputGraphs);
+	r_manager.parseConstraintPair();
+	r_manager.parseConstraintGroup();
+	r_manager.parseGlobalReflectionSymm();
+
+	ScorerManager::PathScore ps;
+	ps = r_manager.pathScore( allGraphs );
+}
+
 QVector<ScheduleType> PathEvaluator::filteredSchedules( QVector<ScheduleType> randomSchedules )
 {
 	QVector<ScheduleType> sorted;
@@ -516,7 +530,7 @@ QVector<ScheduleType> PathEvaluator::filteredSchedules( QVector<ScheduleType> ra
 		s.executeAll();
 
 		// Compute its score
-		ps[i] = r_manager.pathScore( &s );
+		ps[i] = r_manager.pathScore( s.allGraphs );
 	}
 
 	// Optimization

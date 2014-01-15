@@ -80,7 +80,40 @@ QVector<double> GraphDissimilarity::computeDissimilar( int gidx, int startidx )
 	QVector<double> scores;
 
 	for(int i = startidx; i < graphs.size(); i++)
+	{
 		scores.push_back( compute(gidx, i) );
+	}
+
+	return scores;
+}
+
+QVector< QPair<double,double> > GraphDissimilarity::computeDissimilarPairs( int startidx )
+{
+	QVector< QPair<double,double> > scores;
+
+	for(int i = startidx; i < graphs.size(); i++)
+	{
+		scores.push_back( qMakePair(compute(0, i), compute(1, i)) );
+	}
+
+	// Normalize both
+	double minFirst = DBL_MAX, maxFirst = -minFirst;
+	double minSecond = DBL_MAX, maxSecond = -minSecond;
+
+	for(int i = 0; i < scores.size(); i++){
+		minFirst = qMin(scores[i].first, minFirst);
+		maxFirst = qMax(scores[i].first, maxFirst);
+
+		minSecond = qMin(scores[i].second, minSecond);
+		maxSecond = qMax(scores[i].second, maxSecond);
+	}
+
+	double rangeFirst = maxFirst - minFirst;
+	double rangeSecond = maxSecond - minSecond;
+
+	for(int i = 0; i < scores.size(); i++){
+		scores[i] = qMakePair( (scores[i].first - minFirst) / rangeFirst, (scores[i].second - minSecond) / rangeSecond );
+	}
 
 	return scores;
 }

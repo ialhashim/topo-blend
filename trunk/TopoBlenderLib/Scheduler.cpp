@@ -1368,7 +1368,17 @@ QVector<Structure::Graph*> Scheduler::topoVaryingInBetweens(int N, bool isVisual
 
 			foreach(Node * n, g->nodes) foreach(Vector3 p, n->controlPoints()) cpnts << p;
 
-			MatrixXd thumbnail = SoftwareRenderer::render(cpnts, thumbWidth, thumbWidth, 2, Vector3(0,0,-0.5));
+			// Normalize and fit
+			{
+				Vector3 mean(0,0,0);
+				foreach(Vector3 p, cpnts) mean += p;
+				mean /= cpnts.size();
+				double scale = -1.0;
+				foreach(Vector3 p, cpnts) scale = qMax(scale, (p-mean).norm());
+				for(int pi = 0; pi < cpnts.size(); pi++) cpnts[pi] = ((cpnts[pi] - mean) / scale);
+			}
+
+			MatrixXd thumbnail = SoftwareRenderer::render(cpnts, thumbWidth, thumbWidth, 2, Vector3(0,0,0));
 
 			//if( isVisualize ) SoftwareRenderer::matrixToImage(thumbnail).save(QString("skeleton_%1.png").arg(i));
 			
@@ -1382,12 +1392,15 @@ QVector<Structure::Graph*> Scheduler::topoVaryingInBetweens(int N, bool isVisual
 		delete g;
 	}
 
-	QVector<double> dissimilarVals = gd.computeDissimilar(0, 2);
+	QVector< QPair<double,double> > dissimilarVals = gd.computeDissimilarPairs(2);
 
 	// Add topology measure
 	for(int i = 0; i < allGraphs.size(); i++)
 	{
-		V.row(i) *= dissimilarVals[i];
+		if(i < allGraphs.size() * 0.5)
+			V.row(i) *= (1 + dissimilarVals[i].first) * 0.5;
+		else
+			V.row(i) *= (1 + dissimilarVals[i].second) * 0.5;
 	}
 
 	QVector<int> classes(allGraphs.size());
@@ -1420,14 +1433,14 @@ QVector<Structure::Graph*> Scheduler::topoVaryingInBetweens(int N, bool isVisual
 			if(active.size()) status = allGraphs[e]->getNode(active.front())->property["t"].toDouble();
 			
 			//status = 1 - (std::abs(status - 0.5) * 2.0); // Favor end points: [0, 0.5, 1] => [1, 0, 1]
-			status = qMin(std::abs(0.25 - status), std::abs(0.75 - status)); // Favor 0.25 and 0.75 points
+			//status = qMin(std::abs(0.25 - status), std::abs(0.75 - status)); // Favor 0.25 and 0.75 points
+			status = std::abs(0.75 - status); // Favor 0.75
 
 			graphStatus[e] = status;
 		}
 
 		int idx = sortQMapByValue(graphStatus).front().second;
 
-		//int idx = elements[ 0.5 * (elements.size()-1) ]; // Arbitrary middle
 		int time = allGraphs[idx]->property["t"].toDouble() * totalTime;
 		
 		midPoints.insert( time );
@@ -1464,7 +1477,12 @@ QVector<Structure::Graph*> Scheduler::topoVaryingInBetweens(int N, bool isVisual
 
 		for(int i = 0; i < allGraphs.size(); i++)
 		{
-			double val = 0.5;
+			double val = 1.0;
+			
+			if(i < allGraphs.size() * 0.5)
+				val = dissimilarVals[i].first;
+			else
+				val = dissimilarVals[i].second;
 
 			int x = (double(i) / (allGraphs.size() - 1)) * visualization.width();
 			int y = val * visualization.height();
